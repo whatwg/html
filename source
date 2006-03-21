@@ -4414,6 +4414,8 @@ citations ("my favourite book is <cite>...</cite>").
 
   <p>The <code>t</code> element represents a date and/or time.</p>
 
+  <p>...</p>
+
   <p class="big-issue">...</p>
 
 
@@ -15435,7 +15437,8 @@ function receiver(e) {
   <p>A leading U+FEFF BYTE ORDER MARK (BOM) must be dropped if
   present.</p>
 
-  <p>All U+0000 NULL characters in the input must be dropped.</p>
+  <p>All U+0000 NULL characters in the input must be replaced by
+  U+FFFD REPLACEMENT CHARACTERs.</p>
 
   <p>U+000D CARRIAGE RETURN (CR) characters, and U+000A LINE FEED (LF)
   characters, are treated specially. Any CR characters that are
@@ -15567,7 +15570,7 @@ function receiver(e) {
      <dd>
 
       <p>If the next input character is a U+002F SOLIDUS (/)
-      character, switch to the <span>close tag open
+      character, consume it and switch to the <span>close tag open
       state</span>. Otherwise, if the <span>content model flag</span>
       is set to the textarea or title states, it is a <span>parse
       error</span>. In any case, if the next input character is not a
@@ -15871,6 +15874,13 @@ function receiver(e) {
      <dd>Emit the current tag token. Switch to the <span>data
      state</span>.</dd>
 
+     <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL LETTER Z</dt>
+     <dd>Start a new attribute in the current tag token. Set that
+     attribute's name to the lowercase version of the current input character
+     (add 0x0020 to the character's codepoint), and its value to
+     the empty string. Switch to the <span>attribute name
+     state</span>.</dd>
+
      <dt>U+002F SOLIDUS (/)</dt>
      <dd><span>Parse error</span>. Switch to the <span>before
      attribute name state</span>.</dd>
@@ -16070,6 +16080,9 @@ function receiver(e) {
     the end of the file otherwise.</p>
 
     <p>Switch to the <span>data state</span>.</p>
+
+    <p>If the end of the file was reached, reconsume the EOF
+    character.</p>
 
    </dd>
 
@@ -16288,7 +16301,7 @@ function receiver(e) {
      <dt>U+0061 LATIN SMALL LETTER A through to U+007A LATIN SMALL LETTER Z</dt>
      <dd>Create a new DOCTYPE token. Set the token's name name to the
      uppercase version of the current input character (subtract 0x0020
-     to the character's codepoint), and mark it as being in
+     from the character's codepoint), and mark it as being in
      error. Switch to the <span>DOCTYPE name state</span>.</dd>
 
      <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
@@ -16332,7 +16345,7 @@ function receiver(e) {
 
      <dt>U+0061 LATIN SMALL LETTER A through to U+007A LATIN SMALL LETTER Z</dt>
      <dd>Append the uppercase version of the current input character
-     (subtract 0x0020 to the character's codepoint) to the current DOCTYPE
+     (subtract 0x0020 from the character's codepoint) to the current DOCTYPE
      token's name. Stay in the <span>DOCTYPE name state</span>.</dd>
 
      <dt>EOF</dt>
@@ -16696,26 +16709,12 @@ function receiver(e) {
    FORM FEED (FF), or U+0020 SPACE</dt>
    <dt>A start tag token</dt>
    <dt>An end tag token</dt>
-   <dd>Create an <code>HTMLElement</code> node with the tag name
-   <code>html</code>, in the <span>HTML namespace</span>. Append it to
-   the <code>Document</code> object. Switch to <span>the main
-   phase</span> and reprocess the current token.</dd>
-
    <dt>An end-of-file token</dt>
    <dd>
-
-    <p>Act as if a start tag with tag name "html" and no attributes
-    had been seen, then reprocess the end-of-file token.</p>
-
-    <p class="note">This will cause the UA to create an
-    <code>html</code> element then switch to <span>the main
-    phase</span>, then create a <code>head</code> element and switch
-    the <span>insertion mode</span> to "in head", then switch it to
-    "after head", then create a <code>body</code> element and switch
-    the <span>insertion mode</span> to "in body", then switch it to
-    "after body", then switch to <span>the trailing end
-    phase</span>.</p>
-
+    <p>Create an <code>HTMLElement</code> node with the tag name
+    <code>html</code>, in the <span>HTML namespace</span>. Append it
+    to the <code>Document</code> object. Switch to <span>the main
+    phase</span> and reprocess the current token.</p>
    </dd>
 
   </dl>
@@ -16960,7 +16959,7 @@ function receiver(e) {
   <h6>Inserting HTML elements</h6>
 
   <p>When the steps below require the UA to <dfn>insert an HTML
-  element</dfn> for a token, the UA must create an node implementing
+  element</dfn> for a token, the UA must create a node implementing
   the interface appropriate for that element type (as given in the
   section of this specification that defines that element, e.g. for an
   <code>a</code> element it would be the
