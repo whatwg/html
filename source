@@ -2,7 +2,7 @@
 <!--
  TIMELINE
    january, february - parsing
-   march - <t>, <gauge>, <progress>
+   march - <t>
    april - parsing
    may - <card>, <calendar>
    june, july - DOM0 (including document.write(), innerHTML, etc)
@@ -1117,6 +1117,147 @@ and suggestions on this to the list, btw).
   attribute names in the original case used to create those nodes.</p>
 
 
+  <h3>Common microsyntaxes</h3>
+
+  <p>There are various places in HTML that accept particular data
+  types, such as dates or numbers. This section describes what the
+  conformance criteria for content in those formats is, and how to
+  parse them.</p>
+
+
+  <h4>Numbers</h4>
+
+  <p>A <dfn>valid floating point number</dfn> ...</p>
+
+  <p>A <dfn>valid denominator punctuation character</dfn> ...</p>
+
+  <p>The <dfn title="values associated with denominator punctuation
+  characters">value associated with each denominator punctuation
+  character</dfn> is ...</p>
+
+  <pre class="big-issue">
+        U+0025 PERCENT SIGN
+        U+066A ARABIC PERCENT SIGN
+        U+FE6A SMALL PERCENT SIGN
+        U+FF05 FULLWIDTH PERCENT SIGN
+         => 100
+
+        U+2030 PER MILLE SIGN
+         => 1000
+
+        U+2031 PER TEN THOUSAND SIGN
+         => 10000
+  </pre>
+
+  <p>The <dfn>rules for parsing floating point number values</dfn> ...</p>
+
+  <p class="big-issue">...</p>
+
+  <!-- XXX should have the term "positive" and the term "denominator
+  punctuation character" in the following term name, since it ignores
+  "-" characters and is very specific to the whole gauge/progress
+  thing -->
+
+  <p>The <dfn>steps for finding one or two numbers in a string</dfn>
+  are as follows:</p>
+
+  <ol>
+
+   <li>If the string is empty, then return nothing and abort these
+   steps.</li>
+
+   <li><span>Find a number</span> in the string according to the
+   algorithm below, starting at the start of the string.</li>
+
+   <li>If the sub-algorithm in step 2 returned nothing or returned an
+   error condition, return nothing and abort these steps.</li>
+
+   <li>Set <var>number1</var> to the number returned by the
+   sub-algorithm in step 2.</li>
+
+   <li>Starting with the character immediately after the last one
+   examined by the sub-algorithm in step 2, skip any characters in the
+   string that are in the Unicode character class Zs (this might match
+   zero characters). <a href="#refsUNICODE">[UNICODE]</a></li>
+
+   <li>If there are still further characters in the string, and the
+   next character in the string is a <span>valid denominator
+   punctuation character</span>, set <var>denominator</var> to that
+   character.</li>
+
+   <li>If the string contains any other characters in the range U+0030
+   DIGIT ZERO to U+0039 DIGIT NINE, but <var>denominator</var> was
+   given a value in the step 6, return nothing and abort these
+   steps.</li>
+
+   <li>Otherwise, if <var>denominator</var> was given a value in step
+   6, return <var>number1</var> and <var>denominator</var> and abort
+   these steps.</li>
+
+   <li><span>Find a number</span> in the string again, starting
+   immediately after the last character that was examined by the
+   sub-algorithm in step 2.</li>
+
+   <li>If the sub-algorithm in step 9 returned nothing or an error
+   condition, return nothing and abort these steps.</li>
+
+   <li>Set <var>number2</var> to the number returned by the
+   sub-algorithm in step 9.</li>
+
+   <li>If there are still further characters in the string, and the
+   next character in the string is a <span>valid denominator
+   punctuation character</span>, return nothing and abort these
+   steps.</li>
+
+   <li>If the string contains any other characters in the range U+0030
+   DIGIT ZERO to U+0039 DIGIT NINE, return nothing and abort these
+   steps.</li>
+ 
+   <li>Otherwise, return <var>number1</var> and
+   <var>number2</var>.</li>
+
+  </ol>
+
+  <!-- XXX again, this should say "positive number" -->
+  <p>The algorithm to <dfn>find a number</dfn> is as follows. It is
+  given a string and a starting position, and returns either nothing,
+  a number, or an error condition.</p>
+
+  <ol>
+
+   <li>Starting at the given starting position, ignore all characters
+   in the given string until the first character that is either a
+   U+002E FULL STOP or one of the ten characters in the range U+0030
+   DIGIT ZERO to U+0039 DIGIT NINE.</li>
+
+   <li>If there are no such characters, return nothing and abort these
+   steps.</li>
+
+   <li>Starting with the character matched in step 1, collect all the
+   consecutive characters that are either a U+002E FULL STOP or one of
+   the ten characters in the range U+0030 DIGIT ZERO to U+0039 DIGIT
+   NINE, and assign this string of one or more characters to
+   <var>string</var>.</li>
+
+   <li>If <var>string</var> contains more than one U+002E FULL STOP
+   character then return an error condition and abort these
+   steps.</li>
+
+   <li>Parse <var>string</var> according to the <span>rules for
+   parsing floating point number values</span>, to obtain
+   <var>number</var>. This step cannot fail (<var>string</var> is
+   guarenteed to be a <span>valid floating point number</span>).</li>
+
+   <li>Return <var>number</var>.</li>
+
+  </ol>
+
+
+  <h4>Dates</h4>
+
+  <p class="big-issue">...</p>
+
+
   <h3>HTML documents and document fragments</h3>
 
   <h4>Semantics</h4>
@@ -1189,6 +1330,19 @@ and suggestions on this to the list, btw).
  ...</pre>
 
   </div>
+
+  <p>Through scripting and using other mechanisms, the values of
+  attributes, text, and indeed the entire structure of the document
+  may change dynamically while a user agent is processing it. The
+  semantics of a document at an instant in time are those represented
+  by the state of the document at that instant in time, and the
+  semantics of a document can therefore change over time. User agents
+  must update their presentation of the document as this occurs.</p>
+
+  <p class="example">HTML has a <code>progress</code> element that
+  describes a progress bar. If its "value" attribute is dynamically
+  updated by a script, the UA would update the rendering to show the
+  progress changing.</p>
 
   <h4>Structure</h4>
 
@@ -3496,7 +3650,7 @@ To move the error from the markup to the rhyming.&lt;/p&gt;</pre>
    <dt>DOM interface:</dt>
    <dd>
 <pre class="idl">interface <dfn>HTMLLIElement</dfn> : <span>HTMLElement</span> {
-           attribute long <span title="dom-value">value</span>;
+           attribute long <span title="dom-li-value">value</span>;
 };</pre>
    </dd>
   </dl>
@@ -3535,6 +3689,7 @@ To move the error from the markup to the rhyming.&lt;/p&gt;</pre>
   inline-level content</span> container, the list item represents a
   single <span>paragraph</span>.</p>
 
+  <!-- XXX instead refer to microsyntaxes -->
   <p>The <dfn><code>value</code></dfn> attribute, if present, must
   have a value that consists of an optional U+002D HYPHEN-MINUS
   followed by one or more digits (U+0030 to U+0039) expressing a base
@@ -3551,9 +3706,9 @@ To move the error from the markup to the rhyming.&lt;/p&gt;</pre>
   element's parent <code>ol</code> element, if there is one. If there
   is not, the attribute has no effect.</p>
 
-  <p>The <dfn title="dom-value"><code>value</code></dfn> DOM attribute
-  must <span>reflect</span> the value of the <code>value</code>
-  content attribute.</p>
+  <p>The <dfn title="dom-li-value"><code>value</code></dfn> DOM
+  attribute must <span>reflect</span> the value of the
+  <code>value</code> content attribute.</p>
 
 
   <h4>The <dfn><code>dl</code></dfn> element</h4>
@@ -4064,6 +4219,12 @@ citations ("my favourite book is <cite>...</cite>").
 
   </div>
 
+  <!-- XXX should say it is wrong to use as in:
+
+   <p><em>Note</em>: ...</p>
+
+  -->
+
 
   <h4>The <dfn><code>strong</code></dfn> element</h4>
 
@@ -4278,20 +4439,20 @@ these days. They're really cute. I think they like my garden!&lt;/p></pre>
 
   <!-- XXX that means <dfn>x x</dfn> won't match <span>x \n x</span> -->
 
-  <p class="big-issue">Now that we have <code>i</code>, do we need
-  <code>span</code> to work with <code>dfn</code>?</p>
+  <!-- need to mention that <span> is useful for cross-refs that don't
+  actually use the term itself -->
 
   <div class="example">
 
-   <p>In the following fragment, the term "DHD" is first defined in
+   <p>In the following fragment, the term "GDO" is first defined in
    the first paragraph, then used in the second. A compliant UA could
    provide a link from the <code>abbr</code> element in the second
    paragraph to the <code>dfn</code> element in the first.</p>
 
-   <pre>&lt;p>The &lt;dfn>&lt;abbr title="Dial Home Device">DHD&lt;/abbr>&lt;/dfn>
+   <pre>&lt;p>The &lt;dfn>&lt;abbr title="Garage Door Opener">GDO&lt;/abbr>&lt;/dfn>
 is a device that allows off-world teams to open the iris.&lt;/p>
 &lt;!-- ... later in the document: -->
-&lt;p>Teal'c activated his &lt;abbr title="Dial Home Device">DHD&lt;/abbr>
+&lt;p>Teal'c activated his &lt;abbr title="Garage Door Opener">GDO&lt;/abbr>
 and so Hammond ordered the iris to be opened.&lt;/p></pre>
 
    <!-- XXX need some examples of nesting where the top element makes
@@ -4395,6 +4556,10 @@ for any reference to a publication, including those that aren't really
 citations ("my favourite book is <cite>...</cite>").
   -->
 
+  <p class="big-issue">actually maybe we shouldn't be stealing
+  <code>i</code>'s "semantics", it'll be confusing especially if we
+  still let WYSYWIG authoring tools use it to mean italics...</p>
+
 
 
   <h4>The <dfn><code>t</code></dfn> element <span title="WIP">[WIP]</span></h4>
@@ -4412,15 +4577,21 @@ citations ("my favourite book is <cite>...</cite>").
    <dd>No difference from <code>HTMLElement</code>.</dd>
   </dl>
 
-  <p>The <code>t</code> element represents a date and/or time.</p>
+  <p>The <code>t</code> element represents a date and/or a time.</p>
 
   <p>...</p>
 
   <p class="big-issue">...</p>
 
+  <!--XXX
+
+    use cases!
+
+  -->
 
 
-  <h4>The <dfn><code>gauge</code></dfn> element <span title="WIP">[WIP]</span></h4>
+
+  <h4>The <dfn><code>meter</code></dfn> element</h4>
 
   <p><span>Strictly inline-level content</span>.</p>
 
@@ -4430,79 +4601,330 @@ citations ("my favourite book is <cite>...</cite>").
    <dt>Content model:</dt>
    <dd><span>Strictly inline-level content</span>.</dd>
    <dt>Element-specific attributes:</dt>
-   <dd><code title="attr-t-value">value</code></dd>
+   <dd><code title="attr-meter-value">value</code></dd>
+   <dd><code title="attr-meter-min">min</code></dd>
+   <dd><code title="attr-meter-low">low</code></dd>
+   <dd><code title="attr-meter-high">high</code></dd>
+   <dd><code title="attr-meter-max">max</code></dd>
+   <dd><code title="attr-meter-optimum">optimum</code></dd>
    <dt>DOM interface:</dt>
-   <dd>No difference from <code>HTMLElement</code>.</dd>
+   <dd>
+<pre class="idl">interface <dfn>HTMLMeterElement</dfn> : <span>HTMLElement</span> {
+           attribute long <span title="dom-meter-value">value</span>;
+           attribute long <span title="dom-meter-min">min</span>;
+           attribute long <span title="dom-meter-max">max</span>;
+           attribute long <span title="dom-meter-low">low</span>;
+           attribute long <span title="dom-meter-high">high</span>;
+           attribute long <span title="dom-meter-optimum">optimum</span>;
+};</pre>
+   </dd>
   </dl>
 
-  <p>The <code>gauge</code> element represents a scalar measurement
-  within a known range, for example disk usage, or the relevance of a
-  query result.</p>
+  <p>The <code>meter</code> element represents a scalar measurement
+  within a known range, or a fractional value; for example disk usage,
+  the relevance of a query result, or the fraction of a voting
+  population to have selected a particular candidate.</p>
 
-  <p class="big-issue">...</p>
+  <p>This is also known as a gauge.</p>
 
+  <p class="note">The <code>meter</code> element should not be used to
+  indicate progress (as in a progress bar). For that role, HTML
+  provides a separate <code>progress</code> element.</p>
 
-<!--
+  <p>There are six attributes that determine the semantics of the
+  gauge represented by the element.</p>
 
-  <h3>Gauges <span title="TBW">[TBW]</span></h3>
+  <p>The <dfn title="attr-meter-min"><code>min</code></dfn> attribute
+  specifies the lower bound of the range, and the <dfn
+  title="attr-meter-max"><code>max</code></dfn> attribute specifies
+  the upper bound. The <dfn
+  title="attr-meter-value"><code>value</code></dfn> attribute
+  specifies the value to have the gauge indicate as the "measured"
+  value.</p>
 
-  <p>The <code>gauge</code> element is an inline element that
-  represents a fractional value, such as the relative relevance of a
-  search result, the fraction of a user's quota that is used, or the
-  fraction of a voting population to have selected a particular
-  candidate.</p>
+  <p>The other three attributes can be used to segment the gauge's
+  range into "low", "medium", and "high" parts, and to indicate which
+  part of the gauge is the "optimum" part. The <dfn
+  title="attr-meter-low"><code>low</code></dfn> attribute specifies
+  the range that is considered to be the "low" part, and the <dfn
+  title="attr-meter-high"><code>high</code></dfn> attribute specifies
+  the range that is considered to be the "high" part. The <dfn
+  title="attr-meter-optimum"><code>optimum</code></dfn> attribute
+  gives the position that is "optimum"; if that is higher than the
+  "high" value  then this indicates that the higher the value, the
+  better; if it's lower than the "low" mark then it indicates that
+  lower values are better, and naturally if it is in between then it
+  indicates that neither high nor low values are good.</p>
 
-  <p>User agents must support all of the common attributes and event
-  handlers on the <code>gauge</code> element, plus the following
-  attributes:</p>
+  <p><strong>Authoring requirements</strong>: The recommended way of
+  giving the value is to include it as contents of the element, either
+  as two numbers (the higher number represents the maximum, the other
+  number the current value), or as a percentage or similar (using one
+  of the characters such as "%"), or as a fraction.</p>
+
+  <p>The <code title="attr-meter-value">value</code>, <code
+  title="attr-meter-min">min</code>, <code
+  title="attr-meter-low">low</code>, <code
+  title="attr-meter-high">high</code>, <code
+  title="attr-meter-max">max</code>, and <code
+  title="attr-meter-optimum">optimum</code> attributes are all
+  optional. When present, they must have values that are <span
+  title="valid floating point number">valid floating point
+  numbers</span>.</p>
+
+  <div class="example">
+
+   <p>The following examples all represent a measurement of three
+   quarters (of the maximum of whatever is being measured):</p>
+
+   <pre>&lt;meter>75%&lt;/meter>
+&lt;meter>750&#x2030;&lt;/meter>
+&lt;meter>3/4&lt;/meter>
+&lt;meter>6 blocks used (out of 8 total)&lt;/meter>
+&lt;meter>max: 100; current: 75&lt;/meter>
+&lt;meter>&lt;object data="graph75.png">0.75&lt;/object>&lt;/meter>
+&lt;meter min="0" max="100" value="75">&lt;/meter></pre>
+
+  </div>
+
+  <p><strong>User agent requirements</strong>: User agents must parse
+  the <code title="attr-meter-min">min</code>, <code
+  title="attr-meter-max">max</code>, <code
+  title="attr-meter-value">value</code>, <code
+  title="attr-meter-low">low</code>, <code
+  title="attr-meter-high">high</code>, and <code
+  title="attr-meter-optimum">optimum</code> attributes using the
+  <span>rules for parsing floating point number values</span>.</p>
+
+  <p>If the <code title="attr-meter-value">value</code> attribute has
+  been omitted, the user agent must also process the
+  <code>textContent</code> of the element according to the <span>steps
+  for finding one or two numbers in a string</span>. These steps will
+  return nothing, one number, one number with a denominator
+  punctuation character, or two numbers.</p>
+
+  <p>User agents must then use all these numbers to obtain values for
+  six points on the gauge, as follows. (The order in which these are
+  evaluated is important, as some of the values refer to earlier
+  ones.)</p>
 
   <dl>
-   <dt>...</dt>
+
+   <dt>The minimum value</dt>
+
+   <dd>
+    <p>If the <code title="attr-meter-min">min</code> attribute is
+    specified and a value could be parsed out of it, then the minimum
+    value is that value. Otherwise, the minimum value is zero.</p>
+   </dd>
+
+   <dt>The maximum value</dt>
+
+   <dd>
+
+    <p>If the <code title="attr-meter-max">max</code> attribute is
+    specified and a value could be parsed out of it, the maximum
+    value is that value.</p>
+
+    <p>Otherwise, if the <code title="attr-meter-max">max</code>
+    attribute is specified but no value could be parsed out of it, or
+    if it was not specified, but either or both of the <code
+    title="attr-meter-min">min</code> or <code
+    title="attr-meter-value">value</code> attributes <em>were</em>
+    specified, then the maximum value is 1.</p>
+
+    <p>Otherwise, none of the <code title="attr-meter-max">max</code>,
+    <code title="attr-meter-min">min</code>, and <code
+    title="attr-meter-value">value</code> attributes were
+    specified. If the result of processing the
+    <code>textContent</code> of the element was either nothing or just
+    one number with no denominator punctuation character, then the
+    maximum value is 1; if the result was one number but it had an
+    associated denominator punctuation character, then the maximum
+    value is the <span title="values associated with denominator
+    punctuation characters">value associated with that denominator
+    punctuation character</span>; and finally, if there were two
+    numbers parsed out of the <code>textContent</code>, then the
+    maximum is the higher of those two numbers.</p>
+
+    <p>If the above machinations result in a maximum value less than
+    the minimum value, then the maximum value is actually the same as
+    the minimum value.</p>
+
+   </dd>
+
+   <dt>The actual value</dt>
+
+   <dd>
+
+    <p>If the <code title="attr-meter-value">value</code> attribute is
+    specified and a value could be parsed out of it, then that value
+    is the actual value.</p>
+
+    <p>If the <code title="attr-meter-value">value</code> attribute is
+    not specified but the <code title="attr-meter-max">max</code>
+    attribute <em>is</em> specified and the result of processing the
+    <code>textContent</code> of the element was one number with no
+    associated denominator punctuation character, then that number is
+    the actual value.</p>
+
+    <p>If neither of the <code title="attr-meter-value">value</code>
+    and <code title="attr-meter-max">max</code> attributes are
+    specified, then, if the result of processing the
+    <code>textContent</code> of the element was one number (with or
+    without an associated denominator punctuation character), then
+    that is the actual value, and if the result of processing the
+    <code>textContent</code> of the element was two numbers, then the
+    actual value is the lower of the two numbers found.</p>
+
+    <p>Otherwise, if none of the above apply, the actual value is
+    zero.</p>
+
+    <p>If the above procedure results in an actual value less than
+    the minimum value, then the actual value is actually the same as
+    the minimum value.</p>
+
+    <p>If, on the other hand, the result is an actual value greater
+    than the maximum value, then the actual value is the maximum
+    value.</p>
+
+   </dd>
+
+   <dt>The low boundary</dt>
+
+   <dd>
+
+    <p>If the <code title="attr-meter-low">low</code> attribute is
+    specified and a value could be parsed out of it, then the low
+    boundary is that value. Otherwise, the low boundary is the same as
+    the minimum value.</p>
+
+    <p>If the above results in a low boundary that is less than the
+    minimum value, the low boundary is the minimum value.</p>
+
+   </dd>
+
+   <dt>The high boundary</dt>
+
+   <dd>
+
+    <p>If the <code title="attr-meter-high">high</code> attribute is
+    specified and a value could be parsed out of it, then the high
+    boundary is that value. Otherwise, the high boundary is the same
+    as the maximum value.</p>
+
+    <p>If the above results in a high boundary that is higher than the
+    maximum value, the high boundary is the maximum value.</p>
+
+   </dd>
+
+   <dt>The optimum point</dt>
+
+   <dd>
+
+    <p>If the <code title="attr-meter-optimum">optimum</code>
+    attribute is specified and a value could be parsed out of it, then
+    the optimum point is that value. Otherwise, the optimum point is
+    the midpoint between the minimum value and the maximum value.</p>
+
+    <p>If the optimum point is then less than the minimum value, then
+    the optimum point is actually the same as the minimum
+    value. Similarly, if the optimum point is greater than the maximum
+    value, then it is actually the maximum value instead.</p>
+
+   </dd>
+
   </dl>
 
-  <p class="big-issue">The value should come from parsing the
-  .textContent attribute and taking the first string of digits
-  (possibly with a single dot) as the numerator and the second string
-  of digits (possibly with another single dot) as the denominator,
-  defaulting the denominator to 100 if it is absent, treating zero
-  denominators as 100, and using the resulting fraction as the value,
-  in the range 0 to 1, for the gauge. If the numerator is absent,
-  default to 0.</p>
+  <p>All of which should result in the following inequalities all
+  being true:</p>
 
-  <p class="big-issue">Do we want something to say that "above 0.75 is
-  bad"? "below 0.2 is bad"?</p>
+  <ul class="brief">
+   <li>minimum value &le; actual value &le; maximum value</li>
+   <li>minimum value &le; low boundary &le; high boundary &le; maximum value</li>
+   <li>minimum value &le; optimum point &le; maximum value</li>
+  </ul>
 
-> Regardless of the word that ends up being used I think the element 
-> should also have property to tell which value is "GOOD" and which is
-> "BAD". For example, for search results having 95% to render as green bar
-> is okay whereas 95% for CPU temperature is bad and it should be rendered
-> as red. Obviously the indicator for good/bad could be something else but
-> color but you get the idea.
-> Make sure to support status/gauge where good value is something in between.
-> For example, think motor temperature of an automobile; it's bad if it's too
-> low and it's bad if it's too high.
+  <p><strong>UA requirements for regions of the gauge</strong>: If the
+  optimum point is equal to the low boundary or the high boundary, or
+  anywhere in between them, then the region between the low and high
+  boundaries of the gauge must be treated as the optimum region, and
+  the low and high parts, if any, must be treated as
+  suboptimal. Otherwise, if the optimum point is less than the low
+  boundary, then the region between the minimum value and the low
+  boundary must be treated as the optimum region, the region between
+  the low boundary and the high boundary must be treated as a
+  suboptimal region, and the region between the high boundary and the
+  maximum value must be treated as an even less good region. Finally,
+  if the optimum point is higher than the high boundary, then the
+  situation is reversed; the region between the high boundary and the
+  maximum value must be treated as the optimum region, the region
+  between the high boundary and the low boundary must be treated as a
+  suboptimal region, and the remaining region between the low boundary
+  and the minimum value must be treated as an even less good
+  region.</p>
 
-With a bar this could be graded from red at 0, to green at 100. This
-could be the display method for the relevance of a search result for
-example. The status tag could have pseudo-classes for this:
+  <p><strong>UA requirements for showing the gauge</strong>: When
+  representing a <code>meter</code> element to the user, the UA should
+  indicate the relative position of the actual value to the minimum
+  and maximum values, and the relationship between the actual value
+  and the three regions of the gauge.</p>
 
-        status:optimal { color:green; }
-        status:nonoptimal { color:red; }
+  <div class="example">
+   <p>The following markup:</p>
+   <pre>
+&lt;h3>Suggested groups&lt;/h3>
+&lt;menu type="toolbar">
+ &lt;a href="?cmd=hsg" onclick="hideSuggestedGroups()">Hide suggested groups&lt;/a>
+&lt;/menu>
+&lt;ul>
+ &lt;li>
+  &lt;p>&lt;a href="/group/comp.infosystems.www.authoring.stylesheets/view">comp.infosystems.www.authoring.stylesheets&lt;/a> -
+     &lt;a href="/group/comp.infosystems.www.authoring.stylesheets/subscribe">join&lt;/a>&lt;/p>
+  &lt;p>Group description: &lt;strong>Layout/presentation on the WWW.&lt;/strong>&lt;/p>
+  &lt;p><strong>&lt;meter value="0.5">Moderate activity,&lt;/meter></strong> Usenet, 618 subscribers&lt;/p>
+ &lt;/li>
+ &lt;li>
+  &lt;p>&lt;a href="/group/netscape.public.mozilla.xpinstall/view">netscape.public.mozilla.xpinstall&lt;/a> -
+     &lt;a href="/group/netscape.public.mozilla.xpinstall/subscribe">join&lt;/a>&lt;/p>
+  &lt;p>Group description: &lt;strong>Mozilla XPInstall discussion.&lt;/strong>&lt;/p>
+  &lt;p><strong>&lt;meter value="0.25">Low activity,&lt;/meter></strong> Usenet, 22 subscribers&lt;/p>
+ &lt;/li>
+ &lt;li>
+  &lt;p>&lt;a href="/group/mozilla.dev.general/view">mozilla.dev.general&lt;/a> -
+     &lt;a href="/group/mozilla.dev.general/subscribe">join&lt;/a>&lt;/p>
+  &lt;p><strong>&lt;meter value="0.25">Low activity,&lt;/meter></strong> Usenet, 66 subscribers&lt;/p>
+ &lt;/li>
+&lt;/ul>
+</pre>
+   <p>Might be rendered as follows:</p>
+   <p><img src="sample-meter.png" alt="With the &lt;meter> elements rendered as inline green bars of varying lengths."></p>
+  </div>
 
-<img alt="">
-We _could_ special case a fallback behaviour along the lines of "if you   
-don't find any numbers, then look at the IMG descendants and pick the
-first one whose alt="" text contains a number". Would that be ok?
+  <p>The <dfn title="dom-meter-min"><code>min</code></dfn>, <dfn
+  title="dom-meter-max"><code>max</code></dfn>, <dfn
+  title="dom-meter-value"><code>value</code></dfn>, <dfn
+  title="dom-meter-low"><code>low</code></dfn>, <dfn
+  title="dom-meter-high"><code>high</code></dfn>, and <dfn
+  title="dom-meter-optimum"><code>optimum</code></dfn> DOM attributes
+  must reflect the elements' content attributes of the same name. When
+  the relevant content attributes are absent, the DOM attributes must
+  return zero. The value parsed from the <code>textContent</code>
+  never affects the DOM values.</p>
 
-parse by searching for first numeric, then non-numeric, then if that
-was a dot, next non-numeric, then repeat for second number.
+  <p class="big-issue">Would be cool to have the <code
+  title="dom-meter-value">value</code> DOM attribute update the
+  <code>textContent</code> in-line...</p>
 
-strategically ignore "-" characters
+<!-- XXX
+should we also look inside the title="" attribute?
+   Disk usage: <meter title="985MB of 986MB total" high="980">Full!</meter>
+should we make the contents accessible in some way, e.g. as a tooltip?
 -->
 
 
 
-  <h4>The <dfn><code>progress</code></dfn> element <span title="WIP">[WIP]</span></h4>
+  <h4>The <dfn><code>progress</code></dfn> element</h4>
 
   <p><span>Strictly inline-level content</span>.</p>
 
@@ -4512,23 +4934,152 @@ strategically ignore "-" characters
    <dt>Content model:</dt>
    <dd><span>Strictly inline-level content</span>.</dd>
    <dt>Element-specific attributes:</dt>
-   <dd><code title="attr-t-value">value</code></dd>
+   <dd><code title="attr-progress-value">value</code></dd>
+   <dd><code title="attr-progress-max">max</code></dd>
    <dt>DOM interface:</dt>
-   <dd>No difference from <code>HTMLElement</code>.</dd>
+   <dd>
+<pre class="idl">interface <dfn>HTMLProgressElement</dfn> : <span>HTMLElement</span> {
+           attribute long <span title="dom-progress-value">value</span>;
+           attribute long <span title="dom-progress-max">max</span>;
+};</pre>
+   </dd>
   </dl>
 
   <p>The <code>progress</code> element represents the completion
-  progress of a task.</p>
+  progress of a task. The progress is either indeterminate, indicating
+  that progress is being made but that it is not clear how much more
+  work remains to be done before the task is complete (e.g. because
+  the task is waiting for a remote host to respond), or the progress
+  is a number in the range zero to a maximum, giving the fraction of
+  work that has so far been completed.</p>
 
-  <p class="big-issue">...</p>
+  <p>There are two attributes that determine the current task
+  completion represented by the element.</p>
 
-<!--
-  <h3>Progress meters <span title="TBW">[TBW]</span></h3>
+  <p>The <dfn title="attr-progress-value"><code>value</code></dfn>
+  attribute specifies how much of the task has been completed, and the
+  <dfn title="attr-progress-max"><code>max</code></dfn> attribute
+  specifies how much work the task requires in total. The units are
+  arbitrary and not specified.</p>
 
-  <p class="big-issue">Similar to gauge, but renders as a progress
-  bar. If the numerator is absent, default to an indeterminate
-  progress bar (barber pole, bouncing blue box, etc).</p>
--->
+  <p>Instead of using the attributes, authors are recommended to
+  simply include the current value and the maximum value inline as
+  text inside the element.</p>
+
+  <div class="example">
+   <p>Here is a snippet of a Web application that shows the progress
+   of some automated task:</p>
+   <pre>&lt;section>
+ &lt;h2>Task Progress&lt;/h2>
+ &lt;p>&lt;label>Progress: &lt;progress>&lt;span id="p">0&lt;/span>%&lt;/progress>&lt;/p>
+ &lt;script>
+  var progressBar = document.getElementById('p');
+  function updateProgress(newValue) {
+    progressBar.textContent = newValue;
+  }
+ <&lt;/script>
+&lt;/section>
+   <p>(The <code>updateProgress()</code> method in this example would
+   be called by some other code on the page to update the actual
+   progress bar as the task progressed.)</p>
+  </div>
+
+  <p><strong>Author requirements</strong>: The <code
+  title="attr-progress-max">max</code> and <code
+  title="attr-progress-value">value</code> attributes, when present,
+  must have values that are <span title="valid floating point
+  number">valid floating point numbers</span>.</p>
+
+  <p><strong>User agent requirements</strong>: User agents must parse
+  the <code title="attr-progress-max">max</code> and <code
+  title="attr-progress-value">value</code> attributes according to the
+  <span>rules for parsing floating point number attribute
+  values</span>.</p>
+
+  <p>If the <code title="attr-progress-value">value</code> attribute
+  is omitted, then user agents must also parse the
+  <code>textContent</code> of the <code>progress</code> element in
+  question using the <span>steps for finding one or two numbers in a
+  string</span>. These steps will return nothing, one number, one
+  number with a denominator punctuation character, or two numbers.</p>
+
+  <p>Using the results of this processing, user agents must determine
+  whether the progress bar is an indeterminate progress bar, or
+  whether it is a determinate progress bar, and in the latter case,
+  what its current and maximum values are, all as follows:</p>
+
+  <ol>
+
+   <li>If the <code title="attr-progress-max">max</code> attribute is
+   omitted, and the <code title="attr-progress-value">value</code> is
+   omitted, and the results of parsing the <code>textContent</code>
+   was nothing, then the progress bar is an indeterminate progress
+   bar. Abort these steps.</li>
+
+   <li>Otherwise, it is a determinate progress bar.</li>
+
+   <li>If the <code title="attr-progress-max">max</code> attribute is
+   included, then, if a value could be parsed out of it, then the
+   maximum value is that value.</li>
+
+   <li>Otherwise, if the <code title="attr-progress-max">max</code>
+   attribute is absent but the <code
+   title="attr-progress-value">value</code> attribute is present, or,
+   if the <code title="attr-progress-max">max</code> attribute is
+   present but no value could be parsed from it, then the maximum is
+   1.</li>
+
+   <li>Otherwise, if neither attribute is included, then, if the
+   <code>textContent</code> contained one number with an associated
+   denominator punctuation character, then the maximum value is the
+   <span>value associated with that denominator punctuation
+   character</span>; otherwise, if the <code>textContent</code>
+   contained two numbers, the maximum value is the higher of the two
+   values; otherwise, the maximum value is 1.</li>
+
+   <li>If the <code title="attr-progress-value">value</code> attribute
+   is present on the element and a value could be parsed out of it,
+   that value is the current value of the progress bar. Otherwise, if
+   the attribute is present but no value could be parsed from it, the
+   current value is zero.</li>
+
+   <li>Otherwise if the <code title="attr-progress-value">value</code>
+   attribute is absent and the <code
+   title="attr-progress-max">max</code> attribute is present, then, if
+   the <code>textContent</code> was parsed and found to contain just
+   one number, with no associated denominator punctuation character,
+   then the current value is that number. Otherwise, if the <code
+   title="attr-progress-value">value</code> attribute is absent and
+   the <code title="attr-progress-max">max</code> attribute is present
+   then the current value is zero.</li>
+
+   <li>Otherwise, if neither attribute is present, then the current
+   value is the lower of the one or two numbers that were found in the
+   <code>textContent</code> of the element.</li>
+
+   <li>Finally, if the maximum value is less than zero, then it is
+   reset to 1, and if the current value is less than the maximum
+   value, then it is reset to the maximum value.</li>
+
+  </ol>
+
+  <p><strong>UA requirements for showing the progress bar</strong>:
+  When representing a <code>progress</code> element to the user, the
+  UA should indicate whether it is a determinate or indeterminate
+  progress bar, and in the former case, should indicate the relative
+  position of the current value relative to the  maximum value.</p>
+
+  <p>The <dfn title="dom-progress-max"><code>max</code></dfn> and <dfn
+  title="dom-progress-value"><code>value</code></dfn> DOM attributes
+  must reflect the elements' content attributes of the same name. When
+  the relevant content attributes are absent, the DOM attributes must
+  return zero. The value parsed from the <code>textContent</code>
+  never affects the DOM values.</p>
+
+  <p class="big-issue">Would be cool to have the <code
+  title="dom-progress-value">value</code> DOM attribute update the
+  <code>textContent</code> in-line...</p>
+
 
   <h4>The <dfn><code>code</code></dfn> element</h4>
 
@@ -5044,7 +5595,7 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
   <p>The <dfn title="attr-mod-datetime"><code>datetime</code></dfn>
   attribute may be used to specify the time and date of the change.</p>
 
-  <!-- XXX extract this to a common place for re-use -->
+  <p class="big-issue">This next bit should be extracted to the "common microsyntaxes" section</p>
   <p>If the <code title="attr-mod-datetime">datetime</code> attribute
   is present, it must have a value consisting of four digits
   representing the year, a literal hyphen, two digits representing the
@@ -8663,10 +9214,14 @@ interface <dfn>DataGridDataProvider</dfn> {
 
   <p>Web browsers and other user agents that display HTML documents to
   the user in the context of a browsing environment may display one or
-  more views of the document to the user.</p>
+  more views of those documents to the user.</p>
 
   <p>Each set of one or more views is considered a <dfn>browsing
   context</dfn>.</p>
+
+  <p class="example">In a tabbed Web browser, for instance, each tab
+  in the browser window represents a browsing context.</p> <!-- XXX
+  annotated image -->
 
   <p>A <span>browsing context</span> may have further browsing
   contexts nested within it; the <code>iframe</code> element, for
@@ -20344,6 +20899,7 @@ bubble to be fired at elements if they are scrolled. window.onscroll
 and document.onscroll should both work.
 
 
+[HIT TESTING TRANSPARENCY]
 Definition: IE considers a point of an element "transparent" if any
 one of the following are true:
 
@@ -20400,6 +20956,7 @@ target element as follows:
       element originally assigned in step D back to X.
 
    I. The event goes to X. STOP
+
 
 
 
@@ -21034,6 +21591,12 @@ bjoern:
 > If the concern here is what the specification should say, then that's
 > what a valid state is, not what a valid document is, since the class of
 > "predictably valid" documents does not cover many dynamic documents.
+
+
+
+arv asks for: a way to track download progress of, e.g., images when
+you are preloading 10 images; cf onprogress on XHR in mozilla
+
 
 -->
 
