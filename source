@@ -8479,6 +8479,24 @@ interface <dfn>DataGridDataProvider</dfn> {
 
   <h2>Processing models</h2>
 
+  <h3>Navigating across documents</h3>
+
+  <p class="big-issue">This section will end up defining what the UA
+  should do when the user clicks a link. This will probably involve
+  being honest about the fact that UAs typically content sniff for
+  RSS/Atom feeds at this point. It should also reference the <code
+  title="dom-navigator-registerProtocolHandler">registerProtocolHandler</code>
+  and <code
+  title="dom-navigator-registerContentHandler">registerContentHandler</code>
+  methods and their stuff.</p>
+
+<!--
+   XXX HTTP Content-Type handling?
+   http://www.25hoursaday.com/weblog/
+   http://www.alvestrand.no/pipermail/ietf-types/2006-April/001707.html
+   http://ln.hixie.ch/?start=1144794177&count=1
+-->
+
   <h3>Commands</h3>
 
   <p>A <dfn title="concept-command">command</dfn> is the abstraction
@@ -10420,8 +10438,8 @@ interface <dfn>Storage</dfn> {
    original value to restore (i.e. the restoring recurses through all
    the properties of the object). If, while recursing through objects
    in this way, a reference to an object occurs more than once, only
-   the occurance that is found first in a depth-first search of the
-   original value must be restored; all other occurances must be
+   the occurrence that is found first in a depth-first search of the
+   original value must be restored; all other occurrences must be
    restored as <code>null</code>.
 
     <span class="issue">This section is either too vague or too
@@ -11053,17 +11071,22 @@ interface <dfn>Storage</dfn> {
   specification is important for user security.</p>
 
 
-  <h3><span title="SCS">[SCS]</span> Browser state</h3>
+  <h3>Browser state</h3>
 
   <p>The <dfn title="dom-navigator"><code>navigator</code></dfn>
   attribute of the <code>Window</code> interface must return an
   instance of the <code>ClientInformation</code> interface, which
-  represents the identity and state of the user agent (the
-  client):</p>
+  represents the identity and state of the user agent (the client),
+  and allows Web pages to register themselves as protocol and content
+  handlers:</p>
 
   <pre class="idl">interface <dfn>ClientInformation</dfn> {
   readonly attribute boolean <span title="dom-navigator-onLine">onLine</span>;
+  void <span title="dom-navigator-registerProtocolHandler">registerProtocolHandler</span>(in DOMString protocol, in DOMString uri, in DOMString title);
+  void <span title="dom-navigator-registerContentHandler">registerContentHandler</span>(in DOMString mimeType, in DOMString uri, in DOMString title);
 <!-- XXX there are other attributes! -->};</pre>
+
+  <h4><span title="SCS">[SCS]</span> Offline Web applications</h4>
 
   <p>The <dfn
   title="dom-navigator-onLine"><code>navigator.onLine</code></dfn>
@@ -11092,6 +11115,197 @@ interface <dfn>Storage</dfn> {
   reach the <code>Window</code> object.)</p>
 
   <!-- XXX ononline onoffline need to be defined -->
+
+  <h4><span title="SCS">[SCS]</span> Custom protocol and content handlers</h4>
+
+  <p>The <dfn
+  title="dom-navigator-registerProtocolHandler"><code>registerProtocolHandler()</code></dfn>
+  method allows Web sites to register themselves as handlers for
+  particular protocols. For example, an online fax service could
+  register itself as a handler of the <code>fax:</code> protocol (<a
+  href="#refsRFC2806">[RFC2806]</a>), so that if the user clicks on
+  such a link, he is given the opportunity to use that Web
+  site. Analogously, the <dfn
+  title="dom-navigator-registerContentHandler"><code>registerContentHandler()</code></dfn>
+  method allows Web sites to register themselves as handlers for
+  content in a particular MIME type. For example, the same online fax
+  service could register itself as a handler for
+  <code>image/g3fax</code> files (<a
+  href="#refsRFC1494">[RFC1494]</a>), so that if the user has no
+  native application capable of handling G3 Facsimile byte streams,
+  his Web browser can instead suggest he use that site to view the
+  image.</a>
+
+  <p>The arguments to the methods have the following meanings:</p>
+
+  <dl>
+
+   <dt><var title="">protocol</var> (<code title="dom-navigator-registerProtocolHandler">registerProtocolHandler()</code> only)</dt>
+
+   <dd>
+
+    <p>A scheme, such as <code>ftp</code> or <code>fax</code>. The
+    scheme must be treated case-insensitively by user agents for the
+    purposes of comparing with the scheme part of URIs that they
+    consider against the list of registered handlers.</p>
+
+    <p>The <var title="">protocol</var> value, if it contains a colon (as in
+    "<code>ftp:</code>"), will never match anything, since schemes
+    don't contain colons.</p>
+
+   </dd>
+
+   <dt><var title="">mimeType</var> (<code title="dom-navigator-registerContentHandler">registerContentHandler()</code> only)</dt>
+
+   <dd>
+
+    <p>A MIME type, such as <code>model/vrml</code> or
+    <code>text/richtext</code>. The MIME type must be treated
+    case-insensitively by user agents for the purposes of comparing
+    with MIME types of documents that they consider against the list
+    of registered handlers.</p>
+
+    <p>If <var title="">mimeType</code> values passed to this method include
+    characters such as commas or whitespace, or include MIME
+    parameters, then they will never be used. User agents must compare
+    the given values only to the MIME type/subtype parts of content
+    types, not to the complete type including parameters.</p>
+
+   </dd>
+
+   <dt><var title="">uri</var></dt>
+
+   <dd>
+
+    <p>The URI of the page that will handle the requests. When the
+    user agent uses this URI, it must replace the first occurrence of
+    the exact literal string "<code>%s</code>" with a URI-escaped
+    version of the URI of the content in question, and then fetch that
+    URI using the GET method (or equivalent for non-HTTP URIs).</p>
+
+    <div class="example">
+
+     <p>If the user had visited a site that made the following call:</p>
+
+     <pre>navigator.registerContentHandler('application/x-soup', 'http://example.com/soup?url=%s', 'SoupWeb&trade;')</pre>
+
+     <p>...and then clicked on a link such as:</p>
+
+     <pre>&lt;a href="http://www.example.net/chickenkiwi.soup">Download our Chicken Kiwi soup!&lt;/a></pre>
+
+     <p>...then, assuming this <code>chickenkiwi.soup</code> file was
+     served with the MIME type <code>application/x-soup</code>, the UA
+     might instead navigate to the following URI:</p>
+
+     <pre>http://example.com/soup?url=http%3A%2F%2Fwww.example.net%2Fchickenkiwi.soup</pre>
+
+     <p>This site could then fetch the <code>chickenkiwi.soup</code>
+     file and do whatever it is that it does with soup (synthesise it
+     and ship it to the user, or whatever).</p>
+
+    </div>
+
+   </dd>
+
+   <dt><var title="">title</var></dt>
+
+   <dd>
+
+    <p>A descriptive title of the handler, which the UA might use to
+    remind the user what the site in question is.</p>
+
+   </dd>
+
+  </dl>
+
+  <p>User agents may do whatever they like when the methods are
+  called. A UA could, for instance, prompt the user and offer the user
+  the opportunity to add the site to a shortlist of handlers, or make
+  the handlers his default, or cancel the request. UAs could provide
+  such a UI through modal UI or through a non-modal transient
+  notification interface. UAs could also simply silently collect the
+  information, providing it only when relevant to the user.</p>
+
+  <p>User agents should raise security exceptions if the methods are
+  called with  <var title="">protocol</var> or <var title="">mimeType</var> values that
+  the UA deems to be "privileged". For example, a site attempting to
+  register a handler for <code>http</code> URIs or
+  <code>text/html</code> content in a Web browser would likely cause
+  an exception to be raised.</p>
+
+  <p>User agents must raise a <code>SYNTAX_ERR</code> exception if the
+  <var title="">uri</var> argument passed to one of these methods does not
+  contain the exact literal string "<code>%s</code>".</p>
+
+  <p>This section does not define how the pages registered by these
+  methods are used. To some extent, the <span title="navigating across
+  documents">processing model for navigating across documents</span>
+  defines some cases where these methods are relevant, but in general
+  UAs may use this information wherever they would otherwise consider
+  handing content to native plugins or helper applications.</p>
+
+  <h5>Security and privacy concerns regarding Web-based custom protocol and content handlers</h5>
+
+  <p>These mechanisms can introduce a number of concerns, in
+  particular privacy concerns.</p>
+
+  <p><strong>Hijacking all Web usage.</strong> It is imperative that
+  user agents never allow key protocols, such as <code>http</code> or
+  <code>https</code>, to be rerouted through third-party sites. This
+  would allow a user's activities to be trivially tracked, and would
+  allow user information, even in secure connections, to be
+  collected.</p>
+
+  <p><strong>Hijacking defaults.</strong> It is strongly recommended
+  that user agents do not automatically change any defaults, as this
+  could lead the user to send data to remote hosts that the user is
+  not expecting. New handlers registering themselves should never
+  automatically cause those sites to be used.</p>
+
+  <p><strong>Leaking Intranet URIs.</strong> The mechanism described
+  in this section can result in secret Intranet URIs being leaked, in
+  the following manner:</p>
+
+  <ol>
+
+   <li>The user registers a third-party content handler as the default
+   handler for a content type.</li>
+
+   <li>The user then browses his corporate Intranet site and accesses
+   a document that uses that content type.</li>
+
+   <li>The user agent contacts the third party and hands the third
+   party the URI to the Intranet content.</li>
+
+  </ol>
+
+  <p>No actual confidential file data is leaked in this manner, but
+  the URIs themselves could contain confidential information. For
+  example, the URI could be
+  <code>https://www.corp.example.com/upcoming-aquisitions/samples.egf</code>,
+  which might tell the third party that Example Corporation is
+  intending to merge with Samples LLC. User agents should might wish
+  to consider allowing administrators to disable this feature for
+  certain subdomains, content types, or protocols.</p>
+
+  <p><strong>Registration spamming.</strong> User agents should
+  consider the possibility that a site will attempt to register a
+  large number of handlers, possibly from multiple domains (e.g. by
+  redirecting through a series of pages each on a different domain,
+  and each registering a handler for <code>video/mpeg</code> &mdash;
+  analogous practices abusing other Web browser features have been
+  used by pornography Web sites for many years). User agents should
+  gracefully handle such hostile attempts, protecting the user.</p>
+
+  <p><strong>Leaking credentials.</strong> User agents must never send
+  username or password information in the URIs that are escaped and
+  included sent to the handler sites. User agents might want to not
+  even attempt to pass to Web-based handlers the URIs of resources
+  that are known to require authentication to access, as such sites
+  would be unable to access the resources in question without
+  prompting the user for credentials themselves (a practice that would
+  require the user to know whether to trust the third party handler, a
+  decision many users are unable to make or even understand).</p>
 
 
   <h3><span title="SCS">[SCS]</span> Alternate style sheets: the <code>DocumentStyle</code> interface</h3>
@@ -12846,8 +13060,8 @@ from application to web browser - key events? mouse events?
 
   <p>The <code>Selection</code> interface is represents a list of
   <code>Range</code> objects. The first item in the list has index 0,
-  and the last item has index <var>count</var>-1, where
-  <var>count</var> is the number of ranges in the list. <a
+  and the last item has index <var title="">count</var>-1, where
+  <var title="">count</var> is the number of ranges in the list. <a
   href="#refsDOM2RANGE">[DOM2RANGE]</a></p>
 
   <p>All of the members of the <code>Selection</code> interface are
@@ -12891,17 +13105,17 @@ from application to web browser - key events? mouse events?
   is itself true. Otherwise it must return false.</p>
 
   <p>The <dfn
-  title="dom-selection-collapse"><code>collapse(<var>parentNode</var>,
-  <var>offset</var>)</code></dfn> method must raise a
+  title="dom-selection-collapse"><code>collapse(<var title="">parentNode</var>,
+  <var title="">offset</var>)</code></dfn> method must raise a
   <code>WRONG_DOCUMENT_ERR</code> DOM exception if
-  <var>parentNode</var>'s <code title="">ownerDocument</code> is not
+  <var title="">parentNode</var>'s <code title="">ownerDocument</code> is not
   the <code>DocumentWindow</code> object with which the
   <code>Selection</code> object is associated. Otherwise it is, and
   the method must remove all the ranges in the <code>Selection</code>
   list, then create a new <code>Range</code> object, add it to the
   list, and invoke its <code title="">setStart()</code> and <code
-  title="">setEnd()</code> methods with the <var>parentNode</var> and
-  <var>offset</var> values as their arguments.</p>
+  title="">setEnd()</code> methods with the <var title="">parentNode</var> and
+  <var title="">offset</var> values as their arguments.</p>
 
   <p>The <dfn
   title="dom-selection-collapseToStart"><code>collapseToStart()</code></dfn>
@@ -12922,13 +13136,13 @@ from application to web browser - key events? mouse events?
   object in the list as the arguments.</p>
 
   <p>The <dfn
-  title="dom-selection-selectAllChildren"><code>selectAllChildren(<var>parentNode</var>)</code></dfn>
+  title="dom-selection-selectAllChildren"><code>selectAllChildren(<var title="">parentNode</var>)</code></dfn>
   method must invoke the <code
   title="dom-selection-collapse">collapse()</code> method with the
-  <var>parentNode</var> value as the first argument and 0 as the
+  <var title="">parentNode</var> value as the first argument and 0 as the
   second argument, and must then invoke the <code
   title="">selectNodeContents()</code> method on the first (and only)
-  range in the list with the <var>parentNode</var> value as the
+  range in the list with the <var title="">parentNode</var> value as the
   argument.</p>
 
   <p>The <dfn
@@ -12941,17 +13155,17 @@ from application to web browser - key events? mouse events?
   attribute must return the number of ranges in the list.</p>
 
   <p>The <dfn
-  title="dom-selection-getRangeAt"><code>getRangeAt(<var>index</var>)</code></dfn>
-  method must return the <var>index</var>th range in the list. If
-  <var>index</var> is less than zero or greater or equal to the value
+  title="dom-selection-getRangeAt"><code>getRangeAt(<var title="">index</var>)</code></dfn>
+  method must return the <var title="">index</var>th range in the list. If
+  <var title="">index</var> is less than zero or greater or equal to the value
   returned by the <code
   title="dom-selection-rangeCount">rangeCount</code> attribute, then
   the method must raise an <code>INDEX_SIZE_ERR</code> DOM
   exception.</p>
 
   <p>The <dfn
-  title="dom-selection-addRange"><code>addRange(<var>range</var>)</code></dfn>
-  method must add the given <var>range</var> Range object to the list
+  title="dom-selection-addRange"><code>addRange(<var title="">range</var>)</code></dfn>
+  method must add the given <var title="">range</var> Range object to the list
   of selections, at the end (so the newly added range is the new last
   range). Duplicates are not prevented; a range may be added more than
   once in which case it appears in the list more than once, which (for
@@ -12961,8 +13175,8 @@ from application to web browser - key events? mouse events?
   deleteFromDocument() which acts on all ranges? -->
 
   <p>The <dfn
-  title="dom-selection-removeRange"><code>removeRange(<var>range</var>)</code></dfn>
-  method must remove the first occurrence of <var>range</var> in the
+  title="dom-selection-removeRange"><code>removeRange(<var title="">range</var>)</code></dfn>
+  method must remove the first occurrence of <var title="">range</var> in the
   list of ranges, if it appears at all.</p>
 
   <p>The <dfn
@@ -15745,8 +15959,8 @@ Content-Type: text/plain; charset=utf-8</pre>
   down-level UAs).</p>
 
   <!--
-    Specifically, replace all occurances of 0xFF with 0xFF 0xFF and
-    all occurances of 0x17 with 0xFF 0x00, or similar.
+    Specifically, replace all occurrences of 0xFF with 0xFF 0xFF and
+    all occurrences of 0x17 with 0xFF 0x00, or similar.
    -->
 
   <h4>Security</h4>
@@ -17404,18 +17618,18 @@ function receiver(e) {
 
   <ol>
 
-   <li><p>Initialise <var>node</var> to be the <span>current
+   <li><p>Initialise <var title="">node</var> to be the <span>current
    node</span> (the bottommost node of the stack).</p></li>
 
-   <li><p>If <var>node</var> is the target node, terminate in a match
+   <li><p>If <var title="">node</var> is the target node, terminate in a match
    state.</p></li>
 
-   <li><p>Otherwise, if <var>node</var> is a <code>table</code>
+   <li><p>Otherwise, if <var title="">node</var> is a <code>table</code>
    element, terminate in a failure state.</p></li>
 
    <li><p>Otherwise, if the algorithm is the "has an element in scope"
    variant (rather than the "has an element in table scope" variant),
-   and <var>node</var> is one of the following, terminate in a failure
+   and <var title="">node</var> is one of the following, terminate in a failure
    state:</p>
 
     <ul class="brief">
@@ -17436,13 +17650,13 @@ function receiver(e) {
 
    </li>
 
-   <li><p>Otherwise, if <var>node</var> is an <code>html</code>
+   <li><p>Otherwise, if <var title="">node</var> is an <code>html</code>
    element, terminate in a failure state. (This can only happen if the
-   <var>node</var> is the topmost node of the <span>stack of open
+   <var title="">node</var> is the topmost node of the <span>stack of open
    elements</span>, and prevents the next step from being invoked if
    there are no more elements in the stack.)</p></li>
 
-   <li><p>Otherwise, set <var>node</var> to the previous entry in the
+   <li><p>Otherwise, set <var title="">node</var> to the previous entry in the
    <span>stack of open elements</span> and return to step 2. (This
    will never fail, since the loop will always terminate in the
    previous step if the top of the stack is reached.)</p></li>
@@ -17485,32 +17699,32 @@ function receiver(e) {
    element that is in the <span>stack of open elements</span>, then
    there is nothing to reconstruct; stop this algorithm.</li>
 
-   <li>Let <var>entry</var> be the last (most recently added) element
+   <li>Let <var title="">entry</var> be the last (most recently added) element
    in the <span>list of active formatting elements</span>.</li>
 
-   <li>Let <var>entry</var> be the entry one earlier than
-   <var>entry</var> in the <span>list of active formatting
+   <li>Let <var title="">entry</var> be the entry one earlier than
+   <var title="">entry</var> in the <span>list of active formatting
    elements</span>.</li>
 
-   <li>If <var>entry</var> is neither a marker nor an element that is
+   <li>If <var title="">entry</var> is neither a marker nor an element that is
    also in the <span>stack of open elements</span>, go to step 3.</li>
 
-   <li>Let <var>entry</var> be the element one later than
-   <var>entry</var> in the <span>list of active formatting
+   <li>Let <var title="">entry</var> be the element one later than
+   <var title="">entry</var> in the <span>list of active formatting
    elements</span>.</li>
 
-   <li>Perform a shallow clone of the element <var>entry</var> to
-   obtain <var>clone</var>. <a
+   <li>Perform a shallow clone of the element <var title="">entry</var> to
+   obtain <var title="">clone</var>. <a
    href="#refsDOM3CORE">[DOM3CORE]</a></li>
 
-   <li>Append <var>clone</var> to the <span>current node</span> and
+   <li>Append <var title="">clone</var> to the <span>current node</span> and
    push it onto the <span>stack of open elements</span> so that it is
    the new <span>current node</span>.</li>
 
-   <li>Replace the entry for <var>entry</var> in the list with an
-   entry for <var>clone</var>.</li>
+   <li>Replace the entry for <var title="">entry</var> in the list with an
+   entry for <var title="">clone</var>.</li>
 
-   <li>If the entry for <var>clone</var> in the <span>list of active
+   <li>If the entry for <var title="">clone</var> in the <span>list of active
    formatting elements</span> is not the last entry in the list,
    return to step 5.</li>
 
@@ -17533,13 +17747,13 @@ function receiver(e) {
 
   <ol>
 
-   <li>Let <var>entry</var> be the last (most recently added) entry in
+   <li>Let <var title="">entry</var> be the last (most recently added) entry in
    the <span>list of active formatting elements</span>.</li>
 
-   <li>Remove <var>entry</var> from the <span>list of active
+   <li>Remove <var title="">entry</var> from the <span>list of active
    formatting elements</span>.</li>
 
-   <li>If <var>entry</var> was a marker, then stop the algorithm at
+   <li>If <var title="">entry</var> was a marker, then stop the algorithm at
    this point. The list has been cleared up to the last marker.</li>
 
    <li>Go to step 1.</li>
@@ -18105,15 +18319,15 @@ function receiver(e) {
 
         <ol>
 
-         <li><p>Initialise <var>node</var> to be the <span>current
+         <li><p>Initialise <var title="">node</var> to be the <span>current
          node</span> (the bottommost node of the stack).</p></li>
 
-         <li><p>If <var>node</var> is an <code>li</code> element, then
+         <li><p>If <var title="">node</var> is an <code>li</code> element, then
          pop all the nodes from the <span>current node</span> up to
-         <var>node</var>, including <var>node</var>, then stop this
+         <var title="">node</var>, including <var title="">node</var>, then stop this
          algorithm.</p></li>
 
-         <li><p>If <var>node</var> is not in the
+         <li><p>If <var title="">node</var> is not in the
          <span>formatting</span> category, and is not in the
          <span>phrasing</span> category, and is not an
          <code>address</code> or <code>div</code> element, then stop
@@ -18126,7 +18340,7 @@ function receiver(e) {
          descendant of the first <li>, or if <foo> is a formatting
          element that gets reopened later. -->
 
-         <li><p>Otherwise, set <var>node</var> to the previous entry
+         <li><p>Otherwise, set <var title="">node</var> to the previous entry
          in the <span>stack of open elements</span> and return to step
          2.</p></li>
 
@@ -18149,15 +18363,15 @@ function receiver(e) {
 
         <ol>
 
-         <li><p>Initialise <var>node</var> to be the <span>current
+         <li><p>Initialise <var title="">node</var> to be the <span>current
          node</span> (the bottommost node of the stack).</p></li>
 
-         <li><p>If <var>node</var> is a <code>dd</code> or
+         <li><p>If <var title="">node</var> is a <code>dd</code> or
          <code>dt</code> element, then pop all the nodes from the
-         <span>current node</span> up to <var>node</var>, including
-         <var>node</var>, then stop this algorithm.</p></li>
+         <span>current node</span> up to <var title="">node</var>, including
+         <var title="">node</var>, then stop this algorithm.</p></li>
 
-         <li><p>If <var>node</var> is not in the
+         <li><p>If <var title="">node</var> is not in the
          <span>formatting</span> category, and is not in the
          <span>phrasing</span> category, and is not an
          <code>address</code> or <code>div</code> element, then stop
@@ -18170,7 +18384,7 @@ function receiver(e) {
          descendant of the first <li>, or if <foo> is a formatting
          element that gets reopened later. -->
 
-         <li><p>Otherwise, set <var>node</var> to the previous entry
+         <li><p>Otherwise, set <var title="">node</var> to the previous entry
          in the <span>stack of open elements</span> and return to step
          2.</p></li>
 
@@ -18347,7 +18561,7 @@ function receiver(e) {
 
         <ol>
 
-         <li><p>Let the <var>formatting element</var> be the
+         <li><p>Let the <var title="">formatting element</var> be the
          bottommost node in the <span>stack of open elements</span>
          that is <span title="has an element in scope">in scope</span>
          and whose tag name matches the tag name of the end tag
@@ -18355,75 +18569,75 @@ function receiver(e) {
          <span>parse error</span>; skip the subsequent steps (the
          end tag is ignored).</p>
 
-         <p>If the <var>formatting element</var> is not the
+         <p>If the <var title="">formatting element</var> is not the
          <span>current node</span>, then it is a <span>parse
          error</span>.</p></li>
 
-         <li><p>Let the <var>common ancestor</var> be the element
-         immediately above the <var>formatting element</var> in the
+         <li><p>Let the <var title="">common ancestor</var> be the element
+         immediately above the <var title="">formatting element</var> in the
          <span>stack of open elements</span>.</p></li>
 
-         <li><p>Let the <var>nearest block</var> be the bottommost
+         <li><p>Let the <var title="">nearest block</var> be the bottommost
          node in the <span>stack of open elements</span> that is lower
-         in the stack than the <var>formatting element</var> and not
+         in the stack than the <var title="">formatting element</var> and not
          also in the <span>list of active formatting
          elements</span>.</p>
 
          <p>There might not be one; if there isn't, then the UA must
          skip the subsequent steps and instead just pop all the nodes
          from the bottom of the <span>stack of open elements</span>,
-         from the <span>current node</span> up to the <var>formatting
-         element</var>, and remove the <var>formatting element</var>
+         from the <span>current node</span> up to the <var title="">formatting
+         element</var>, and remove the <var title="">formatting element</var>
          from the <span>list of active formatting
          elements</span>.</p></li>
 
-         <li><p>Let the <var>furthest block</var> be the topmost node
+         <li><p>Let the <var title="">furthest block</var> be the topmost node
          in the <span>stack of open elements</span> that is lower in
-         the stack than the <var>formatting element</var> and not also
+         the stack than the <var title="">formatting element</var> and not also
          in the <span>list of active formatting elements</span>. There
          will always be one (otherwise the UA would have bailed at the
-         last step), but it might be the same as the <var>nearest
+         last step), but it might be the same as the <var title="">nearest
          block</var>.</p></li>
 
-         <li><p>If the <var>furthest block</var> has a parent node,
-         then remove the <var>furthest block</var> from its parent
+         <li><p>If the <var title="">furthest block</var> has a parent node,
+         then remove the <var title="">furthest block</var> from its parent
          node.</p></li>
 
          <li><p>Let a bookmark note the relative position of the
-         <var>formatting element</var> in the <span>list of active
+         <var title="">formatting element</var> in the <span>list of active
          formatting elements</span>.</p></li>
 
          <li>
 
-          <p>Let <var>node</var> and <var>last node</var> be the
-          <var>furthest block</var>. Follow these steps:</p>
+          <p>Let <var title="">node</var> and <var title="">last node</var> be the
+          <var title="">furthest block</var>. Follow these steps:</p>
 
           <ol>
 
-           <li>Let <var>node</var> be the element immediately prior to
-           <var>node</var> in the <span>stack of open
+           <li>Let <var title="">node</var> be the element immediately prior to
+           <var title="">node</var> in the <span>stack of open
            elements</span>.</li>
 
-           <li>If <var>node</var> is the <var>formatting
+           <li>If <var title="">node</var> is the <var title="">formatting
            element</var>, then go to the next step in the overall
            algorithm. Otherwise:</li>
 
-           <li>If <var>last node</var> is the <var>furthest
+           <li>If <var title="">last node</var> is the <var title="">furthest
            block</var>, then move the aforementioned bookmark to be
-           immediately after the <var>node</var> in the <span>list of
+           immediately after the <var title="">node</var> in the <span>list of
            active formatting elements</span>.</li>
 
-           <li>If <var>node</var> has any children, perform a shallow
-           clone of <var>node</var>, replace the entry for
-           <var>node</var> in the <span>list of active formatting
+           <li>If <var title="">node</var> has any children, perform a shallow
+           clone of <var title="">node</var>, replace the entry for
+           <var title="">node</var> in the <span>list of active formatting
            elements</span> with an entry for the clone, replace the
-           entry for <var>node</var> in the <span>stack of open
+           entry for <var title="">node</var> in the <span>stack of open
            elements</span> with an entry for the clone, and let
-           <var>node</var> be the clone.</li>
+           <var title="">node</var> be the clone.</li>
 
-           <li>Insert <var>last node</var> into <var>node</var>.</li>
+           <li>Insert <var title="">last node</var> into <var title="">node</var>.</li>
 
-           <li>Let <var>last node</var> be <var>node</var>.</li>
+           <li>Let <var title="">last node</var> be <var title="">node</var>.</li>
 
            <li>Return to step 1 of this inner set of steps.</li>
 
@@ -18431,32 +18645,32 @@ function receiver(e) {
 
          </li>
 
-         <li><p>If the <var>furthest block</var> had a parent node in
-         step 5, insert whatever <var>last node</var> ended up being
-         in the previous step into the <var>common ancestor</var>
+         <li><p>If the <var title="">furthest block</var> had a parent node in
+         step 5, insert whatever <var title="">last node</var> ended up being
+         in the previous step into the <var title="">common ancestor</var>
          node.</p></li>
 
-         <li><p>Perform a shallow clone of the <var>formatting
+         <li><p>Perform a shallow clone of the <var title="">formatting
          element</var>.</p></li>
 
-         <li><p>Take all of the child nodes of the <var>furthest
+         <li><p>Take all of the child nodes of the <var title="">furthest
          block</var> and append them to the clone created in the last
          step.</p></li>
 
-         <li><p>Append that clone to the <var>furthest
+         <li><p>Append that clone to the <var title="">furthest
          block</var>.</p></li>
 
-         <li><p>Remove the <var>formatting element</var> from the
+         <li><p>Remove the <var title="">formatting element</var> from the
          <span>list of active formatting elements</span>, and insert
          the clone into the <span>list of active formatting
          elements</span> at the position of the aforementioned
          bookmark.</p></li>
 
-         <li><p>Remove the <var>formatting element</var> from the
+         <li><p>Remove the <var title="">formatting element</var> from the
          <span>stack of open elements</span>, and insert the clone
          into the <span>stack of open elements</span> immediately
          after (i.e. in a more deeply nested position than) the
-         position of the <var>furthest block</var> in that
+         position of the <var title="">furthest block</var> in that
          stack.</p></li>
 
          <li><p>Jump back to step 1 in this series of steps.</p></li>
@@ -18804,10 +19018,10 @@ function receiver(e) {
 
         <ol>
 
-         <li><p>Initialise <var>node</var> to be the <span>current
+         <li><p>Initialise <var title="">node</var> to be the <span>current
          node</span> (the bottommost node of the stack).</p></li>
 
-         <li><p>If <var>node</var> has the same tag name as the end
+         <li><p>If <var title="">node</var> has the same tag name as the end
          tag token, then:</p>
 
           <ol>
@@ -18819,21 +19033,21 @@ function receiver(e) {
            <span>parse error</span>.</p></li>
 
            <li><p>Pop all the nodes from the <span>current node</span>
-           up to <var>node</var>, including <var>node</var>, then stop
+           up to <var title="">node</var>, including <var title="">node</var>, then stop
            this algorithm.</p></li>
 
           </ol>
 
          </li>
 
-         <li><p>Set <var>node</var> to the previous entry in the
+         <li><p>Set <var title="">node</var> to the previous entry in the
          <span>stack of open elements</span>.</p></li>
 
-         <li><p>If <var>node</var> is in either the
+         <li><p>If <var title="">node</var> is in either the
          <span>formatting</span> or <span>phrasing</span> categories,
          then return to step 2 of this algorithm. (The element at the
          top of the stack is in neither of those categories, and
-         therefore step 3 will never be reached when <var>node</var>
+         therefore step 3 will never be reached when <var title="">node</var>
          is the top element.)</p></li>
 
          <li><p>Otherwise, this is a <span>parse
