@@ -8495,6 +8495,7 @@ interface <dfn>DataGridDataProvider</dfn> {
    http://www.25hoursaday.com/weblog/
    http://www.alvestrand.no/pipermail/ietf-types/2006-April/001707.html
    http://ln.hixie.ch/?start=1144794177&count=1
+   http://www.intertwingly.net/blog/2006/04/13/Dont-throw-charset-out-with-the-bathwater
 -->
 
   <h3>Commands</h3>
@@ -10265,40 +10266,27 @@ user reload must be equivalent to .reload()
    <li><code>globalStorage['www.example.com']</code> is accessible to www.example.com and example.com, but not www2.example.com.</li>
   </ul>
 
-  <p>Storage areas (both session storage and global storage) can store
-  most simple data types (numbers, strings, booleans, etc), as well as
-  simple JS objects, and DOM nodes. Functions and objects with methods
-  can't be stored, however.</p>
+  <p>Storage areas (both session storage and global storage) store
+  strings. To store structured data in a storage area, you must first
+  convert it to a string.</p>
 
 
   <h4>The <code>Storage</code> interface</h4>
 
-  <pre class="idl">// DOMUserData is defined in DOM3 Core <a href="#refsDOM3CORE">[DOM3CORE]</a>
+  <pre class="idl">
 interface <dfn>Storage</dfn> {
   readonly attribute unsigned long <span title="dom-storage-length">length</span>;
   DOMString <span title="dom-storage-key">key</span>(in unsigned long index);
-  <a href="http://www.w3.org/TR/DOM-Level-3-Core/core.html#DOMUserData">DOMUserData</a> <span title="dom-storage-getItem">getItem</span>(in DOMString key);
-  void <span title="dom-storage-setItem">setItem</span>(in DOMString key, in <a href="http://www.w3.org/TR/DOM-Level-3-Core/core.html#DOMUserData">DOMUserData</a> data);
+  <span>StorageItem</span> <span title="dom-storage-getItem">getItem</span>(in DOMString key);
+  void <span title="dom-storage-setItem">setItem</span>(in DOMString key, in DOMString data);
   void <span title="dom-storage-removeItem">removeItem</span>(in DOMString key);
 };</pre>
 
   <p>Each <code>Storage</code> object provides access to a list of
   key/value pairs, which are sometimes called items. Keys are strings,
   and any string (including the empty string) is a valid key. Values
-  can be of any type.</p>
-
-  <p>In the ECMAScript binding, enumerating the object must enumerate
-  through the currently stored keys (not the values, and not the
-  actual members of the interface). In the ECMAScript binding,
-  <code>Storage</code> objects must support dereferencing such that
-  getting a property that is not a member of the object (i.e. is
-  neither a member of the <code>Storage</code> interface nor of
-  <code>Object</code>) must invoke the <code
-  title="dom-storage-getItem">getItem()</code> method with the
-  property's name as the argument, and setting such a property must
-  invoke the <code title="dom-storage-setItem">setItem()</code> method
-  with the property's name as the first argument and the given value
-  as the second argument.</p>
+  are strings with associated metadata, represented by
+  <code>StorageItem</code> objects.</p>
 
   <p>Each <code>Storage</code> object is associated with a list of
   key/value pairs when it is created, as defined in the sections on
@@ -10308,13 +10296,24 @@ interface <dfn>Storage</dfn> {
   all be associated with the same list of key/value pairs
   simultaneously.</p>
 
+  <p>Key/value pairs have associated metadata. In particular, a
+  key/value pair can be marked as either "safe only for secure
+  content", or as "safe for both secure and insecure content".</p>
+
+  <p>A key/value pair is <dfn title="accessible keys">accessible</dfn>
+  if either it is marked as "safe for both secure and insecure
+  content", or it is marked as "safe only for secure content" and the
+  script in question is running in a <span title="secure scripting
+  contexts">secure scripting context</span>.</p>
+
   <p>The <dfn title="dom-storage-length"><code>length</code></dfn>
   attribute must return the number of key/value pairs currently
-  present in the list associated with the object.</p>
+  present and <span title="accessible keys">accessible</span> in the
+  list associated with the object.</p>
 
-  <p>The <dfn
-  title="dom-storage-key"><code>key(<var title="">n</var>)</code></dfn> method
-  must return the name of the <var title="">n</var>th key in the list. The
+  <p>The <dfn title="dom-storage-key"><code>key(<var
+  title="">n</var>)</code></dfn> method must return the name of the
+  <var title="">n</var>th <span>accessible</span> key in the list. The
   order of keys is user-agent defined, but must be consistent within
   an object between changes to the number of keys. (Thus, <span
   title="dom-storage-setItem">adding</span> or <span
@@ -10323,42 +10322,64 @@ interface <dfn>Storage</dfn> {
   must not.) <!--The order of keys may differ between instances of the
   <code>Storage</code> interface accessing the same list. [removed for
   now for clarity, but if people ask, put it back. this is part of the
-  spec.]--> If <var title="">n</var> is less than zero or greater than or equal
-  to the number of key/value pairs in the object, then this method
-  must raise an <code>INDEX_SIZE_ERR</code> exception.</p>
+  spec.]--> If <var title="">n</var> is less than zero or greater than
+  or equal to the number of key/value pairs in the object, then this
+  method must raise an <code>INDEX_SIZE_ERR</code> exception.</p>
 
-  <p>The <dfn
-  title="dom-storage-getItem"><code>getItem(<var title="">key</var>)</code></dfn>
-  method must return the <span>restored value</span> for the key/value
-  pair with the given <var title="">key</var>. If the given <var title="">key</var> does
-  not exist in the list associated with the object, then this method
-  must return null.</p>
+  <p>The <dfn title="dom-storage-getItem"><code>getItem(<var
+  title="">key</var>)</code></dfn> method must return the
+  <code>StorageItem</code> object representing the key/value pair with
+  the given <var title="">key</var>. If the given <var
+  title="">key</var> does not exist in the list associated with the
+  object, or is not <span>accessible</span>, then this method must
+  return null. Subsequent calls to this method with the same key must
+  return different instances of the <code>StorageItem</code>
+  interface.</p>
 
-  <p>The <dfn
-  title="dom-storage-setItem"><code>setItem(<var title="">key</var>, <var
-  title="">value</var>)</code></dfn> method must first check if a
-  key/value pair with the given <var title="">key</var> already exists in the
-  list associated with the object. If it does not, then a new
-  key/value pair must be added to the list, with the given
-  <var title="">key</var>. Then, the key/value pair with the given
-  <var title="">key</var> must have its value updated so that if it is
-  retrieved it will return <span>the restored value</span> for for the
-  given <dfn>original value</dfn>, the value given in the <var
-  title="">value</var> argument.</p>
+  <p>The <dfn title="dom-storage-setItem"><code>setItem(<var
+  title="">key</var>, <var title="">value</var>)</code></dfn> method
+  must first check if a key/value pair with the given <var
+  title="">key</var> already exists in the list associated with the
+  object.</p>
+
+  <p>If it does not, then a new key/value pair must be added to the
+  list, with the given <var title="">key</var> and <var
+  title="">value</var>, such that any current or future
+  <code>StorageItem</code> objects referring to this key/value pair
+  will return the value given in the <var title="">value</var>
+  argument. If the script setting the value is running in a <span
+  title="secure scripting contexts">secure scripting context</span>,
+  then the key/value pair must be marked as "safe only for secure
+  content", otherwise it must be marked as "safe for both secure and
+  insecure content".</p>
+
+  <p>If the given <var title="">key</var> <em>does</em> exist in the
+  list, then, if the key/value pair with the given <var
+  title="">key</var> is <span>accessible</span>, it must have its
+  value updated so that any current or future <code>StorageItem</code>
+  objects referring to this key/value pair will return the value given
+  in the <var title="">value</var> argument. If it is <em>not</em>
+  <span>accessible</span>, the method must raise a <span>security
+  exception</span>.</p>
 
   <p>When the <code title="dom-storage-setItem">setItem()</code>
-  method is invoked, events are fired on other
-  <code>DocumentWindow</code> objects that can access the newly stored
-  data, as defined in the sections on the <code
+  method is successfully invoked (i.e. when it doesn't raise an
+  exception), events are fired on other <code>DocumentWindow</code>
+  objects that can access the newly stored data, as defined in the
+  sections on the <code
   title="dom-sessionStorage">sessionStorage</code> and <code
-  title="dom-globalStorage">globalStorage</code> attributes.</p>
+  title="dom-globalStorage">globalStorage</code> attributes.</p> <!--
+  not normative, see the sections below for the normative statement
+  -->
 
-  <p>The <dfn
-  title="dom-storage-removeItem"><code>removeItem(<var title="">key</var>)</code></dfn>
-  method must cause the key/value pair with the given <var title="">key</var>
-  to be removed from the list associated with the object, if it
-  exists. If no item with that key exists, the method must do
-  nothing.</p>
+  <p>The <dfn title="dom-storage-removeItem"><code>removeItem(<var
+  title="">key</var>)</code></dfn> method must cause the key/value
+  pair with the given <var title="">key</var> to be removed from the
+  list associated with the object, if it exists and is
+  <span>accessible</span>. If no item with that key exists, the method
+  must do nothing. If an item with that key exists but is not
+  <span>accessible</span>, the method must raise a <span>security
+  exception</span>.</p>
 
   <p>The <code title="dom-storage-setItem">setItem()</code> and <code
   title="dom-storage-removeItem">removeItem()</code> methods must be
@@ -10366,94 +10387,81 @@ interface <dfn>Storage</dfn> {
   area must either be successful, or the data storage area must not be
   changed at all.</p>
 
-  <p>The <dfn>restored value</dfn> (returned by <code
-  title="dom-storage-getItem">getItem()</code>) of a given
-  <span>original value</span> (as passed to <code
-  title="dom-storage-setItem">setItem()</code>) is defined as follows,
-  depending on the type of the <span>original value</span>:</p>
-
-  <dl class="switch">
-
-   <dt><code>Number</code>s, <code>Boolean</code>s,
-   <code>DOMTimeStamp</code>s, <code>DOMString</code>s,
-   <code>undefined</code>, <code>null</code>, and other "plain old
-   data" types</dt>
-
-   <dd>The restored value must be the same as the original value.</dd>
-
-
-   <dt>DOM <code>Node</code> objects</dt>
-
-   <dd>
-
-    <p>The restored value must be a new DOM <code>Node</code>, which
-    has the same <code>nodeType</code>, <code>nodeName</code>,
-    <code>nodeValue</code>, <code>namespaceURI</code>, and
-    <code>baseURI</code> as the original. In addition, for each entry
-    in the original node's <code>attributes</code> and
-    <code>childNodes</code> lists, the new object must have a
-    corresponding entry that has been restored in the same way, in the
-    same order. (In other words, the restoring recurses.) The
-    <code>ownerDocument</code> attributes of the restored
-    <code>Node</code> objects must be set to the value of the <code
-    title="dom-document">document</code> attribute of the
-    <code>Window</code> object that the <code>Storage</code> object is
-    associated with. User agents must not restore any other state. In
-    particular, <a
-    href="http://www.w3.org/TR/DOM-Level-3-Core/core.html#Node3-setUserData">user
-    data</a>, event handlers, and other DOM attributes on the original
-    <code>Node</code>s (e.g. <code>isId</code> or
-    <code>specified</code> on attributes, or <code>domConfig</code> on
-    documents) are not restored on the new <code>Node</code>s. <a
-    href="#refsDOM3CORE">[DOM3CORE]</a></p>
-
-    <p class="note">The contents of the bitmaps of <code>canvas</code>
-    elements and the value and state of <span>form controls</span> are
-    therefore <em>not</em> stored when a node is placed in a
-    <code>Storage</code> object, as those aspects are not represented
-    in the core DOM <code>Node</code> interface.</p>
-
-   </dd>
+  <p>In the ECMAScript binding, enumerating a <code>Storage</code>
+  object must enumerate through the currently stored and
+  <span>accessible</span> keys in the list the object is associated
+  with. (It must not enumerate the values or the actual members of the
+  interface). In the ECMAScript binding, <code>Storage</code> objects
+  must support dereferencing such that getting a property that is not
+  a member of the object (i.e. is neither a member of the
+  <code>Storage</code> interface nor of <code>Object</code>) must
+  invoke the <code title="dom-storage-getItem">getItem()</code> method
+  with the property's name as the argument, and setting such a
+  property must invoke the <code
+  title="dom-storage-setItem">setItem()</code> method with the
+  property's name as the first argument and the given value as the
+  second argument.</p>
 
 
-   <dt>E4X XML objects</dt>
+  <h4>The <code>StorageItem</code> interface</h4>
 
-   <dd class="big-issue">...</dd>
+  <p>Items in <code>Storage</code> objects are represented by objects
+  implementing the <code>StorageItem</code> interface.</p>
 
+  <pre class="idl">
+interface <dfn>StorageItem</dfn> {
+           attribute bool <span title="dom-storageitem-secure">secure</span>;
+           attribute DOMString <span title="dom-storageitem-value">value</span>;
+};</pre>
 
-   <dt>Arrays</dt>
+  <p>In the ECMAScript binding, <code>StorageItem</code> objects must
+  stringify to their <code title="dom-storageitem-value">value</code>
+  attribute's value.</p>
 
-   <dd class="big-issue">...</dd>
+  <p>The <dfn title="dom-storageitem-value"><code>value</code></dfn>
+  attribute must return the current value of the key/value pair
+  represented by the object. When the attribute is set, the user agent
+  must invoke the <code title="dom-storage-setItem">setItem()</code>
+  method of the <code>Storage</code> object that the
+  <code>StorageItem</code> object is associated with, with the key
+  that the <code>StorageItem</code> object is associated with as the
+  first argument, and the new given value of the attribute as the
+  second argument.</p>
 
+  <p><code>StorageItem</code> objects must be <em>live</em>, meaning
+  that as the underlying <code>Storage</code> object has its key/value
+  pairs updated, the <code>StorageItem</code> objects must always
+  return the actual value of the key/value pair they represent.</p>
 
-   <dt>Other objects</dt>
+  <p>If the key/value pair has been deleted, the
+  <code>StorageItem</code> object must act as if its value was the
+  empty string. On setting, the key/value pair will be recreated.</p>
 
-   <dd>The restored value must be a new object, where for each
-   enumerable property without a custom getter <!-- if you remove the
-   custom getter clause, make sure you can handle a getter that
-   returns an object that has one property with a custom getter that
-   returns a new object of the same type-->in the original object, the
-   new object has a property with the same name and a value restored
-   as if the property on the original object was itself treated as an
-   original value to restore (i.e. the restoring recurses through all
-   the properties of the object). If, while recursing through objects
-   in this way, a reference to an object occurs more than once, only
-   the occurrence that is found first in a depth-first search of the
-   original value must be restored; all other occurrences must be
-   restored as <code>null</code>.
+  <p>The <dfn title="dom-storageitem-secure"><code>secure</code></dfn>
+  attribute must raise an <code>INVALID_ACCESS_ERR</code> exception
+  when accessed or set from a script whose script context is not <span
+  title="secure scripting contexts">considered secure</span><!-- XXX
+  xref -->. (Basically, if the page is not an SSL page.)</p>
 
-    <span class="issue">This section is either too vague or too
-    specific. We should probably just give language-binding-specific
-    text for this, in a way that it defines how to take a JS Object
-    and turn it into a Perl %hash, etc.</span>
+  <p>If the scripting context <em>is</em> secure, then the <code
+  title="dom-storageitem-secure">secure</code> attribute must return
+  true if the key/value pair is considered "safe only for secure
+  content", and false if it is considered "safe for both secure and
+  insecure content". If it is set to true, then the key/value pair
+  must be flagged as "safe only for secure content". If it is set to
+  false, then the key/value pair must be flagged as "safe for both
+  secure and insecure content".</p>
 
-   </dd>
-
-  </dl>
-
-  <p>Subsequent calls to <code
-  title="dom-storage-getItem">getItem()</code> for the same item must
-  return new objects each time.</p>
+  <p>If a <code>StorageItem</code> object is obtained by a script that
+  is not running in a <span title="secure scripting contexts">secure
+  scripting context</span>, and the item is then marked with the "safe
+  only for secure content" flag by a script that <em>is</em> running
+  in a secure context, the <code>StorageItem</code> object must
+  continue to be available to the first script, who will be able to
+  read the value of the object. However, any attempt to <em>set</em>
+  the value would then start raising exceptions as described in the
+  previous section, and the key/value pair would no longer appear in
+  the appropriate <code>Storage</code> object.</p>
 
 
   <h4>The <code title="dom-sessionStorage">sessionStorage</code> attribute</h4>
@@ -10515,14 +10523,16 @@ interface <dfn>Storage</dfn> {
 
   <p id="sessionStorageEvent">When the <code
   title="dom-storage-setItem">setItem()</code> method is called on a
-  <code>Storage</code> object <var title="">x</var> that is associated with a
-  session storage area, then in every <code>DocumentWindow</code>
-  object whose <code>Window</code> object's <code
+  <code>Storage</code> object <var title="">x</var> that is associated
+  with a session storage area, then, if the method does not raise a
+  security exception, in every <code>DocumentWindow</code> object
+  whose <code>Window</code> object's <code
   title="dom-sessionStorage">sessionStorage</code> attribute's
   <code>Storage</code> object is associated with the same storage
   area, other than <var title="">x</var>, a <code
   title="event-storage">storage</code> event must be fired, as <span
   title="event-storage">described below</span>.</p>
+
 
   <h4>The <code title="dom-globalStorage">globalStorage</code> attribute</h4>
 
@@ -10660,10 +10670,11 @@ interface <dfn>Storage</dfn> {
 
    <p>The <code title="dom-storage-setItem">setItem()</code> method
    might be called on a <code>Storage</code> object that is associated
-   with a global storage area for a domain <var title="">d</var>, created by a
-   <code>StorageList</code> object associated with a
-   <code>Window</code> object <var title="">x</var>. Whenever this occurs, a
-   <code title="event-storage">storage</code> event must be fired, as
+   with a global storage area for a domain <var title="">d</var>,
+   created by a <code>StorageList</code> object associated with a
+   <code>Window</code> object <var title="">x</var>. Whenever this
+   occurs, if the method didn't raise an exception, a <code
+   title="event-storage">storage</code> event must be fired, as
    described below, in every <code>DocumentWindow</code> object that
    matches the following conditions:</p>
 
@@ -10675,7 +10686,7 @@ interface <dfn>Storage</dfn> {
     title="dom-sessionStorage">globalStorage</code> attribute's
     <code>StorageList</code> object's <code
     title="dom-storagelist-domain">getDomain()</code> method would not
-    raise a security exception according to the rules above if it was
+    raise a <span>security exception</span> according to the rules above if it was
     invoked with the domain <var title="">d</var>.</li>
 
    </ul>
@@ -10684,6 +10695,7 @@ interface <dfn>Storage</dfn> {
    domain's global storage area is notified of the change.</p>
 
   </div>
+
 
   <h4>The <code title="event-storage">storage</code> event</h4>
 
@@ -10746,6 +10758,7 @@ interface <dfn>Storage</dfn> {
   "<code>#session</code>" if it was a session storage area.</p>
 
   <!-- XXX onstorage should be defined -->
+
 
   <h4>Miscellaneous implementation requirements for storage areas</h4>
 
@@ -10993,23 +11006,23 @@ interface <dfn>Storage</dfn> {
   storing sensitive data. Authors must not trust information stored in
   "<span title="public storage area">public</span>" global storage areas.</p>
 
-  <h5>Cross-protocol attacks</h5>
+  <h5>Cross-protocol and cross-port attacks</h5>
 
   <p>This API makes no distinction between content served over HTTP,
-  HTTPS, FTP, or other host-based protocols, and does not distinguish
-  between content served from different ports at the same host.</p>
+  FTP, or other host-based protocols, and does not distinguish between
+  content served from different ports at the same host.</p>
 
   <p>Thus, for example, data stored in the global persistent storage
-  for domain "secure.example.com" by a page served over SSL from
-  <code>https://secure.example.com/</code> will be accessible from a
-  page served in plain text from <code>http://example.com/</code>.
-  </p>
+  for domain "www.example.com" by a page served from HTTP port 80 will
+  be available to a  page served in
+  <code>http://example.com/:18080</code>, even if the latter is an
+  experimental server under the control of a different user.</p>
 
   <p>Since the data is not sent over the wire by the user agent, this
   is not a security risk in its own right. However, authors must take
   proper steps to ensure that all hosts that have fully qualified host
   names that are subsets of hosts dealing with sensitive information
-  are as secure as the secure hosts themselves.</p>
+  are as secure as the originating hosts themselves.</p>
 
   <p>Similarly, authors must ensure that all Web servers on a host,
   regardless of the port, are equally trusted if any of them are to
@@ -11029,6 +11042,21 @@ interface <dfn>Storage</dfn> {
   storage feature is considered to only minimally increase the
   risk involved.</p>
 
+  <h5>DNS spoofing attacks</h5>
+
+  <p>Because of the potential for DNS spoofing attacks, one cannot
+  guarentee that a host claiming to be in a certain domain really is
+  from that domain. The <code
+  title="dom-storageitem-secure">secure</code> attribute is provided
+  to mark certain key/value pairs as only being accessible to pages
+  that have been authenticated using secure certificates (or similar
+  mechanisms).</p>
+
+  <p>Authors must ensure that they do not mark sensitive items as
+  "safe for both secure and insecure content". (To prevent the risk of
+  a race condition, data stored by scripts in secure contexts default
+  to being marked as "safe only for secure content".)</p>
+
   <h5>Cross-directory attacks</h5>
 
   <p>Different authors sharing one host name, for example users
@@ -11038,6 +11066,11 @@ interface <dfn>Storage</dfn> {
   recommended to avoid using the persistent storage feature, as it
   would be trivial for other authors to read from and write to the
   same storage area.</p>
+
+  <p class="note">Even if a path-restriction feature was made
+  available, the usual DOM scripting security model would make it
+  trivial to bypass this protection and access the data from any
+  path.</p>
 
   <h5>Implementation risks</h5>
 
@@ -11226,10 +11259,11 @@ interface <dfn>Storage</dfn> {
   notification interface. UAs could also simply silently collect the
   information, providing it only when relevant to the user.</p>
 
-  <p>User agents should raise security exceptions if the methods are
-  called with  <var title="">protocol</var> or <var title="">mimeType</var> values that
-  the UA deems to be "privileged". For example, a site attempting to
-  register a handler for <code>http</code> URIs or
+  <p>User agents should raise <span title="security
+  exception">security exceptions</span> if the methods are called with
+  <var title="">protocol</var> or <var title="">mimeType</var> values
+  that the UA deems to be "privileged". For example, a site attempting
+  to register a handler for <code>http</code> URIs or
   <code>text/html</code> content in a Web browser would likely cause
   an exception to be raised.</p>
 
@@ -20333,19 +20367,19 @@ http://lxr.mozilla.org/mozilla/source/parser/htmlparser/src/nsHTMLTokens.cpp#94
   Arvidsson, fantasai, Franck 'Shift' Qu&eacute;lain, Henri Sivonen,
   Henrik Lied, H&aring;kon Wium Lie, James Graham, James Perrett,
   Jan-Klaas Kollhof, Jasper Bryant-Greene, Jens Bannmann, Joel
-  Spolsky, Jon Perlow, Jukka K. Korpela, Kai Hendry, Kornel Lesinski,
-  Lachlan Hunt, Larry Page, Laurens Holst, L&eacute;onard Bouchet,
-  Maciej Stachowiak, Malcolm Rowe, Mark Nottingham, Mark Schenk,
-  Martijn Wargers, Martin Honnen, Matthew Mastracci, Matthew Raymond,
-  Matthew Thomas, Mattias Waldau, Max Romantschuk, Michael
-  A. Nachbaur, Michael Gratton, Michael 'Ratt' Iannarelli, Mihai
-  &#x015E;ucan<!-- from ROBO Design -->, Mike Shaver, Mikko
-  Rantalainen, Neil Deakin, Olav Junker Kj&aelig;r, Rimantas
-  Liubertas, Robert O'Callahan, Roman Ivanov, S. Mike Dierken, Shaun
-  Inman, Simon Pieters, Steven Garrity, Stuart Parmenter, Tantek
-  &Ccedil;elik, Thomas O'Connor, Tim Altman, Vladimir
-  Vuki&#x0107;evi&#x0107;, and everyone on the WHATWG mailing list for
-  their useful and substantial comments.</p>
+  Spolsky, Johnny Stenback, Jon Perlow, Jukka K. Korpela, Kai Hendry,
+  Kornel Lesinski, Lachlan Hunt, Larry Page, Laurens Holst,
+  L&eacute;onard Bouchet, Maciej Stachowiak, Malcolm Rowe, Mark
+  Nottingham, Mark Schenk, Martijn Wargers, Martin Honnen, Matthew
+  Mastracci, Matthew Raymond, Matthew Thomas, Mattias Waldau, Max
+  Romantschuk, Michael A. Nachbaur, Michael Gratton, Michael 'Ratt'
+  Iannarelli, Mihai &#x015E;ucan<!-- from ROBO Design -->, Mike
+  Shaver, Mikko Rantalainen, Neil Deakin, Olav Junker Kj&aelig;r,
+  Rimantas Liubertas, Robert O'Callahan, Roman Ivanov, S. Mike
+  Dierken, Shaun Inman, Simon Pieters, Steven Garrity, Stuart
+  Parmenter, Tantek &Ccedil;elik, Thomas O'Connor, Tim Altman,
+  Vladimir Vuki&#x0107;evi&#x0107;, and everyone on the WHATWG mailing
+  list for their useful and substantial comments.</p>
 
   <p>Special thanks to Richard Williamson for creating the first
   implementation of <code>canvas</code> in Safari, from which the
