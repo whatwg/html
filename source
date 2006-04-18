@@ -16336,14 +16336,6 @@ function receiver(e) {
 
   <h4><dfn>Tokenisation</dfn></h4>
 
-  <!-- XXX there is a bug in this, which is that when getting an EOF,
-  if the current open element is a <script>, we will need to close it,
-  run the script, and process d.w() content BEFORE handling the
-  end-of-file token. Except we'll need the EOF token to know that we
-  need to close things... You see the problem. Same weth a "</script"
-  being emitted by consuming an EOF character; don't fire end-of-file
-  yet... -->
-
   <p>Implementations must act as if they used the following state
   machine to tokenise HTML. The state machine must start in the
   <span>data state</span>. Most states consume a single character,
@@ -16360,10 +16352,9 @@ function receiver(e) {
 
   <p>The exact behaviour of certain states depends on a <dfn>content
   model flag</dfn> that is set after certain tokens are emitted. The
-  flag has several states: <em title="">normal</em>, <em
-  title="">CDATA</em>, <em title="">textarea</em>, <em
-  title="">title</em>, and <em title="">plaintext</em>. Initially it
-  is in the normal state.</p>
+  flag has several states: <em title="">PCDATA</em>, <em
+  title="">RCDATA</em>, <em title="">CDATA</em>, and <em
+  title="">PLAINTEXT</em>. Initially it is in the PCDATA state.</p>
 
   <p>The output of the tokenisation step is a series of zero or more
   of the following tokens: DOCTYPE, start tag, end tag, comment,
@@ -16392,27 +16383,19 @@ function receiver(e) {
 
      <dt>U+0026 AMPERSAND (&amp;)</dt>
      <dd>When the <span>content model flag</span> is set to one of the
-     normal, textarea, or title states: switch to the <span>entity
-     data state</span>.</dd>
+     PCDATA or RCDATA states: switch to the <span>entity data
+     state</span>.</dd>
      <dd>Otherwise: treat it as per the "anything else" entry below.</dd>
 
      <dt>U+003C LESS-THAN SIGN (&lt;)</dt>
      <dd>When the <span>content model flag</span> is set to a state
-     other than the plaintext state: switch to the <span>tag open
+     other than the PLAINTEXT state: switch to the <span>tag open
      state</span>.</dd>
      <dd>Otherwise: treat it as per the "anything else" entry
      below.</dd>
 
      <dt>EOF</dt>
-     <dd>When the <span>content model flag</span> is set to the title
-     state: throw away all the tokens that were emitted since the
-     <span>content model flag</span> was set to the title state,
-     switch to the normal state, and start reconsuming all the
-     characters that were consumed since that point. (In other words,
-     reparse everything that came after the <code>title</code>
-     element's start tag.)</dd>
-     <dd>Otherwise: emit an end-of-file token and stop
-     tokenising.</dd>
+     <dd>Emit an end-of-file token.</dd>
 
      <dt>Anything else</dt>
      <dd>Emit the input character as a character token. Stay in the
@@ -16449,23 +16432,21 @@ function receiver(e) {
 
     <dl>
 
-     <dt>If the <span>content model flag</span> is set to the CDATA,
-     textarea, or title states</dt>
+     <dt>If the <span>content model flag</span> is set to the RCDATA
+     or CDATA states</dt>
 
      <dd>
 
       <p>If the next input character is a U+002F SOLIDUS (/)
       character, consume it and switch to the <span>close tag open
-      state</span>. Otherwise, if the <span>content model flag</span>
-      is set to the textarea or title states, it is a <span>parse
-      error</span>. In any case, if the next input character is not a
-      U+002F SOLIDUS (/) character, emit a U+003C LESS-THAN SIGN
-      character token and reconsume the current input character in the
+      state</span>. If the next input character is not a U+002F
+      SOLIDUS (/) character, emit a U+003C LESS-THAN SIGN character
+      token and reconsume the current input character in the
       <span>data state</span>.</p>
 
      </dd>
 
-     <dt>If the <span>content model flag</span> is set to the normal
+     <dt>If the <span>content model flag</span> is set to the PCDATA
      state</dt>
 
      <dd>
@@ -16504,8 +16485,7 @@ function receiver(e) {
 
        <dt>EOF</dt>
        <dd><span>Parse error</span>. Emit a U+003C LESS-THAN SIGN
-       character token, then emit and end-of-file token and stop
-       tokenising.</dd>
+       character token, then emit and end-of-file token.</dd>
 
        <dt>Anything else</dt>
        <dd><span>Parse error</span>. Emit a U+003C LESS-THAN SIGN
@@ -16524,11 +16504,11 @@ function receiver(e) {
 
    <dd>
 
-    <p>If the <span>content model flag</span> is set to the CDATA,
-    textarea, or title states, then examine the next few
-    characters. If they do not match the tag name of the last start
-    tag token emitted (case insensitively), or if they do but they are
-    not immediately followed by one of the following characters:</p>
+    <p>If the <span>content model flag</span> is set to the RCDATA or
+    CDATA states then examine the next few characters. If they do not
+    match the tag name of the last start tag token emitted (case
+    insensitively), or if they do but they are not immediately
+    followed by one of the following characters:</p>
 
     <ul class="brief">
      <li>U+0009 CHARACTER TABULATION</li>
@@ -16549,7 +16529,7 @@ function receiver(e) {
     state</span>.</p>
 
     <p>Otherwise, if the <span>content model flag</span> is set to the
-    normal state, or if the next few characters do match that tag
+    PCDATA state, or if the next few characters <em>do</em> match that tag
     name, consume the next input character:</p>
 
     <dl class="switch">
@@ -16574,7 +16554,7 @@ function receiver(e) {
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit a U+003C LESS-THAN SIGN
      character token and a U+002F SOLIDUS character token, then emit
-     an end-of-file token and stop tokenising.</dd>
+     an end-of-file token.</dd>
 
      <dt>Anything else</dt>
      <dd><span>Parse error</span>. Switch to the <span>bogus
@@ -16620,7 +16600,7 @@ function receiver(e) {
 
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit the current tag token and
-     an end-of-file token. Stop tokenising.</dd>
+     an end-of-file token.</dd>
 
      <dt>Anything else</dt>
      <dd>Append the current input character to the current tag token's
@@ -16668,7 +16648,7 @@ function receiver(e) {
 
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit the current tag token and
-     an end-of-file token. Stop tokenising.</dd>
+     an end-of-file token.</dd>
      
      <dt>Anything else</dt>
      <dd>Start a new attribute in the current tag token. Set that
@@ -16720,7 +16700,7 @@ function receiver(e) {
 
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit the current tag token and
-     an end-of-file token. Stop tokenising.</dd>
+     an end-of-file token.</dd>
 
      <dt>Anything else</dt>
      <dd>Append the current input character to the current attribute's
@@ -16777,7 +16757,7 @@ function receiver(e) {
 
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit the current tag token and
-     an end-of-file token. Stop tokenising.</dd>
+     an end-of-file token.</dd>
 
      <dt>Anything else</dt>
      <dd>Start a new attribute in the current tag token. Set that
@@ -16826,7 +16806,7 @@ function receiver(e) {
 
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit the current tag token and
-     an end-of-file token. Stop tokenising.</dd>
+     an end-of-file token.</dd>
 
      <dt>Anything else</dt>
      <dd>Append the current input character to the current attribute's
@@ -16853,7 +16833,7 @@ function receiver(e) {
 
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit the current tag token and
-     an end-of-file token. Stop tokenising.</dd>
+     an end-of-file token.</dd>
 
      <dt>Anything else</dt>
      <dd>Append the current input character to the current attribute's
@@ -16880,7 +16860,7 @@ function receiver(e) {
 
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit the current tag token and
-     an end-of-file token. Stop tokenising.</dd>
+     an end-of-file token.</dd>
 
      <dt>Anything else</dt>
      <dd>Append the current input character to the current attribute's
@@ -16921,7 +16901,7 @@ function receiver(e) {
 
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit the current tag token and
-     an end-of-file token. Stop tokenising.</dd>
+     an end-of-file token.</dd>
 
      <dt>Anything else</dt>
      <dd>Append the current input character to the current attribute's
@@ -16954,7 +16934,7 @@ function receiver(e) {
    <dd>
 
     <p><em>(This can only happen if the <span>content model
-    flag</span> is set to the normal state.)</em></p>
+    flag</span> is set to the PCDATA state.)</em></p>
 
     <p>Consume every character up to the first U+003E GREATER-THAN
     SIGN character (&gt;) or the end of the file (EOF), whichever
@@ -16976,7 +16956,7 @@ function receiver(e) {
    <dd>
 
     <p><em>(This can only happen if the <span>content model
-    flag</span> is set to the normal state.)</em></p>
+    flag</span> is set to the PCDATA state.)</em></p>
 
     <p>If the next two characters are both U+002D HYPHEN-MINUS (-)
     characters, consume those two characters, create a comment token
@@ -17006,7 +16986,7 @@ function receiver(e) {
 
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit the comment token and an
-     end-of-file token. Stop tokenising.</dd> <!-- For security
+     end-of-file token.</dd> <!-- For security
      reasons: otherwise, hostile user could put a <script> in a
      comment e.g. in a blog comment and then DOS the server so that
      the end tag isn't read, and then the commented <script> tag would
@@ -17040,7 +17020,7 @@ function receiver(e) {
 
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit the comment token and an
-     end-of-file token. Stop tokenising.</dd> <!-- For security
+     end-of-file token.</dd> <!-- For security
      reasons: otherwise, hostile user could put a <script> in a
      comment e.g. in a blog comment and then DOS the server so that
      the end tag isn't read, and then the commented <script> tag would
@@ -17084,7 +17064,7 @@ function receiver(e) {
 
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit the comment token and an
-     end-of-file token. Stop tokenising.</dd> <!-- For security
+     end-of-file token.</dd> <!-- For security
      reasons: otherwise, hostile user could put a <script> in a
      comment e.g. in a blog comment and then DOS the server so that
      the end tag isn't read, and then the commented <script> tag would
@@ -17197,7 +17177,7 @@ function receiver(e) {
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit a DOCTYPE token whose
      name is the empty string and that is marked as being in error,
-     then emit an end-of-file token and stop tokenising.</dd>
+     then emit an end-of-file token.</dd>
 
      <dt>Anything else</dt>
      <dd>Create a new DOCTYPE token. Set the token's name name to the
@@ -17235,7 +17215,7 @@ function receiver(e) {
 
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit the current DOCTYPE token
-     and an end-of-file token. Stop tokenising.</dd>
+     and an end-of-file token.</dd>
 
      <dt>Anything else</dt>
      <dd>Append the current input character to the current DOCTYPE
@@ -17271,7 +17251,7 @@ function receiver(e) {
 
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit the current DOCTYPE token
-     and an end-of-file token. Stop tokenising.</dd>
+     and an end-of-file token.</dd>
 
      <dt>Anything else</dt>
      <dd><span>Parse error</span>. Mark the DOCTYPE token as
@@ -17296,7 +17276,7 @@ function receiver(e) {
 
      <dt>EOF</dt>
      <dd><span>Parse error</span>. Emit the current DOCTYPE token
-     and an end-of-file token. Stop tokenising.</dd>
+     and an end-of-file token.</dd>
 
      <dt>Anything else</dt>
      <dd>Stay in the <span>bogus DOCTYPE state</span>.</dd>
@@ -17413,8 +17393,17 @@ function receiver(e) {
 
   </dl>
 
-  <p>When an end tag token is emitted, the <span>content model
-  flag</span> must be switched to the normal state.</p>
+  <p>If, just as an end-of-file token is about to be emitted, new
+  characters are found in the input stream, the end-of-file token must
+  be not actually be emitted, and instead, the tokensiser must
+  continue with those new characters. (This can happen if an EOF input
+  character caused both an end tag and the end-of-file token to be
+  emitted, if the element that was closed was a <code>script</code>
+  element.)</p>
+
+  <p>When an end tag or end-of-file token is emitted, the
+  <span>content model flag</span> must be switched to the PCDATA
+  state.</p>
 
   <p>When an end tag token is emitted with attributes, that is a
   <span>parse error</span>.</p>
@@ -18076,7 +18065,7 @@ function receiver(e) {
      <dt>If the <span>insertion mode</span> is "in head"</dt>
      <dd>
 
-      <p>Handle the token as follows.
+      <p>Handle the token as follows.</p>
 
       <p class="note">The rules for handling "title", "style", and
       "script" start tags are similar, but not identical.</p>
@@ -18094,14 +18083,11 @@ function receiver(e) {
         <span><code title="">head</code> element pointer</span>.</p>
 
         <p>Switch the tokeniser's <span>content model flag</span> to
-        the title state.</p>
+        the RCDATA state.</p>
 
         <p>Then, collect all the characters tokens that the tokeniser
         returns until it returns a token that is not a character
-        token. If the tokeniser hits the end of the file prematurely
-        during this process, it will then take all those tokens back,
-        in which case start collecting new characters tokens
-        again.</p>
+        token.</p>
 
         <p>If this process resulted in a collection of character
         tokens, append a single <code>Text</code> node to the
@@ -18109,13 +18095,10 @@ function receiver(e) {
         concatenation of all those tokens' characters.</p>
 
         <p>The tokeniser's <span>content model flag</span> will have
-        switched back to the normal state.</p>
+        switched back to the PCDATA state.</p>
 
-        <p>Then, take the next token (which will be the first
-        non-character token since the "title" start tag token). If it
-        is an end tag token with the tag name "title", then ignore
-        it. Otherwise, continue the processing with that token (if
-        any).</p>
+        <p>If the next token is an end tag token with the tag name
+        "title", ignore it.</p>
 
        </dd>
 
@@ -18142,10 +18125,10 @@ function receiver(e) {
         concatenation of all those tokens' characters.</p>
 
         <p>The tokeniser's <span>content model flag</span> will have
-        switched back to the normal state.</p>
+        switched back to the PCDATA state.</p>
 
-        <p>Then, ignore the next token, if any. (If there is one, it
-        will be an end tag token with the tag name "style".)</p>
+        <p>If the next token is an end tag token with the tag name
+        "style", ignore it.</p>
 
        </dd>
 
@@ -18169,15 +18152,19 @@ function receiver(e) {
         concatenation of all those tokens' characters.</p>
 
         <p>The tokeniser's <span>content model flag</span> will have
-        switched back to the normal state.</p>
+        switched back to the PCDATA state.</p>
 
-        <p>Then, ignore the next token, if any. (If there is one, it
-        will be an end tag token with the tag name "script".)</p>
+        <p>If the next token is not an end tag token with the tag name
+        "script", then mark the <code>script</code> element as
+        "already executed"<!-- XXX xref -->, otherwise, ignore
+        it. (Marking the <code>script</code> element as "already
+        executed" prevents it from executing when it is inserted into
+        the document in the next paragraph.)</p>
 
-        <p>Finally, append the new element to the <span>current
-        node</span>, unless the <span>insertion mode</span> is "in
-        head", in which case append it to the node pointed to by the
-        <span><code title="">head</code> element pointer</span>. <!--
+        <p>Append the new element to the <span>current node</span>,
+        unless the <span>insertion mode</span> is "in head", in which
+        case append it to the node pointed to by the <span><code
+        title="">head</code> element pointer</span>. <!--
         <head></head><script><body> should put the script in the head,
         and does so by switching back to in head, but the head isn't
         the current node at that point (comments should go between the
@@ -18239,6 +18226,10 @@ function receiver(e) {
         head".</p>
 
         <p>Then, reprocess the current token.</p>
+
+<!-- XXXXXXX
+ https://bugzilla.mozilla.org/attachment.cgi?id=180157&action=view -->
+
 
        </dd>
 
@@ -18486,14 +18477,14 @@ function receiver(e) {
         <p><span title="insert an html element">Insert an HTML
         element</span> for the token.</p>
 
-        <p>Switch the <span>content model flag</span> to the plaintext
+        <p>Switch the <span>content model flag</span> to the PLAINTEXT
         state.</p>
 
         <p class="note">Once a start tag with the tag name "plaintext"
         has been seen, that will be the last token ever seen other
-        than character tokens, there is no way to switch the
-        <span>content model flag</span> out of the plaintext
-        state.</p>
+        than character tokens (and the EOF token), there is no way to
+        switch the <span>content model flag</span> out of the
+        PLAINTEXT state.</p>
 
        </dd>
 
@@ -18988,10 +18979,10 @@ function receiver(e) {
         new element node.</p>
 
         <p>The tokeniser's <span>content model flag</span> will have
-        switched back to the normal state.</p>
+        switched back to the PCDATA state.</p>
 
-        <p>Then, ignore the next token, if any. (If there is one, it
-        will be an end tag token with the tag name "textarea".)</p>
+        <p>If the next token is an end tag token with the tag name
+        "textarea", ignore it.</p>
 
        </dd>
 
@@ -19023,11 +19014,10 @@ function receiver(e) {
         new element node.</p>
 
         <p>The tokeniser's <span>content model flag</span> will have
-        switched back to the normal state.</p>
+        switched back to the PCDATA state.</p>
 
-        <p>Then, ignore the next token, if any. (If there is one, it
-        will be an end tag token with the same tag name as the start
-        tag token.)</p>
+        <p>If the next token is an end tag token with the same tag
+        name as the start tag token, ignore it.</p>
 
         <p class="big-issue">Need something here for when scripting is
         disabled.</p>
