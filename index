@@ -35,7 +35,7 @@
 
    <h1 id="web-applications">Web Applications 1.0</h1>
 
-   <h2 class="no-num no-toc" id="working">Working Draft &mdash; 20 April 2006</h2>
+   <h2 class="no-num no-toc" id="working">Working Draft &mdash; 21 April 2006</h2>
 
    <p>You can take part in this work. <a
     href="http://www.whatwg.org/mailing-list">Join the working group's
@@ -737,8 +737,7 @@
         title="SCS">[SCS]</span> Custom protocol and content handlers</a>
         <ul class="toc">
          <li><a href="#security0"><span class="secno">4.10.2.1.
-          </span>Security and privacy concerns regarding Web-based custom
-          protocol and content handlers</a>
+          </span>Security and privacy</a>
         </ul>
       </ul>
 
@@ -11387,7 +11386,14 @@ http://lxr.mozilla.org/mozilla/source/dom/public/idl/base/nsIDOMWindow.idl
   <p>The <code>'nav-index'</code>, <code>'nav-up'</code>,
    <code>'nav-right'</code>, <code>'nav-down'</code>, and
    <code>'nav-left'</code> properties are defined in <a
-   href="#refsCSS3UI">[CSS3UI]</a>.
+   href="#refsCSS3UI">[CSS3UI]</a>.</p>
+  <!--XXXX
+Other things to look at are IE's focus APIs (document.activeElement,
+HTMLElement.setActive(), onBeforeActivate, onActivate,
+onBeforeDeactivate, onDeactivate, document.hasFocus):
+   https://bugzilla.mozilla.org/show_bug.cgi?id=296471
+   https://bugzilla.mozilla.org/show_bug.cgi?id=296469
+-->
 
   <h3 id="scs-runtime"><span class="secno">4.5. </span><span title="SCS"><a
    href="#scs">[SCS]</a></span> Runtime script errors</h3>
@@ -13111,68 +13117,35 @@ interface <dfn id="storageitem">StorageItem</dfn> {
    contain the exact literal string "<code>%s</code>".
 
   <p>This section does not define how the pages registered by these methods
-   are used. To some extent, the <span title="navigating across
+   are used, beyond the requirements on how to process the <var>uri</var>
+   value (see above). To some extent, the <span title="navigating across
    documents">processing model for navigating across documents</span> defines
    some cases where these methods are relevant, but in general UAs may use
    this information wherever they would otherwise consider handing content to
    native plugins or helper applications.
 
+  <p>UAs must not use registered content handlers to handle content that was
+   returned as part of a non-GET transaction (or rather, as part of any
+   non-idempotent transaction), as the remote site would not be able to fetch
+   the same data.
+
   <h5 id="security0"><span class="secno">4.10.2.1. </span>Security and
-   privacy concerns regarding Web-based custom protocol and content handlers</h5>
+   privacy</h5>
 
   <p>These mechanisms can introduce a number of concerns, in particular
    privacy concerns.
 
-  <p><strong>Hijacking all Web usage.</strong> It is imperative that user
-   agents never allow key protocols, such as <code>http</code> or
-   <code>https</code>, to be rerouted through third-party sites. This would
-   allow a user's activities to be trivially tracked, and would allow user
-   information, even in secure connections, to be collected.
+  <p><strong>Hijacking all Web usage.</strong> User agents should not allow
+   protocols that are key to its normal operation, such as <code>http</code>
+   or <code>https</code>, to be rerouted through third-party sites. This
+   would allow a user's activities to be trivially tracked, and would allow
+   user information, even in secure connections, to be collected.
 
   <p><strong>Hijacking defaults.</strong> It is strongly recommended that
    user agents do not automatically change any defaults, as this could lead
    the user to send data to remote hosts that the user is not expecting. New
    handlers registering themselves should never automatically cause those
    sites to be used.
-
-  <p><strong>Leaking Intranet URIs.</strong> The mechanism described in this
-   section can result in secret Intranet URIs being leaked, in the following
-   manner:
-
-  <ol>
-   <li>The user registers a third-party content handler as the default
-    handler for a content type.
-
-   <li>The user then browses his corporate Intranet site and accesses a
-    document that uses that content type.
-
-   <li>The user agent contacts the third party and hands the third party the
-    URI to the Intranet content.
-  </ol>
-
-  <p>No actual confidential file data is leaked in this manner, but the URIs
-   themselves could contain confidential information. For example, the URI
-   could be
-   <code>https://www.corp.example.com/upcoming-aquisitions/samples.egf</code>,
-   which might tell the third party that Example Corporation is intending to
-   merge with Samples LLC. User agents should might wish to consider allowing
-   administrators to disable this feature for certain subdomains, content
-   types, or protocols.
-
-  <p><strong>Leaking secure URIs.</strong> User agents should not send HTTPS
-   URIs to third party sites registered as content handlers, in the same way
-   that user agents do not send <code>Referer</code> headers from secure
-   sites to third party sites.
-
-  <p><strong>Leaking credentials.</strong> User agents must never send
-   username or password information in the URIs that are escaped and included
-   sent to the handler sites. User agents might want to not even attempt to
-   pass to Web-based handlers the URIs of resources that are known to require
-   authentication to access, as such sites would be unable to access the
-   resources in question without prompting the user for credentials
-   themselves (a practice that would require the user to know whether to
-   trust the third party handler, a decision many users are unable to make or
-   even understand).
 
   <p><strong>Registration spamming.</strong> User agents should consider the
    possibility that a site will attempt to register a large number of
@@ -13195,6 +13168,45 @@ interface <dfn id="storageitem">StorageItem</dfn> {
    example ensuring that markup or escape characters in such strings are not
    executed, that null bytes are properly handled, that over-long strings do
    not cause crashes or buffer overruns, and so forth.
+
+  <p><strong>Leaking Intranet URIs.</strong> The mechanism described in this
+   section can result in secret Intranet URIs being leaked, in the following
+   manner:
+
+  <ol>
+   <li>The user registers a third-party content handler as the default
+    handler for a content type.
+
+   <li>The user then browses his corporate Intranet site and accesses a
+    document that uses that content type.
+
+   <li>The user agent contacts the third party and hands the third party the
+    URI to the Intranet content.
+  </ol>
+
+  <p>No actual confidential file data is leaked in this manner, but the URIs
+   themselves could contain confidential information. For example, the URI
+   could be
+   <code>https://www.corp.example.com/upcoming-aquisitions/samples.egf</code>,
+   which might tell the third party that Example Corporation is intending to
+   merge with Samples LLC. Implementors might wish to consider allowing
+   administrators to disable this feature for certain subdomains, content
+   types, or protocols.
+
+  <p><strong>Leaking secure URIs.</strong> User agents should not send HTTPS
+   URIs to third party sites registered as content handlers, in the same way
+   that user agents do not send <code>Referer</code> headers from secure
+   sites to third party sites.
+
+  <p><strong>Leaking credentials.</strong> User agents must never send
+   username or password information in the URIs that are escaped and included
+   sent to the handler sites. User agents may even avoid attempting to pass
+   to Web-based handlers the URIs of resources that are known to require
+   authentication to access, as such sites would be unable to access the
+   resources in question without prompting the user for credentials
+   themselves (a practice that would require the user to know whether to
+   trust the third party handler, a decision many users are unable to make or
+   even understand).
 
   <h3 id="scs-alternate"><span class="secno">4.11. </span><span
    title="SCS"><a href="#scs">[SCS]</a></span> Alternate style sheets: the
@@ -21368,7 +21380,9 @@ function receiver(e) {
 
        <dd>
         <p><span title="insert an HTML element"><a href="#insert">Insert a
-         <code>col</code> element</a></span> for the token.</p>
+         <code>col</code> element</a></span> for the token. Immediately pop
+         the <span><a href="#current3">current node</a></span> off the
+         <span><a href="#stack">stack of open elements</a></span>.</p>
 
        <dt>An end tag whose tag name is "colgroup"
 
@@ -24936,5 +24950,9 @@ bjoern:
 arv asks for: a way to track download progress of, e.g., images when
 you are preloading 10 images; cf onprogress on XHR in mozilla
 
+
+window.getAttention() or some similar API to let the user know the
+page wants attention? How do you reduce the chance of irritation?
+see also https://bugzilla.mozilla.org/show_bug.cgi?id=293412
 
 -->
