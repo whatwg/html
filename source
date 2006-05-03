@@ -1080,9 +1080,6 @@ and suggestions on this to the list, btw).
    class.</p>
   </div>
 
-  <p class="issue">We could also have a getElementBySelector() method,
-  but it seems that it would be best to let the CSSWG define that.</p>
-
 <!-- XXX
 >         * xGetParentElementByClassName(rootElement, className, tagName) -
 > Navigates upwards until we hit a parent element with the given class name and
@@ -1120,6 +1117,16 @@ and suggestions on this to the list, btw).
   with which they were created. This does not apply to XML documents;
   in XML documents, the DOM APIs must always return tag names and
   attribute names in the original case used to create those nodes.</p>
+
+  <h5>Elements and documents</h5>
+
+  <p>An element is said to have been <dfn title="insert an element
+  into a document">inserted into a document</dfn> when either its
+  <code>parentNode</code> DOM attribute changes and its new value is
+  the <code>Document</code> in question, or, when the DOM node
+  represented by its <code>parentNode</code>, if any, has itself just
+  been <span title="insert an element into a document">inserted into a
+  document</span>.</p>
 
 
   <h3>Common microsyntaxes</h3>
@@ -5748,16 +5755,103 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
 
   <p>When the <dfn title="attr-script-src"><code>src</code></dfn>
   attribute is set, the <code>script</code> element refers to an
-  external file, which must (if it uses a supported scripting
-  language) be downloaded and executed. The user agent must delay the
-  execution of other scripts associated with the page that are invoked
-  during the download (e.g. event handlers) until after the external
-  script has been downloaded and executed.</p>
+  external file. The value of the attribute must be a URI.</p>
+
+  <p>If the <code title="attr-script-src">src</code> attribute is not
+  set, then the script is given by the contents of the element.</p>
 
   <p>The language of the script is given by the <dfn
   title="attr-script-type"><code>type</code></dfn> attribute. The
   value must be a valid MIME type, optionally with parameters. <a
   href="#refsRFC2046">[RFC2046]</a></p>
+
+  <p><code>script</code> elements have an associated piece of
+  metadata, a flag indicating whether or not the script block has been
+  <dfn>"already executed"</dfn>. Initially, <code>script</code>
+  elements must have this flag unset (script blocks, when created, are
+  not "already executed"). When a <code>script</code> element is
+  cloned, the "already executed" flag, if set, must be propagated to
+  the clone when it is created.</p>
+
+  <p><strong>When script blocks are run</strong>: When a
+  <code>script</code> element whose "already executed" flag is not set
+  is <span>inserted into a document</span>, the user agent must act as
+  follows:</p>
+
+  <ol>
+
+   <li>
+
+    <p>First, if the element has a <code
+    title="attr-script-src">src</code> attribute, then a load for the
+    specified content must be started.</p>
+
+   </li>
+
+   <li>
+
+    <p>Then, if the document is still being parsed, and the element
+    has a <code title="attr-script-defer">defer</code> attribute, then
+    the element must be added to the end of the <span>list of scripts
+    that will execute when the document has finished
+    parsing</span>.</p>
+
+    <p>Otherwise, if the document is still being parsed, and the element
+    has a <code title="attr-script-async">async</code> attribute and a
+    <code title="attr-script-src">src</code> attribute, then the element
+    must be added to the end of the <span>list of scripts that will
+    execute asynchronously</span>.</p>
+
+    <p>Otherwise, if the document is still being parsed, the element
+    must be <span title="executing a script block">executed</span>
+    synchronously.</p>
+
+    <p>Otherwise, the document has finished being parsed; if the element
+    has no <code title="attr-script-src">src</code> attribute, the
+    element must be <span title="executing a script
+    block">executed</span> synchronously.</p>
+
+    <p>Otherwise, the document has finished being parsed and the element
+    has a <code title="attr-script-src">src</code> attribute: the
+    element must be added to the end of the <span>list of scripts that
+    will execute asynchronously</span>.</p>
+
+   </li>
+
+  </ol>
+
+  <p><strong>How to execute a script block:</strong> ...</p>
+
+  <p class="big-issue">WIP</p>
+
+<!--XXXXXXXXXXXXXXXXXXXX
+
+  <p>User agents that support scripting must execute scripts (written
+  in languages that they support) immediately upon parsing a
+  <code>script</code> element's end tag, and immediately upon having a
+  dynamically created <code>script</code> element inserted into the
+  DOM. Once a <code>script</code> element has been executed, it must
+  be flagged as such and never re-executed again. When an element with
+  this flag set is cloned, the new element must not have the flag
+  set.</p>
+
+  <p>For scripting languages that consist of pure text, user agents
+  must use the value of the DOM <code
+  title="dom-script-text">text</code> attribute (defined below) as the
+  script to execute. For XML-based scripting languages, user agents
+  must use all the children nodes of the <code>script</code>
+  element as the script.</p>
+
+http://www.websiteoptimization.com/speed/tweak/defer/test/
+
+internal deferred scripts execute before any external scripts execute, or before the LOAD if there are none
+external deferred scripts execute before the LOAD
+
+, which must (if it uses a supported scripting
+  language) be downloaded and executed. The user agent must delay the
+  execution of other scripts associated with the page that are invoked
+  during the download (e.g. event handlers) until after the external
+  script has been downloaded and executed
 
   <p>For <code>script</code> elements that have the <code
   title="attr-script-src">src</code> attribute set, user
@@ -5780,44 +5874,18 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
   and thus determine if it supports (and can execute) that external
   script.</p>
 
-  <p>If the <code title="attr-script-src">src</code> attribute is not
-  set, then the script is given by the contents of the element. The
-  language is given by the <code title="attr-script-type">type</code>
-  attribute. If it is omitted, then the default is the ECMAScript MIME
-  type.</p><!--XXX <code>text/javascript</code>-->
-
   <p>When examining types to determine if they support the language,
   user agents must not ignore unknown MIME parameters &mdash; types
   with unknown parameters must be assumed to be unsupported.</p>
 
-  <p>User agents that support scripting must execute scripts (written
-  in languages that they support) immediately upon parsing a
-  <code>script</code> element's end tag, and immediately upon having a
-  dynamically created <code>script</code> element inserted into the
-  DOM. Once a <code>script</code> element has been executed, it must
-  be flagged as such and never re-executed again. When an element with
-  this flag set is cloned, the new element must not have the flag
-  set.</p>
-
-  <p>For scripting languages that consist of pure text, user agents
-  must use the value of the DOM <code
-  title="dom-script-text">text</code> attribute (defined below) as the
-  script to execute. For XML-based scripting languages, user agents
-  must use all the children nodes of the <code>script</code>
-  element as the script.</p>
-
-  <!-- XXXXXXXXXXXX -->
-<!--
-http://www.websiteoptimization.com/speed/tweak/defer/test/
-
-internal deferred scripts execute before any external scripts execute, or before the LOAD if there are none
-external deferred scripts execute before the LOAD
 
 -->
 
   <p>The DOM attributes <dfn
-  title="dom-script-src"><code>src</code></dfn> and <dfn
-  title="dom-script-type"><code>type</code></dfn> each
+  title="dom-script-src"><code>src</code></dfn>, <dfn
+  title="dom-script-type"><code>type</code></dfn>, <dfn
+  title="dom-script-defer"><code>defer</code></dfn>, <dfn
+  title="dom-script-async"><code>async</code></dfn>,  each
   <span>reflect</span> the respective content attributes of the same
   name.</p>
 
@@ -17838,10 +17906,11 @@ function receiver(e) {
 
         <p>If the next token is not an end tag token with the tag name
         "script", then mark the <code>script</code> element as
-        "already executed"<!-- XXX xref -->, otherwise, ignore
-        it. (Marking the <code>script</code> element as "already
-        executed" prevents it from executing when it is inserted into
-        the document in the next paragraph.)</p>
+        <span>"already executed"</span>, otherwise, the token is the
+        <code>script</code> element's end tag, so ignore it. (Marking
+        the <code>script</code> element as "already executed" prevents
+        it from executing when it is inserted into the document in the
+        next paragraph.)</p>
 
         <p>Append the new element to the <span>current node</span>,
         unless the <span>insertion mode</span> is "in head", in which
@@ -20171,17 +20240,18 @@ http://lxr.mozilla.org/mozilla/source/parser/htmlparser/src/nsHTMLTokens.cpp#94
   James Graham, James Perrett, Jan-Klaas Kollhof, Jasper
   Bryant-Greene, Jens Bannmann, Joel Spolsky, Johnny Stenback, Jon
   Perlow, Jukka K. Korpela, Kai Hendry, Kornel Lesinski, Lachlan Hunt,
-  Larry Page, Laurens Holst, L&eacute;onard Bouchet, Maciej
-  Stachowiak, Malcolm Rowe, Mark Nottingham, Mark Schenk, Martijn
-  Wargers, Martin Honnen, Matthew Mastracci, Matthew Raymond, Matthew
-  Thomas, Mattias Waldau, Max Romantschuk, Michael A. Nachbaur,
-  Michael Gratton, Michael 'Ratt' Iannarelli, Mihai &#x015E;ucan<!--
-  from ROBO Design -->, Mike Shaver, Mikko Rantalainen, Neil Deakin,
-  Olav Junker Kj&aelig;r, Rimantas Liubertas, Robert O'Callahan, Roman
-  Ivanov, S. Mike Dierken, Shaun Inman, Simon Pieters, Steven Garrity,
-  Stuart Parmenter, Tantek &Ccedil;elik, Thomas O'Connor, Tim Altman,
-  Vladimir Vuki&#x0107;evi&#x0107;, and everyone on the WHATWG mailing
-  list for their useful and substantial comments.</p>
+  Larry Page, Laurens Holst, Lenny Domnitser, L&eacute;onard Bouchet,
+  Maciej Stachowiak, Malcolm Rowe, Mark Nottingham, Mark Schenk,
+  Martijn Wargers, Martin Honnen, Matthew Mastracci, Matthew Raymond,
+  Matthew Thomas, Mattias Waldau, Max Romantschuk, Michael
+  A. Nachbaur, Michael Gratton, Michael 'Ratt' Iannarelli, Mihai
+  &#x015E;ucan<!-- from ROBO Design -->, Mike Shaver, Mikko
+  Rantalainen, Neil Deakin, Olav Junker Kj&aelig;r, Rimantas
+  Liubertas, Robert O'Callahan, Roman Ivanov, S. Mike Dierken, Shaun
+  Inman, Simon Pieters, Steven Garrity, Stuart Parmenter, Tantek
+  &Ccedil;elik, Thomas O'Connor, Tim Altman, Vladimir
+  Vuki&#x0107;evi&#x0107;, and everyone on the WHATWG mailing list for
+  their useful and substantial comments.</p>
 
   <p>Special thanks to Richard Williamson for creating the first
   implementation of <code>canvas</code> in Safari, from which the
