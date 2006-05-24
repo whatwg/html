@@ -38,7 +38,7 @@
 
    <h1 id="web-applications">Web Applications 1.0</h1>
 
-   <h2 class="no-num no-toc" id="working">Working Draft &mdash; 19 May 2006</h2>
+   <h2 class="no-num no-toc" id="working">Working Draft &mdash; 24 May 2006</h2>
 
    <p>You can take part in this work. <a
     href="http://www.whatwg.org/mailing-list">Join the working group's
@@ -12249,9 +12249,11 @@ interface <dfn id="storage">Storage</dfn> {
    key/value pair with the given <var title="">key</var>. If the given <var
    title="">key</var> does not exist in the list associated with the object,
    or is not <span>accessible</span>, then this method must return null.
-   Subsequent calls to this method with the same key must return different
-   instances of the <code><a href="#storageitem">StorageItem</a></code>
-   interface.
+   Subsequent calls to this method with the same key from scripts running in
+   the same <span>security context</span> must return the same instance of
+   the <code><a href="#storageitem">StorageItem</a></code> interface. (Such
+   instances must not be shared across security contexts, though.)</p>
+  <!-- XXX define security context -->
 
   <p>The <dfn id="setitem" title="dom-storage-setItem"><code>setItem(<var
    title="">key</var>, <var title="">value</var>)</code></dfn> method must
@@ -16452,7 +16454,10 @@ interface <dfn id="imagedata">ImageData</dfn> {
    href="#scs">[SCS]</a></span> Sound</h3>
 
   <p>The <code><a href="#audio">Audio</a></code> interface allows scripts to
-   play sound clips.
+   play sound clips. This interface is intended for sound effects, not for
+   streaming audio or multimedia; for the latter, the <code>object</code>
+   element is more appropriate. <span class="issue">We need to add an API for
+   object to support pausing, etc, of streaming APIs.</span>
 
   <p>There is no markup element that corresponds to <code><a
    href="#audio">Audio</a></code> objects, they are only accessible from
@@ -16462,24 +16467,27 @@ interface <dfn id="imagedata">ImageData</dfn> {
    output, but doing so must not affect how <code><a
    href="#audio">Audio</a></code> objects act in any way other than whether
    sounds are physically played back or not. For instance, sound files must
-   still be downloaded, <code>load</code> events must still fire, and if two
-   identical clips are started with a two second interval then when the sound
-   is reenabled they must still be two seconds out of sync.
+   still be downloaded, <code>load</code> and <code>error</code> events must
+   still fire, and if two identical clips are started with a two second
+   interval then when the sound is reenabled they must still be two seconds
+   out of sync.
 
   <p>When multiple sounds are played simultaneously, the user agent must mix
    the sounds together.
 
   <pre class="idl">interface <dfn id="audio">Audio</dfn> {<!-- XXX xrefs -->
            attribute EventListener onload;
+           attribute EventListener onerror;
   void play();
   void loop();
-  void loop(in unsigned long repeatCount);
+  void loop(in unsigned long playCount);
   void stop();
 };</pre>
 
   <p><code><a href="#audio">Audio</a></code> objects must also implement the
    <code>EventTarget</code> interface. <a
    href="#refsDOM3EVENTS">[DOM3EVENTS]</a>
+   <!-- XXXXXXX haven't checked conf stats below here -->
 
   <p>In ECMAScript, an instance of <code><a href="#audio">Audio</a></code>
    can be created using the <code>Audio(<var title="">uri</var>)</code>
@@ -16497,7 +16505,7 @@ interface <dfn id="imagedata">ImageData</dfn> {
    <code><a href="#audio">Audio</a></code> object.
 
   <p><code><a href="#audio">Audio</a></code> objects have a current position
-   and a repeat count. Both are initially zero.
+   and a play count. Both are initially zero.
 
   <p>The <code><a href="#audio">Audio</a></code> interface has the following
    members:</p>
@@ -16512,30 +16520,30 @@ interface <dfn id="imagedata">ImageData</dfn> {
 
    <dt><dfn id="play" title="Audio.play">play()</dfn>
 
-   <dd>Begins playing the sound at the current position, setting the repeat
+   <dd>Begins playing the sound at the current position, setting the play
     count to 1.
 
    <dt><dfn id="loop" title="Audio.loop">loop()</dfn>
 
-   <dd>Begins playing the sound at the current position, setting the repeat
+   <dd>Begins playing the sound at the current position, setting the play
     count to infinity.
 
-   <dt><dfn id="looprepeatcount" title="Audio.loopN">loop(<var
-    title="">repeatCount</var>)</dfn>
+   <dt><dfn id="loopplaycount" title="Audio.loopN">loop(<var
+    title="">playCount</var>)</dfn>
 
-   <dd>Begins playing the sound at the current position, setting the repeat
-    count to <var title="">repeatCount</var>.
+   <dd>Begins playing the sound at the current position, setting the play
+    count to <var title="">playCount</var>.
 
    <dt><dfn id="stop" title="Audio.stop">stop()</dfn>
 
-   <dd>Stops playing the clip and resets the current position and repeat
-    count to zero.
+   <dd>Stops playing the clip and resets the current position and play count
+    to zero.
   </dl>
 
   <p>When playback of the sound reaches the end of the available data, its
-   current position is reset to the start of the clip, and the repeat count
-   is decreased by one (unless it is infinite). If the repeat count is
-   greater than zero, then the sound is played again.</p>
+   current position is reset to the start of the clip, and the play count is
+   decreased by one (unless it is infinite). If the play count is greater
+   than zero, then the sound is played again.</p>
   <!--
    var sound = new Audio("URI relative to document URI");
    sound.onload = function() { } // onload event handler
@@ -16545,11 +16553,16 @@ interface <dfn id="imagedata">ImageData</dfn> {
    sound.stop(); // stop (if playing) and rewind
 -->
   <!--
+WANT
    sound.volume = 1.0; // 0.0 to 1.0
+   sound.pause(); // stop at current position but don't rewind
+   onerror
+
+MAYBE WANT
+   sound.seek(l/2); // seek to position, in seconds
    sound.pan = 0.0; // -1.0 (left) to 1.0 (right)
    l = sound.length; // length of clip in seconds
-   sound.seek(l/2); // seek to position, in seconds
-   sound.pause(); // stop at current position but don't rewind
+   onprogress
 -->
 
   <h2 id="communication"><span class="secno">7. </span>Communication</h2>

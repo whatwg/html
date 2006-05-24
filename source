@@ -10417,9 +10417,11 @@ interface <dfn>Storage</dfn> {
   the given <var title="">key</var>. If the given <var
   title="">key</var> does not exist in the list associated with the
   object, or is not <span>accessible</span>, then this method must
-  return null. Subsequent calls to this method with the same key must
-  return different instances of the <code>StorageItem</code>
-  interface.</p>
+  return null. Subsequent calls to this method with the same key from
+  scripts running in the same <span>security context</span> must
+  return the same instance of the <code>StorageItem</code>
+  interface. (Such instances must not be shared across security
+  contexts, though.)</p> <!-- XXX define security context -->
 
   <p>The <dfn title="dom-storage-setItem"><code>setItem(<var
   title="">key</var>, <var title="">value</var>)</code></dfn> method
@@ -14521,7 +14523,11 @@ interface <dfn>ImageData</dfn> {
   <h3><span title="SCS">[SCS]</span> Sound</h3>
 
   <p>The <code>Audio</code> interface allows scripts to play sound
-  clips.</p>
+  clips. This interface is intended for sound effects, not for
+  streaming audio or multimedia; for the latter, the
+  <code>object</code> element is more appropriate. <span
+  class="issue">We need to add an API for object to support pausing,
+  etc, of streaming APIs.</span></p>
 
   <p>There is no markup element that corresponds to <code>Audio</code>
   objects, they are only accessible from script.</p>
@@ -14530,24 +14536,28 @@ interface <dfn>ImageData</dfn> {
   sound output, but doing so must not affect how <code>Audio</code>
   objects act in any way other than whether sounds are physically
   played back or not. For instance, sound files must still be
-  downloaded, <code>load</code> events must still fire, and if two
-  identical clips are started with a two second interval then when the
-  sound is reenabled they must still be two seconds out of sync.</p>
+  downloaded, <code>load</code> and <code>error</code> events must
+  still fire, and if two identical clips are started with a two second
+  interval then when the sound is reenabled they must still be two
+  seconds out of sync.</p>
 
   <p>When multiple sounds are played simultaneously, the user agent
   must mix the sounds together.</p>
 
   <pre class="idl">interface <dfn>Audio</dfn> {<!-- XXX xrefs -->
            attribute EventListener onload;
+           attribute EventListener onerror;
   void play();
   void loop();
-  void loop(in unsigned long repeatCount);
+  void loop(in unsigned long playCount);
   void stop();
 };</pre>
 
   <p><code>Audio</code> objects must also implement the
   <code>EventTarget</code> interface. <a
   href="#refsDOM3EVENTS">[DOM3EVENTS]</a>
+
+<!-- XXXXXXX haven't checked conf stats below here -->
 
   <p>In ECMAScript, an instance of <code>Audio</code> can be created
   using the <code>Audio(<var title="">uri</var>)</code> constructor:</p>
@@ -14563,7 +14573,7 @@ interface <dfn>ImageData</dfn> {
   <p>Once the URI is loaded, a <code>load</code> event must be fired
   on the <code>Audio</code> object.</p>
 
-  <p><code>Audio</code> objects have a current position and a repeat
+  <p><code>Audio</code> objects have a current position and a play
   count. Both are initially zero.</p>
 
   <p>The <code>Audio</code> interface has the following members:</p>
@@ -14580,30 +14590,29 @@ interface <dfn>ImageData</dfn> {
    <dt><dfn title="Audio.play">play()</dfn></dt>
 
    <dd>Begins playing the sound at the current position, setting the
-   repeat count to 1.</dd>
+   play count to 1.</dd>
 
    <dt><dfn title="Audio.loop">loop()</dfn></dt>
 
    <dd>Begins playing the sound at the current position, setting the
-   repeat count to infinity.</dd>
+   play count to infinity.</dd>
 
-   <dt><dfn title="Audio.loopN">loop(<var title="">repeatCount</var>)</dfn></dt>
+   <dt><dfn title="Audio.loopN">loop(<var title="">playCount</var>)</dfn></dt>
 
    <dd>Begins playing the sound at the current position, setting the
-   repeat count to <var title="">repeatCount</var>.</dd>
+   play count to <var title="">playCount</var>.</dd>
 
    <dt><dfn title="Audio.stop">stop()</dfn></dt>
 
    <dd>Stops playing the clip and resets the current position and
-   repeat count to zero.</dd>
+   play count to zero.</dd>
 
   </dl>
 
   <p>When playback of the sound reaches the end of the available data,
-  its current position is reset to the start of the clip, and the
-  repeat count is decreased by one (unless it is infinite). If the
-  repeat count is greater than zero, then the sound is played
-  again.</p>
+  its current position is reset to the start of the clip, and the play
+  count is decreased by one (unless it is infinite). If the play count
+  is greater than zero, then the sound is played again.</p>
 
 <!--
    var sound = new Audio("URI relative to document URI");
@@ -14615,11 +14624,16 @@ interface <dfn>ImageData</dfn> {
 -->
 
 <!--
+WANT
    sound.volume = 1.0; // 0.0 to 1.0
+   sound.pause(); // stop at current position but don't rewind
+   onerror
+
+MAYBE WANT
+   sound.seek(l/2); // seek to position, in seconds
    sound.pan = 0.0; // -1.0 (left) to 1.0 (right)
    l = sound.length; // length of clip in seconds
-   sound.seek(l/2); // seek to position, in seconds
-   sound.pause(); // stop at current position but don't rewind
+   onprogress
 -->
 
 
