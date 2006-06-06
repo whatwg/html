@@ -38,7 +38,7 @@
 
    <h1 id="web-applications">Web Applications 1.0</h1>
 
-   <h2 class="no-num no-toc" id="working">Working Draft &mdash; 2 June 2006</h2>
+   <h2 class="no-num no-toc" id="working">Working Draft &mdash; 6 June 2006</h2>
 
    <p>You can take part in this work. <a
     href="http://www.whatwg.org/mailing-list">Join the working group's
@@ -1643,6 +1643,12 @@ and suggestions on this to the list, btw).
    object (not a new object each time), and the attributes and methods on
    that object must operate on the actual underlying data, not a snapshot of
    the data.
+
+  <p>Some of the algorithms in this specification, for historical reasons,
+   require the user agent to <dfn id="pause">pause</dfn> until some condition
+   has been met. While a user agent is paused, it must ensure that no scripts
+   execute (e.g. no event handlers, no timers, etc). User agents should
+   remain responsive to user input while paused, however.
 
   <h3 id="miscellaneous"><span class="secno">1.10. </span>Miscellaneous</h3>
 
@@ -7369,6 +7375,14 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
    be a valid MIME type, optionally with parameters. <a
    href="#refsRFC2046">[RFC2046]</a>
 
+  <p>Changing the <code title="attr-script-src"><a
+   href="#src">src</a></code>, <code title="attr-script-type"><a
+   href="#type5">type</a></code>, <code
+   title="attr-script-defer">defer</code> and <code
+   title="attr-script-async">async</code> attributes dynamically has no
+   direct effect; these attribute are only used at specific times described
+   below (namely, when the element is inserted into the document).
+
   <p><code><a href="#script1">script</a></code> elements have an associated
    piece of metadata, a flag indicating whether or not the script block has
    been <dfn id="already">"already executed"</dfn>. Initially, <code><a
@@ -7378,70 +7392,168 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
    executed" flag, if set, must be propagated to the clone when it is
    created.
 
-  <p><strong>When script blocks are run</strong>: When a <code><a
-   href="#script1">script</a></code> element whose "already executed" flag is
-   not set is <span>inserted into a document</span>, the user agent must act
-   as follows:
+  <p><dfn id="when-script" title="running a script">When script blocks are
+   run</dfn>: When a <code><a href="#script1">script</a></code> element whose
+   <span><a href="#already">"already executed"</a></span> flag is not set is
+   <span>inserted into a document</span>, the user agent must act as follows:
 
   <ol>
    <li>
-    <p>First, if the element has a <code title="attr-script-src"><a
+    <p>The user agent must set the element's <span><a
+     href="#already">"already executed"</a></span> flag.</p>
+
+   <li>
+    <p class="big-issue">How to handle the <code title="">type</code> and
+     <code title="">language</code> attributes should be defined here.</p>
+
+   <li>
+    <p>If the element has a <code title="attr-script-src"><a
      href="#src">src</a></code> attribute, then a load for the specified
-     content must be started. (For performance reasons, user agents may start
-     loading the script as soon as the attribute is set, instead, in the hope
-     that the element will be inserted into the document. Either way, once
-     the element is inserted into the document, the load must have started.)</p>
+     content must be started.</p>
+
+    <p class="note">Later, once the load has completed, the user agent will
+     have to complete <span title="when a script completes loading"><a
+     href="#when-a">the steps described below</a></span>.</p>
+
+    <p>For performance reasons, user agents may start loading the script as
+     soon as the attribute is set, instead, in the hope that the element will
+     be inserted into the document. Either way, once the element is inserted
+     into the document, the load must have started. If the UA performs such
+     prefetching, but the element is never inserted in the document, or the
+     <code title="attr-script-src"><a href="#src">src</a></code> attribute is
+     dynamically changed, then the user agent will not execute the script,
+     and the load will have been effectively wasted.</p>
 
    <li>
     <p>Then, if the document is still being parsed, and the element has a
      <code title="attr-script-defer">defer</code> attribute, then the element
-     must be added to the end of the <span>list of scripts that will execute
-     when the document has finished parsing</span>.</p>
+     must be added to the end of the <span><a href="#list-of">list of scripts
+     that will execute when the document has finished parsing</a></span>.
+     Stop going through these steps; start with <span title="when a script
+     completes loading"><a href="#when-a">the next set of steps</a></span>
+     when the script is ready.</p>
 
     <p>Otherwise, if the element has a <code
-     title="attr-script-async">async</code> attribute and a <code
+     title="attr-script-async">async</code> attribute, then the element must
+     be added to the end of the <span><a href="#list-of0">list of scripts
+     that will execute asynchronously</a></span>. Then, stop going through
+     these steps &mdash; if the element has no <code
      title="attr-script-src"><a href="#src">src</a></code> attribute, then
-     the element must be added to the end of the <span>list of scripts that
-     will execute asynchronously</span>.</p>
+     jump straight to <span title="when a script completes loading"><a
+     href="#when-a">the next set of steps</a></span>, otherwise, start with
+     <span title="when a script completes loading"><a href="#when-a">the next
+     set of steps</a></span> when the script is ready.</p>
 
-    <p>Otherwise, if the document is still being parsed, the element must be
-     <span title="executing a script block">executed</span> synchronously.</p>
+    <p>Otherwise, if the document has finished being parsed and the element
+     has a <code title="attr-script-src"><a href="#src">src</a></code>
+     attribute, the element must be added to the end of the <span><a
+     href="#list-of1">list of scripts that will execute soon</a></span>. Stop
+     going through these steps; start with <span title="when a script
+     completes loading"><a href="#when-a">the next set of steps</a></span>
+     when the script is ready.</p>
 
-    <p>Otherwise, the document has finished being parsed; if the element has
-     no <code title="attr-script-src"><a href="#src">src</a></code>
-     attribute, the element must be <span title="executing a script
-     block">executed</span> synchronously.</p>
+    <p>Otherwise, continue to the next step.</p>
 
-    <p>Otherwise, the document has finished being parsed and the element has
-     a <code title="attr-script-src"><a href="#src">src</a></code> attribute:
-     the element must be added to the end of the <span>list of scripts that
-     will execute soon</span>.</p>
+   <li>
+    <p>If the element has a <code title="attr-script-src"><a
+     href="#src">src</a></code> attribute, then the user agent must <span><a
+     href="#pause">pause</a></span> until the script has finished loading.</p>
+
+   <li>
+    <p>Finally, the user agent must <span title="executing a script block"><a
+     href="#how-to0">execute the script</a></span>.</p>
   </ol>
 
-  <p><strong>What to do when an external script completes loading:</strong>
-   ...
+  <p><dfn id="when-a" title="when a script completes loading">When a script
+   completes loading</dfn>: Once a script whose element was added to one of
+   the three lists above has completely loaded, the UA must behave as
+   follows:
 
-  <p><strong>How to execute a script block:</strong> ...
+  <dl class="switch">
+   <dt>If the script's element was added to the <dfn id="list-of">list of
+    scripts that will execute when the document has finished parsing</dfn>:
 
-  <p class="big-issue">WIP</p>
+   <dd>
+    <ol>
+     <li>
+      <p>If the script is not the first script in the list, or, if the
+       document has not yet finished loading, then do nothing yet. Stop going
+       through these steps.</p>
+
+     <li>
+      <p>Otherwise, <span title="executing a script block"><a
+       href="#how-to0">execute the script</a></span> (the script associated
+       with the first element in the list).</p>
+
+     <li>
+      <p>Remove the script from the list (i.e. shift out the first entry in
+       the list).</p>
+
+     <li>
+      <p>If there are any more scripts in the list, and if the script
+       associated with the element that is now the first in the list is
+       already loaded, then jump back to step two to execute it.</p>
+    </ol>
+
+   <dt>If the script's element was added to the <dfn id="list-of0">list of
+    scripts that will execute asynchronously</dfn>:
+
+   <dd>
+    <ol>
+     <li>
+      <p>If the script is not the first script in the list, then do nothing
+       yet. Stop going through these steps.</p>
+
+     <li>
+      <p><span title="executing a script block"><a href="#how-to0">Execute
+       the script</a></span> (the script associated with the first element in
+       the list).</p>
+
+     <li>
+      <p>Remove the script from the list (i.e. shift out the first entry in
+       the list).</p>
+
+     <li>
+      <p>If there are any more scripts in the list, and the element now at
+       the head of the list had no <code title="attr-script-src"><a
+       href="#src">src</a></code> attribute when it was added to the list, or
+       had one, but its associated script has finished loading, then jump
+       back to step two to execute the script associated with this element.</p>
+    </ol>
+
+   <dt>If the script's element was added to the <dfn id="list-of1">list of
+    scripts that will execute soon</dfn>:
+
+   <dd><span title="executing a script block"><a href="#how-to0">Execute the
+    script</a></span>. Remove the element with which script is associated
+    from the list.
+  </dl>
+
+  <p><dfn id="how-to0" title="executing a script block">How to execute a
+   script block</dfn>: For scripting languages that consist of pure text,
+   user agents must use the value of the DOM <code title="dom-script-text"><a
+   href="#text">text</a></code> attribute (defined below) as the script to
+   execute. For XML-based scripting languages, user agents must use all the
+   child nodes of the <code><a href="#script1">script</a></code> element as
+   the script.
+
+  <p>In any case, the user agent must execute the script according to the
+   semantics of the relevant language specification, as determined by the
+   <code title="attr-script-type"><a href="#type5">type</a></code> and <code
+   title="attr-script-language">language</code> attributes on the <code><a
+   href="#script1">script</a></code> element when the element was inserted
+   into the document, as described above.
+
+  <p class="note">The element's attributes' values might have changed between
+   when the element was inserted into the document and when the script has
+   finished loading, as may its other attributes; similarly, the element
+   itself might have been taken back out of the DOM, or had other changes
+   made. These changes do not in any way affect the above steps; only the
+   values of the attributes at the time the <code><a
+   href="#script1">script</a></code> element is first inserted into the
+   document matter.</p>
   <!--XXXXXXXXXXXXXXXXXXXX
-
-  <p>User agents that support scripting must execute scripts (written
-  in languages that they support) immediately upon parsing a
-  <code>script</code> element's end tag, and immediately upon having a
-  dynamically created <code>script</code> element inserted into the
-  DOM. Once a <code>script</code> element has been executed, it must
-  be flagged as such and never re-executed again. When an element with
-  this flag set is cloned, the new element must not have the flag
-  set.</p>
-
-  <p>For scripting languages that consist of pure text, user agents
-  must use the value of the DOM <code
-  title="dom-script-text">text</code> attribute (defined below) as the
-  script to execute. For XML-based scripting languages, user agents
-  must use all the children nodes of the <code>script</code>
-  element as the script.</p>
-
+  
 http://www.websiteoptimization.com/speed/tweak/defer/test/
 
 internal deferred scripts execute before any external scripts execute, or before the LOAD if there are none
@@ -19596,7 +19708,7 @@ function receiver(e) {
 
   <p>The tree construction stage in this phase has several pieces of state: a
    <span><a href="#stack">stack of open elements</a></span>, a <span><a
-   href="#list-of">list of active formatting elements</a></span>, a <span><a
+   href="#list-of2">list of active formatting elements</a></span>, a <span><a
    href="#head-element"><code title="">head</code> element
    pointer</a></span>, a <span><a href="#form-element"><code
    title="">form</code> element pointer</a></span>, and an <span><a
@@ -19666,7 +19778,7 @@ function receiver(e) {
 
    <dd>
     <p>The following HTML elements are those that end up in the <span><a
-     href="#list-of">list of active formatting elements</a></span>: <code><a
+     href="#list-of2">list of active formatting elements</a></span>: <code><a
      href="#a0">a</a></code>, <code>b</code>, <code>big</code>, <code><a
      href="#em0">em</a></code>, <code>font</code>, <code><a
      href="#i0">i</a></code>, <code>nobr</code>, <code>s</code>, <code><a
@@ -19759,9 +19871,10 @@ function receiver(e) {
   <h6 id="the-list"><span class="secno">8.2.2.3.2. </span>The list of active
    formatting elements</h6>
 
-  <p>Initially the <dfn id="list-of">list of active formatting elements</dfn>
-   is empty. It is used to handle mis-nested <span title="formatting"><a
-   href="#formatting">formatting element tags</a></span>.
+  <p>Initially the <dfn id="list-of2">list of active formatting
+   elements</dfn> is empty. It is used to handle mis-nested <span
+   title="formatting"><a href="#formatting">formatting element
+   tags</a></span>.
 
   <p>The list contains elements in the <span><a
    href="#formatting">formatting</a></span> category, and scope markers. The
@@ -19776,17 +19889,17 @@ function receiver(e) {
 
   <ol>
    <li>If the last (most recently added) entry in the <span><a
-    href="#list-of">list of active formatting elements</a></span> is a
+    href="#list-of2">list of active formatting elements</a></span> is a
     marker, or if it is an element that is in the <span><a
     href="#stack">stack of open elements</a></span>, then there is nothing to
     reconstruct; stop this algorithm.
 
    <li>Let <var title="">entry</var> be the last (most recently added)
-    element in the <span><a href="#list-of">list of active formatting
+    element in the <span><a href="#list-of2">list of active formatting
     elements</a></span>.
 
    <li>Let <var title="">entry</var> be the entry one earlier than <var
-    title="">entry</var> in the <span><a href="#list-of">list of active
+    title="">entry</var> in the <span><a href="#list-of2">list of active
     formatting elements</a></span>.
 
    <li>If <var title="">entry</var> is neither a marker nor an element that
@@ -19794,7 +19907,7 @@ function receiver(e) {
     go to step 3.
 
    <li>Let <var title="">entry</var> be the element one later than <var
-    title="">entry</var> in the <span><a href="#list-of">list of active
+    title="">entry</var> in the <span><a href="#list-of2">list of active
     formatting elements</a></span>.
 
    <li>Perform a shallow clone of the element <var title="">entry</var> to
@@ -19809,7 +19922,7 @@ function receiver(e) {
     entry for <var title="">clone</var>.
 
    <li>If the entry for <var title="">clone</var> in the <span><a
-    href="#list-of">list of active formatting elements</a></span> is not the
+    href="#list-of2">list of active formatting elements</a></span> is not the
     last entry in the list, return to step 5.
   </ol>
 
@@ -19818,7 +19931,7 @@ function receiver(e) {
    haven't been explicitly closed.
 
   <p class="note">The way this specification is written, the <span><a
-   href="#list-of">list of active formatting elements</a></span> always
+   href="#list-of2">list of active formatting elements</a></span> always
    consists of elements in chronological order with the least recently added
    element first and the most recently added element last (except for while
    steps 5 to 9 of the above algorithm are being executed, of course).
@@ -19829,11 +19942,11 @@ function receiver(e) {
 
   <ol>
    <li>Let <var title="">entry</var> be the last (most recently added) entry
-    in the <span><a href="#list-of">list of active formatting
+    in the <span><a href="#list-of2">list of active formatting
     elements</a></span>.
 
    <li>Remove <var title="">entry</var> from the <span><a
-    href="#list-of">list of active formatting elements</a></span>.
+    href="#list-of2">list of active formatting elements</a></span>.
 
    <li>If <var title="">entry</var> was a marker, then stop the algorithm at
     this point. The list has been cleared up to the last marker.
@@ -20677,7 +20790,7 @@ function receiver(e) {
 
         <p><span title="insert an html element"><a href="#insert">Insert an
          HTML element</a></span> for the token. Add that element to the
-         <span><a href="#list-of">list of active formatting
+         <span><a href="#list-of2">list of active formatting
          elements</a></span>.</p>
 
        <dt id="adoptionAgency">An end tag whose tag name is one of: "a", "b",
@@ -20721,7 +20834,7 @@ function receiver(e) {
            elements</a></span>, from the <span><a href="#current3">current
            node</a></span> up to the <var title="">formatting element</var>,
            and remove the <var title="">formatting element</var> from the
-           <span><a href="#list-of">list of active formatting
+           <span><a href="#list-of2">list of active formatting
            elements</a></span>.
 
          <li>
@@ -20743,7 +20856,7 @@ function receiver(e) {
          <li>
           <p>Let a bookmark note the relative position of the <var
            title="">formatting element</var> in the <span><a
-           href="#list-of">list of active formatting elements</a></span>.
+           href="#list-of2">list of active formatting elements</a></span>.
 
          <li>
           <p>Let <var title="">node</var> and <var title="">last node</var>
@@ -20761,11 +20874,11 @@ function receiver(e) {
            <li>If <var title="">last node</var> is the <var title="">furthest
             block</var>, then move the aforementioned bookmark to be
             immediately after the <var title="">node</var> in the <span><a
-            href="#list-of">list of active formatting elements</a></span>.
+            href="#list-of2">list of active formatting elements</a></span>.
 
            <li>If <var title="">node</var> has any children, perform a
             shallow clone of <var title="">node</var>, replace the entry for
-            <var title="">node</var> in the <span><a href="#list-of">list of
+            <var title="">node</var> in the <span><a href="#list-of2">list of
             active formatting elements</a></span> with an entry for the
             clone, replace the entry for <var title="">node</var> in the
             <span><a href="#stack">stack of open elements</a></span> with an
@@ -20799,9 +20912,9 @@ function receiver(e) {
 
          <li>
           <p>Remove the <var title="">formatting element</var> from the
-           <span><a href="#list-of">list of active formatting
+           <span><a href="#list-of2">list of active formatting
            elements</a></span>, and insert the clone into the <span><a
-           href="#list-of">list of active formatting elements</a></span> at
+           href="#list-of2">list of active formatting elements</a></span> at
            the position of the aforementioned bookmark.
 
          <li>
@@ -20848,8 +20961,8 @@ function receiver(e) {
         <p><span><a href="#insert">Insert an HTML element</a></span> for the
          token.</p>
 
-        <p>Insert a marker at the end of the <span><a href="#list-of">list of
-         active formatting elements</a></span>.</p>
+        <p>Insert a marker at the end of the <span><a href="#list-of2">list
+         of active formatting elements</a></span>.</p>
 
        <dt>A start tag token whose tag name is one of: "marquee", "object"
 
@@ -20860,8 +20973,8 @@ function receiver(e) {
         <p><span><a href="#insert">Insert an HTML element</a></span> for the
          token.</p>
 
-        <p>Insert a marker at the end of the <span><a href="#list-of">list of
-         active formatting elements</a></span>.</p>
+        <p>Insert a marker at the end of the <span><a href="#list-of2">list
+         of active formatting elements</a></span>.</p>
 
        <dt>An end tag token whose tag name is one of: "button", "marquee",
         "object"
@@ -21223,8 +21336,8 @@ function receiver(e) {
         <p><span><a href="#clear1">Clear the stack back to a table
          context</a></span>. (See below.)</p>
 
-        <p>Insert a marker at the end of the <span><a href="#list-of">list of
-         active formatting elements</a></span>.</p>
+        <p>Insert a marker at the end of the <span><a href="#list-of2">list
+         of active formatting elements</a></span>.</p>
 
         <p><span><a href="#insert">Insert an HTML element</a></span> for the
          token, then switch the <span><a href="#insertion">insertion
@@ -21518,8 +21631,8 @@ function receiver(e) {
          HTML element</a></span> for the token, then switch the <span><a
          href="#insertion">insertion mode</a></span> to "in cell".</p>
 
-        <p>Insert a marker at the end of the <span><a href="#list-of">list of
-         active formatting elements</a></span>.</p>
+        <p>Insert a marker at the end of the <span><a href="#list-of2">list
+         of active formatting elements</a></span>.</p>
 
        <dt>An end tag whose tag name is "tr"
 

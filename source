@@ -688,6 +688,13 @@ and suggestions on this to the list, btw).
   same object (not a new object each time), and the attributes and
   methods on that object must operate on the actual underlying data,
   not a snapshot of the data.</p>
+
+  <p>Some of the algorithms in this specification, for historical
+  reasons, require the user agent to <dfn>pause</dfn> until some
+  condition has been met. While a user agent is paused, it must ensure
+  that no scripts execute (e.g. no event handlers, no timers,
+  etc). User agents should remain responsive to user input while
+  paused, however.</p>
   
 
   <h3>Miscellaneous</h3>
@@ -5768,6 +5775,14 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
   value must be a valid MIME type, optionally with parameters. <a
   href="#refsRFC2046">[RFC2046]</a></p>
 
+  <p>Changing the <code title="attr-script-src">src</code>, <code
+  title="attr-script-type">type</code>, <code
+  title="attr-script-defer">defer</code> and <code
+  title="attr-script-async">async</code> attributes dynamically has no
+  direct effect; these attribute are only used at specific times
+  described below (namely, when the element is inserted into the
+  document).</p>
+
   <p><code>script</code> elements have an associated piece of
   metadata, a flag indicating whether or not the script block has been
   <dfn>"already executed"</dfn>. Initially, <code>script</code>
@@ -5776,22 +5791,47 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
   cloned, the "already executed" flag, if set, must be propagated to
   the clone when it is created.</p>
 
-  <p><strong>When script blocks are run</strong>: When a
-  <code>script</code> element whose "already executed" flag is not set
-  is <span>inserted into a document</span>, the user agent must act as
-  follows:</p>
+  <p><dfn title="running a script">When script blocks are run</dfn>:
+  When a <code>script</code> element whose <span>"already
+  executed"</span> flag is not set is <span>inserted into a
+  document</span>, the user agent must act as follows:</p>
 
   <ol>
 
    <li>
 
-    <p>First, if the element has a <code
-    title="attr-script-src">src</code> attribute, then a load for the
-    specified content must be started. (For performance reasons, user
-    agents may start loading the script as soon as the attribute is
-    set, instead, in the hope that the element will be inserted into
-    the document. Either way, once the element is inserted into the
-    document, the load must have started.)</p>
+    <p>The user agent must set the element's <span>"already
+    executed"</span> flag.</p>
+
+   </li>
+
+   <li>
+
+    <p class="big-issue">How to handle the <code title="">type</code>
+    and <code title="">language</code> attributes should be defined
+    here.</p>
+
+   </li>
+
+   <li>
+
+    <p>If the element has a <code title="attr-script-src">src</code>
+    attribute, then a load for the specified content must be
+    started.</p>
+
+    <p class="note">Later, once the load has completed, the user agent
+    will have to complete <span title="when a script completes
+    loading">the steps described below</span>.</p>
+
+    <p>For performance reasons, user agents may start loading the
+    script as soon as the attribute is set, instead, in the hope that
+    the element will be inserted into the document. Either way, once
+    the element is inserted into the document, the load must have
+    started. If the UA performs such prefetching, but the element is
+    never inserted in the document, or the <code
+    title="attr-script-src">src</code> attribute is dynamically
+    changed, then the user agent will not execute the script, and the
+    load will have been effectively wasted.</p>
 
    </li>
 
@@ -5801,57 +5841,177 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
     has a <code title="attr-script-defer">defer</code> attribute, then
     the element must be added to the end of the <span>list of scripts
     that will execute when the document has finished
-    parsing</span>.</p>
+    parsing</span>. Stop going through these steps; start with <span
+    title="when a script completes loading">the next set of
+    steps</span> when the script is ready.</p>
 
     <p>Otherwise, if the element has a <code
-    title="attr-script-async">async</code> attribute and a <code
-    title="attr-script-src">src</code> attribute, then the element
+    title="attr-script-async">async</code> attribute, then the element
     must be added to the end of the <span>list of scripts that will
-    execute asynchronously</span>.</p>
+    execute asynchronously</span>. Then, stop going through these
+    steps &mdash; if the element has no <code
+    title="attr-script-src">src</code> attribute, then jump straight
+    to <span title="when a script completes loading">the next set of
+    steps</span>, otherwise, start with <span title="when a script
+    completes loading">the next set of steps</span> when the script is
+    ready.</p>
 
-    <p>Otherwise, if the document is still being parsed, the element
-    must be <span title="executing a script block">executed</span>
-    synchronously.</p>
+    <p>Otherwise, if the document has finished being parsed and the
+    element has a <code title="attr-script-src">src</code> attribute,
+    the element must be added to the end of the <span>list of scripts
+    that will execute soon</span>. Stop going through these steps;
+    start with <span title="when a script completes loading">the next
+    set of steps</span> when the script is ready.</p>
 
-    <p>Otherwise, the document has finished being parsed; if the element
-    has no <code title="attr-script-src">src</code> attribute, the
-    element must be <span title="executing a script
-    block">executed</span> synchronously.</p>
+    <p>Otherwise, continue to the next step.</p>
 
-    <p>Otherwise, the document has finished being parsed and the element
-    has a <code title="attr-script-src">src</code> attribute: the
-    element must be added to the end of the <span>list of scripts that
-    will execute soon</span>.</p>
+   </li>
+
+   <li>
+
+    <p>If the element has a <code title="attr-script-src">src</code>
+    attribute, then the user agent must <span>pause</span> until the
+    script has finished loading.</p>
+
+   </li>
+
+   <li>
+
+    <p>Finally, the user agent must <span title="executing a script
+    block">execute the script</span>.</p>
 
    </li>
 
   </ol>
 
-  <p><strong>What to do when an external script completes
-  loading:</strong> ...</p>
+  <p><dfn title="when a script completes loading">When a script
+  completes loading</dfn>: Once a script whose element was added to
+  one of the three lists above has completely loaded, the UA must
+  behave as follows:</p>
 
-  <p><strong>How to execute a script block:</strong> ...</p>
+  <dl class="switch">
 
-  <p class="big-issue">WIP</p>
+   <dt>If the script's element was added to the <dfn>list of scripts
+   that will execute when the document has finished parsing</dfn>:</dt>
 
-<!--XXXXXXXXXXXXXXXXXXXX
+   <dd>
 
-  <p>User agents that support scripting must execute scripts (written
-  in languages that they support) immediately upon parsing a
-  <code>script</code> element's end tag, and immediately upon having a
-  dynamically created <code>script</code> element inserted into the
-  DOM. Once a <code>script</code> element has been executed, it must
-  be flagged as such and never re-executed again. When an element with
-  this flag set is cloned, the new element must not have the flag
-  set.</p>
+    <ol>
 
-  <p>For scripting languages that consist of pure text, user agents
-  must use the value of the DOM <code
+     <li>
+
+      <p>If the script is not the first script in the list, or, if the
+      document has not yet finished loading, then do nothing yet. Stop
+      going through these steps.</p>
+
+     </li>
+
+     <li>
+
+      <p>Otherwise, <span title="executing a script block">execute the
+      script</span> (the script associated with the first element in
+      the list).</p>
+
+     </li>
+
+     <li>
+
+      <p>Remove the script from the list (i.e. shift out the first
+      entry in the list).</p>
+
+     </li>
+
+     <li>
+
+      <p>If there are any more scripts in the list, and if the script
+      associated with the element that is now the first in the list is
+      already loaded, then jump back to step two to execute it.</p>
+
+     </li>
+
+    </ol>
+
+   </dd>
+
+   <dt>If the script's element was added to the <dfn>list of scripts
+   that will execute asynchronously</dfn>:</dt>
+
+   <dd>
+
+    <ol>
+
+     <li>
+
+      <p>If the script is not the first script in the list, then do
+      nothing yet. Stop going through these steps.</p>
+
+     </li>
+
+     <li>
+
+      <p><span title="executing a script block">Execute the
+      script</span> (the script associated with the first element in
+      the list).</p>
+
+     </li>
+
+     <li>
+
+      <p>Remove the script from the list (i.e. shift out the first
+      entry in the list).</p>
+
+     </li>
+
+     <li>
+
+      <p>If there are any more scripts in the list, and the element
+      now at the head of the list had no <code
+      title="attr-script-src">src</code> attribute when it was added
+      to the list, or had one, but its associated script has finished
+      loading, then jump back to step two to execute the script
+      associated with this element.</p>
+
+     </li>
+
+    </ol>
+
+   </dd>
+
+   <dt>If the script's element was added to the <dfn>list of scripts
+   that will execute soon</dfn>:</dt>
+
+   <dd><span title="executing a script block">Execute the
+   script</span>. Remove the element with which script is associated
+   from the list.</dd>
+
+  </dl>
+
+  <p><dfn title="executing a script block">How to execute a script
+  block</dfn>: For scripting languages that consist of pure text, user
+  agents must use the value of the DOM <code
   title="dom-script-text">text</code> attribute (defined below) as the
   script to execute. For XML-based scripting languages, user agents
-  must use all the children nodes of the <code>script</code>
-  element as the script.</p>
+  must use all the child nodes of the <code>script</code> element as
+  the script.</p>
 
+  <p>In any case, the user agent must execute the script according to
+  the semantics of the relevant language specification, as determined
+  by the <code title="attr-script-type">type</code> and <code
+  title="attr-script-language">language</code> attributes on the
+  <code>script</code> element when the element was inserted into the
+  document, as described above.</p>
+
+  <p class="note">The element's attributes' values might have changed
+  between when the element was inserted into the document and when the
+  script has finished loading, as may its other attributes; similarly,
+  the element itself might have been taken back out of the DOM, or had
+  other changes made. These changes do not in any way affect the above
+  steps; only the values of the attributes at the time the
+  <code>script</code> element is first inserted into the document
+  matter.</p>
+
+<!--XXXXXXXXXXXXXXXXXXXX
+  
 http://www.websiteoptimization.com/speed/tweak/defer/test/
 
 internal deferred scripts execute before any external scripts execute, or before the LOAD if there are none
