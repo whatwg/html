@@ -858,6 +858,14 @@ and suggestions on this to the list, btw).
 -->
 
 
+  <h4><code>document.write()</code>, <code>innerHTML</code> <span title="TBW">[TBW]</span></h4>
+
+  <p class="big-issue">...</p>
+
+  <!-- XXX must make sure we spec that innerHTML causes mutation
+  events to fire, but document.write() doesn't. (the latter is already
+  req-stated in the parser section, btw) -->
+
 
   <h3>The elements <span title="TBW">[TBW]</span></h3>
 
@@ -1082,6 +1090,13 @@ and suggestions on this to the list, btw).
   the right type on that element, not those that are dispatched in
   expected ways.</p>
 
+
+  <h3>Event handling</h3>
+
+  <p class="big-issue">We need a section to define how events all
+  work, default actions, etc. For example, how does clicking on a span
+  in a link that is in another link actually cause a link to be
+  followed? which one? (where should this section be?)</p>
 
 
 
@@ -8678,6 +8693,7 @@ interface <dfn>DataGridDataProvider</dfn> {
   <h2>Processing models</h2>
 
 
+
   <h3>Navigating across documents</h3>
 
   <p class="big-issue">This section will end up defining what the UA
@@ -8696,6 +8712,66 @@ interface <dfn>DataGridDataProvider</dfn> {
    http://ln.hixie.ch/?start=1144794177&count=1
    http://www.intertwingly.net/blog/2006/04/13/Dont-throw-charset-out-with-the-bathwater
 -->
+
+
+  <h3>Scripting</h3>
+
+  <h4><span title="SCS">[SCS]</span> Runtime script errors</h4>
+
+  <p>Whenever a runtime script error occurs in one of the scripts
+  associated with the document, the value of the
+  <dfn><code>onerror</code></dfn> attribute of the <code>window</code>
+  object (defined on the <code>WindowHTML</code> interface of that
+  object), must be processed, as follows:</p>
+
+  <dl class="switch">
+
+   <dt>If the value is a function</dt>
+
+   <dd>
+
+    <p>The function referenced by the <code>onerror</code> attribute
+    must be invoked with three arguments, before notifying the user of
+    the error.</p>
+
+    <p>The three arguments passed to the function are all
+    <code>DOMString</code>s; the first must give the message that the
+    UA is considering reporting, the second must give the URI to the
+    resource in which the error occured, and the third must give the
+    line number in that resource on which the error occured.</p>
+
+    <p>If the function returns false, then the error should not be
+    reported to the user. Otherwise, if the function returns another
+    value (or does not return at all), the error should be reported to
+    the user.</p>
+
+    <p>Any exceptions thrown or errors caused by this function must be
+    reported to the user immediately after the error that the function
+    was called for, without calling the function again.</p>
+
+   </dd>
+
+   <dt>If the value is <code>null</code></dt>
+
+   <dd>
+
+    <p>The error should not reported to the user.</p>
+
+   </dd>
+
+   <dt>If the value is anything else</dt>
+
+   <dd>
+
+    <p>The error should be reported to the user.</p>
+
+   </dd>
+
+  </dl>
+
+  <p>The initial value of <code>onerror</code> must be
+  <code>undefined</code>.</p>
+
 
   <h3>Commands</h3>
 
@@ -9446,90 +9522,6 @@ interface <dfn>DataGridDataProvider</dfn> {
   <p class="big-issue">See <a href="http://whatwg.org/specs/web-forms/current-work/#repeatingFormControls">WF2</a> for now</p>
 
 
-  <h2>Browsing contexts</h2>
-
-  <h3>The <code>WindowHTML</code> interface</h3>
-
-  <p>The <code>WindowHTML</code> interface must be obtainable from the
-  <code>Window</code> object using binding-specific casting
-  methods. <a href="#refsWINDOW">[WINDOW]</a></p>
-
-  <pre class="idl">interface <dfn>WindowHTML</dfn> {
-
-  // convenient event handlers
-           attribute <span>ErrorHandler</span> onerror;
-
-  // helper objects
-  readonly attribute <span>History</span> <span title="dom-history">history</span>;
-  readonly attribute <span>Storage</span> <span title="dom-sessionStorage">sessionStorage</span>;
-  readonly attribute <span>StorageList</span> <span title="dom-globalStorage">globalStorage</span>;
-  readonly attribute <span>ClientInformation</span> <span title="dom-navigator">navigator</span>; <!-- XXX IE6 also has window.clientInformation pointing to this same object -->
-  readonly attribute <span>UndoManager</span> <span title="dom-undoManager">undoManager</span>;
-  <span>Selection</span> <span title="dom-getSelection">getSelection</span>();
-
-}; <!-- XXX XMLHttpRequest, Image, Audio, confirm, prompt, alert, ...
-          http://msdn.microsoft.com/workshop/author/dhtml/reference/objects/obj_window.asp
-          http://www.mozilla.org/docs/dom/domref/dom_window_ref.html
-  -->
-
-interface <dfn>ErrorHandler</dfn> {
-  void handleEvent(in DOMString errorMessage, in DOMString fileName, in DOMString lineNumber);
-};</pre>
-
-<!--
-XXX
-http://lxr.mozilla.org/mozilla/source/dom/public/idl/base/nsIDOMWindow.idl
-
--->
-
-
-
-  <h3>Events</h3>
-
-  <p class="big-issue">We need a section to define how events all
-  work, default actions, etc. For example, how does clicking on a span
-  in a link that is in another link actually cause a link to be
-  followed? which one? (where should this section be?)</p>
-
-
-
-  <h3><span title="SCS">[SCS]</span> Runtime script errors</h3>
-
-  <p>The <dfn><code>onerror</code></dfn> attribute takes a reference
-  to an object implementing the <dfn><code>ErrorHandler</code></dfn>
-  interface. In ECMAScript, such an interface is implemented by any
-  function that takes three arguments and returns a boolean value, as
-  well as by the <code>null</code> value and the
-  <code>undefined</code> value.</p>
-
-  <p>The function to which the <code>onerror</code> attributes points
-  must be invoked whenever a runtime script error occurs in the
-  context of the <code title="dom-window">window</code> object, before
-  the error is reported to the user. If the function is
-  <code>null</code> or if the function returns true then the error
-  should not reported to the user. If the function is
-  <code>undefined</code> or if the function doesn't returns true, then
-  the message must be reported as normal.</p>
-
-  <p>The three arguments passed to the function are all
-  <code>DOMString</code>s; the first gives the message that the UA is
-  considering reporting, the second gives the URI to the resource in
-  which the error occured, and the third gives the line number in tha
-  resource on which the error occured.</p>
-
-  <p>The initial value of <code>onerror</code> must be
-  <code>undefined</code>.</p>
-
-
-
-
-  <h3><code>document.write()</code>, <code>innerHTML</code> <span title="TBW">[TBW]</span></h3>
-
-  <p class="big-issue">...</p>
-
-  <!-- XXX must make sure we spec that innerHTML causes mutation
-  events to fire, but document.write() doesn't. (the latter is already
-  req-stated in the parser section, btw) -->
 
 
 
@@ -9540,6 +9532,31 @@ http://lxr.mozilla.org/mozilla/source/dom/public/idl/base/nsIDOMWindow.idl
   integrating with native features such as the navigation history,
   drag-and-drop, undo/redo, and selections.</p>
 
+  <p>Many of the APIs are part of the <code>WindowHTML</code>
+  interface. The <code>WindowHTML</code> interface must be obtainable
+  from the <code>Window</code> object using binding-specific casting
+  methods. <a href="#refsWINDOW">[WINDOW]</a></p>
+
+  <pre class="idl">interface <dfn>WindowHTML</dfn> {
+
+  // defined in this section
+  readonly attribute <span>History</span> <span title="dom-history">history</span>;
+  readonly attribute <span>ClientInformation</span> <span title="dom-navigator">navigator</span>; <!-- XXX IE6 also has window.clientInformation pointing to this same object -->
+  readonly attribute <span>UndoManager</span> <span title="dom-undoManager">undoManager</span>;
+  <span>Selection</span> <span title="dom-getSelection">getSelection</span>();
+  readonly attribute <span>Storage</span> <span title="dom-sessionStorage">sessionStorage</span>;
+  readonly attribute <span>StorageList</span> <span title="dom-globalStorage">globalStorage</span>;
+
+  // defined in other sections
+           attribute <span>Object</span> <span>onerror</span>;
+
+};</pre>
+
+ <!-- XXX XMLHttpRequest, Image, Audio, confirm, prompt, alert, ...
+          http://msdn.microsoft.com/workshop/author/dhtml/reference/objects/obj_window.asp
+          http://www.mozilla.org/docs/dom/domref/dom_window_ref.html
+          http://lxr.mozilla.org/mozilla/source/dom/public/idl/base/nsIDOMWindow.idl
+   -->
 
 
   <h3><span title="SCS">[SCS]</span> Session history and navigation</h3>
