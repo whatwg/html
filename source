@@ -5778,10 +5778,11 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
   cloned, the "already executed" flag, if set, must be propagated to
   the clone when it is created.</p>
 
-  <p><dfn title="running a script">When script blocks are run</dfn>:
-  When a <code>script</code> element whose <span>"already
-  executed"</span> flag is not set is <span>inserted into a
-  document</span>, the user agent must act as follows:</p>
+  <p><dfn title="running a script">When a script block is inserted
+  into a document</dfn>: When a <code>script</code> element whose
+  <span>"already executed"</span> flag is not set is <span>inserted
+  into a document</span><!-- XXX xref -->, the user agent must act as
+  follows:</p>
 
   <ol>
 
@@ -5824,66 +5825,82 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
 
    <li>
 
-    <p>Then, if the document is still being parsed, and the element
-    has a <code title="attr-script-defer">defer</code> attribute, then
-    the element must be added to the end of the <span>list of scripts
-    that will execute when the document has finished
-    parsing</span>. Stop going through these steps; start with <span
-    title="when a script completes loading">the next set of
-    steps</span> when the script is ready.</p>
+    <p>Then, the first of the following options that describes the
+    situation must be followed:</p>
 
-    <p class="big-issue">This isn't compatible with IE for inline
-    deferred scripts, but then what IE does is pretty hard to pin down
-    exactly. Do we want to keep this like it is? Be more compatible?</p>
-    <!--XXX  
-    http://www.websiteoptimization.com/speed/tweak/defer/test/
-    internal deferred scripts execute before any external scripts execute, or before the LOAD if there are none
-    external deferred scripts execute before the LOAD
-    -->
+    <dl class="switch">
 
-    <p>Otherwise, if the element has a <code
-    title="attr-script-async">async</code> attribute, then the element
-    must be added to the end of the <span>list of scripts that will
-    execute asynchronously</span>. Then, stop going through these
-    steps &mdash; if the element has no <code
-    title="attr-script-src">src</code> attribute, then jump straight
-    to <span title="when a script completes loading">the next set of
-    steps</span>, otherwise, start with <span title="when a script
-    completes loading">the next set of steps</span> when the script is
-    ready.</p>
+     <dt>If the document is still being parsed, and the element
+     has a <code title="attr-script-defer">defer</code> attribute</dt>
 
-    <p>Otherwise, if the document has finished being parsed and the
-    element has a <code title="attr-script-src">src</code> attribute,
-    the element must be added to the end of the <span>list of scripts
-    that will execute soon</span>. Stop going through these steps;
-    start with <span title="when a script completes loading">the next
-    set of steps</span> when the script is ready.</p>
+     <dd>The element must be added to the end of the <span>list of
+     scripts that will execute when the document has finished
+     parsing</span>. The user agent must begin <span title="when a
+     script completes loading">the next set of steps</span> when the
+     script is ready.
+ 
+     <span class="big-issue">This isn't compatible with IE for inline
+     deferred scripts, but then what IE does is pretty hard to pin down
+     exactly. Do we want to keep this like it is? Be more compatible?</span>
+     <!--XXX  
+     http://www.websiteoptimization.com/speed/tweak/defer/test/
+     internal deferred scripts execute before any external scripts execute, or before the LOAD if there are none
+     external deferred scripts execute before the LOAD
+     -->
 
-    <p>Otherwise, continue to the next step.</p>
+     </dd>
 
-   </li>
 
-   <li>
+     <dt>If the element has an <code
+     title="attr-script-async">async</code> attribute and a <code
+     title="attr-script-src">src</code> attribute</dt>
 
-    <p>If the element has a <code title="attr-script-src">src</code>
-    attribute, then the user agent must <span>pause</span> until the
-    script has finished loading.</p>
+     <dd>The element must be added to the end of the <span>list of
+     scripts that will execute asynchronously</span>. The user agent
+     must jump to <span title="when a script completes loading">the
+     next set of steps</span> once the script is ready.</dd>
 
-   </li>
 
-   <li>
+     <dt>If the element has an <code
+     title="attr-script-async">async</code> attribute but no <code
+     title="attr-script-src">src</code> attribute, and the <span>list
+     of scripts that will execute asynchronously</span> is not
+     empty</dt>
 
-    <p>Finally, the user agent must <span title="executing a script
-    block">execute the script</span>.</p>
+     <dd>The element must be added to the end of the <span>list of
+     scripts that will execute asynchronously</span>.</dd>
+
+
+     <dt>If the element has a <code title="attr-script-src">src</code>
+     attribute</dt>
+
+     <dd>The element must be added to the end of the <span>list of
+     scripts that will execute as soon as possible</span>. The user
+     agent must jump to <span title="when a script completes
+     loading">the next set of steps</span> when the script is
+     ready.</dd>
+
+
+     <dt>Otherwise</dt>
+
+     <dd>The user agent must immediately <span title="executing a
+     script block">execute the script</span>, even if other scripts
+     are already executing.</dd>
+
+    </dl>
 
    </li>
 
   </ol>
 
+
   <p><dfn title="when a script completes loading">When a script
-  completes loading</dfn>: Once a script whose element was added to
-  one of the three lists above has completely loaded, the UA must
-  behave as follows:</p>
+  completes loading</dfn>: If a script whose element was added to one
+  of the lists mentioned above completes loading while the document is
+  still being parsed, then the parser handles it. Otherwise, when a
+  script completes loading, the UA must follow the following steps as
+  soon as as any other scripts that may be executing have finished
+  executing:</p>
 
   <dl class="switch">
 
@@ -5896,30 +5913,29 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
 
      <li>
 
-      <p>If the script is not the first script in the list, or, if the
-      document has not yet finished loading, then do nothing yet. Stop
-      going through these steps.</p>
+      <p>If the script's element is not the first element in the list,
+      then do nothing yet. Stop going through these steps.</p>
 
      </li>
 
      <li>
 
       <p>Otherwise, <span title="executing a script block">execute the
-      script</span> (the script associated with the first element in
-      the list).</p>
+      script</span> (that is, the script associated with the first
+      element in the list).</p>
 
      </li>
 
      <li>
 
-      <p>Remove the script from the list (i.e. shift out the first
-      entry in the list).</p>
+      <p>Remove the script's element from the list (i.e. shift out the
+      first entry in the list).</p>
 
      </li>
 
      <li>
 
-      <p>If there are any more scripts in the list, and if the script
+      <p>If there are any more entries in the list, and if the script
       associated with the element that is now the first in the list is
       already loaded, then jump back to step two to execute it.</p>
 
@@ -5938,7 +5954,7 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
 
      <li>
 
-      <p>If the script is not the first script in the list, then do
+      <p>If the script is not the first element in the list, then do
       nothing yet. Stop going through these steps.</p>
 
      </li>
@@ -5953,8 +5969,8 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
 
      <li>
 
-      <p>Remove the script from the list (i.e. shift out the first
-      entry in the list).</p>
+      <p>Remove the script's element from the list (i.e. shift out the
+      first entry in the list).</p>
 
      </li>
 
@@ -5974,15 +5990,32 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
    </dd>
 
    <dt>If the script's element was added to the <dfn>list of scripts
-   that will execute soon</dfn>:</dt>
+   that will execute as soon as possible</dfn>:</dt>
 
-   <dd><span title="executing a script block">Execute the
-   script</span>. Remove the element with which script is associated
-   from the list.</dd>
+   <dd>
+
+    <ol>
+
+     <li>
+
+      <p><span title="executing a script block">Execute the
+      script</span>.</p>
+
+     </li>
+
+     <li>
+
+      <p>Remove the script's element from the list.</p>
+
+     </li>
+
+    </ol>
+
+   </dd>
 
   </dl>
 
-  <p><dfn title="executing a script block">How to execute a script
+  <p><dfn title="executing a script block">Executing a script
   block</dfn>: If the load resulted in an error (for example a DNS
   error, or an HTTP 404 error), then executing the script consists of
   doing nothing. If the load was successful, then the behaviour
@@ -8767,17 +8800,18 @@ interface <dfn>DataGridDataProvider</dfn> {
   <h2>Processing models</h2>
 
 
-
   <h3>Navigating across documents</h3>
 
   <p class="big-issue">This section will end up defining what the UA
-  should do when the user clicks a link. This will probably involve
-  being honest about the fact that UAs typically content sniff for
-  RSS/Atom feeds at this point. It should also reference the <code
+  should do when the user clicks a link, types a link in the address
+  bar, uses a bookmark, etc. This will probably involve being honest
+  about the fact that UAs typically content sniff for RSS/Atom feeds
+  at this point. It should also reference the <code
   title="dom-navigator-registerProtocolHandler">registerProtocolHandler</code>
   and <code
   title="dom-navigator-registerContentHandler">registerContentHandler</code>
-  methods and their stuff.</p>
+  methods and their stuff. Also involves the session history and
+  bfcache (there's a separate section on that though).</p>
 
 <!--
    XXX HTTP Content-Type handling?
@@ -8789,6 +8823,46 @@ interface <dfn>DataGridDataProvider</dfn> {
 
 
   <h3>Scripting</h3>
+
+  <div class="big-issue">
+
+   <p>Here are some of the things I think we should list:</p>
+
+   <ul>
+
+    <li>That scripting is single-threaded, or, how to handle
+    multithreadedness. By this I mean, the only way to run a script
+    while another script is running is to insert a &lt;script> block
+    that doesn't have a src="" attribute. If we have multiple threads,
+    what does that mean. If we don't, how do we define exactly it is
+    that is single-threaded, given multiple windows being open at once
+    running scripts on different "real" threads -- where does the
+    boundary of what this spec is speccing lie, given that we have to
+    define the interaction across window.open() windows, etc.</li>
+
+    <li>onload/onunload events</li>
+
+    <li>alert() blocks scripts, even those on timeouts or
+    readystatechange events</li>
+
+   </ul>
+
+   <p>Here are ways of running scripts which we have to make sure we
+   have covered:</p>
+
+   <ul>
+
+    <li>&lt;script></li>
+    <li>javascript: URIs in things like IFRAMEs, IMGs, FRAMEs, OBJECTs, SCRIPTs, STYLEs, etc.</li>
+    <li>CSS javascript:</li>
+    <li>XBL</li>
+    <li>onload handlers for IMG elements.</li>
+    <li>event handlers, including onreadystatechanged, onload, onunload, onclick</li>
+    <li>...any others?</li>
+
+   </ul>
+
+  </div>
 
   <h4><span title="SCS">[SCS]</span> Runtime script errors</h4>
 
@@ -16107,6 +16181,29 @@ function receiver(e) {
 
    <dd>
 
+<!--
+    <p>While there are any entries in the <span>list of scripts that will
+    execute as soon as possible</span>, follow these steps:</p>
+
+    <ol>
+
+     <li>Wait until the script associated with the first element in
+     that list has finished loading.</li>
+
+     <li><span title="how to execute a script block">Execute the
+     script</span> associated with the first element in the list.</li>
+
+     <li></li>
+
+    </ol>
+
+if you d.w() a <script src> and immediately appendChild a <script src>
+and the second one loads before the first one, what order do they
+execute in? if they don't order in insertion order, then we need
+another list.
+
+-->
+
     <!-- XXXXXXXXXX d.w -->
 
     <p>Consume the next input character:</p>
@@ -18025,12 +18122,9 @@ function receiver(e) {
        </dd>
 
        <dt>A start tag whose tag name is one of: "address",
-       "blockquote", "center", "dir", "div", "dl", "fieldset", "h1",
-       "h2", "h3", "h4", "h5", "h6", "listing", "menu", "ol", "p",
-       "pre", "ul"</dt>
+       "blockquote", "center", "dir", "div", "dl", "fieldset",
+       "listing", "menu", "ol", "p", "pre", "ul"</dt>
        <dd>
-
- <p class="big-issue">Need to make &lt;hx> close open Hx elements</p>
 
         <p>If the <span>stack of open elements</span> <span title="has
         an element in scope">has a <code>p</code> element in
@@ -18260,6 +18354,27 @@ function receiver(e) {
         element in scope</span> whose tag name matches the tag name of
         the token, then pop elements from this stack until an element
         with that tag name has been popped from the stack.</p>
+
+       </dd>
+
+       <dt>A start tag whose tag name is one of: "h1", "h2", "h3",
+       "h4", "h5", "h6"</dt>
+       <dd>
+
+        <p>If the <span>stack of open elements</span> <span title="has
+        an element in scope">has a <code>p</code> element in
+        scope</span>, then act as if an end tag with the tag name
+        <code>p</code> had been seen.</p>
+
+        <p>If the <span>stack of open elements</span> <span title="has
+        an element in scope">has in scope</span> an element whose tag
+        name is one of "h1", "h2", "h3", "h4", "h5", or "h6", then
+        this is a <span>parse error</span>; pop elements from the
+        stack until an element with one of those tag names has been
+        popped from the stack.</p>
+
+        <p><span title="insert an html element">Insert an HTML
+        element</span> for the token.</p>
 
        </dd>
 
@@ -19688,9 +19803,13 @@ function receiver(e) {
 
    <dt>An end-of-file token</dt>
    <dd>
-    <p>Ignore the token.</p>
-    <p class="big-issue">Probably need to invoke document.close() here
-    or something, or say something about the load event, or...</p>
+
+    <p class="big-issue">Probably need to invoke document.close()
+    here, and say something about the load event. Also need to execute
+    any pending loads of scripts in the "<span>list of scripts that
+    will execute when the document has finished
+    parsing</span>".</p><!-- XXX d.w() -->
+
    </dd>
 
   </dl>
