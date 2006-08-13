@@ -5513,13 +5513,17 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
   described below (namely, when the element is inserted into the
   document).</p>
 
-  <p><code>script</code> elements have an associated piece of
-  metadata, a flag indicating whether or not the script block has been
-  <dfn>"already executed"</dfn>. Initially, <code>script</code>
-  elements must have this flag unset (script blocks, when created, are
-  not "already executed"). When a <code>script</code> element is
-  cloned, the "already executed" flag, if set, must be propagated to
-  the clone when it is created.</p>
+  <p><code>script</code> elements have two associated pieces of
+  metadata. The first is a flag indicating whether or not the script
+  block has been <dfn>"already executed"</dfn>. Initially,
+  <code>script</code> elements must have this flag unset (script
+  blocks, when created, are not "already executed"). When a
+  <code>script</code> element is cloned, the "already executed" flag,
+  if set, must be propagated to the clone when it is created. The
+  second is a flag indicating whether the element was
+  <dfn>"parser-inserted"</dfn>. This flag is set by the HTML parser
+  and is used to handle <code
+  title="dom-document-write">document.write()</code> calls.</p>
 
   <p><dfn title="running a script">When a script block is inserted
   into a document</dfn>: When a <code>script</code> element whose
@@ -5612,6 +5616,15 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
 
      <dd>The element must be added to the end of the <span>list of
      scripts that will execute asynchronously</span>.</dd>
+
+
+     <dt>If the element has a <code title="attr-script-src">src</code>
+     attribute and has been flagged as
+     <span>"parser-inserted"</span></dt>
+
+     <dd>The element is <dfn>the script that will execute as soon as
+     the parser resumes</dfn>. (There can only be one such script at a
+     time.)</dd>
 
 
      <dt>If the element has a <code title="attr-script-src">src</code>
@@ -16209,6 +16222,7 @@ function receiver(e) {
 
   <p class="big-issue">This section needs writing.</p>
 
+
   <h3 id="parsing"><span title="SCS">[SCS]</span> Parsing HTML documents</h3>
 
   <p><em>This section only applies to user agents.</em></p>
@@ -16273,6 +16287,9 @@ function receiver(e) {
   the other conformance requirements described in this
   specification.</p>
 
+
+  <h4>Overview of the parsing model</h4>
+
   <p>The input to the HTML parsing process consists of a stream of
   Unicode characters, which is passed through a
   <span>tokenisation</span> stage (lexical analysis) followed by a
@@ -16283,6 +16300,43 @@ function receiver(e) {
   support scripting</a> do not have to actually create a DOM
   <code>Document</code> object, but the DOM tree in such cases is
   still used as the model for the rest of the specification.</p>
+
+  <p>In the common case, the data handled by the tokenisation stage
+  comes from the network, but it can also come from script, using the
+  <code title="dom-document-write">document.write()</code> API.</p>
+
+  <p><img src="parsing-model-overview.png" alt=""></p>
+
+  <p id="nestedParsing">There is only one set of state for the
+  tokeniser stage and the tree construction stage, but the tree
+  construction stage is reentrant, meaning that while handling one
+  token, the tokeniser might be resumed, causing further tokens to be
+  emitted and processed before the first token's processing is
+  complete.</p>
+
+  <div class="example">
+
+   <p>In the following example, the tree construction stage will be
+   called upon to handle a "p" start tag token while handling the
+   "script" start tag token:</p>
+
+   <pre>...
+&lt;script>
+ document.write('<p>');
+&lt;/script>
+...</pre>
+
+  </div>
+
+
+  <h4>The input stream</h4>
+
+  <p>The stream of Unicode characters that consists the input to the
+  tokenisation stage will be initially seen by the user agent as a
+  stream of bytes (typically coming over the network or from the local
+  file system). The bytes encode the actual characters according to a
+  particular <em>character encoding</em>, which the user agent must
+  use to decode the bytes into characters.</p>
 
   <p id="documentEncoding">For HTML, user agents must use the
   following algorithm in determining the character encoding of a
@@ -16337,6 +16391,20 @@ function receiver(e) {
   are never any CR characters in the input to the
   <span>tokenisation</span> stage.</p>
 
+  <p>The <dfn>next input character</dfn> is the first character in the
+  input stream that has not yet been <dfn>consumed</dfn>. Initially,
+  the <em>next input character</em> is the first character in the
+  input.</p>
+
+  <p class="big-issue">The <dfn>insertion point</dfn> is the position
+  (between two characters or at the end of the stream) where content
+  inserted using <code
+  title="dom-document-write">document.write()</code> is actually
+  inserted. To handle nested scripts, the <span>insertion point</span>
+  is pushed onto a <dfn>stack of insertion points</dfn> when a script
+  is executed, and the old value is popped back off the stack once the
+  script is complete.</p>
+
 
   <h4><dfn>Tokenisation</dfn></h4>
 
@@ -16372,8 +16440,11 @@ function receiver(e) {
   can affect the state of the <span>content model flag</span>, and can
   insert additional characters into the stream. (For example, the
   <code>script</code> element can result in scripts executing and
-  using the <code title="">document.write()</code> API to insert
-  characters into the stream being tokenised.)</p> <!-- XXXXXXXXXX d.w -->
+  using the <code title="dom-document-write">document.write()</code>
+  API to insert characters into the stream being tokenised.)</p>
+
+  <p>Before each step of the tokeniser, the user agent must check to
+  see if any scripts are ready. <span class="big-issue">...</span></p>
 
   <dl>
 
@@ -16381,32 +16452,7 @@ function receiver(e) {
 
    <dd>
 
-<!--
-    <p>While there are any entries in the <span>list of scripts that will
-    execute as soon as possible</span>, follow these steps:</p>
-
-    <ol>
-
-     <li>Wait until the script associated with the first element in
-     that list has finished loading.</li>
-
-     <li><span title="how to execute a script block">Execute the
-     script</span> associated with the first element in the list.</li>
-
-     <li></li>
-
-    </ol>
-
-if you d.w() a <script src> and immediately appendChild a <script src>
-and the second one loads before the first one, what order do they
-execute in? if they don't order in insertion order, then we need
-another list.
-
--->
-
-    <!-- XXXXXXXXXX d.w -->
-
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -16466,9 +16512,9 @@ another list.
 
      <dd>
 
-      <p>If the next input character is a U+002F SOLIDUS (/)
+      <p>If the <span>next input character</span> is a U+002F SOLIDUS (/)
       character, consume it and switch to the <span>close tag open
-      state</span>. If the next input character is not a U+002F
+      state</span>. If the <span>next input character</span> is not a U+002F
       SOLIDUS (/) character, emit a U+003C LESS-THAN SIGN character
       token and reconsume the current input character in the
       <span>data state</span>.</p>
@@ -16480,7 +16526,7 @@ another list.
 
      <dd>
 
-      <p>Consume the next input character:</p>
+      <p>Consume the <span>next input character</span>:</p>
 
       <dl class="switch">
 
@@ -16555,7 +16601,7 @@ another list.
 
     <p>Otherwise, if the <span>content model flag</span> is set to the
     PCDATA state, or if the next few characters <em>do</em> match that tag
-    name, consume the next input character:</p>
+    name, consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -16593,7 +16639,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -16636,7 +16682,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -16683,7 +16729,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -16737,7 +16783,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -16787,7 +16833,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -16832,7 +16878,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -16860,7 +16906,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -16888,7 +16934,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -16991,7 +17037,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -17018,7 +17064,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -17046,7 +17092,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -17080,7 +17126,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -17104,7 +17150,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -17145,7 +17191,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -17186,7 +17232,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -17219,7 +17265,7 @@ another list.
 
    <dd>
 
-    <p>Consume the next input character:</p>
+    <p>Consume the <span>next input character</span>:</p>
 
     <dl class="switch">
 
@@ -18093,6 +18139,13 @@ another list.
         tag name "script", in the <span>HTML namespace</span>, with
         the same attributes as on the token.</p>
 
+        <p>Mark the element as being
+        <span>"parser-inserted"</span>. This ensures that, if the
+        script is external, any <code
+        title="dom-document-write">document.write()</code> calls in
+        the script will execute in-line, instead of blowing the
+        document away, as would happen in most other cases.</p>
+
         <p>Switch the tokeniser's <span>content model flag</span> to
         the CDATA state.</p>
 
@@ -18117,6 +18170,9 @@ another list.
         it from executing when it is inserted into the document in the
         next paragraph.)</p>
 
+        <p class="big-issue">do something to ensure that inline
+        scripts append correctly</p>
+
         <p>Append the new element to the <span>current node</span>,
         unless the <span>insertion mode</span> is "in head", in which
         case append it to the node pointed to by the <span><code
@@ -18127,6 +18183,73 @@ another list.
         head and the body) --> This might cause some script to
         execute,<!-- XXX xref! --> and might cause new characters to
         be inserted into the tokeniser<!-- XXX xref -->.</p>
+
+        <p class="big-issue">undo whatever was done to ensure
+        appending happened correctly</p>
+
+        <p>At this stage, if there is <span title="the script that
+        will execute as soon as the parser resumes">a script that will
+        execute as soon as the parser resumes</span>, then:</p>
+
+        <dl>
+
+         <dt>If the tree construction stage is <a
+         href="#nestedParsing">being called reentrantly</a>, say from
+         a call to <code
+         title="dom-document-write">document.write()</code>:</dt>
+
+         <dd>Abort the processing of any nested invokations of the
+         tokeniser, yielding control back to the caller. (Tokenisation
+         will resume when the caller returns to the "outer" tree
+         construction stage.)</dd>
+
+         <dt>Otherwise:</dt>
+
+         <dd>
+
+          <p>Follow these steps:</p>
+
+          <ol>
+
+           <li><p>Let <var>the script</var> be <span>the script that
+           will execute as soon as the parser resumes</span>. There is
+           no longer <span title="the script that will execute as soon
+           as the parser resumes">a script that will execute as soon
+           as the parser resumes</span>.</p></li>
+
+           <li><p class="big-issue">...load and then execute the
+           script, ensuring that writes work correctly...</p></li>
+
+<!--
+                        <p>While there are any entries in the <span>list of scripts that
+                        will execute as soon as possible</span>, follow these steps:</p>
+
+                        <ol>
+
+                         <li>Wait until the script associated with the first element in
+                         that list has finished loading.</li>
+
+                         <li><span title="how to execute a script block">Execute the
+                         script</span> associated with the first element in the list.</li>
+
+                         <li></li>
+
+                        </ol>
+
+                    -->
+
+                        <!-- XXXXXXXXXX d.w -->
+
+           <li><p>If there is once again <span title="the script that
+           will execute as soon as the parser resumes">a script that
+           will execute as soon as the parser resumes</span>, then
+           repeat these steps from step 1.</p></li>
+
+          </ol>
+
+         </dd>
+
+        </dl>
 
        </dd>
 
