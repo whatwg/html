@@ -465,6 +465,16 @@ and suggestions on this to the list, btw).
   wire (e.g. by HTTP) must be labelled with the <code>text/html</code>
   MIME type.</p> <!-- XXX move the DOCTYPE requirement to the syntax
   section -->
+
+  <p id="entity-references">The language in this specification assumes
+  that the user agent expands all entity references, and therefore
+  does not include entity reference nodes in the DOM. If user agents
+  do include entity reference nodes in the DOM, then user agents must
+  handle them as if they were fully expanded when implementing this
+  specification. For example, if a requirement talks about an
+  element's child text nodes, then any text nodes that are children of
+  an entity reference that is a child of that element would be used as
+  well.</p> <!-- XXX unexpandable entities? -->
   
 
   <h4>Dependencies</h4>
@@ -1108,9 +1118,166 @@ and suggestions on this to the list, btw).
   element's children with new nodes that result from parsing the given
   value.</p>
 
-  <p class="big-issue">On getting, the <code
-  title="dom-innerHTML-HTML">innerHTML</code> DOM attribute
-  must...</p>
+  <p>On getting, the <code title="dom-innerHTML-HTML">innerHTML</code>
+  DOM attribute must return the result of running the following
+  algorithm:</p>
+
+  <ol>
+
+   <li><p>Let <var title="">s</var> be a string, and initialise it to
+   the empty string.</p></li>
+
+   <li>
+
+    <p>For each child node <var title="">child</var>, in tree order,
+    append the appropriate string from the following list to <var
+    title="">s</var>:</p>
+
+    <dl class="switch">
+
+     <dt>If the child node is an <code title="">Element</code></dt>
+
+     <dd>
+
+      <p>Append a U+003C LESS-THAN SIGN (<code title="">&lt;</code>)
+      character, followed by the element's tag name (which is all
+      lowercase).</p>
+
+      <p>For each attribute that the element has, append a U+0020
+      SPACE character, the attribute's name (which again will be all
+      lowercase), a U+003D EQUALS SIGN (<code title="">=</code>)
+      character, a U+0022 QUOTATION MARK (<code
+      title="">&quot;</code>) character, the attribute's value, <a
+      href="#escapingString">escaped as described below</a>, and a
+      second U+0022 QUOTATION MARK (<code title="">&quot;</code>)
+      character.</p>
+
+      <p>While the exact order of attributes is UA-defined, and may
+      depend on factors such as the order that the attributes were
+      given in the original markup, the sort order must be stable,
+      such that consecutive calls to <code
+      title="dom-innerHTML-HTML">innerHTML</code></code> serialise
+      an element's attributes in the same order.</p>
+
+      <p>Append a U+003E GREATER-THAN SIGN (<code title="">&gt;</code>)
+      character.</p>
+
+      <p>If the child node is an <code title="">Element</code> with
+      a tag name that is one of <code>area</code>,
+      <code>base</code>, <code>basefont</code>,
+      <code>bgsound</code>, <code>br</code>, <code>col</code>,
+      <code>embed</code>, <code>frame</code>, <code>hr</code>,
+      <code>img</code>, <code>input</code>, <code>link</code>,
+      <code>meta</code>, <code>param</code>, or <code>spacer</code>,
+      then continue on to the next child node at this point.</p>
+      <!-- also, i guess: image, isindex, and keygen, but we don't
+      list those because we don't consider those "elements", more
+      "macros", and thus we should never serialise them --> <!-- XXX
+      when we get around to it, add event-source -->
+
+      <p>Otherwise, append the value of the <var
+      title="">child</var> element's <code
+      title="dom-innerHTML-HTML">innerHTML</code> DOM attribute
+      (thus recursing into this algorithm for that element),
+      followed by a U+003C LESS-THAN SIGN (<code
+      title="">&lt;</code>) character, a U+002F SOLIDUS (<code
+      title="">/</code>) character, the element's tag name again
+      (which is again all lowercase), and finally a U+003E
+      GREATER-THAN SIGN (<code title="">&gt;</code>) character.</p>
+
+     </dd>
+
+
+     <dt>If the child node is a <code title="">Text</code> or <code
+     title="">CDATASection</code> node</dt>
+
+     <dd>
+
+      <p>If one of the ancestors of the child node is a
+      <code>style</code>, <code>script</code>, <code>xmp</code>,
+      <code>iframe</code>, <code>noembed</code>,
+      <code>noframes</code>, or <code>noscript</code> element, then
+      append the value of the <var title="">child</var> node's <code
+      title="">data</code> DOM attribute literally.</p>
+
+      <p>Otherwise, append the value of the <var title="">child</var>
+      node's <code title="">data</code> DOM attribute, <a
+      href="#escapingString">escaped as described below</a>.</p>
+
+     </dd>
+
+
+     <dt>If the child node is a <code title="">Comment</code></dt>
+
+     <dd>
+
+      <p>Append the literal string <code>&lt;!--</code> (U+003C
+      LESS-THAN SIGN, U+0021 EXCLAMATION MARK, U+002D HYPHEN-MINUS,
+      U+002D HYPHEN-MINUS), followed by the value of the <var
+      title="">child</var> node's <code title="">data</code> DOM
+      attribute, followed by the literal string <code>--&gt;</code>
+      (U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS, U+003E GREATER-THAN
+      SIGN).</p>
+
+     </dd>
+
+
+     <dt>If the child node is a <code title="">DocumentType</code></dt>
+
+     <dd>
+
+      <p>Append the literal string <code>&lt;!DOCTYPE</code> (U+003C
+      LESS-THAN SIGN, U+0021 EXCLAMATION MARK, U+0044 LATIN CAPITAL
+      LETTER D, U+004F LATIN CAPITAL LETTER O, U+0043 LATIN CAPITAL
+      LETTER C, U+0054 LATIN CAPITAL LETTER T, U+0059 LATIN CAPITAL
+      LETTER Y, U+0050 LATIN CAPITAL LETTER P, U+0045 LATIN CAPITAL
+      LETTER E), followed by a space (U+0020 SPACE), followed by the
+      value of the <var title="">child</var> node's <code
+      title="">name</code> DOM attribute, followed by the literal
+      string <code>&gt;</code> (U+003E GREATER-THAN SIGN).</p>
+
+     </dd>
+
+
+    </dl>
+
+    <p>Other nodes types (e.g. <code title="">Attr</code>) cannot
+    occur as children of elements in HTML documents. If they do, the
+    <code title="dom-innerHTML-HTML">innerHTML</code> attribute must
+    raise an <code>INVALID_STATE_ERR</code> exception.</p>
+
+   </li>
+
+   <li><p>The result of the algorithm is the string <var
+   title="">s</var>.</p></li>
+
+   </li>
+
+  </ol>
+
+  <p id="escapingString">Escaping a string (for the purposes of the
+  algorithm above) consists of replacing any occurances of the "&amp;"
+  character by the string "&amp;amp;", any occurances of the "&lt;"
+  character by the string "&amp;lt;", any occurances of the "&gt;"
+  character by the string "&amp;gt;", and any occurances of the
+  "&quot;" character by the string "&amp;quot;".</p>
+
+  <p class="note">Entity reference nodes are <a
+  href="#entity-references">assumed to be expanded</a> by the user
+  agent, and are therefore not covered in the algorithm above.</p>
+
+  <p class="note">If the element's contents are not conformant, it is
+  possible that the roundtripping through <code
+  title="dom-innerHTML-HTML">innerHTML</code> will not work. For
+  instance, if the element is a <code>textarea</code> element to which
+  a <code title="">Comment</code> node has been appended, then
+  assigning <code title="dom-innerHTML-HTML">innerHTML</code> to
+  itself will result in the comment being displayed in the text
+  field. Similarly, if, as a result of DOM manipulation, the element
+  contains a comment that contains the literal string "<code
+  title="">--&gt;</code>", then when the result of serialising the
+  element is parsed, the comment will be truncated at that point and
+  the rest of the comment will be interpreted as markup.</p>
 
   <p class="big-issue">On setting, the user agent must...</p>
 
@@ -1637,8 +1804,8 @@ and suggestions on this to the list, btw).
 
   <p>For the purposes of determining if an element matches its content
   model or not, CDATA nodes in the DOM must be treated as text nodes,
-  and character entity reference nodes must be treated as if they were
-  expanded in place.</p> <!-- XXX unexpandable entities? -->
+  and character <a href="entity-references">entity reference nodes are
+  treated as if they were expanded in place</a>.</p>
 
   <p>The whitespace characters U+0020 SPACE, U+000A LINE FEED, and
   U+000D CARRIAGE RETURN are always allowed between elements. User
@@ -2323,9 +2490,8 @@ class="main"> or <div class="content">. Why do we also need a body?
   element (ignoring any other nodes such as comments or elements), in
   tree order, to get the string to use as the document's title. User
   agents should use the document's title when referring to the
-  document in their user interface.</p> <!-- XXX this doesn't handle
-  character entity references; make sure to use the text I used for
-  XBL2 to define this. -->
+  document in their user interface.</p>
+
 
   <h4>The <dfn><code>base</code></dfn> element</h4>
 
