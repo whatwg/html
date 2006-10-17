@@ -997,7 +997,7 @@ and suggestions on this to the list, btw).
   title="attr-name">name</code> attribute equal to the
   <var title="">key</var>.</p>
 
-  <p>In the ECMAScript binding, objects implementing the
+  <p>In the ECMAScript DOM binding, objects implementing the
   <code>HTMLCollection</code> interface must support being
   dereferenced using the square bracket notation, such that
   dereferencing with an integer index is equivalent to invoking the
@@ -1055,7 +1055,7 @@ and suggestions on this to the list, btw).
 
   </ol>
 
-  <p>In the ECMAScript binding, objects implementing the
+  <p>In the ECMAScript DOM binding, objects implementing the
   <code>HTMLFormControlsCollection</code> interface must support being
   dereferenced using the square bracket notation, such that
   dereferencing with an integer index is equivalent to invoking the
@@ -1137,7 +1137,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
   </ol>
 
-  <p>In the ECMAScript binding, objects implementing the
+  <p>In the ECMAScript DOM binding, objects implementing the
   <code>HTMLOptionsCollection</code> interface must support being
   dereferenced using the square bracket notation, such that
   dereferencing with an integer index is equivalent to invoking the
@@ -1149,11 +1149,17 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
   <!-- see also http://ln.hixie.ch/?start=1161042744&count=1 -->
 
+  <p class="big-issue">We may want to add <code>add()</code> and
+  <code>remove()</code> methods here too because IE implements
+  HTMLSelectElement and HTMLOptionsCollection on the same object, and
+  so people use them almost interchangeably in the wild.</p>
+
 
   <h4>DOMTokenString</h4>
 
   <p>The <code>DOMTokenString</code> interface represents a string
-  that consists of an unordered set of space-separated tokens.</p>
+  that consists of an <span>unordered set of space-separated
+  tokens</span>.</p>
 
   <pre class="idl">interface <dfn>DOMTokenString</dfn> {
   boolean <span title="dom-tokenstring-has">has</span>(in DOMString token);
@@ -1161,7 +1167,86 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   void <span title="dom-tokenstring-remove">remove</span>(in DOMString token);
 };</pre>
 
-  <p class="big-issue">Need to define those members.</p> <!-- XXX -->
+  <p>The <dfn title="dom-tokenstring-has"><code>has(<var
+  title="">token</var>)</code></dfn> method must run the following
+  algorithm:</p>
+
+  <ol>
+
+   <li>If the <var title="">token</var> argument contains any
+   spaces<!-- XXX elaborate -->, then raise an
+   <code>INVALID_CHARACTER_ERR</code> exception and stop the
+   algorithm.</li>
+
+   <li>Otherwise, if the token indicated by <var title="">token</var>
+   is one of the tokens in the object's underlying string then return
+   true and stop this algorithm.</p>
+
+   <li>Otherwise, return false.</li>
+
+  </ol>
+
+  <p>The <dfn title="dom-tokenstring-add"><code>add(<var
+  title="">token</var>)</code></dfn> method must run the following
+  algorithm:</p>
+
+  <ol>
+
+   <li>If the <var title="">token</var> argument contains any
+   spaces<!-- XXX elaborate -->, then raise an
+   <code>INVALID_CHARACTER_ERR</code> exception and stop the
+   algorithm.</li>
+
+   <li>Otherwise, if the given <var title="">token</var> is already
+   one of the tokens in the <code>DOMTokenString</code> object's
+   underlying string then stop the algorithm.</li>
+
+   <li>Otherwise, if the last character of the
+   <code>DOMTokenString</code> object's underlying string is not a
+   <span>space character</span><!-- XXX xref -->, then append a U+0020
+   SPACE character to the end of that string.</li>
+
+   <li>Append the value of <var title="">token</var> to the end of the
+   <code>DOMTokenString</code> object's underlying string.</li>
+
+  </ol>
+
+  <p>The <dfn title="dom-tokenstring-add"><code>remove(<var
+  title="">token</var>)</code></dfn> method must run the following
+  algorithm:</p>
+
+  <ol>
+
+   <li>If the <var title="">token</var> argument contains any <span
+   title="space character">spaces</span><!-- XXX xref -->, then raise
+   an <code>INVALID_CHARACTER_ERR</code> exception and stop the
+   algorithm.</li>
+
+   <li>If the token indicated by <var title="">token</var> is not one
+   of the tokens in the object's underlying string then stop this
+   algorithm.</p>
+
+   <li>Remove the string of characters in the underlying string that
+   were matched in the previous step.</li>
+
+   <li>If the removal in the previous step resulted in there being two
+   or more adjacent spaces characters in the underlying string at the
+   point where the token was removed, then collapse the run of <span
+   title="space character">space characters</span> at that point to a
+   single U+0020 SPACE character.</li>
+
+   <li>If the two previous steps resulted in one or more <span
+   title="space character">space characters</span> at the start or end
+   of the underlying string, then remove those characters.</li>
+
+   <li>Return to step 2.</li>
+
+  </ol>
+
+  <p>In the ECMAScript DOM binding, objects implementing the
+  <code>DOMTokenString</code> interface must stringify to the object's
+  underlying string representation.</p>
+
 
 
   <h3>The document <span title="TBW">[TBW]</span></h3>
@@ -2112,6 +2197,13 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   <p class="big-issue">...</p>
 
 
+  <h4>Tokens</h4>
+
+  <p class="big-issue">Define <dfn>unordered set of space-separated
+  tokens</dfn> (e.g. for the "class" attribute), along with <dfn>space
+  character</dfn> in that context.</p>
+
+
   <h3>HTML documents and document fragments</h3>
 
   <h4>Semantics</h4>
@@ -2611,8 +2703,8 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
     <p>The element's classes. The value must be a list of zero or more
     words (consisting of one or more non-space characters) separated
-    by one or more spaces.</p> <!-- XXX doesn't really say how class="
-    X " is handled -->
+    by one or more <span title="space character">spaces</span>.</p>
+    <!-- XXX doesn't really say how class=" X " is handled -->
 
     <p>User agents must assign all the given classes to the element,
     for the purposes of class matching (e.g. for selectors in CSS or
@@ -13044,7 +13136,7 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
   <code>Window</code> object's associated <code>HTMLDocument</code>
   object.</p>
 
-  <p>In the ECMAScript binding, objects implementing this interface
+  <p>In the ECMAScript DOM binding, objects implementing this interface
   must also support being dereferenced using the square bracket
   notation, such that dereferencing with an integer index is
   equivalent to invoking the <code
@@ -14008,11 +14100,11 @@ interface <dfn>Storage</dfn> {
   area must either be successful, or the data storage area must not be
   changed at all.</p>
 
-  <p>In the ECMAScript binding, enumerating a <code>Storage</code>
+  <p>In the ECMAScript DOM binding, enumerating a <code>Storage</code>
   object must enumerate through the currently stored and
   <span>accessible</span> keys in the list the object is associated
   with. (It must not enumerate the values or the actual members of the
-  interface). In the ECMAScript binding, <code>Storage</code> objects
+  interface). In the ECMAScript DOM binding, <code>Storage</code> objects
   must support dereferencing such that getting a property that is not
   a member of the object (i.e. is neither a member of the
   <code>Storage</code> interface nor of <code>Object</code>) must
@@ -14035,7 +14127,7 @@ interface <dfn>StorageItem</dfn> {
            attribute DOMString <span title="dom-StorageItem-value">value</span>;
 };</pre>
 
-  <p>In the ECMAScript binding, <code>StorageItem</code> objects must
+  <p>In the ECMAScript DOM binding, <code>StorageItem</code> objects must
   stringify to their <code title="dom-StorageItem-value">value</code>
   attribute's value.</p>
 
@@ -14165,7 +14257,7 @@ interface <dfn>StorageItem</dfn> {
   title="dom-globalStorage"><code>globalStorage</code></dfn>
   object provides a <code>Storage</code> object for each domain.</p>
 
-  <p>In the ECMAScript binding, <code>StorageList</code> objects must
+  <p>In the ECMAScript DOM binding, <code>StorageList</code> objects must
   support dereferencing such that getting a property that is not a
   member of the object (i.e. is neither a member of the
   <code>StorageList</code> interface nor of <code>Object</code>) must
@@ -22541,7 +22633,7 @@ interface <dfn>TimeoutHandler</dfn> {
   <code>handleEvent()</code> method of that interface on the object
   from another language binding invokes the function itself, with the
   arguments passed to <code>handleEvent()</code> as the arguments
-  passed to the function. In the ECMAScript binding itself, however,
+  passed to the function. In the ECMAScript DOM binding itself, however,
   the <code>handleEvent()</code> method of the interface is not
   directly accessible on <code>Function</code> objects. Such functions
   must be called in the global scope.</p>
@@ -23410,7 +23502,7 @@ http://www.paulgraham.com/popular.html
 
 
 
-  <p>In the ECMAScript binding, objects implementing this interface
+  <p>In the ECMAScript DOM binding, objects implementing this interface
   can also be dereferenced using square bracket notation (e.g.
   <code>foo[1]</code> or <code>foo["bar"]</code>). Dereferencing with
   an integer index is equivalent to invoking the <code>item()</code>
