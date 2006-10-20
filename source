@@ -1355,27 +1355,13 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   <code>head</code> element</span>, if there is one, or null
   otherwise.</p>
 
-  <p><dfn>The <code>body</code> element</dfn> of a document is the
-  first <code>body</code> element that is a child of <span>the
-  <code>html</code> element</span>, if there is one, or null
-  otherwise. If the <code>body</code> element is null, then the
-  <code>Document</code> object is "the <code>body</code> element" for
-  the purposes of event targetting (i.e. if an event is to be fired
-  "on <span>the <code>body</code> element</span>" when there isn't
-  one, then the event will instead be fired on the
-  <code>Document</code> object).</p>
-
-  <p class="big-issue">document.body needs to point to the first
-  <code>frameset</code> in framed pages (maybe?). also note that
-  d.body is mutable; it replaces the current one or adds one if there
-  isn't one. only works for body and frameset elements.</p> <!--
-    http://lxr.mozilla.org/seamonkey/source/content/html/document/src/nsHTMLDocument.cpp
-    search for ::GetBody ::SetBody
-    http://trac.webkit.org/projects/webkit/browser/trunk/WebCore/html/HTMLDocument.cpp
-    search for ::setBody
-    http://trac.webkit.org/projects/webkit/browser/trunk/WebCore/dom/Document.cpp
-    search for ::body
-  -->
+  <p><dfn>the body element</dfn> of a document is the first child of
+  <span>the <code>html</code> element</span> that is either a
+  <code>body</code> element or a <code>frameset</code> element. If
+  there is no such element, it is null. If the body element is null,
+  then when the specification requires that events be fired at "the
+  body element", they must instead be fired at the
+  <code>Document</code> object.</p>
 
   <p>The <dfn id="document.title"
   title="dom-document-title"><code>title</code></dfn> attribute must,
@@ -1435,7 +1421,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   attribute is used to enable pages on different hosts of a domain to
   access each others' DOMs.</p><!-- XXX xref -->
 
-  <!--
+  <!--XXX
     http://lxr.mozilla.org/seamonkey/source/content/html/document/src/nsHTMLDocument.cpp
     search for ::GetDomain ::SetDomain
     http://trac.webkit.org/projects/webkit/browser/trunk/WebCore/dom/Document.cpp
@@ -1443,12 +1429,47 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   -->
 
   <p>The <dfn title="dom-document-URL"><code>URL</code></dfn>
-  attribute must return the <span>the document's address</span><!-- XXX xref -->.</p>
+  attribute must return the <span>the document's address</span><!--
+  XXX xref -->.</p>
 
-  <p class="big-issue">Need to define the remaining members.</p>
+  <p>The <dfn title="dom-document-body"><code>body</code></dfn>
+  attribute, on getting, must return <span>the body element</span> of
+  the document (either a <code>body</code> element, a
+  <code>frameset</code> element, or null). On setting, the following
+  algorithm must be followed:</p>
 
-<!--
-           attribute <span>HTMLElement</span> <span title="dom-document-body">body</span>;
+  <ol>
+
+   <li>If the new value is not a <code>body</code> or
+   <code>frameset</code> element, then raise a
+   <code>HIERARCHY_REQUEST_ERR</code> exception and abort these
+   steps.</li>
+
+   <li>Otherwise, if the new value is the same as <span>the body
+   element</span>, do nothing. Abort these steps.</li>
+
+   <li>Otherwise, if <span>the body element</span> is not null, then
+   replace that element with the new value in the DOM, as if the root
+   element's <code title="">replaceChild()</code> method had been
+   called with the new value and <span title="the body element">the
+   incumbent body element</span> as its two arguments respectively,
+   then abort these steps.</li>
+
+   <li>Otherwise, the <span>the body element</span> is null. Append
+   the new value to the root element.</li>
+
+  </ol>
+
+  <!--XXX
+    http://lxr.mozilla.org/seamonkey/source/content/html/document/src/nsHTMLDocument.cpp
+    search for ::GetBody ::SetBody
+    http://trac.webkit.org/projects/webkit/browser/trunk/WebCore/html/HTMLDocument.cpp
+    search for ::setBody
+    http://trac.webkit.org/projects/webkit/browser/trunk/WebCore/dom/Document.cpp
+    search for ::body
+  -->
+
+  <p class="big-issue">Need to define the remaining members.</p><!--
   readonly attribute <span>HTMLCollection</span> <span title="dom-document-images">images</span>;
   readonly attribute <span>HTMLCollection</span> <span title="dom-document-links">links</span>;
   readonly attribute <span>HTMLCollection</span> <span title="dom-document-forms">forms</span>;
@@ -3666,9 +3687,9 @@ class="main"> or <div class="content">. Why do we also need a body?
 
   <p class="note">Some DOM operations (for example, parts of the
   <span>drag and drop</span> model) are defined in terms of "<span>the
-  <code>body</code> element</span>". This refers to a particular
-  element in the DOM, as per the definition of the term, and not any
-  arbitrary <code>body</code> element.</p>
+  body element</span>". This refers to a particular element in the
+  DOM, as per the definition of the term, and not any arbitrary
+  <code>body</code> element.</p>
 
 
   <h4>The <dfn><code>section</code></dfn> element</h4>
@@ -4092,8 +4113,8 @@ XXX attributes to give the date authored, date published
   with other information in a <code>footer</code> element.</p>
 
   <p>To determine the contact information for a sectioning element
-  (such as <span>the <code>body</code> element</span>, which would
-  give the contact information for the page), UAs must collect all the
+  (such as a document's <code>body</code> element, which would give the
+  contact information for the page), UAs must collect all the
   <code>address</code> elements that <a
   href="#applyToSection">apply</a> to that sectioning element and its
   ancestor sectioning elements. The contact information is the
@@ -11307,7 +11328,7 @@ XXX selection ranges -->
   happens in the cases described above), the user agent must fire a
   <dfn title="event-popstate"><code>popstate</code></dfn> event in the
   <code>http://www.w3.org/2001/xml-events</code> namespace on the
-  <span>the <code>body</code> element</span> using the
+  <span>the body element</span> using the
   <code>PopStateEvent</code> interface, with the state object in the
   <code title="dom-PopStateEvent-state">state</code> attribute. This
   event bubbles but is not cancelable and has no default action.</p>
@@ -11533,9 +11554,9 @@ user reload must be equivalent to .reload()
   <p>These events are in the
   <code>http://www.w3.org/2001/xml-events</code> namespace, do bubble,
   are not cancelable, have no default action, and use the normal
-  <code>Event</code> interface. They must be fired on <span>the
-  <code>body</code> element</span>. (As the events bubble, they will
-  reach the <code>Window</code> object.)</p>
+  <code>Event</code> interface. They must be fired on <span>the body
+  element</span>. (As the events bubble, they will reach the
+  <code>Window</code> object.)</p>
 
   <!-- XXX ononline onoffline need to be defined -->
 
@@ -12499,7 +12520,7 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
 
     <tr>
      <td><dfn title="event-dragenter"><code>dragenter</code></dfn></td>
-     <td><span>Immediate user selection</span> or <span>the <code>body</code> element</span></td>
+     <td><span>Immediate user selection</span> or <span>the body element</span></td>
      <td>&#x2713; Bubbles</td>
      <td>&#x2713; Cancelable</td>
      <td>Empty</td>
@@ -12836,15 +12857,14 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
        <li>
 
         <p>Otherwise, if the <span>current target element</span> is
-        not <span>the <code>body</code> element</span>, the user agent
-        must fire a <code title="event-dragenter">dragenter</code>
-        event at <span>the <code>body</code> element</span>, and the
-        <span>current target element</span> must be set to <span>the
-        <code>body</code> element</span>, regardless of whether that
-        event was canceled or not. (If <span>the <code>body</code>
-        element</span> is null, then the <span>current target
-        element</span> would be set to null too in this case, it
-        wouldn't be set to the <code>Document</code> object.)</p>
+        not <span>the body element</span>, the user agent must fire a
+        <code title="event-dragenter">dragenter</code> event at
+        <span>the body element</span>, and the <span>current target
+        element</span> must be set to <span>the body element</span>,
+        regardless of whether that event was canceled or not. (If
+        <span>the body element</span> is null, then the <span>current
+        target element</span> would be set to null too in this case,
+        it wouldn't be set to the <code>Document</code> object.)</p>
 
        </li>
 
@@ -14579,7 +14599,7 @@ interface <dfn>StorageItem</dfn> {
   <code>http://www.w3.org/2001/xml-events</code> namespace, which
   bubbles, is not cancelable, has no default action, and which uses
   the <code>StorageEvent</code> interface described below, must be
-  fired on <span>the <code>body</code> element</span>.</p>
+  fired on <span>the body element</span>.</p>
 
   <p>However, it is possible (indeed, for session storage areas,
   likely) that the target <code>HTMLDocument</code> object is not
@@ -19586,8 +19606,8 @@ simplified explanation instead:
    mode</span> to "<span title="insertion mode: in caption">in
    caption</span>".</p></li>
 
-   <!-- you can't reach this point with a colgroup element on the
-   stack -->
+   ( you can't reach this point with a colgroup element on the
+   stack )
 
    <li><p>Otherwise, if the <span>stack of open elements</span> <span
    title="has an element in table scope">has a <code>table</code>
