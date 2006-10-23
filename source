@@ -1308,39 +1308,117 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   longer defined as inheriting from <code>Document</code>.</p>
 
   <pre class="idl">interface <dfn>HTMLDocument</dfn> {
-           attribute DOMString <span title="dom-document-title">title</span>;
-  readonly attribute DOMString <span title="dom-document-referrer">referrer</span>;
-           attribute DOMString <span title="dom-document-domain">domain</span>;
+
+  // <span>Resource metadata management</span>
   readonly attribute DOMString <span title="dom-document-URL">URL</span>;
+           attribute DOMString <span title="dom-document-domain">domain</span>;
+  readonly attribute DOMString <span title="dom-document-referrer">referrer</span>;
+           attribute DOMString <span title="dom-document-cookie">cookie</span>;
+
+  // <span>DOM tree accessors</span>
+           attribute DOMString <span title="dom-document-title">title</span>;
            attribute <span>HTMLElement</span> <span title="dom-document-body">body</span>;
   readonly attribute <span>HTMLCollection</span> <span title="dom-document-images">images</span>;
 <!--  readonly attribute <span>HTMLCollection</span> <span title="dom-document-applets">applets</span>;
 -->  readonly attribute <span>HTMLCollection</span> <span title="dom-document-links">links</span>;
   readonly attribute <span>HTMLCollection</span> <span title="dom-document-forms">forms</span>;
   readonly attribute <span>HTMLCollection</span> <span title="dom-document-anchors">anchors</span>;
-           attribute DOMString <span title="dom-document-cookie">cookie</span>;
+  NodeList <span title="dom-document-getElementsByName">getElementsByName</span>(in DOMString elementName);
+  NodeList <span title="dom-document-getElementsByClassName">getElementsByClassName</span>(in Array classNames);
 
+  // <span>Dynamic markup insertion</span>
+           attribute DOMString <span title="dom-document-innerHTML">innerHTML</span>;
   void <span title="dom-document-open">open</span>();
   void <span title="dom-document-close">close</span>();
   void <span title="dom-document-write">write</span>(in DOMString text);
   void <span title="dom-document-writeln">writeln</span>(in DOMString text);
-  NodeList <span title="dom-document-getElementsByName">getElementsByName</span>(in DOMString elementName);
-  NodeList <span title="dom-document-getElementsByClassName">getElementsByClassName</span>(in Array classNames);
 
-  <span>Selection</span> <span title="dom-document-getSelection">getSelection</span>();
-  readonly attribute <span>HTMLCollection</span> <span title="dom-document-commands">commands</span>;
-
-  // <span title="contenteditable">editing</span>:
+  // Editing
            attribute boolean <span title="dom-document-designMode">designMode</span>;
   boolean <span title="dom-document-execCommand">execCommand</span>(in DOMString commandID);
   boolean <span title="dom-document-execCommand">execCommand</span>(in DOMString commandID, in boolean doShowUI);
   boolean <span title="dom-document-execCommand">execCommand</span>(in DOMString commandID, in boolean doShowUI, in DOMString value);
+  <span>Selection</span> <span title="dom-document-getSelection">getSelection</span>();
+
+  // <span title="concept-command">Commands</span>
+  readonly attribute <span>HTMLCollection</span> <span title="dom-document-commands">commands</span>;
+
   <span title="big-issue">// lots of other stuff to come</span><!--
  --><!-- XXX see e.g. http://lxr.mozilla.org/seamonkey/source/dom/public/idl/html/nsIDOMNSHTMLDocument.idl
  --><!-- XXX see e.g. http://trac.webkit.org/projects/webkit/browser/trunk/WebCore/dom/Document.cpp
  --><!-- XXX see e.g. http://trac.webkit.org/projects/webkit/browser/trunk/WebCore/html/HTMLDocument.cpp
  -->
 };</pre>
+
+  <p>Since this interface holds methods and attributes related to a
+  number of disparate features, the members of this interface are
+  described in various different sections.</p>
+
+  <h4><dfn>Resource metadata management</dfn></h4>
+
+  <p>The <dfn title="dom-document-URL"><code>URL</code></dfn>
+  attribute must return the <span>the document's address</span><!--
+  XXX xref -->.</p>
+
+
+  <p>The <dfn title="dom-document-domain"><code>domain</code></dfn>
+  attribute must be initialised to <span>the document's
+  domain</span><!-- XXX xref --> upon the creation of the
+  <code>Document</code> object. On getting, the attribute must return
+  its current value. On setting, if the new value is an allowed value
+  (as defined below), the attribute's value must be changed to the new
+  value. If the new value is not an allowed value, then a
+  <span>security exception</span> must be raised instead.</p>
+
+  <p>A new value is an allowed value for the <code
+  title="dom-document-domain">document.domain</code> attribute if it
+  is equal to the attribute's current value, or if the new value,
+  prefixed by a U+002E FULL STOP ("."), exactly matches the end of the
+  current value.</p>
+
+  <p class="note">The <code title="dom-document-domain">domain</code>
+  attribute is used to enable pages on different hosts of a domain to
+  access each others' DOMs.</p><!-- XXX xref -->
+
+  <!--XXX
+    http://lxr.mozilla.org/seamonkey/source/content/html/document/src/nsHTMLDocument.cpp
+    search for ::GetDomain ::SetDomain
+    http://trac.webkit.org/projects/webkit/browser/trunk/WebCore/dom/Document.cpp
+    search for ::domain ::setDomain
+  -->
+
+
+  <p>The <dfn
+  title="dom-document-referrer"><code>referrer</code></dfn> attribute
+  must return either the URI of the page which navigated<!-- xref XXX
+  --> the <span>browsing context</span> to the current document (if
+  any), or the empty string (if there is no such originating page, or
+  if the UA has been configured not to report referrers).</p>
+
+  <p class="note">In the case of HTTP, the <code
+  title="dom-document-referrer">referrer</code> DOM attribute will
+  match the <code>Referer</code> (sic) header that was sent when
+  fetching the current page.</p>
+
+
+  <p>The <dfn title="dom-document-cookie"><code>cookie</code></dfn>
+  attribute must, on getting, return the same string as the value of
+  the <code title="">Cookie</code> HTTP header it would include if
+  fetching the resource indicated by the <span>document's
+  address</span> over HTTP, as per RFC 2109 section 4.3.4. <a
+  href="#refsRFC2109">[RFC2109]</a></p>
+
+  <p>On setting, the <code title="dom-document-cookie">cookie</code>
+  attribute must cause the user agent to act as it would when
+  processing cookies if it had just attempted to fetch the
+  <span>document's address</span> over HTTP, and had received a
+  response with a <code>Set-Cookie</code> header whose value was the
+  specified value, as per RFC 2109 sections 4.3.1, 4.3.2, and
+  4.3.3. <a href="#refsRFC2109">[RFC2109]</a></p>
+
+
+
+  <h4><dfn>DOM tree accessors</dfn></h4>
 
   <p><dfn>The <code>html</code> element</dfn> of a document is the
   document's root element, if there is one and it's an
@@ -1355,14 +1433,6 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   first <code>title</code> element that is a child of <span>the
   <code>head</code> element</span>, if there is one, or null
   otherwise.</p>
-
-  <p><dfn>The body element</dfn> of a document is the first child of
-  <span>the <code>html</code> element</span> that is either a
-  <code>body</code> element or a <code>frameset</code> element. If
-  there is no such element, it is null. If the body element is null,
-  then when the specification requires that events be fired at "the
-  body element", they must instead be fired at the
-  <code>Document</code> object.</p>
 
   <p>The <dfn id="document.title"
   title="dom-document-title"><code>title</code></dfn> attribute must,
@@ -1391,47 +1461,13 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
   </ol>
 
-  <p>The <dfn
-  title="dom-document-referrer"><code>referrer</code></dfn> attribute
-  must return either the URI of the page which navigated<!-- xref XXX
-  --> the <span>browsing context</span> to the current document (if
-  any), or the empty string (if there is no such originating page, or
-  if the UA has been configured not to report referrers).</p>
-
-  <p class="note">In the case of HTTP, the <code
-  title="dom-document-referrer">referrer</code> DOM attribute will
-  match the <code>Referer</code> (sic) header that was sent when
-  fetching the current page.</p>
-
-  <p>The <dfn title="dom-document-domain"><code>domain</code></dfn>
-  attribute must be initialised to <span>the document's
-  domain</span><!-- XXX xref --> upon the creation of the
-  <code>Document</code> object. On getting, the attribute must return
-  its current value. On setting, if the new value is an allowed value
-  (as defined below), the attribute's value must be changed to the new
-  value. If the new value is not an allowed value, then a
-  <span>security exception</span> must be raised instead.</p>
-
-  <p>A new value is an allowed value for the <code
-  title="dom-document-domain">document.domain</code> attribute if it
-  is equal to the attribute's current value, or if the new value,
-  prefixed by a U+002E FULL STOP ("."), exactly matches the end of the
-  current value.</p>
-
-  <p class="note">The <code title="dom-document-domain">domain</code>
-  attribute is used to enable pages on different hosts of a domain to
-  access each others' DOMs.</p><!-- XXX xref -->
-
-  <!--XXX
-    http://lxr.mozilla.org/seamonkey/source/content/html/document/src/nsHTMLDocument.cpp
-    search for ::GetDomain ::SetDomain
-    http://trac.webkit.org/projects/webkit/browser/trunk/WebCore/dom/Document.cpp
-    search for ::domain ::setDomain
-  -->
-
-  <p>The <dfn title="dom-document-URL"><code>URL</code></dfn>
-  attribute must return the <span>the document's address</span><!--
-  XXX xref -->.</p>
+  <p><dfn>The body element</dfn> of a document is the first child of
+  <span>the <code>html</code> element</span> that is either a
+  <code>body</code> element or a <code>frameset</code> element. If
+  there is no such element, it is null. If the body element is null,
+  then when the specification requires that events be fired at "the
+  body element", they must instead be fired at the
+  <code>Document</code> object.</p>
 
   <p>The <dfn title="dom-document-body"><code>body</code></dfn>
   attribute, on getting, must return <span>the body element</span> of
@@ -1498,27 +1534,6 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   same instance of the <code>HTMLCollection</code> object must be
   returned each time.)</p>
 
-  <p>The <dfn title="dom-document-cookie"><code>cookie</code></dfn>
-  attribute must, on getting, return the same string as the value of
-  the <code title="">Cookie</code> HTTP header it would include if
-  fetching the resource indicated by the <span>document's
-  address</span> over HTTP, as per RFC 2109 section 4.3.4. <a
-  href="#refsRFC2109">[RFC2109]</a></p>
-
-  <p>On setting, the <code title="dom-document-cookie">cookie</code>
-  attribute must cause the user agent to act as it would when
-  processing cookies if it had just attempted to fetch the
-  <span>document's address</span> over HTTP, and had received a
-  response with a <code>Set-Cookie</code> header whose value was the
-  specified value, as per RFC 2109 sections 4.3.1, 4.3.2, and
-  4.3.3. <a href="#refsRFC2109">[RFC2109]</a></p>
-
-  <p>The <code title="dom-document-open">open()</code>, <code
-  title="dom-document-close">close()</code>, <code
-  title="dom-document-write">write()</code>, and <code
-  title="dom-document-writeln">writeln()</code> methods are described
-  below, in the section on <span>dynamic markup insertion</span>.</p>
-
   <p>The <dfn
   title="dom-document-getElementsByName"><code>getElementsByName(<var
   title="">name</var>)</code></dfn> method a string <var
@@ -1582,19 +1597,6 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 > Navigates upwards until we hit a parent element with the given class name and
 > optional tag name.
 -->
-
-  <p>The <code title="dom-document-getSelection">getSelection()</code>
-  method is defined in <a href="#documentSelection">the section on
-  selection APIs</a>.</p>
-
-  <p>The <code title="dom-document-commands">commands</code> attribute
-  is defined in the section describing the <a
-  href="#commands">commands processing model</a>.</p>
-
-  <p>The <code title="dom-document-designMode">designMode</code>
-  attribute and the related <code
-  title="dom-document-execCommand">execCommand()</code> method are
-  defined in later sections as well.</p>
 
 
   <h4><dfn>Dynamic markup insertion</dfn></h4>
