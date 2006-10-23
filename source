@@ -1333,15 +1333,15 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   void <span title="dom-document-write">write</span>(in DOMString text);
   void <span title="dom-document-writeln">writeln</span>(in DOMString text);
 
-  // Editing
+  // <span title="concept-command">Commands</span>
+  readonly attribute <span>HTMLCollection</span> <span title="dom-document-commands">commands</span>;
+
+  // <span>Editing</span>
            attribute boolean <span title="dom-document-designMode">designMode</span>;
   boolean <span title="dom-document-execCommand">execCommand</span>(in DOMString commandID);
   boolean <span title="dom-document-execCommand">execCommand</span>(in DOMString commandID, in boolean doShowUI);
   boolean <span title="dom-document-execCommand">execCommand</span>(in DOMString commandID, in boolean doShowUI, in DOMString value);
   <span>Selection</span> <span title="dom-document-getSelection">getSelection</span>();
-
-  // <span title="concept-command">Commands</span>
-  readonly attribute <span>HTMLCollection</span> <span title="dom-document-commands">commands</span>;
 
   <span title="big-issue">// lots of other stuff to come</span><!--
  --><!-- XXX see e.g. http://lxr.mozilla.org/seamonkey/source/dom/public/idl/html/nsIDOMNSHTMLDocument.idl
@@ -11954,8 +11954,1012 @@ user reload must be equivalent to .reload()
   of unknown protocols.</p>
 
 
+  <h3><span title="SCS">[SCS]</span> Client-side session and persistent storage</h3> <!-- local storage -->
 
-  <h3><span title="SCS">[SCS]</span>The <code>contenteditable</code> attribute</h3>
+  <h4>Introduction</h4>
+
+  <p><em>This section is non-normative.</em></p>
+
+  <p>This specification introduces two related mechanisms, similar to
+  HTTP session cookies <a href="#refsRFC2965">[RFC2965]</a>, for
+  storing structured data on the client side.</p>
+
+  <p>The first is designed for scenarios where the user is carrying
+  out a single transaction, but could be carrying out multiple
+  transactions in different windows at the same time.</p>
+
+  <p>Cookies don't really handle this case well. For example, a user
+  could be buying plane tickets in two different windows, using the
+  same site. If the site used cookies to keep track of which ticket
+  the user was buying, then as the user clicked from page to page in
+  both windows, the ticket currently being purchased would "leak" from
+  one window to the other, potentially causing the user to buy two
+  tickets for the same flight without really noticing.</p>
+
+  <p>To address this, this specification introduces the <code
+  title="dom-sessionStorage">sessionStorage</code> DOM attribute.
+  Sites can add data to the session storage, and it will be accessible
+  to any page from that domain opened in that window.</p>
+
+  <div class="example">
+
+   <p>For example, a page could have a checkbox that the user ticks to
+   indicate that he wants insurance:</p>
+
+   <pre>&lt;label>
+ &lt;input type="checkbox" onchange="sessionStorage.insurance = checked">
+ I want insurance on this trip.
+&lt;/label></pre>
+
+   <p>A later page could then check, from script, whether the user had
+   checked the checkbox or not:</p>
+
+   <pre>if (sessionStorage.insurance) { ... }</pre>
+
+   <p>If the user had multiple windows opened on the site, each one
+   would have its own individual copy of the session storage object.</p>
+
+  </div>
+
+  <!--
+
+   sessionStorage.flightDeparture = 'OSL';
+   sessionStorage.flightArrival = 'NYC';
+
+   for (var i in forms[0].elements)
+      sessionStorage["data_" + i.name] = i.value;
+
+   if (!sessionStorage[documents])
+     sessionStorage[documents] = {};
+   sessionStorage[documents][filename] = <document/>;
+
+  -->
+
+  <p>The second storage mechanism is designed for storage that spans
+  multiple windows, and lasts beyond the current session. In
+  particular, Web applications may wish to store megabytes of user
+  data, such as entire user-authored documents or a user's mailbox, on
+  the clientside for performance reasons.</p>
+
+  <p>Again, cookies do not handle this case well, because they are
+  transmitted with every request.</p>
+
+  <p>The <code title="dom-globalStorage">globalStorage</code> DOM
+  attribute is used to access the global storage areas.</p>
+
+  <div class="example">
+
+   <p>The site at example.com can display a count of how many times
+   the user has loaded its page by putting the following at the bottom
+   of its page:</p>
+
+   <pre>&lt;p>
+  You have viewed this page
+  &lt;span id="count">an untold number of&lt;/span>
+  time(s).
+&lt;/p>
+&lt;script>
+  var storage = globalStorage['example.com'];
+  if (!storage.pageLoadCount)
+    storage.pageLoadCount = 0;
+  storage.pageLoadCount = parseInt(storage.pageLoadCount, 10) + 1;
+  document.getElementById('count').textContent = storage.pageLoadCount;
+&lt;/script></pre>
+
+  </div>
+
+  <p>Each domain and each subdomain has its own separate storage area.
+  Subdomains can access the storage areas of parent domains, and
+  domains can access the storage areas of subdomains.</p>
+
+  <ul class="brief">
+   <li><code>globalStorage['']</code> is accessible to all domains.</li>
+   <li><code>globalStorage['com']</code> is accessible to all .com domains</li>
+   <li><code>globalStorage['example.com']</code> is accessible to example.com and any of its subdomains</li>
+   <li><code>globalStorage['www.example.com']</code> is accessible to www.example.com and example.com, but not www2.example.com.</li>
+  </ul>
+
+  <p>Storage areas (both session storage and global storage) store
+  strings. To store structured data in a storage area, you must first
+  convert it to a string.</p>
+
+
+  <h4>The <code>Storage</code> interface</h4>
+
+  <pre class="idl">
+interface <dfn>Storage</dfn> {
+  readonly attribute unsigned long <span title="dom-Storage-length">length</span>;
+  DOMString <span title="dom-Storage-key">key</span>(in unsigned long index);
+  <span>StorageItem</span> <span title="dom-Storage-getItem">getItem</span>(in DOMString key);
+  void <span title="dom-Storage-setItem">setItem</span>(in DOMString key, in DOMString data);
+  void <span title="dom-Storage-removeItem">removeItem</span>(in DOMString key);
+};</pre>
+
+  <p>Each <code>Storage</code> object provides access to a list of
+  key/value pairs, which are sometimes called items. Keys are strings,
+  and any string (including the empty string) is a valid key. Values
+  are strings with associated metadata, represented by
+  <code>StorageItem</code> objects.</p>
+
+  <p>Each <code>Storage</code> object is associated with a list of
+  key/value pairs when it is created, as defined in the sections on
+  the <code title="dom-sessionStorage">sessionStorage</code> and <code
+  title="dom-globalStorage">globalStorage</code> attributes. Multiple
+  separate objects implementing the <code>Storage</code> interface can
+  all be associated with the same list of key/value pairs
+  simultaneously.</p>
+
+  <p>Key/value pairs have associated metadata. In particular, a
+  key/value pair can be marked as either "safe only for secure
+  content", or as "safe for both secure and insecure content".</p>
+
+  <p>A key/value pair is <dfn title="accessible keys">accessible</dfn>
+  if either it is marked as "safe for both secure and insecure
+  content", or it is marked as "safe only for secure content" and the
+  script in question is running in a <span title="secure scripting
+  contexts">secure scripting context</span>.</p>
+
+  <p>The <dfn title="dom-Storage-length"><code>length</code></dfn>
+  attribute must return the number of key/value pairs currently
+  present and <span title="accessible keys">accessible</span> in the
+  list associated with the object.</p>
+
+  <p>The <dfn title="dom-Storage-key"><code>key(<var
+  title="">n</var>)</code></dfn> method must return the name of the
+  <var title="">n</var>th <span>accessible</span> key in the list. The
+  order of keys is user-agent defined, but must be consistent within
+  an object between changes to the number of keys. (Thus, <span
+  title="dom-Storage-setItem">adding</span> or <span
+  title="dom-Storage-removeItem">removing</span> a key may change the
+  order of the keys, but merely changing the value of an existing key
+  must not.) <!--The order of keys may differ between instances of the
+  <code>Storage</code> interface accessing the same list. [removed for
+  now for clarity, but if people ask, put it back. this is part of the
+  spec.]--> If <var title="">n</var> is less than zero or greater than
+  or equal to the number of key/value pairs in the object, then this
+  method must raise an <code>INDEX_SIZE_ERR</code> exception.</p>
+
+  <p>The <dfn title="dom-Storage-getItem"><code>getItem(<var
+  title="">key</var>)</code></dfn> method must return the
+  <code>StorageItem</code> object representing the key/value pair with
+  the given <var title="">key</var>. If the given <var
+  title="">key</var> does not exist in the list associated with the
+  object, or is not <span>accessible</span>, then this method must
+  return null. Subsequent calls to this method with the same key from
+  scripts running in the same <span>security context</span> must
+  return the same instance of the <code>StorageItem</code>
+  interface. (Such instances must not be shared across security
+  contexts, though.)</p> <!-- XXX define security context -->
+
+  <p>The <dfn title="dom-Storage-setItem"><code>setItem(<var
+  title="">key</var>, <var title="">value</var>)</code></dfn> method
+  must first check if a key/value pair with the given <var
+  title="">key</var> already exists in the list associated with the
+  object.</p>
+
+  <p>If it does not, then a new key/value pair must be added to the
+  list, with the given <var title="">key</var> and <var
+  title="">value</var>, such that any current or future
+  <code>StorageItem</code> objects referring to this key/value pair
+  will return the value given in the <var title="">value</var>
+  argument. If the script setting the value is running in a <span
+  title="secure scripting contexts">secure scripting context</span>,
+  then the key/value pair must be marked as "safe only for secure
+  content", otherwise it must be marked as "safe for both secure and
+  insecure content".</p>
+
+  <p>If the given <var title="">key</var> <em>does</em> exist in the
+  list, then, if the key/value pair with the given <var
+  title="">key</var> is <span>accessible</span>, it must have its
+  value updated so that any current or future <code>StorageItem</code>
+  objects referring to this key/value pair will return the value given
+  in the <var title="">value</var> argument. If it is <em>not</em>
+  <span>accessible</span>, the method must raise a <span>security
+  exception</span>.</p>
+
+  <p>When the <code title="dom-Storage-setItem">setItem()</code>
+  method is successfully invoked (i.e. when it doesn't raise an
+  exception), events are fired on other <code>HTMLDocument</code>
+  objects that can access the newly stored data, as defined in the
+  sections on the <code
+  title="dom-sessionStorage">sessionStorage</code> and <code
+  title="dom-globalStorage">globalStorage</code> attributes.</p> <!--
+  not normative, see the sections below for the normative statement
+  -->
+
+  <p>The <dfn title="dom-Storage-removeItem"><code>removeItem(<var
+  title="">key</var>)</code></dfn> method must cause the key/value
+  pair with the given <var title="">key</var> to be removed from the
+  list associated with the object, if it exists and is
+  <span>accessible</span>. If no item with that key exists, the method
+  must do nothing. If an item with that key exists but is not
+  <span>accessible</span>, the method must raise a <span>security
+  exception</span>.</p>
+
+  <p>The <code title="dom-Storage-setItem">setItem()</code> and <code
+  title="dom-Storage-removeItem">removeItem()</code> methods must be
+  atomic with respect to failure. That is, changes to the data storage
+  area must either be successful, or the data storage area must not be
+  changed at all.</p>
+
+  <p>In the ECMAScript DOM binding, enumerating a <code>Storage</code>
+  object must enumerate through the currently stored and
+  <span>accessible</span> keys in the list the object is associated
+  with. (It must not enumerate the values or the actual members of the
+  interface). In the ECMAScript DOM binding, <code>Storage</code> objects
+  must support dereferencing such that getting a property that is not
+  a member of the object (i.e. is neither a member of the
+  <code>Storage</code> interface nor of <code>Object</code>) must
+  invoke the <code title="dom-Storage-getItem">getItem()</code> method
+  with the property's name as the argument, and setting such a
+  property must invoke the <code
+  title="dom-Storage-setItem">setItem()</code> method with the
+  property's name as the first argument and the given value as the
+  second argument.</p>
+
+
+  <h4>The <code>StorageItem</code> interface</h4>
+
+  <p>Items in <code>Storage</code> objects are represented by objects
+  implementing the <code>StorageItem</code> interface.</p>
+
+  <pre class="idl">
+interface <dfn>StorageItem</dfn> {
+           attribute boolean <span title="dom-StorageItem-secure">secure</span>;
+           attribute DOMString <span title="dom-StorageItem-value">value</span>;
+};</pre>
+
+  <p>In the ECMAScript DOM binding, <code>StorageItem</code> objects must
+  stringify to their <code title="dom-StorageItem-value">value</code>
+  attribute's value.</p>
+
+  <p>The <dfn title="dom-StorageItem-value"><code>value</code></dfn>
+  attribute must return the current value of the key/value pair
+  represented by the object. When the attribute is set, the user agent
+  must invoke the <code title="dom-Storage-setItem">setItem()</code>
+  method of the <code>Storage</code> object that the
+  <code>StorageItem</code> object is associated with, with the key
+  that the <code>StorageItem</code> object is associated with as the
+  first argument, and the new given value of the attribute as the
+  second argument.</p>
+
+  <p><code>StorageItem</code> objects must be <em>live</em>, meaning
+  that as the underlying <code>Storage</code> object has its key/value
+  pairs updated, the <code>StorageItem</code> objects must always
+  return the actual value of the key/value pair they represent.</p>
+
+  <p>If the key/value pair has been deleted, the
+  <code>StorageItem</code> object must act as if its value was the
+  empty string. On setting, the key/value pair will be recreated.</p>
+
+  <p>The <dfn title="dom-StorageItem-secure"><code>secure</code></dfn>
+  attribute must raise an <code>INVALID_ACCESS_ERR</code> exception
+  when accessed or set from a script whose script context is not <span
+  title="secure scripting contexts">considered secure</span><!-- XXX
+  xref -->. (Basically, if the page is not an SSL page.)</p>
+
+  <p>If the scripting context <em>is</em> secure, then the <code
+  title="dom-StorageItem-secure">secure</code> attribute must return
+  true if the key/value pair is considered "safe only for secure
+  content", and false if it is considered "safe for both secure and
+  insecure content". If it is set to true, then the key/value pair
+  must be flagged as "safe only for secure content". If it is set to
+  false, then the key/value pair must be flagged as "safe for both
+  secure and insecure content".</p>
+
+  <p>If a <code>StorageItem</code> object is obtained by a script that
+  is not running in a <span title="secure scripting contexts">secure
+  scripting context</span>, and the item is then marked with the "safe
+  only for secure content" flag by a script that <em>is</em> running
+  in a secure context, the <code>StorageItem</code> object must
+  continue to be available to the first script, who will be able to
+  read the value of the object. However, any attempt to <em>set</em>
+  the value would then start raising exceptions as described in the
+  previous section, and the key/value pair would no longer appear in
+  the appropriate <code>Storage</code> object.</p>
+
+
+  <h4>The <code title="dom-sessionStorage">sessionStorage</code> attribute</h4>
+
+  <p>The <dfn
+  title="dom-sessionStorage"><code>sessionStorage</code></dfn>
+  attribute represents the storage area specific to the current
+  <span>top-level browsing context</span>.</p>
+
+  <p>Each <span>top-level browsing context</span> has a unique set of
+  session storage areas, one for each domain.</p>
+
+  <p>User agents should not expire data from a browsing context's
+  session storage areas, but may do so when the user requests that
+  such data be deleted, or when the UA detects that it has limited
+  storage space, or for security reasons. User agents should always
+  avoid deleting data while a script that could access that data is
+  running. When a top-level browsing context is destroyed (and
+  therefore permanently inaccessible to the user) the data stored in
+  its session storage areas can be discarded with it, as the API
+  described in this specification provides no way for that data to
+  ever be subsequently retrieved.</p>
+
+  <p class="note">The lifetime of a browsing context can be unrelated
+  to the lifetime of the actual user agent process itself, as the user
+  agent may support resuming sessions after a restart.</p>
+
+  <p>When a new <code>HTMLDocument</code> is created, the user agent
+  must check to see if the document's <span>top-level browsing
+  context</span> has allocated a session storage area for that
+  <span>document's domain</span>. If it has not, a new storage area
+  for that document's domain must be created.</p>
+
+  <p>The <code>Storage</code> object for the document's associated
+  <code>Window</code> object's <code
+  title="dom-sessionStorage">sessionStorage</code> attribute must then
+  be associated with the domain's session storage area.</p>
+
+  <p>When a new <span>top-level browsing context</span> is created by
+  cloning an existing <span>browsing context</span>, the new browsing
+  context must start with the same session storage areas as the
+  original, but the two sets must from that point on be considered
+  separate, not affecting each other in any way.</p>
+
+  <p>When a new <span>top-level browsing context</span> is created by
+  a script in an existing <span>browsing context</span>, or by the
+  user following a link in an existing browsing context, or in some
+  other way related to a specific <code>HTMLDocument</code>, then,
+  if the new context's first <code>HTMLDocument</code> has the same
+  <span title="document's domain">domain</span> as the
+  <code>HTMLDocument</code> from which the new context was created,
+  the new browsing context must start with a single session storage
+  area. That storage area must be a copy of that domain's session
+  storage area in the original browsing context, which from that point
+  on must be considered separate, with the two storage areas not
+  affecting each other in any way.</p>
+
+  <!-- XXX define the case for window.open() -->
+
+  <p id="sessionStorageEvent">When the <code
+  title="dom-Storage-setItem">setItem()</code> method is called on a
+  <code>Storage</code> object <var title="">x</var> that is associated
+  with a session storage area, then, if the method does not raise a
+  <span>security exception</span>, in every <code>HTMLDocument</code>
+  object whose <code>Window</code> object's <code
+  title="dom-sessionStorage">sessionStorage</code> attribute's
+  <code>Storage</code> object is associated with the same storage
+  area, other than <var title="">x</var>, a <code
+  title="event-storage">storage</code> event must be fired, as <span
+  title="event-storage">described below</span>.</p>
+
+
+  <h4>The <code title="dom-globalStorage">globalStorage</code> attribute</h4>
+
+  <pre class="idl">interface <dfn>StorageList</dfn> {
+  <span>Storage</span> <span title="dom-Storagelist-namedItem">namedItem</span>(in DOMString domain);
+};</pre>
+
+  <p>The <dfn
+  title="dom-globalStorage"><code>globalStorage</code></dfn>
+  object provides a <code>Storage</code> object for each domain.</p>
+
+  <p>In the ECMAScript DOM binding, <code>StorageList</code> objects must
+  support dereferencing such that getting a property that is not a
+  member of the object (i.e. is neither a member of the
+  <code>StorageList</code> interface nor of <code>Object</code>) must
+  invoke the <code title="dom-Storagelist-namedItem">namedItem()</code>
+  method with the property's name as the argument.</p>
+
+  <p>User agents must have a set of global storage areas, one for each
+  domain.</p>
+
+  <p>User agents should only expire data from the global storage areas
+  for security reasons or when requested to do so by the user. User
+  agents should always avoid deleting data while a script that could
+  access that data is running. Data stored in global storage areas
+  should be considered potentially user-critical. It is expected that
+  Web applications will use the global storage areas for storing
+  user-written documents.</p>
+
+  <p>The <dfn title="dom-Storagelist-namedItem"><code>namedItem(<var
+  title="">domain</var>)</code></dfn> method tries to returns a
+  <code>Storage</code> object associated with the given domain,
+  according to the rules that follow.</p>
+
+  <div id="splitDomain">
+
+   <p>The <var title="">domain</var> must first be split into an array
+   of strings, by splitting the string at "." characters (U+002E FULL
+   STOP). If the <var title="">domain</var> argument is the empty
+   string, then the array is empty as well. If the <var
+   title="">domain</var> argument is not empty but has no dots, then
+   the array has one item, which is equal to the <var
+   title="">domain</var> argument. If the <var title="">domain</var>
+   argument contains consecutive dots, there will be empty strings in
+   the array (e.g. the string "hello..world" becomes split into the
+   three strings "hello", "", and "world", with the middle one being
+   the empty string).</p>
+
+   <p>Each component of the array must then have the IDNA ToASCII
+   algorithm applied to it, with both the AllowUnassigned and
+   UseSTD3ASCIIRules flags set. <a href="#refsRFC3490">[RFC3490]</a>
+   If ToASCII fails to convert one of the components of the string,
+   e.g. because it is too long or because it contains invalid
+   characters, then the user agent must raise a
+   <code>SYNTAX_ERR</code> exception. <a
+   href="#refsDOM3CORE">[DOM3CORE]</a> The components after this step
+   consist of only US-ASCII characters.</p>
+
+   <p>The components of the array must then be converted to lowercase.
+   Since only US-ASCII is involved at this step, this only requires
+   converting characters in the range A-Z to the corresponding
+   characters in the range a-z.</p>
+
+  </div>
+
+  <p>The resulting array is used in a comparison with another array,
+  as described below. In addition, its components are concatenated
+  together, each part separated by a dot (U+002E), to form the
+  <dfn>normalised requested domain</dfn>.</p>
+
+  <p class="example">If the original <var title="">domain</var> was
+  "&Aring;sg&aring;rd.Example.Com", then the resulting array would
+  have the three items "xn--sgrd-poac", "example", and "com", and the
+  normalised requested domain would be
+  "xn--sgrd-poac.example.com".</p>
+
+  <p>Next, the <span title="script's domain">script's own
+  domain</span> is processed to find if it is allowed to access the
+  requested domain.</p>
+
+  <p>If the script's domain name in not known, e.g. if only the
+  server's IP address is known, and the <span>normalised requested
+  domain</span> is not the empty string, then the user agent must
+  raise a <span>security exception</span>.</p>
+
+  <p class="note">If the <span>normalised requested domain</span> is
+  the empty string, then the rest of this algorithm can be skipped.
+  This is because in that situation, the comparison of the two arrays
+  below will always find them to be the same &mdash; the first array
+  in such a situation is also empty and so permission to access that
+  storage area will always be given.</p>
+
+  <p>If the script's domain contains no dots (U+002E) then the string
+  "<code>.localdomain</code>" must be appended to the script's
+  domain.</p>
+
+  <p>Then, the script's domain must be turned into an array, being
+  split, converted to ASCII, and lowercased as described for the <var
+  title="">domain</var> argument <a href="#splitDomain">above</a>.</p>
+
+  <p>Of the two arrays, the longest one must then be shortened to the
+  length of the shorter one, by dropping items from the start of the
+  array.</p>
+
+  <div class="example">
+
+   <p>If the <var title="">domain</var> argument is "www.example.com"
+   and the script's domain is "example.com" then the first array will be
+   a three item array ("www", "example", "com"), and the second will
+   be a two item array ("example", "com"). The first array is
+   therefore shortened, dropping the leading parts, making both into
+   the same array ("example", "com").</p>
+
+  </div>
+
+  <p>If the two arrays are not component-for-component identical in
+  literal string comparisons, then the user agent must then raise a
+  <span>security exception</span>.</p>
+
+  <p>Otherwise, the user agent must check to see if it has allocated
+  global storage area for the <span>normalised requested
+  domain</span>. If it has not, a new storage area for that domain
+  must be created.</p>
+
+  <p>The user agent must then create a <code>Storage</code> object
+  associated with that domain's global storage area, and return
+  it.</p>
+
+  <p>When the requested <var title="">domain</var> is a top level
+  domain, or the empty string, or a country-specific sub-domain like
+  "co.uk" or "ca.us", the associated global storage area is known as
+  <dfn>public storage area</dfn></p>
+
+  <div id="globalStorageEvent">
+
+   <p>The <code title="dom-Storage-setItem">setItem()</code> method
+   might be called on a <code>Storage</code> object that is associated
+   with a global storage area for a domain <var title="">d</var>,
+   created by a <code>StorageList</code> object associated with a
+   <code>Window</code> object <var title="">x</var>. Whenever this
+   occurs, if the method didn't raise an exception, a <code
+   title="event-storage">storage</code> event must be fired, as
+   described below, in every <code>HTMLDocument</code> object that
+   matches the following conditions:</p>
+
+   <ul>
+
+    <li>Its <code>Window</code> object is not <var title="">x</var>, and</li>
+
+    <li>Its <code>Window</code> object's <code
+    title="dom-sessionStorage">globalStorage</code> attribute's
+    <code>StorageList</code> object's <code
+    title="dom-Storagelist-namedItem">namedItem()</code> method would not
+    raise a <span>security exception</span> according to the rules above if it was
+    invoked with the domain <var title="">d</var>.</li>
+
+   </ul>
+
+   <p>In other words, every other document that has access to that
+   domain's global storage area is notified of the change.</p>
+
+  </div>
+
+
+  <h4>The <code title="event-storage">storage</code> event</h4>
+
+  <p>The <dfn title="event-storage"><code>storage</code></dfn> event
+  is fired in an <code>HTMLDocument</code> when a storage area
+  changes, as described in the previous two sections (<a
+  href="#sessionStorageEvent">for session storage</a>, <a
+  href="#globalStorageEvent">for global storage</a>).</p>
+
+  <p>When this happens, a <code>storage</code> event in the
+  <code>http://www.w3.org/2001/xml-events</code> namespace, which
+  bubbles, is not cancelable, has no default action, and which uses
+  the <code>StorageEvent</code> interface described below, must be
+  fired on <span>the body element</span>.</p>
+
+  <p>However, it is possible (indeed, for session storage areas,
+  likely) that the target <code>HTMLDocument</code> object is not
+  active at that time. For example, it might not be the <span>current
+  entry</span> in the session history; user agents typically stop
+  scripts from running in pages that are in the history. In such
+  cases, the user agent must instead delay the firing of the event
+  until such time as the <code>HTMLDocument</code> object in
+  question becomes active again.</p>
+
+  <p>When there are multiple delayed <code>storage</code> events for
+  the same <code>HTMLDocument</code> object, user agents should
+  coalesce events with the same <code
+  title="dom-Storageevent-domain">domain</code> value (dropping
+  duplicates).</p>
+
+  <p>If the DOM of a page that has delayed <code>storage</code> events
+  queued up is <span title="discard">discarded</span>, then the
+  delayed events are dropped as well.</p>
+
+  <pre class="idl">interface <dfn>StorageEvent</dfn> : Event {
+  readonly attribute DOMString <span title="dom-StorageEvent-domain">domain</span>;
+  void <span title="dom-StorageEvent-initStorageEvent">initStorageEvent</span>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString domainArg);
+  void <span title="dom-StorageEvent-initStorageEventNS">initStorageEventNS</span>(in DOMString namespaceURIArg, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString domainArg);
+};</pre>
+
+  <p>The <dfn
+  title="dom-StorageEvent-initStorageEvent"><code>initStorageEvent()</code></dfn>
+  and <dfn
+  title="dom-StorageEvent-initStorageEventNS"><code>initStorageEventNS()</code></dfn>
+  methods must initialise the event in a manner analogous to the
+  similarly-named methods in the DOM3 Events interfaces. <a
+  href="#DOM3Events">[DOM3EVENTS]</a></p>
+
+  <p>The <dfn
+  title="dom-StorageEvent-domain"><code>domain</code></dfn> attribute
+  of the <code>StorageEvent</code> event object must be set to the
+  name of the domain associated with the storage area that changed if
+  that storage area is a global storage area, or the string
+  "<code>#session</code>" if it was a session storage area.</p>
+
+  <!-- XXX onstorage should be defined -->
+
+
+  <h4>Miscellaneous implementation requirements for storage areas</h4>
+
+  <h5>Disk space</h5>
+
+  <p>User agents should limit the total amount of space allowed for a
+  domain based on the domain of the page setting the value.</p>
+
+  <p>User agents should not limit the total amount of space allowed on
+  a per-storage-area basis, otherwise a site could just store data in
+  any number of subdomains, e.g. storing up to the limit in
+  a1.example.com, a2.example.com, a3.example.com, etc, circumventing
+  per-domain limits.</p>
+
+  <p>User agents should consider additional quota mechanisms (for
+  example limiting the amount of space provided to a domain's
+  subdomains as a group) so that hostile authors can't run scripts
+  from multiple subdomains all adding data to the global storage area
+  in an attempted denial-of-service attack.</p>
+
+  <p>User agents may prompt the user when per-domain space quotas are
+  reached, allowing the user to grant a site more space. This enables
+  sites to store many user-created documents on the user's computer,
+  for instance.</p>
+
+  <p>User agents should allow users to see how much space each domain
+  is using.</p>
+
+  <p>If the storage area space limit is reached during a <code
+  title="dom-Storage-setItem">setItem()</code> call, the user agent
+  should raise an exception.</p> <!-- XXX which one? -->
+
+  <p>A mostly arbitrary limit of five megabytes per domain is
+  recommended. Implementation feedback is welcome and will be used to
+  update this suggestion in future.</p>
+
+
+  <h5>Threads</h5>
+
+  <p>Multiple browsing contexts must be able to access the global
+  storage areas simultaneously in a predictable manner. Scripts must
+  not be able to detect any concurrent script execution.</p>
+
+  <p>This is required to guarentee that the <code
+  title="dom-Storage-length">length</code> attribute of a
+  <code>Storage</code> object never changes while a script is
+  executing, other than in a way that is predictable by the script
+  itself.</p>
+
+  <p>There are various ways of implementing this requirement. One is
+  that if a script running in one browsing context accesses a global
+  storage area, the UA blocks scripts in other browsing contexts when
+  they try to access <em>any</em> global storage area until the first
+  script has executed to completion. (Similarly, when a script in one
+  browsing context accesses its session storage area, any scripts that
+  have the same top level browsing context and the same domain would
+  block when accessing their session storage area until the first
+  script has executed to completion.) Another (potentially more
+  efficient but probably more complex) implementation strategy is to
+  use optimistic transactional script execution. This specification
+  does not require any particular implementation strategy, so long as
+  the requirement above is met.</p>
+
+
+  <h4>Security and privacy</h4>
+
+  <h5>User tracking</h5>
+
+  <p>A third-party advertiser (or any entity capable of getting
+  content distributed to multiple sites) could use a unique identifier
+  stored in its domain's global storage area to track a user across
+  multiple sessions, building a profile of the user's interests to
+  allow for highly targetted advertising. In conjunction with a site
+  that is aware of the user's real identity (for example an e-commerce
+  site that requires authenticated credentials), this could allow
+  oppressive groups to target individuals with greater accuracy than
+  in a world with purely anonymous Web usage.</p>
+
+  <p>The <code title="dom-globalStorage">globalStorage</code> object
+  also introduces a way for sites to cooperate to track users over
+  multiple domains, by storing identifying data in "<span
+  title="public storage area">public</span>" top-level domain storage
+  area, accessible by any domain.</p>
+
+  <p>There are a number of techniques that can be used to mitigate the
+  risk of user tracking:</p>
+
+  <ul>
+
+   <li>
+
+    <p>Blocking third-party storage: user agents may restrict access
+    to the <code title="dom-globalStorage">globalStorage</code> object
+    to scripts originating at the domain of the top-level document of
+    the <span>browsing context</span>.</p>
+
+    <p>This blocks a third-party site from using its private storage
+    area for tracking a user, but top-level sites could still
+    cooperate with third parties to perferm user tracking by using the
+    "<span title="public storage area">public</span>" storage area.</p>
+
+   </li>
+ 
+   <li>
+
+    <p>Expiring stored data: user agents may automatically delete
+    stored data after a period of time.</p>
+
+    <p>For example, a user agent could treat the global storage area
+    as session-only storage, deleting the data once the user had
+    closed all the <span>browsing contexts</span> that could access
+    it.</p>
+
+    <p>This can restrict the ability of a site to track a user, as the
+    site would then only be able to track the user across multiple
+    sessions when he authenticates with the site itself (e.g. by
+    making a purchase or logging in to a service).</p>
+
+    <!-- XXX should there be an explicit way for sites to state when
+    data should expire? as in
+    globalStorage['example.com'].expireData(365); ? -->
+
+   </li>
+
+   <li>
+
+    <p>Blocking access to the top-level domain ("<span title="public storage area">public</span>") storage
+    areas: user agents may prevent domains from storing data in and
+    reading data from the top-level domain entries in the <code
+    title="dom-globalStorage">globalStorage</code> object.</p>
+
+    <p>In practice this requires a detailed list of all the "public"
+    second-level (and third-level) domains. For example, content at
+    the domain <code>www.example.com</code> would be allowed to access
+    <code>example.com</code> data but not <code>com</code> data;
+    content at the domain <code>example.co.uk</code> would be allowed
+    access to <code>example.co.uk</code> but not <code>co.uk</code> or
+    <code>uk</code>; and content at
+    <code>example.chiyoda.tokyo.jp</code> would be allowed access to
+    <code>example.chiyoda.tokyo.jp</code> but not
+    <code>chiyoda.tokyo.jp</code>, <code>tokyo.jp</code>, or
+    <code>jp</code>, while content at
+    <code>example.metro.tokyo.jp</code> would be allowed access to
+    both <code>example.metro.tokyo.jp</code> and
+    <code>metro.tokyo.jp</code> but not <code>tokyo.jp</code> or
+    <code>jp</code>. The problem is even more convoluted when one
+    considers private domains with third-party subdomains such as
+    <code>dyndns.org</code> or <code>uk.com</code>.</p>
+
+    <p>Blocking access to the "<span title="public storage area">public</span>" storage areas can also prevent
+    innocent sites from cooperating to provide services beneficial to
+    the user.</p>
+
+   </li>
+
+   <li>
+
+    <p>Treating persistent storage as cookies: user agents may present
+    the persistent storage feature to the user in a way that does not
+    distinguish it from HTTP session cookies. <a
+    href="#refsRFC2965">[RFC2965]</a></p>
+
+    <p>This might encourage users to view persistent storage with
+    healthy suspicion.</p>
+
+   </li>
+
+   <li>
+
+    <p>Site-specific white-listing of access to "<span title="public storage area">public</span>" storage
+    area: user agents may allow sites to access persistent storage
+    for their own domain and subdomains in an unrestricted manner, but
+    require the user to authorise access to the storage area of
+    higher-level domains.</p>
+
+    <p>For example, code at <code>example.com</code> would be always
+    allowed to read and write data for <code>www.example.com</code>
+    and <code>example.com</code>, but if it tried to access
+    <code>com</code>, the user agent could display a non-modal message
+    informing the user that the page requested access to
+    <code>com</code> and offering to allow it.</p>
+
+   </li>
+
+   <li>
+
+    <p>Origin-tracking of persistent storage data: user agents may
+    record the domain of the script that caused data to be stored.</p>
+
+    <p>If this information is then used to present the view of data
+    currently in persistent storage, it would allow the user to make
+    informed decisions about which parts of the persistent storage to
+    prune. Combined with a blacklist ("delete this data and prevent
+    this domain from ever storing data again"), the user can restrict
+    the use of persistent storage to sites that he trusts.</p>
+
+   </li>
+
+   <li>
+
+    <p>Shared blacklists: user agents may allow users to share their
+    persistent storage domain blacklists.</p>
+
+    <p>This would allow communities to act together to protect their
+    privacy.</p>
+
+   </li>
+
+  </ul>
+
+  <p>While these suggestions prevent trivial use of this API for user
+  tracking, they do not block it altogether. Within a single domain, a
+  site can continue to track the user across multiple sessions, and
+  can then pass all this information to the third party along with any
+  identifying information (names, credit card numbers, addresses)
+  obtained by the site. If a third party cooperates with multiple
+  sites to obtain such information, a profile can still be created.</p>
+
+  <p>However, user tracking is to some extent possible even with no
+  cooperation from the user agent whatsoever, for instance by using
+  session identifiers in URIs, a technique already commonly used for
+  innocuous purposes but easily repurposed for user tracking (even
+  retroactively). This information can then be shared with other
+  sites, using using visitors' IP addresses and other user-specific
+  data (e.g. user-agent headers and configuration settings) to combine
+  separate sessions into coherent user profiles.</p>
+
+  <h5>Cookie resurrection</h5>
+
+  <p>If the user interface for persistent storage presents data in the
+  persistent storage feature separately from data in HTTP session
+  cookies, then users are likely to delete data in one and not the
+  other. This would allow sites to use the two features as redundant
+  backup for each other, defeating a user's attempts to protect his
+  privacy.</p>
+
+  <h5>Integrity of "public" storage areas</h5>
+
+  <p>Since the "<span title="public storage area">public</span>" global storage areas are accessible by content
+  from many different parties, it is possible for third-party sites to
+  delete or change information stored in those areas in ways that the
+  originating sites may not expect.</p>
+
+  <p>Authors must not use the "<span title="public storage area">public</span>" global storage areas for
+  storing sensitive data. Authors must not trust information stored in
+  "<span title="public storage area">public</span>" global storage areas.</p>
+
+  <h5>Cross-protocol and cross-port attacks</h5>
+
+  <p>This API makes no distinction between content served over HTTP,
+  FTP, or other host-based protocols, and does not distinguish between
+  content served from different ports at the same host.</p>
+
+  <p>Thus, for example, data stored in the global persistent storage
+  for domain "www.example.com" by a page served from HTTP port 80 will
+  be available to a  page served in
+  <code>http://example.com:18080/</code>, even if the latter is an
+  experimental server under the control of a different user.</p>
+
+  <p>Since the data is not sent over the wire by the user agent, this
+  is not a security risk in its own right. However, authors must take
+  proper steps to ensure that all hosts that have fully qualified host
+  names that are subsets of hosts dealing with sensitive information
+  are as secure as the originating hosts themselves.</p>
+
+  <p>Similarly, authors must ensure that all Web servers on a host,
+  regardless of the port, are equally trusted if any of them are to
+  use persistent storage. For instance, if a Web server runs a
+  production service that makes use of the persistent storage feature,
+  then other users that have access to that machine and that can run a
+  Web server on another port will be able to access the persistent
+  storage added by the production service (assuming they can trick a
+  user into visiting their page).</p>
+
+  <p>However, if one is able to trick users into visiting a Web server
+  with the same host name but on a different port as a production
+  service used by these users, then one could just as easily fake the
+  look of the site and thus trick users into authenticating with the
+  fake site directly, forwarding the request to the real site and
+  stealing the credentials in the process. Thus, the persistent
+  storage feature is considered to only minimally increase the
+  risk involved.</p>
+
+  <h5>DNS spoofing attacks</h5>
+
+  <p>Because of the potential for DNS spoofing attacks, one cannot
+  guarentee that a host claiming to be in a certain domain really is
+  from that domain. The <code
+  title="dom-StorageItem-secure">secure</code> attribute is provided
+  to mark certain key/value pairs as only being accessible to pages
+  that have been authenticated using secure certificates (or similar
+  mechanisms).</p>
+
+  <p>Authors must ensure that they do not mark sensitive items as
+  "safe for both secure and insecure content". (To prevent the risk of
+  a race condition, data stored by scripts in secure contexts default
+  to being marked as "safe only for secure content".)</p>
+
+  <h5>Cross-directory attacks</h5>
+
+  <p>Different authors sharing one host name, for example users
+  hosting content on <code>geocities.com</code>, all share one
+  persistent storage object. There is no feature to restrict the
+  access by pathname. Authors on shared hosts are therefore
+  recommended to avoid using the persistent storage feature, as it
+  would be trivial for other authors to read from and write to the
+  same storage area.</p>
+
+  <p class="note">Even if a path-restriction feature was made
+  available, the usual DOM scripting security model would make it
+  trivial to bypass this protection and access the data from any
+  path.</p>
+
+
+  <h5>Public storage areas corresponding to hosts</h5>
+
+  <p>If a "<span title="public storage area">public</span>" global
+  storage area corresponds to a host, as it typically does if for
+  private domains with third-party subdomains such as dyndns.org or
+  uk.com, the host corresponding to the "public" domain has access to
+  all the storage areas of its third-party subdomains. In general,
+  authors are discouraged from using the <code
+  title="dom-globalStorage">globalStorage</code> API for sensitive
+  data unless the operators of all the domains involved are
+  trusted.</p>
+
+  <p>User agents may mitigate this problem by preventing hosts
+  corresponding to "<span title="public storage area">public</span>"
+  global storage areas from accessing any storage areas other than
+  their own.</p>
+
+
+  <h5>Storage areas in the face of untrusted higher-level domains that do not correspond to public storage areas</h5>
+
+  <p>Authors should not store sensitive data using the global storage
+  APIs if there are hosts with fully-qualified domain names that are
+  subsets of their own which they do not trust. For example, an author
+  at <code>finance.members.example.net</code> should not store
+  sensitive financial user data in the
+  <code>finance.members.example.net</code> storage area if he does not
+  trust the host that runs <code>example.net</code>.</p>
+
+
+  <h5>Storage areas in the face of untrusted subdomains</h5>
+
+  <p>If an author publishing content on one host,
+  e.g. <code>example.com</code>, wishes to use the <code
+  title="dom-globalStorage">globalStorage</code> API but does not wish
+  any content on the host's subdomains to access the data, the author
+  should use an otherwise non-existent subdomain name, e.g.,
+  <code>private.example.com</code>, to store the data. This will be
+  accessible only to that host (and its parent domains), and not to
+  any of the real subdomains
+  (e.g. <code>upload.example.com</code>).</p>
+
+
+  <h5>Implementation risks</h5>
+
+  <p>The two primary risks when implementing this persistent storage
+  feature are letting hostile sites read information from other
+  domains, and letting hostile sites write information that is then
+  read from other domains.</p>
+
+  <p>Letting third-party sites read data that is not supposed to be
+  read from their domain causes <em>information leakage</em>, For
+  example, a user's shopping wishlist on one domain could be used by
+  another domain for targetted advertising; or a user's
+  work-in-progress confidential documents stored by a word-processing
+  site could be examined by the site of a competing company.</p>
+
+  <p>Letting third-party sites write data to the storage areas of
+  other domains can result in <em>information spoofing</em>, which is
+  equally dangerous. For example, a hostile site could add items to a
+  user's wishlist; or a hostile site could set a user's session
+  identifier to a known ID that the hostile site can then use to track
+  the user's actions on the victim site.</p>
+
+  <p>A risk is also presented by servers on local domains having
+  host names matching top-level domain names, for instance having a
+  host called "com" or "net". Such hosts might, if implementations
+  fail to correctly implement the <code>.localdomain</code> suffixing,
+  <!-- XXX cross ref --> have full access to all the data stored in a
+  UA's persistent storage for that top level domain.</p>
+
+  <p>Thus, strictly following the model described in this
+  specification is important for user security.</p>
+
+  <p>In addition, a number of optional restrictions related to the
+  "<span title="public storage area">public</span>" global storage
+  areas are suggested in the previous sections. The design of this API
+  is intended to be such that not supporting these restrictions, or
+  supporting them less than perfectly, does not result in critical
+  security problems. However, implementations are still encouraged to
+  create and maintain a list of "<span title="public storage
+  area">public</span>" domains, and apply the restrictions described
+  above.</p>
+
+
+
+  <h2 id="editing"><dfn>Editing</dfn></h2>
+
+  <p>This section describes various features that allow authors to
+  enable users to edit documents and parts of documents
+  interactively.</p>
+
+  <h3>Introduction</h3>
+
+  <p class="big-issue">Would be nice to explain how these features
+  work together.</p>
+
+
+  <h3 id="contenteditable"><span title="SCS">[SCS]</span>The <code>contenteditable</code> attribute</h3>
 
   <p>The <dfn><code>contenteditable</code></dfn> attribute is a common
   attribute. User agents must support this attribute on all HTML
@@ -14117,997 +15121,6 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
   fields, they must raise an <code>INVALID_STATE_ERR</code>
   exception.</p>
 
-
-  <h3><span title="SCS">[SCS]</span> Client-side session and persistent storage</h3> <!-- local storage -->
-
-  <h4>Introduction</h4>
-
-  <p><em>This section is non-normative.</em></p>
-
-  <p>This specification introduces two related mechanisms, similar to
-  HTTP session cookies <a href="#refsRFC2965">[RFC2965]</a>, for
-  storing structured data on the client side.</p>
-
-  <p>The first is designed for scenarios where the user is carrying
-  out a single transaction, but could be carrying out multiple
-  transactions in different windows at the same time.</p>
-
-  <p>Cookies don't really handle this case well. For example, a user
-  could be buying plane tickets in two different windows, using the
-  same site. If the site used cookies to keep track of which ticket
-  the user was buying, then as the user clicked from page to page in
-  both windows, the ticket currently being purchased would "leak" from
-  one window to the other, potentially causing the user to buy two
-  tickets for the same flight without really noticing.</p>
-
-  <p>To address this, this specification introduces the <code
-  title="dom-sessionStorage">sessionStorage</code> DOM attribute.
-  Sites can add data to the session storage, and it will be accessible
-  to any page from that domain opened in that window.</p>
-
-  <div class="example">
-
-   <p>For example, a page could have a checkbox that the user ticks to
-   indicate that he wants insurance:</p>
-
-   <pre>&lt;label>
- &lt;input type="checkbox" onchange="sessionStorage.insurance = checked">
- I want insurance on this trip.
-&lt;/label></pre>
-
-   <p>A later page could then check, from script, whether the user had
-   checked the checkbox or not:</p>
-
-   <pre>if (sessionStorage.insurance) { ... }</pre>
-
-   <p>If the user had multiple windows opened on the site, each one
-   would have its own individual copy of the session storage object.</p>
-
-  </div>
-
-  <!--
-
-   sessionStorage.flightDeparture = 'OSL';
-   sessionStorage.flightArrival = 'NYC';
-
-   for (var i in forms[0].elements)
-      sessionStorage["data_" + i.name] = i.value;
-
-   if (!sessionStorage[documents])
-     sessionStorage[documents] = {};
-   sessionStorage[documents][filename] = <document/>;
-
-  -->
-
-  <p>The second storage mechanism is designed for storage that spans
-  multiple windows, and lasts beyond the current session. In
-  particular, Web applications may wish to store megabytes of user
-  data, such as entire user-authored documents or a user's mailbox, on
-  the clientside for performance reasons.</p>
-
-  <p>Again, cookies do not handle this case well, because they are
-  transmitted with every request.</p>
-
-  <p>The <code title="dom-globalStorage">globalStorage</code> DOM
-  attribute is used to access the global storage areas.</p>
-
-  <div class="example">
-
-   <p>The site at example.com can display a count of how many times
-   the user has loaded its page by putting the following at the bottom
-   of its page:</p>
-
-   <pre>&lt;p>
-  You have viewed this page
-  &lt;span id="count">an untold number of&lt;/span>
-  time(s).
-&lt;/p>
-&lt;script>
-  var storage = globalStorage['example.com'];
-  if (!storage.pageLoadCount)
-    storage.pageLoadCount = 0;
-  storage.pageLoadCount = parseInt(storage.pageLoadCount, 10) + 1;
-  document.getElementById('count').textContent = storage.pageLoadCount;
-&lt;/script></pre>
-
-  </div>
-
-  <p>Each domain and each subdomain has its own separate storage area.
-  Subdomains can access the storage areas of parent domains, and
-  domains can access the storage areas of subdomains.</p>
-
-  <ul class="brief">
-   <li><code>globalStorage['']</code> is accessible to all domains.</li>
-   <li><code>globalStorage['com']</code> is accessible to all .com domains</li>
-   <li><code>globalStorage['example.com']</code> is accessible to example.com and any of its subdomains</li>
-   <li><code>globalStorage['www.example.com']</code> is accessible to www.example.com and example.com, but not www2.example.com.</li>
-  </ul>
-
-  <p>Storage areas (both session storage and global storage) store
-  strings. To store structured data in a storage area, you must first
-  convert it to a string.</p>
-
-
-  <h4>The <code>Storage</code> interface</h4>
-
-  <pre class="idl">
-interface <dfn>Storage</dfn> {
-  readonly attribute unsigned long <span title="dom-Storage-length">length</span>;
-  DOMString <span title="dom-Storage-key">key</span>(in unsigned long index);
-  <span>StorageItem</span> <span title="dom-Storage-getItem">getItem</span>(in DOMString key);
-  void <span title="dom-Storage-setItem">setItem</span>(in DOMString key, in DOMString data);
-  void <span title="dom-Storage-removeItem">removeItem</span>(in DOMString key);
-};</pre>
-
-  <p>Each <code>Storage</code> object provides access to a list of
-  key/value pairs, which are sometimes called items. Keys are strings,
-  and any string (including the empty string) is a valid key. Values
-  are strings with associated metadata, represented by
-  <code>StorageItem</code> objects.</p>
-
-  <p>Each <code>Storage</code> object is associated with a list of
-  key/value pairs when it is created, as defined in the sections on
-  the <code title="dom-sessionStorage">sessionStorage</code> and <code
-  title="dom-globalStorage">globalStorage</code> attributes. Multiple
-  separate objects implementing the <code>Storage</code> interface can
-  all be associated with the same list of key/value pairs
-  simultaneously.</p>
-
-  <p>Key/value pairs have associated metadata. In particular, a
-  key/value pair can be marked as either "safe only for secure
-  content", or as "safe for both secure and insecure content".</p>
-
-  <p>A key/value pair is <dfn title="accessible keys">accessible</dfn>
-  if either it is marked as "safe for both secure and insecure
-  content", or it is marked as "safe only for secure content" and the
-  script in question is running in a <span title="secure scripting
-  contexts">secure scripting context</span>.</p>
-
-  <p>The <dfn title="dom-Storage-length"><code>length</code></dfn>
-  attribute must return the number of key/value pairs currently
-  present and <span title="accessible keys">accessible</span> in the
-  list associated with the object.</p>
-
-  <p>The <dfn title="dom-Storage-key"><code>key(<var
-  title="">n</var>)</code></dfn> method must return the name of the
-  <var title="">n</var>th <span>accessible</span> key in the list. The
-  order of keys is user-agent defined, but must be consistent within
-  an object between changes to the number of keys. (Thus, <span
-  title="dom-Storage-setItem">adding</span> or <span
-  title="dom-Storage-removeItem">removing</span> a key may change the
-  order of the keys, but merely changing the value of an existing key
-  must not.) <!--The order of keys may differ between instances of the
-  <code>Storage</code> interface accessing the same list. [removed for
-  now for clarity, but if people ask, put it back. this is part of the
-  spec.]--> If <var title="">n</var> is less than zero or greater than
-  or equal to the number of key/value pairs in the object, then this
-  method must raise an <code>INDEX_SIZE_ERR</code> exception.</p>
-
-  <p>The <dfn title="dom-Storage-getItem"><code>getItem(<var
-  title="">key</var>)</code></dfn> method must return the
-  <code>StorageItem</code> object representing the key/value pair with
-  the given <var title="">key</var>. If the given <var
-  title="">key</var> does not exist in the list associated with the
-  object, or is not <span>accessible</span>, then this method must
-  return null. Subsequent calls to this method with the same key from
-  scripts running in the same <span>security context</span> must
-  return the same instance of the <code>StorageItem</code>
-  interface. (Such instances must not be shared across security
-  contexts, though.)</p> <!-- XXX define security context -->
-
-  <p>The <dfn title="dom-Storage-setItem"><code>setItem(<var
-  title="">key</var>, <var title="">value</var>)</code></dfn> method
-  must first check if a key/value pair with the given <var
-  title="">key</var> already exists in the list associated with the
-  object.</p>
-
-  <p>If it does not, then a new key/value pair must be added to the
-  list, with the given <var title="">key</var> and <var
-  title="">value</var>, such that any current or future
-  <code>StorageItem</code> objects referring to this key/value pair
-  will return the value given in the <var title="">value</var>
-  argument. If the script setting the value is running in a <span
-  title="secure scripting contexts">secure scripting context</span>,
-  then the key/value pair must be marked as "safe only for secure
-  content", otherwise it must be marked as "safe for both secure and
-  insecure content".</p>
-
-  <p>If the given <var title="">key</var> <em>does</em> exist in the
-  list, then, if the key/value pair with the given <var
-  title="">key</var> is <span>accessible</span>, it must have its
-  value updated so that any current or future <code>StorageItem</code>
-  objects referring to this key/value pair will return the value given
-  in the <var title="">value</var> argument. If it is <em>not</em>
-  <span>accessible</span>, the method must raise a <span>security
-  exception</span>.</p>
-
-  <p>When the <code title="dom-Storage-setItem">setItem()</code>
-  method is successfully invoked (i.e. when it doesn't raise an
-  exception), events are fired on other <code>HTMLDocument</code>
-  objects that can access the newly stored data, as defined in the
-  sections on the <code
-  title="dom-sessionStorage">sessionStorage</code> and <code
-  title="dom-globalStorage">globalStorage</code> attributes.</p> <!--
-  not normative, see the sections below for the normative statement
-  -->
-
-  <p>The <dfn title="dom-Storage-removeItem"><code>removeItem(<var
-  title="">key</var>)</code></dfn> method must cause the key/value
-  pair with the given <var title="">key</var> to be removed from the
-  list associated with the object, if it exists and is
-  <span>accessible</span>. If no item with that key exists, the method
-  must do nothing. If an item with that key exists but is not
-  <span>accessible</span>, the method must raise a <span>security
-  exception</span>.</p>
-
-  <p>The <code title="dom-Storage-setItem">setItem()</code> and <code
-  title="dom-Storage-removeItem">removeItem()</code> methods must be
-  atomic with respect to failure. That is, changes to the data storage
-  area must either be successful, or the data storage area must not be
-  changed at all.</p>
-
-  <p>In the ECMAScript DOM binding, enumerating a <code>Storage</code>
-  object must enumerate through the currently stored and
-  <span>accessible</span> keys in the list the object is associated
-  with. (It must not enumerate the values or the actual members of the
-  interface). In the ECMAScript DOM binding, <code>Storage</code> objects
-  must support dereferencing such that getting a property that is not
-  a member of the object (i.e. is neither a member of the
-  <code>Storage</code> interface nor of <code>Object</code>) must
-  invoke the <code title="dom-Storage-getItem">getItem()</code> method
-  with the property's name as the argument, and setting such a
-  property must invoke the <code
-  title="dom-Storage-setItem">setItem()</code> method with the
-  property's name as the first argument and the given value as the
-  second argument.</p>
-
-
-  <h4>The <code>StorageItem</code> interface</h4>
-
-  <p>Items in <code>Storage</code> objects are represented by objects
-  implementing the <code>StorageItem</code> interface.</p>
-
-  <pre class="idl">
-interface <dfn>StorageItem</dfn> {
-           attribute boolean <span title="dom-StorageItem-secure">secure</span>;
-           attribute DOMString <span title="dom-StorageItem-value">value</span>;
-};</pre>
-
-  <p>In the ECMAScript DOM binding, <code>StorageItem</code> objects must
-  stringify to their <code title="dom-StorageItem-value">value</code>
-  attribute's value.</p>
-
-  <p>The <dfn title="dom-StorageItem-value"><code>value</code></dfn>
-  attribute must return the current value of the key/value pair
-  represented by the object. When the attribute is set, the user agent
-  must invoke the <code title="dom-Storage-setItem">setItem()</code>
-  method of the <code>Storage</code> object that the
-  <code>StorageItem</code> object is associated with, with the key
-  that the <code>StorageItem</code> object is associated with as the
-  first argument, and the new given value of the attribute as the
-  second argument.</p>
-
-  <p><code>StorageItem</code> objects must be <em>live</em>, meaning
-  that as the underlying <code>Storage</code> object has its key/value
-  pairs updated, the <code>StorageItem</code> objects must always
-  return the actual value of the key/value pair they represent.</p>
-
-  <p>If the key/value pair has been deleted, the
-  <code>StorageItem</code> object must act as if its value was the
-  empty string. On setting, the key/value pair will be recreated.</p>
-
-  <p>The <dfn title="dom-StorageItem-secure"><code>secure</code></dfn>
-  attribute must raise an <code>INVALID_ACCESS_ERR</code> exception
-  when accessed or set from a script whose script context is not <span
-  title="secure scripting contexts">considered secure</span><!-- XXX
-  xref -->. (Basically, if the page is not an SSL page.)</p>
-
-  <p>If the scripting context <em>is</em> secure, then the <code
-  title="dom-StorageItem-secure">secure</code> attribute must return
-  true if the key/value pair is considered "safe only for secure
-  content", and false if it is considered "safe for both secure and
-  insecure content". If it is set to true, then the key/value pair
-  must be flagged as "safe only for secure content". If it is set to
-  false, then the key/value pair must be flagged as "safe for both
-  secure and insecure content".</p>
-
-  <p>If a <code>StorageItem</code> object is obtained by a script that
-  is not running in a <span title="secure scripting contexts">secure
-  scripting context</span>, and the item is then marked with the "safe
-  only for secure content" flag by a script that <em>is</em> running
-  in a secure context, the <code>StorageItem</code> object must
-  continue to be available to the first script, who will be able to
-  read the value of the object. However, any attempt to <em>set</em>
-  the value would then start raising exceptions as described in the
-  previous section, and the key/value pair would no longer appear in
-  the appropriate <code>Storage</code> object.</p>
-
-
-  <h4>The <code title="dom-sessionStorage">sessionStorage</code> attribute</h4>
-
-  <p>The <dfn
-  title="dom-sessionStorage"><code>sessionStorage</code></dfn>
-  attribute represents the storage area specific to the current
-  <span>top-level browsing context</span>.</p>
-
-  <p>Each <span>top-level browsing context</span> has a unique set of
-  session storage areas, one for each domain.</p>
-
-  <p>User agents should not expire data from a browsing context's
-  session storage areas, but may do so when the user requests that
-  such data be deleted, or when the UA detects that it has limited
-  storage space, or for security reasons. User agents should always
-  avoid deleting data while a script that could access that data is
-  running. When a top-level browsing context is destroyed (and
-  therefore permanently inaccessible to the user) the data stored in
-  its session storage areas can be discarded with it, as the API
-  described in this specification provides no way for that data to
-  ever be subsequently retrieved.</p>
-
-  <p class="note">The lifetime of a browsing context can be unrelated
-  to the lifetime of the actual user agent process itself, as the user
-  agent may support resuming sessions after a restart.</p>
-
-  <p>When a new <code>HTMLDocument</code> is created, the user agent
-  must check to see if the document's <span>top-level browsing
-  context</span> has allocated a session storage area for that
-  <span>document's domain</span>. If it has not, a new storage area
-  for that document's domain must be created.</p>
-
-  <p>The <code>Storage</code> object for the document's associated
-  <code>Window</code> object's <code
-  title="dom-sessionStorage">sessionStorage</code> attribute must then
-  be associated with the domain's session storage area.</p>
-
-  <p>When a new <span>top-level browsing context</span> is created by
-  cloning an existing <span>browsing context</span>, the new browsing
-  context must start with the same session storage areas as the
-  original, but the two sets must from that point on be considered
-  separate, not affecting each other in any way.</p>
-
-  <p>When a new <span>top-level browsing context</span> is created by
-  a script in an existing <span>browsing context</span>, or by the
-  user following a link in an existing browsing context, or in some
-  other way related to a specific <code>HTMLDocument</code>, then,
-  if the new context's first <code>HTMLDocument</code> has the same
-  <span title="document's domain">domain</span> as the
-  <code>HTMLDocument</code> from which the new context was created,
-  the new browsing context must start with a single session storage
-  area. That storage area must be a copy of that domain's session
-  storage area in the original browsing context, which from that point
-  on must be considered separate, with the two storage areas not
-  affecting each other in any way.</p>
-
-  <!-- XXX define the case for window.open() -->
-
-  <p id="sessionStorageEvent">When the <code
-  title="dom-Storage-setItem">setItem()</code> method is called on a
-  <code>Storage</code> object <var title="">x</var> that is associated
-  with a session storage area, then, if the method does not raise a
-  <span>security exception</span>, in every <code>HTMLDocument</code>
-  object whose <code>Window</code> object's <code
-  title="dom-sessionStorage">sessionStorage</code> attribute's
-  <code>Storage</code> object is associated with the same storage
-  area, other than <var title="">x</var>, a <code
-  title="event-storage">storage</code> event must be fired, as <span
-  title="event-storage">described below</span>.</p>
-
-
-  <h4>The <code title="dom-globalStorage">globalStorage</code> attribute</h4>
-
-  <pre class="idl">interface <dfn>StorageList</dfn> {
-  <span>Storage</span> <span title="dom-Storagelist-namedItem">namedItem</span>(in DOMString domain);
-};</pre>
-
-  <p>The <dfn
-  title="dom-globalStorage"><code>globalStorage</code></dfn>
-  object provides a <code>Storage</code> object for each domain.</p>
-
-  <p>In the ECMAScript DOM binding, <code>StorageList</code> objects must
-  support dereferencing such that getting a property that is not a
-  member of the object (i.e. is neither a member of the
-  <code>StorageList</code> interface nor of <code>Object</code>) must
-  invoke the <code title="dom-Storagelist-namedItem">namedItem()</code>
-  method with the property's name as the argument.</p>
-
-  <p>User agents must have a set of global storage areas, one for each
-  domain.</p>
-
-  <p>User agents should only expire data from the global storage areas
-  for security reasons or when requested to do so by the user. User
-  agents should always avoid deleting data while a script that could
-  access that data is running. Data stored in global storage areas
-  should be considered potentially user-critical. It is expected that
-  Web applications will use the global storage areas for storing
-  user-written documents.</p>
-
-  <p>The <dfn title="dom-Storagelist-namedItem"><code>namedItem(<var
-  title="">domain</var>)</code></dfn> method tries to returns a
-  <code>Storage</code> object associated with the given domain,
-  according to the rules that follow.</p>
-
-  <div id="splitDomain">
-
-   <p>The <var title="">domain</var> must first be split into an array
-   of strings, by splitting the string at "." characters (U+002E FULL
-   STOP). If the <var title="">domain</var> argument is the empty
-   string, then the array is empty as well. If the <var
-   title="">domain</var> argument is not empty but has no dots, then
-   the array has one item, which is equal to the <var
-   title="">domain</var> argument. If the <var title="">domain</var>
-   argument contains consecutive dots, there will be empty strings in
-   the array (e.g. the string "hello..world" becomes split into the
-   three strings "hello", "", and "world", with the middle one being
-   the empty string).</p>
-
-   <p>Each component of the array must then have the IDNA ToASCII
-   algorithm applied to it, with both the AllowUnassigned and
-   UseSTD3ASCIIRules flags set. <a href="#refsRFC3490">[RFC3490]</a>
-   If ToASCII fails to convert one of the components of the string,
-   e.g. because it is too long or because it contains invalid
-   characters, then the user agent must raise a
-   <code>SYNTAX_ERR</code> exception. <a
-   href="#refsDOM3CORE">[DOM3CORE]</a> The components after this step
-   consist of only US-ASCII characters.</p>
-
-   <p>The components of the array must then be converted to lowercase.
-   Since only US-ASCII is involved at this step, this only requires
-   converting characters in the range A-Z to the corresponding
-   characters in the range a-z.</p>
-
-  </div>
-
-  <p>The resulting array is used in a comparison with another array,
-  as described below. In addition, its components are concatenated
-  together, each part separated by a dot (U+002E), to form the
-  <dfn>normalised requested domain</dfn>.</p>
-
-  <p class="example">If the original <var title="">domain</var> was
-  "&Aring;sg&aring;rd.Example.Com", then the resulting array would
-  have the three items "xn--sgrd-poac", "example", and "com", and the
-  normalised requested domain would be
-  "xn--sgrd-poac.example.com".</p>
-
-  <p>Next, the <span title="script's domain">script's own
-  domain</span> is processed to find if it is allowed to access the
-  requested domain.</p>
-
-  <p>If the script's domain name in not known, e.g. if only the
-  server's IP address is known, and the <span>normalised requested
-  domain</span> is not the empty string, then the user agent must
-  raise a <span>security exception</span>.</p>
-
-  <p class="note">If the <span>normalised requested domain</span> is
-  the empty string, then the rest of this algorithm can be skipped.
-  This is because in that situation, the comparison of the two arrays
-  below will always find them to be the same &mdash; the first array
-  in such a situation is also empty and so permission to access that
-  storage area will always be given.</p>
-
-  <p>If the script's domain contains no dots (U+002E) then the string
-  "<code>.localdomain</code>" must be appended to the script's
-  domain.</p>
-
-  <p>Then, the script's domain must be turned into an array, being
-  split, converted to ASCII, and lowercased as described for the <var
-  title="">domain</var> argument <a href="#splitDomain">above</a>.</p>
-
-  <p>Of the two arrays, the longest one must then be shortened to the
-  length of the shorter one, by dropping items from the start of the
-  array.</p>
-
-  <div class="example">
-
-   <p>If the <var title="">domain</var> argument is "www.example.com"
-   and the script's domain is "example.com" then the first array will be
-   a three item array ("www", "example", "com"), and the second will
-   be a two item array ("example", "com"). The first array is
-   therefore shortened, dropping the leading parts, making both into
-   the same array ("example", "com").</p>
-
-  </div>
-
-  <p>If the two arrays are not component-for-component identical in
-  literal string comparisons, then the user agent must then raise a
-  <span>security exception</span>.</p>
-
-  <p>Otherwise, the user agent must check to see if it has allocated
-  global storage area for the <span>normalised requested
-  domain</span>. If it has not, a new storage area for that domain
-  must be created.</p>
-
-  <p>The user agent must then create a <code>Storage</code> object
-  associated with that domain's global storage area, and return
-  it.</p>
-
-  <p>When the requested <var title="">domain</var> is a top level
-  domain, or the empty string, or a country-specific sub-domain like
-  "co.uk" or "ca.us", the associated global storage area is known as
-  <dfn>public storage area</dfn></p>
-
-  <div id="globalStorageEvent">
-
-   <p>The <code title="dom-Storage-setItem">setItem()</code> method
-   might be called on a <code>Storage</code> object that is associated
-   with a global storage area for a domain <var title="">d</var>,
-   created by a <code>StorageList</code> object associated with a
-   <code>Window</code> object <var title="">x</var>. Whenever this
-   occurs, if the method didn't raise an exception, a <code
-   title="event-storage">storage</code> event must be fired, as
-   described below, in every <code>HTMLDocument</code> object that
-   matches the following conditions:</p>
-
-   <ul>
-
-    <li>Its <code>Window</code> object is not <var title="">x</var>, and</li>
-
-    <li>Its <code>Window</code> object's <code
-    title="dom-sessionStorage">globalStorage</code> attribute's
-    <code>StorageList</code> object's <code
-    title="dom-Storagelist-namedItem">namedItem()</code> method would not
-    raise a <span>security exception</span> according to the rules above if it was
-    invoked with the domain <var title="">d</var>.</li>
-
-   </ul>
-
-   <p>In other words, every other document that has access to that
-   domain's global storage area is notified of the change.</p>
-
-  </div>
-
-
-  <h4>The <code title="event-storage">storage</code> event</h4>
-
-  <p>The <dfn title="event-storage"><code>storage</code></dfn> event
-  is fired in an <code>HTMLDocument</code> when a storage area
-  changes, as described in the previous two sections (<a
-  href="#sessionStorageEvent">for session storage</a>, <a
-  href="#globalStorageEvent">for global storage</a>).</p>
-
-  <p>When this happens, a <code>storage</code> event in the
-  <code>http://www.w3.org/2001/xml-events</code> namespace, which
-  bubbles, is not cancelable, has no default action, and which uses
-  the <code>StorageEvent</code> interface described below, must be
-  fired on <span>the body element</span>.</p>
-
-  <p>However, it is possible (indeed, for session storage areas,
-  likely) that the target <code>HTMLDocument</code> object is not
-  active at that time. For example, it might not be the <span>current
-  entry</span> in the session history; user agents typically stop
-  scripts from running in pages that are in the history. In such
-  cases, the user agent must instead delay the firing of the event
-  until such time as the <code>HTMLDocument</code> object in
-  question becomes active again.</p>
-
-  <p>When there are multiple delayed <code>storage</code> events for
-  the same <code>HTMLDocument</code> object, user agents should
-  coalesce events with the same <code
-  title="dom-Storageevent-domain">domain</code> value (dropping
-  duplicates).</p>
-
-  <p>If the DOM of a page that has delayed <code>storage</code> events
-  queued up is <span title="discard">discarded</span>, then the
-  delayed events are dropped as well.</p>
-
-  <pre class="idl">interface <dfn>StorageEvent</dfn> : Event {
-  readonly attribute DOMString <span title="dom-StorageEvent-domain">domain</span>;
-  void <span title="dom-StorageEvent-initStorageEvent">initStorageEvent</span>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString domainArg);
-  void <span title="dom-StorageEvent-initStorageEventNS">initStorageEventNS</span>(in DOMString namespaceURIArg, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString domainArg);
-};</pre>
-
-  <p>The <dfn
-  title="dom-StorageEvent-initStorageEvent"><code>initStorageEvent()</code></dfn>
-  and <dfn
-  title="dom-StorageEvent-initStorageEventNS"><code>initStorageEventNS()</code></dfn>
-  methods must initialise the event in a manner analogous to the
-  similarly-named methods in the DOM3 Events interfaces. <a
-  href="#DOM3Events">[DOM3EVENTS]</a></p>
-
-  <p>The <dfn
-  title="dom-StorageEvent-domain"><code>domain</code></dfn> attribute
-  of the <code>StorageEvent</code> event object must be set to the
-  name of the domain associated with the storage area that changed if
-  that storage area is a global storage area, or the string
-  "<code>#session</code>" if it was a session storage area.</p>
-
-  <!-- XXX onstorage should be defined -->
-
-
-  <h4>Miscellaneous implementation requirements for storage areas</h4>
-
-  <h5>Disk space</h5>
-
-  <p>User agents should limit the total amount of space allowed for a
-  domain based on the domain of the page setting the value.</p>
-
-  <p>User agents should not limit the total amount of space allowed on
-  a per-storage-area basis, otherwise a site could just store data in
-  any number of subdomains, e.g. storing up to the limit in
-  a1.example.com, a2.example.com, a3.example.com, etc, circumventing
-  per-domain limits.</p>
-
-  <p>User agents should consider additional quota mechanisms (for
-  example limiting the amount of space provided to a domain's
-  subdomains as a group) so that hostile authors can't run scripts
-  from multiple subdomains all adding data to the global storage area
-  in an attempted denial-of-service attack.</p>
-
-  <p>User agents may prompt the user when per-domain space quotas are
-  reached, allowing the user to grant a site more space. This enables
-  sites to store many user-created documents on the user's computer,
-  for instance.</p>
-
-  <p>User agents should allow users to see how much space each domain
-  is using.</p>
-
-  <p>If the storage area space limit is reached during a <code
-  title="dom-Storage-setItem">setItem()</code> call, the user agent
-  should raise an exception.</p> <!-- XXX which one? -->
-
-  <p>A mostly arbitrary limit of five megabytes per domain is
-  recommended. Implementation feedback is welcome and will be used to
-  update this suggestion in future.</p>
-
-
-  <h5>Threads</h5>
-
-  <p>Multiple browsing contexts must be able to access the global
-  storage areas simultaneously in a predictable manner. Scripts must
-  not be able to detect any concurrent script execution.</p>
-
-  <p>This is required to guarentee that the <code
-  title="dom-Storage-length">length</code> attribute of a
-  <code>Storage</code> object never changes while a script is
-  executing, other than in a way that is predictable by the script
-  itself.</p>
-
-  <p>There are various ways of implementing this requirement. One is
-  that if a script running in one browsing context accesses a global
-  storage area, the UA blocks scripts in other browsing contexts when
-  they try to access <em>any</em> global storage area until the first
-  script has executed to completion. (Similarly, when a script in one
-  browsing context accesses its session storage area, any scripts that
-  have the same top level browsing context and the same domain would
-  block when accessing their session storage area until the first
-  script has executed to completion.) Another (potentially more
-  efficient but probably more complex) implementation strategy is to
-  use optimistic transactional script execution. This specification
-  does not require any particular implementation strategy, so long as
-  the requirement above is met.</p>
-
-
-  <h4>Security and privacy</h4>
-
-  <h5>User tracking</h5>
-
-  <p>A third-party advertiser (or any entity capable of getting
-  content distributed to multiple sites) could use a unique identifier
-  stored in its domain's global storage area to track a user across
-  multiple sessions, building a profile of the user's interests to
-  allow for highly targetted advertising. In conjunction with a site
-  that is aware of the user's real identity (for example an e-commerce
-  site that requires authenticated credentials), this could allow
-  oppressive groups to target individuals with greater accuracy than
-  in a world with purely anonymous Web usage.</p>
-
-  <p>The <code title="dom-globalStorage">globalStorage</code> object
-  also introduces a way for sites to cooperate to track users over
-  multiple domains, by storing identifying data in "<span
-  title="public storage area">public</span>" top-level domain storage
-  area, accessible by any domain.</p>
-
-  <p>There are a number of techniques that can be used to mitigate the
-  risk of user tracking:</p>
-
-  <ul>
-
-   <li>
-
-    <p>Blocking third-party storage: user agents may restrict access
-    to the <code title="dom-globalStorage">globalStorage</code> object
-    to scripts originating at the domain of the top-level document of
-    the <span>browsing context</span>.</p>
-
-    <p>This blocks a third-party site from using its private storage
-    area for tracking a user, but top-level sites could still
-    cooperate with third parties to perferm user tracking by using the
-    "<span title="public storage area">public</span>" storage area.</p>
-
-   </li>
- 
-   <li>
-
-    <p>Expiring stored data: user agents may automatically delete
-    stored data after a period of time.</p>
-
-    <p>For example, a user agent could treat the global storage area
-    as session-only storage, deleting the data once the user had
-    closed all the <span>browsing contexts</span> that could access
-    it.</p>
-
-    <p>This can restrict the ability of a site to track a user, as the
-    site would then only be able to track the user across multiple
-    sessions when he authenticates with the site itself (e.g. by
-    making a purchase or logging in to a service).</p>
-
-    <!-- XXX should there be an explicit way for sites to state when
-    data should expire? as in
-    globalStorage['example.com'].expireData(365); ? -->
-
-   </li>
-
-   <li>
-
-    <p>Blocking access to the top-level domain ("<span title="public storage area">public</span>") storage
-    areas: user agents may prevent domains from storing data in and
-    reading data from the top-level domain entries in the <code
-    title="dom-globalStorage">globalStorage</code> object.</p>
-
-    <p>In practice this requires a detailed list of all the "public"
-    second-level (and third-level) domains. For example, content at
-    the domain <code>www.example.com</code> would be allowed to access
-    <code>example.com</code> data but not <code>com</code> data;
-    content at the domain <code>example.co.uk</code> would be allowed
-    access to <code>example.co.uk</code> but not <code>co.uk</code> or
-    <code>uk</code>; and content at
-    <code>example.chiyoda.tokyo.jp</code> would be allowed access to
-    <code>example.chiyoda.tokyo.jp</code> but not
-    <code>chiyoda.tokyo.jp</code>, <code>tokyo.jp</code>, or
-    <code>jp</code>, while content at
-    <code>example.metro.tokyo.jp</code> would be allowed access to
-    both <code>example.metro.tokyo.jp</code> and
-    <code>metro.tokyo.jp</code> but not <code>tokyo.jp</code> or
-    <code>jp</code>. The problem is even more convoluted when one
-    considers private domains with third-party subdomains such as
-    <code>dyndns.org</code> or <code>uk.com</code>.</p>
-
-    <p>Blocking access to the "<span title="public storage area">public</span>" storage areas can also prevent
-    innocent sites from cooperating to provide services beneficial to
-    the user.</p>
-
-   </li>
-
-   <li>
-
-    <p>Treating persistent storage as cookies: user agents may present
-    the persistent storage feature to the user in a way that does not
-    distinguish it from HTTP session cookies. <a
-    href="#refsRFC2965">[RFC2965]</a></p>
-
-    <p>This might encourage users to view persistent storage with
-    healthy suspicion.</p>
-
-   </li>
-
-   <li>
-
-    <p>Site-specific white-listing of access to "<span title="public storage area">public</span>" storage
-    area: user agents may allow sites to access persistent storage
-    for their own domain and subdomains in an unrestricted manner, but
-    require the user to authorise access to the storage area of
-    higher-level domains.</p>
-
-    <p>For example, code at <code>example.com</code> would be always
-    allowed to read and write data for <code>www.example.com</code>
-    and <code>example.com</code>, but if it tried to access
-    <code>com</code>, the user agent could display a non-modal message
-    informing the user that the page requested access to
-    <code>com</code> and offering to allow it.</p>
-
-   </li>
-
-   <li>
-
-    <p>Origin-tracking of persistent storage data: user agents may
-    record the domain of the script that caused data to be stored.</p>
-
-    <p>If this information is then used to present the view of data
-    currently in persistent storage, it would allow the user to make
-    informed decisions about which parts of the persistent storage to
-    prune. Combined with a blacklist ("delete this data and prevent
-    this domain from ever storing data again"), the user can restrict
-    the use of persistent storage to sites that he trusts.</p>
-
-   </li>
-
-   <li>
-
-    <p>Shared blacklists: user agents may allow users to share their
-    persistent storage domain blacklists.</p>
-
-    <p>This would allow communities to act together to protect their
-    privacy.</p>
-
-   </li>
-
-  </ul>
-
-  <p>While these suggestions prevent trivial use of this API for user
-  tracking, they do not block it altogether. Within a single domain, a
-  site can continue to track the user across multiple sessions, and
-  can then pass all this information to the third party along with any
-  identifying information (names, credit card numbers, addresses)
-  obtained by the site. If a third party cooperates with multiple
-  sites to obtain such information, a profile can still be created.</p>
-
-  <p>However, user tracking is to some extent possible even with no
-  cooperation from the user agent whatsoever, for instance by using
-  session identifiers in URIs, a technique already commonly used for
-  innocuous purposes but easily repurposed for user tracking (even
-  retroactively). This information can then be shared with other
-  sites, using using visitors' IP addresses and other user-specific
-  data (e.g. user-agent headers and configuration settings) to combine
-  separate sessions into coherent user profiles.</p>
-
-  <h5>Cookie resurrection</h5>
-
-  <p>If the user interface for persistent storage presents data in the
-  persistent storage feature separately from data in HTTP session
-  cookies, then users are likely to delete data in one and not the
-  other. This would allow sites to use the two features as redundant
-  backup for each other, defeating a user's attempts to protect his
-  privacy.</p>
-
-  <h5>Integrity of "public" storage areas</h5>
-
-  <p>Since the "<span title="public storage area">public</span>" global storage areas are accessible by content
-  from many different parties, it is possible for third-party sites to
-  delete or change information stored in those areas in ways that the
-  originating sites may not expect.</p>
-
-  <p>Authors must not use the "<span title="public storage area">public</span>" global storage areas for
-  storing sensitive data. Authors must not trust information stored in
-  "<span title="public storage area">public</span>" global storage areas.</p>
-
-  <h5>Cross-protocol and cross-port attacks</h5>
-
-  <p>This API makes no distinction between content served over HTTP,
-  FTP, or other host-based protocols, and does not distinguish between
-  content served from different ports at the same host.</p>
-
-  <p>Thus, for example, data stored in the global persistent storage
-  for domain "www.example.com" by a page served from HTTP port 80 will
-  be available to a  page served in
-  <code>http://example.com:18080/</code>, even if the latter is an
-  experimental server under the control of a different user.</p>
-
-  <p>Since the data is not sent over the wire by the user agent, this
-  is not a security risk in its own right. However, authors must take
-  proper steps to ensure that all hosts that have fully qualified host
-  names that are subsets of hosts dealing with sensitive information
-  are as secure as the originating hosts themselves.</p>
-
-  <p>Similarly, authors must ensure that all Web servers on a host,
-  regardless of the port, are equally trusted if any of them are to
-  use persistent storage. For instance, if a Web server runs a
-  production service that makes use of the persistent storage feature,
-  then other users that have access to that machine and that can run a
-  Web server on another port will be able to access the persistent
-  storage added by the production service (assuming they can trick a
-  user into visiting their page).</p>
-
-  <p>However, if one is able to trick users into visiting a Web server
-  with the same host name but on a different port as a production
-  service used by these users, then one could just as easily fake the
-  look of the site and thus trick users into authenticating with the
-  fake site directly, forwarding the request to the real site and
-  stealing the credentials in the process. Thus, the persistent
-  storage feature is considered to only minimally increase the
-  risk involved.</p>
-
-  <h5>DNS spoofing attacks</h5>
-
-  <p>Because of the potential for DNS spoofing attacks, one cannot
-  guarentee that a host claiming to be in a certain domain really is
-  from that domain. The <code
-  title="dom-StorageItem-secure">secure</code> attribute is provided
-  to mark certain key/value pairs as only being accessible to pages
-  that have been authenticated using secure certificates (or similar
-  mechanisms).</p>
-
-  <p>Authors must ensure that they do not mark sensitive items as
-  "safe for both secure and insecure content". (To prevent the risk of
-  a race condition, data stored by scripts in secure contexts default
-  to being marked as "safe only for secure content".)</p>
-
-  <h5>Cross-directory attacks</h5>
-
-  <p>Different authors sharing one host name, for example users
-  hosting content on <code>geocities.com</code>, all share one
-  persistent storage object. There is no feature to restrict the
-  access by pathname. Authors on shared hosts are therefore
-  recommended to avoid using the persistent storage feature, as it
-  would be trivial for other authors to read from and write to the
-  same storage area.</p>
-
-  <p class="note">Even if a path-restriction feature was made
-  available, the usual DOM scripting security model would make it
-  trivial to bypass this protection and access the data from any
-  path.</p>
-
-
-  <h5>Public storage areas corresponding to hosts</h5>
-
-  <p>If a "<span title="public storage area">public</span>" global
-  storage area corresponds to a host, as it typically does if for
-  private domains with third-party subdomains such as dyndns.org or
-  uk.com, the host corresponding to the "public" domain has access to
-  all the storage areas of its third-party subdomains. In general,
-  authors are discouraged from using the <code
-  title="dom-globalStorage">globalStorage</code> API for sensitive
-  data unless the operators of all the domains involved are
-  trusted.</p>
-
-  <p>User agents may mitigate this problem by preventing hosts
-  corresponding to "<span title="public storage area">public</span>"
-  global storage areas from accessing any storage areas other than
-  their own.</p>
-
-
-  <h5>Storage areas in the face of untrusted higher-level domains that do not correspond to public storage areas</h5>
-
-  <p>Authors should not store sensitive data using the global storage
-  APIs if there are hosts with fully-qualified domain names that are
-  subsets of their own which they do not trust. For example, an author
-  at <code>finance.members.example.net</code> should not store
-  sensitive financial user data in the
-  <code>finance.members.example.net</code> storage area if he does not
-  trust the host that runs <code>example.net</code>.</p>
-
-
-  <h5>Storage areas in the face of untrusted subdomains</h5>
-
-  <p>If an author publishing content on one host,
-  e.g. <code>example.com</code>, wishes to use the <code
-  title="dom-globalStorage">globalStorage</code> API but does not wish
-  any content on the host's subdomains to access the data, the author
-  should use an otherwise non-existent subdomain name, e.g.,
-  <code>private.example.com</code>, to store the data. This will be
-  accessible only to that host (and its parent domains), and not to
-  any of the real subdomains
-  (e.g. <code>upload.example.com</code>).</p>
-
-
-  <h5>Implementation risks</h5>
-
-  <p>The two primary risks when implementing this persistent storage
-  feature are letting hostile sites read information from other
-  domains, and letting hostile sites write information that is then
-  read from other domains.</p>
-
-  <p>Letting third-party sites read data that is not supposed to be
-  read from their domain causes <em>information leakage</em>, For
-  example, a user's shopping wishlist on one domain could be used by
-  another domain for targetted advertising; or a user's
-  work-in-progress confidential documents stored by a word-processing
-  site could be examined by the site of a competing company.</p>
-
-  <p>Letting third-party sites write data to the storage areas of
-  other domains can result in <em>information spoofing</em>, which is
-  equally dangerous. For example, a hostile site could add items to a
-  user's wishlist; or a hostile site could set a user's session
-  identifier to a known ID that the hostile site can then use to track
-  the user's actions on the victim site.</p>
-
-  <p>A risk is also presented by servers on local domains having
-  host names matching top-level domain names, for instance having a
-  host called "com" or "net". Such hosts might, if implementations
-  fail to correctly implement the <code>.localdomain</code> suffixing,
-  <!-- XXX cross ref --> have full access to all the data stored in a
-  UA's persistent storage for that top level domain.</p>
-
-  <p>Thus, strictly following the model described in this
-  specification is important for user security.</p>
-
-  <p>In addition, a number of optional restrictions related to the
-  "<span title="public storage area">public</span>" global storage
-  areas are suggested in the previous sections. The design of this API
-  is intended to be such that not supporting these restrictions, or
-  supporting them less than perfectly, does not result in critical
-  security problems. However, implementations are still encouraged to
-  create and maintain a list of "<span title="public storage
-  area">public</span>" domains, and apply the restrictions described
-  above.</p>
 
 
   <h2 id="multimedia">Multimedia</h2>
