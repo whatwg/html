@@ -112,6 +112,12 @@
   <p>This specification is intended to replace (be the new version of) what
    was previously the HTML4, XHTML 1.x, and DOM2 HTML specifications.
 
+  <p class=big-issue>Known issues are usually marked like this. There are
+   some spec-wide issues that have not yet been addressed: first,
+   case-sensitivity is a very poorly handled topic right now; second, event
+   handler attributes are glossed over at the moment; and third, there's a
+   ghost of a <dfn id=documentui>DocumentUI</dfn> interface going around.
+
   <h2 class="no-num no-toc" id=contents>Table of contents</h2>
   <!--begin-toc-->
 
@@ -591,6 +597,9 @@
 
          <li><a href="#page-load0"><span class=secno>4.1.0.2. </span>Page
           load processing model for XML files</a>
+
+         <li><a href="#page-load1"><span class=secno>4.1.0.3. </span>Page
+          load processing model for text files</a>
         </ul>
       </ul>
 
@@ -2289,7 +2298,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
            attribute DOMString <a href="#document.innerhtml" title=dom-document-innerHTML>innerHTML</a>;
   void <a href="#open" title=dom-document-open>open</a>();
   void <a href="#open" title=dom-document-open>open</a>(in DOMString type);
-  void <a href="#open" title=dom-document-open>open</a>(in DOMString type, in bool replace);
+  void <a href="#open" title=dom-document-open>open</a>(in DOMString type, in DOMString replace);
   void <a href="#open" title=dom-document-open>open</a>(in DOMString url, in DOMString name, in DOMString features);
   void <a href="#open" title=dom-document-open>open</a>(in DOMString url, in DOMString name, in DOMString features, in bool replace);
   void <span title=dom-document-close>close</span>();
@@ -2633,29 +2642,56 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   <p>The <dfn id=open title=dom-document-open><code>open()</code></dfn>
    method comes in several variants with different numbers of arguments.
 
-  <p>When called with two or fewer arguments, it ... <!--
+  <p>When called with two or fewer arguments, the method must act as follows:
 
-   document.open()
-   document.open(type)
-   document.open(type, replace)
+  <ol>
+   <li>Let <var title="">type</var> be the value of the first argument, if
+    there is one, or "<code>text/html</code>" otherwise.
 
-   type:
-    Safari -- argument ignored
-    Moz -- text/html is HTML, other is text/plain
-    Opera -- text/html is HTML, text/css, text/plain is plain, image/png causes image fakedoc, text/xml kills frame
-    IE -- image/* raises exception, text/plain is plain, other is HTML
+   <li>Let <var title="">replace</var> be true if there is a second argument
+    and it has the value "replace"<!-- case-insensitive. XXX
+   -->, and
+    false otherwise.
 
-   replace:
-    does location.replace() equivalent if true
-    default false
+   <li>If the document has an <span>active tokeniser</span><!-- XXX
+   xref -->,
+    then stop that tokeniser, and throw away any pending content in the input
+    stream. <span class=big-issue>what about if it doesn't, because it's
+    either like a text/plain, or Atom, or PDF, or XHTML, or image document,
+    or something?</span>
 
-  -->
-   
+   <li>Remove all child nodes of the document.<span class=big-issue>again,
+    what if it's really an image?</span>
 
-  <p class=big-issue><a href="#input0">input stream</a> manipulation in HTML
-   and XHTML</p>
-  <!-- document.open(), when called, must obliterate any existing open
-  input stream, even if it is still being parsed. -->
+   <li>Create a new <a href="#html-">HTML parser</a> and associate it with
+    the document.</li>
+   <!-- text/plain handling -->
+
+   <li>If <var title="">type</var> does not have the value
+    "<code>text/html</code>"<!-- XXX matched how?
+   -->, then act as if the
+    tokeniser had emitted a <code><a href="#pre0">pre</a></code> element
+    start tag, then set the <a href="#html-">HTML parser</a>'s <a
+    href="#tokenisation1">tokenisation</a> stage's <a
+    href="#content2">content model flag</a> to <em>PLAINTEXT</em>.
+
+   <li>If <var title="">replace</var> is false, then: remove all the entries
+    in the <a href="#browsing">browsing context</a>'s <a
+    href="#session0">session history</a> after the <a href="#current">current
+    entry</a> in its <code><a href="#documentui">DocumentUI</a></code>'s
+    <code><a href="#history1">History</a></code> object, add a new entry
+    whose address is the same as the <a href="#current">current entry</a>'s
+    at the end of the list, and then advance to that page as if the <code
+    title=dom-history-forward><a href="#forward">history.forward()</a></code>
+    method had been invoked.
+  </ol>
+
+  <p class=big-issue>We shouldn't hard-code <code>text/plain</code> there. We
+   should do it some other way, e.g. hand off to the section on
+   content-sniffing and handling of incoming data streams, the part that
+   defines how this all works when stuff comes over the network.
+
+  <p class=big-issue>Should we support XML/XHTML as a type to that method?
 
   <p>When called with three or more arguments, the <code
    title=dom-document-open><a href="#open">open()</a></code> method on the
@@ -2683,9 +2719,10 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
    <li>
     <p>If the <a href="#insertion">insertion point</a> is undefined, the
      <code title=dom-document-open><a href="#open">open()</a></code> method
-     must be called on the <code title=Document>document</code> object, and
-     then the <a href="#insertion">insertion point</a> must be set to point
-     at just before the end of the <a href="#input0">input stream</a>.</p>
+     must be called (with no arguments) on the <code
+     title=Document>document</code> object, and then the <a
+     href="#insertion">insertion point</a> must be set to point at just
+     before the end of the <a href="#input0">input stream</a>.</p>
 
    <li>
     <p>The string <var title="">s</var> must be inserted into the <a
@@ -11219,8 +11256,9 @@ XXX selection ranges -->
 
   <h3 id=navigating><span class=secno>4.1. </span>Navigating across documents</h3>
 
-  <p>Web browsers operate on <span>browsing contexts</span>, which have a
-   <em><a href="#session0">session history</a></em>.
+  <p>Web browsers operate on <a href="#browsing" title="browsing
+   context">browsing contexts</a>, which have a <em><a
+   href="#session0">session history</a></em>.
 
   <p>Certain actions cause the browsing context to <em>navigate</em> to a new
    document. A new document could be an HTML or XML <code>Document</code>,
@@ -11228,7 +11266,9 @@ XXX selection ranges -->
    resource in question could have a URI, or it could be anonymous, for
    example a new document generated using the <code
    title=dom-document-write><a
-   href="#document.write">document.write()</a></code> API.
+   href="#document.write">document.write()</a></code> API.</p>
+  <!-- that is, window.open() followed by document.open()
+  followed by document.write(), i guess XXX -->
 
   <p>In addition, a particular resource can have multiple entries in the
    session history of a browsing context.
@@ -11276,11 +11316,20 @@ XXX selection ranges -->
    event to be fired.</p>
   <!-- XXX continue... -->
 
+  <p class=big-issue>This needs to say that a parser is created, etc.
+
   <h5 id=page-load0><span class=secno>4.1.0.2. </span>Page load processing
    model for XML files</h5>
 
   <p class=big-issue>Must make sure we don't step on the toes of other
    specifications.
+
+  <h5 id=page-load1><span class=secno>4.1.0.3. </span>Page load processing
+   model for text files</h5>
+
+  <p class=big-issue>Must make sure we don't step on the toes of other
+   specifications. This section should be referred to by the document.open()
+   stuff.
 
   <h3 id=scripting0><span class=secno>4.2. </span>Scripting</h3>
 
@@ -12624,6 +12673,8 @@ XXX selection ranges -->
 
   <h4 id=the-session><span class=secno>5.1.1. </span>The <dfn
    id=session0>session history</dfn> of browsing contexts</h4>
+  <!-- XXX would be nice to have an intro paragraph that DFNed session
+  history instead of having the header do it -->
 
   <p><code><a href="#history1">History</a></code> objects provide a
    representation of the pages in the session history of their
@@ -12633,16 +12684,16 @@ XXX selection ranges -->
   <!-- conf crit for that last statement is in
   the bit that defines browsing context -->
 
-  <p>Each <code>DocumentUI</code> object in a browsing context's session
-   history is associated with a unique instance of the <code><a
-   href="#history1">History</a></code> object, although they all must model
-   the same underlying session history.
+  <p>Each <code><a href="#documentui">DocumentUI</a></code> object in a
+   browsing context's session history is associated with a unique instance of
+   the <code><a href="#history1">History</a></code> object, although they all
+   must model the same underlying session history.
 
   <p>The <dfn id=history0 title=dom-history><code>history</code></dfn>
    attribute of the <code>Window</code> interface must return the object
    implementing the <code><a href="#history1">History</a></code> interface
-   for that <code>Window</code> object's associated <code>DocumentUI</code>
-   object.
+   for that <code>Window</code> object's associated <code><a
+   href="#documentui">DocumentUI</a></code> object.
 
   <p><code><a href="#history1">History</a></code> objects represent their <a
    href="#browsing">browsing context</a>'s session history as a flat list of
@@ -12659,41 +12710,43 @@ XXX selection ranges -->
    metaphor even in one-page applications.
 
   <p>Entries that consist of <a href="#state" title="state object">state
-   objects</a> share the same <code>DocumentUI</code> as the entry for the
-   URI itself. Contiguous entries that differ just by fragment identifier
-   must also share the same <code>DocumentUI</code>.
+   objects</a> share the same <code><a
+   href="#documentui">DocumentUI</a></code> as the entry for the URI itself.
+   Contiguous entries that differ just by fragment identifier must also share
+   the same <code><a href="#documentui">DocumentUI</a></code>.
 
-  <p class=note>All entries that share the same <code>DocumentUI</code> (and
-   that are therefore merely different states of one particular document) are
-   contiguous by definition.
+  <p class=note>All entries that share the same <code><a
+   href="#documentui">DocumentUI</a></code> (and that are therefore merely
+   different states of one particular document) are contiguous by definition.
 
   <p>At any point, one of the entries in the session history is the <dfn
    id=current>current entry</dfn>. This is the entry representing the page in
    this <a href="#browsing">browsing context</a> that is considered the
    "current" page by the UA. The <a href="#current">current entry</a> is
    usually an entry for the <a href="#href5"
-   title=dom-location-href>location</a> of the <code>DocumentUI</code>.
-   However, it can also be one of the entries for <a href="#state"
-   title="state object">state objects</a> added to the history by that
-   document.
+   title=dom-location-href>location</a> of the <code><a
+   href="#documentui">DocumentUI</a></code>. However, it can also be one of
+   the entries for <a href="#state" title="state object">state objects</a>
+   added to the history by that document.
 
   <p>When the browser's navigation model differs significantly from the
    sequential model represented by the <code><a
    href="#history1">History</a></code> interface, for example if separate
-   <code>DocumentUI</code> objects in the session history are all
-   simulatenously displayed and active, then the <a href="#current">current
-   entry</a> could even be an entry unrelated to the <code><a
-   href="#history1">History</a></code> object's own <code>DocumentUI</code>
-   object. If, when a method is invoked on a <code><a
-   href="#history1">History</a></code> object, the <a href="#current">current
-   entry</a> for that <a href="#browsing">browsing context</a>'s session
-   history has a different <code>DocumentUI</code> object than the <code><a
-   href="#history1">History</a></code> object's own <code>DocumentUI</code>
-   object, then the user agent must raise a
-   <code>NO_MODIFICATION_ALLOWED_ERR</code> DOM exception. (This can only
-   happen if scripts are allowed to run in documents that are not the current
-   document. Typically, however, user agents only allow scripts from the <a
-   href="#current">current entry</a> to execute.)
+   <code><a href="#documentui">DocumentUI</a></code> objects in the session
+   history are all simulatenously displayed and active, then the <a
+   href="#current">current entry</a> could even be an entry unrelated to the
+   <code><a href="#history1">History</a></code> object's own <code><a
+   href="#documentui">DocumentUI</a></code> object. If, when a method is
+   invoked on a <code><a href="#history1">History</a></code> object, the <a
+   href="#current">current entry</a> for that <a href="#browsing">browsing
+   context</a>'s session history has a different <code><a
+   href="#documentui">DocumentUI</a></code> object than the <code><a
+   href="#history1">History</a></code> object's own <code><a
+   href="#documentui">DocumentUI</a></code> object, then the user agent must
+   raise a <code>NO_MODIFICATION_ALLOWED_ERR</code> DOM exception. (This can
+   only happen if scripts are allowed to run in documents that are not the
+   current document. Typically, however, user agents only allow scripts from
+   the <a href="#current">current entry</a> to execute.)
 
   <p>User agents may <dfn id=discard>discard</dfn> the DOMs of entries other
    than the <a href="#current">current entry</a>, reloading the pages afresh
@@ -12708,17 +12761,20 @@ XXX selection ranges -->
   <p>Entries that have had their DOM discarded must, for the purposes of the
    algorithms given below, act as if they had not. When the user or script
    navigates back or forwards to a page which has no in-memory DOM objects,
-   any other entries that shared the same <code>DocumentUI</code> object with
-   it must share the new object as well.
+   any other entries that shared the same <code><a
+   href="#documentui">DocumentUI</a></code> object with it must share the new
+   object as well.
 
   <p>When a user agent discards the DOM from an entry in the session history,
    it must also discard all the entries from the first state object entry for
-   that <code>DocumentUI</code> object up to and including the last entry for
-   that <code>DocumentUI</code> object (including any non-state-object
-   entries in that range, such as entries where the user navigated using
-   fragment identifiers). These entries are not recreated if the user or
-   script navigates back to the page. If there are no state object entries
-   for that <code>DocumentUI</code> object then no entries are removed.
+   that <code><a href="#documentui">DocumentUI</a></code> object up to and
+   including the last entry for that <code><a
+   href="#documentui">DocumentUI</a></code> object (including any
+   non-state-object entries in that range, such as entries where the user
+   navigated using fragment identifiers). These entries are not recreated if
+   the user or script navigates back to the page. If there are no state
+   object entries for that <code><a href="#documentui">DocumentUI</a></code>
+   object then no entries are removed.
 
   <h4 id=the-history><span class=secno>5.1.2. </span>The <code><a
    href="#history1">History</a></code> interface</h4>
@@ -12781,10 +12837,11 @@ XXX selection ranges -->
    state object, the user agent must <a href="#activating1">activate the
    state object</a>.
 
-  <p>If the specified entry has a different <code>DocumentUI</code> object
-   than the <a href="#current">current entry</a> then the user agent must
-   make that <code>DocumentUI</code> object the user's "current" one for that
-   <a href="#browsing">browsing context</a>.
+  <p>If the specified entry has a different <code><a
+   href="#documentui">DocumentUI</a></code> object than the <a
+   href="#current">current entry</a> then the user agent must make that
+   <code><a href="#documentui">DocumentUI</a></code> object the user's
+   "current" one for that <a href="#browsing">browsing context</a>.
 
   <p>If the specified entry is a state object, the user agent must <a
    href="#activating1" title="activate the state object">activate that state
@@ -12857,13 +12914,16 @@ XXX selection ranges -->
    history.
 
   <p>When this method is invoked, the user agent must first remove from the
-   session history any entries for that <code>DocumentUI</code> from the
-   entry after the <a href="#current">current entry</a> up to the last entry
-   in the session history that references the same <code>DocumentUI</code>
-   object, if any. If the <a href="#current">current entry</a> is the last
-   entry in the session history, or if there are no entries after the <a
-   href="#current">current entry</a> that reference the same
-   <code>DocumentUI</code> object, then no entries are removed.
+   session history any entries for that <code><a
+   href="#documentui">DocumentUI</a></code> from the entry after the <a
+   href="#current">current entry</a> up to the last entry in the session
+   history that references the same <code><a
+   href="#documentui">DocumentUI</a></code> object, if any. If the <a
+   href="#current">current entry</a> is the last entry in the session
+   history, or if there are no entries after the <a href="#current">current
+   entry</a> that reference the same <code><a
+   href="#documentui">DocumentUI</a></code> object, then no entries are
+   removed.
 
   <p>Then, the user agent must add a state object entry to the session
    history, after the <a href="#current">current entry</a>, with the
@@ -12882,24 +12942,26 @@ XXX selection ranges -->
 
   <p>User agents may limit the number of state objects added to the session
    history per page. If a page hits the UA-defined limit, user agents must
-   remove the entry immediately after the first entry for that
-   <code>DocumentUI</code> object in the session history after having added
-   the new entry. (Thus the state history acts as a FIFO buffer for eviction,
-   but as a LIFO buffer for navigation.)
+   remove the entry immediately after the first entry for that <code><a
+   href="#documentui">DocumentUI</a></code> object in the session history
+   after having added the new entry. (Thus the state history acts as a FIFO
+   buffer for eviction, but as a LIFO buffer for navigation.)
 
   <p>The <dfn id=clearstate
    title=dom-history-clearState><code>clearState()</code></dfn> method
-   removes all the state objects for the <code>DocumentUI</code> object from
-   the session history.
+   removes all the state objects for the <code><a
+   href="#documentui">DocumentUI</a></code> object from the session history.
 
   <p>When this method is invoked, the user agent must remove from the session
    history all the entries from the first state object entry for that
-   <code>DocumentUI</code> object up to the last entry that references that
-   same <code>DocumentUI</code> object, if any.
+   <code><a href="#documentui">DocumentUI</a></code> object up to the last
+   entry that references that same <code><a
+   href="#documentui">DocumentUI</a></code> object, if any.
 
   <p>Then, if the <a href="#current">current entry</a> was removed in the
    previous step, the <a href="#current">current entry</a> must be set to the
-   last entry for that <code>DocumentUI</code> object in the session history.
+   last entry for that <code><a href="#documentui">DocumentUI</a></code>
+   object in the session history.
 
   <h4 id=activating><span class=secno>5.1.3. </span><dfn id=activating1
    title="activate the state object">Activating state objects</dfn></h4>
@@ -12943,9 +13005,10 @@ XXX selection ranges -->
 
   <p>For historical reasons, the <dfn id=location0
    title=dom-document-location><code>location</code></dfn> attribute of the
-   <code>DocumentUI</code> interface must return the same object as the <code
-   title=dom-location><a href="#location">location</a></code> attribute on
-   its associated <code>Window</code> object.
+   <code><a href="#documentui">DocumentUI</a></code> interface must return
+   the same object as the <code title=dom-location><a
+   href="#location">location</a></code> attribute on its associated
+   <code>Window</code> object.
 
   <p><code><a href="#location1">Location</a></code> objects provide a
    representation of the URI of their document, and allow the <a
@@ -12973,37 +13036,42 @@ XXX selection ranges -->
    href="#href5">href</a></code> attribute.
 
   <p id=settingLocation>In the ECMAScript DOM binding, the <code
-   title="">location</code> members of the <code>DocumentUI</code> and
-   <code>Window</code> interfaces behave as if they had a setter: user agents
-   must treats attempts to set these <code title="">location</code> attribute
-   as attempts at setting the <code title=dom-location-href><a
+   title="">location</code> members of the <code><a
+   href="#documentui">DocumentUI</a></code> and <code>Window</code>
+   interfaces behave as if they had a setter: user agents must treats
+   attempts to set these <code title="">location</code> attribute as attempts
+   at setting the <code title=dom-location-href><a
    href="#href5">href</a></code> attribute of the relevant <code><a
    href="#location1">Location</a></code> object instead.
 
   <p>The <dfn id=href5 title=dom-location-href><code>href</code></dfn>
    attribute returns the address of the page represented by the associated
-   <code>DocumentUI</code> object, as an absolute IRI reference.
+   <code><a href="#documentui">DocumentUI</a></code> object, as an absolute
+   IRI reference.
 
   <p>On setting, <!--XXX Mozilla does this, but IE doesn't. What
   should we do?: the behaviour depends on the context in which the
   script that set the attribute is running. If the script ran as the
   direct result of the execution of a <code>script</code> element in
   the document represented by the <code>Location</code> object's
-  associated <code>DocumentUI</code> object, then the user agent
-  must act as if the <code
-  title="dom-location-replace">replace()</code> method had been called
-  with the new value as its argument. Otherwise,-->
+  associated <code>DocumentUI</code> object, then the user agent must
+  act as if the <code title="dom-location-replace">replace()</code>
+  method had been called with the new value as its
+  argument. Otherwise,-->
    the user agent must act as if the <code title=dom-location-assign><a
    href="#assign">assign()</a></code> method had been called with the new
-   value as its argument.
+   value as its argument.</p>
+  <!-- XXX may wish to allow
+  replace instead as a UI improvement -->
 
   <p>When the <dfn id=assign title=dom-location-assign><code>assign(<var
    title="">url</var>)</code></dfn> method is invoked, the UA must remove all
-   the entries after the <a href="#current">current entry</a> in its
-   <code>DocumentUI</code>'s <code><a href="#history1">History</a></code>
-   object, add a new entry, with the given <var title="">url</var>, at the
-   end of the list (asynchronously loading the new page if necessary), and
-   then advance to that page as if the <code title=dom-history-forward><a
+   the entries after the <a href="#current">current entry</a> in its <code><a
+   href="#documentui">DocumentUI</a></code>'s <code><a
+   href="#history1">History</a></code> object, add a new entry, with the
+   given <var title="">url</var>, at the end of the list (asynchronously
+   loading the new page if necessary), and then advance to that page as if
+   the <code title=dom-history-forward><a
    href="#forward">history.forward()</a></code> method had been invoked.
 
   <p>When the <dfn id=replace title=dom-location-replace><code>replace(<var
@@ -13016,8 +13084,9 @@ XXX selection ranges -->
 
   <p>In both cases, if the location before the method call would differ from
    the location after the method only in terms of the fragment identifier,
-   then the user agent must use the same <code>DocumentUI</code> object,
-   updating only the scroll position in the document's view(s) appropriately.
+   then the user agent must use the same <code><a
+   href="#documentui">DocumentUI</a></code> object, updating only the scroll
+   position in the document's view(s) appropriately.
 
   <p>Relative <var title="">url</var> arguments for <code
    title=dom-location-assign><a href="#assign">assign()</a></code> and <code

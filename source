@@ -93,6 +93,13 @@
   what was previously the HTML4, XHTML 1.x, and DOM2 HTML
   specifications.</p>
 
+  <p class="big-issue">Known issues are usually marked like
+  this. There are some spec-wide issues that have not yet been
+  addressed: first, case-sensitivity is a very poorly handled topic
+  right now; second, event handler attributes are glossed over at the
+  moment; and third, there's a ghost of a <dfn>DocumentUI</dfn>
+  interface going around.</p>
+
 
   <h2 class="no-num no-toc" id="contents">Table of contents</h2>
   <!--toc-->
@@ -1336,7 +1343,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
            attribute DOMString <span title="dom-document-innerHTML">innerHTML</span>;
   void <span title="dom-document-open">open</span>();
   void <span title="dom-document-open">open</span>(in DOMString type);
-  void <span title="dom-document-open">open</span>(in DOMString type, in bool replace);
+  void <span title="dom-document-open">open</span>(in DOMString type, in DOMString replace);
   void <span title="dom-document-open">open</span>(in DOMString url, in DOMString name, in DOMString features);
   void <span title="dom-document-open">open</span>(in DOMString url, in DOMString name, in DOMString features, in bool replace);
   void <span title="dom-document-close">close</span>();
@@ -1663,30 +1670,57 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   method comes in several variants with different numbers of
   arguments.</p>
 
-  <p>When called with two or fewer arguments, it ...
+  <p>When called with two or fewer arguments, the method must act as
+  follows:</p>
 
-  <!--
+  <ol>
 
-   document.open()
-   document.open(type)
-   document.open(type, replace)
+   <li>Let <var title="">type</var> be the value of the first
+   argument, if there is one, or "<code>text/html</code>"
+   otherwise.</li>
 
-   type:
-    Safari -- argument ignored
-    Moz -- text/html is HTML, other is text/plain
-    Opera -- text/html is HTML, text/css, text/plain is plain, image/png causes image fakedoc, text/xml kills frame
-    IE -- image/* raises exception, text/plain is plain, other is HTML
+   <li>Let <var title="">replace</var> be true if there is a second
+   argument and it has the value "replace"<!-- case-insensitive. XXX
+   -->, and false otherwise.</li>
 
-   replace:
-    does location.replace() equivalent if true
-    default false
+   <li>If the document has an <span>active tokeniser</span><!-- XXX
+   xref -->, then stop that tokeniser, and throw away any pending
+   content in the input stream. <span class="big-issue">what about if
+   it doesn't, because it's either like a text/plain, or Atom, or PDF,
+   or XHTML, or image document, or something?</span></li>
 
-  -->
+   <li>Remove all child nodes of the document.<span
+   class="big-issue">again, what if it's really an image?</span></li>
 
-  <p class="big-issue"><span>input stream</span> manipulation in HTML and XHTML</p>
+   <li>Create a new <span>HTML parser</span> and associate it with the
+   document.</li>
 
-  <!-- document.open(), when called, must obliterate any existing open
-  input stream, even if it is still being parsed. -->
+   <!-- text/plain handling --><li>If <var title="">type</var> does
+   not have the value "<code>text/html</code>"<!-- XXX matched how?
+   -->, then act as if the tokeniser had emitted a <code>pre</code>
+   element start tag, then set the <span>HTML parser</span>'s
+   <span>tokenisation</span> stage's <span>content model flag</span>
+   to <em>PLAINTEXT</em>.</li>
+
+   <li>If <var title="">replace</var> is false, then: remove all the
+   entries in the <span>browsing context</span>'s <span>session
+   history</span> after the <span>current entry</span> in its
+   <code>DocumentUI</code>'s <code>History</code> object, add a new
+   entry whose address is the same as the <span>current entry</span>'s
+   at the end of the list, and then advance to that page as if the
+   <code title="dom-history-forward">history.forward()</code> method
+   had been invoked.</li>
+
+  </ol>
+
+  <p class="big-issue">We shouldn't hard-code <code>text/plain</code>
+  there. We should do it some other way, e.g. hand off to the section
+  on content-sniffing and handling of incoming data streams, the part
+  that defines how this all works when stuff comes over the
+  network.</p>
+
+  <p class="big-issue">Should we support XML/XHTML as a type to that
+  method?</p>
 
   <p>When called with three or more arguments, the <code
   title="dom-document-open">open()</code> method on the
@@ -1716,10 +1750,10 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
    <li>
 
     <p>If the <span>insertion point</span> is undefined, the <code
-    title="dom-document-open">open()</code> method must be called on
-    the <code title="Document">document</code> object, and then the
-    <span>insertion point</span> must be set to point at just before
-    the end of the <span>input stream</span>.</p>
+    title="dom-document-open">open()</code> method must be called
+    (with no arguments) on the <code title="Document">document</code>
+    object, and then the <span>insertion point</span> must be set to
+    point at just before the end of the <span>input stream</span>.</p>
 
    </li>
 
@@ -9797,15 +9831,17 @@ XXX selection ranges -->
 
   <h3>Navigating across documents</h3>
 
-  <p>Web browsers operate on <span>browsing contexts</span>, which
-  have a <em>session history</em>.</p>
+  <p>Web browsers operate on <span title="browsing context">browsing
+  contexts</span>, which have a <em>session history</em>.</p>
 
   <p>Certain actions cause the browsing context to <em>navigate</em>
   to a new document. A new document could be an HTML or XML
   <code>Document</code>, with a DOM, or it could be an image, or some
   other content. The new resource in question could have a URI, or it
   could be anonymous, for example a new document generated using the
-  <code title="dom-document-write">document.write()</code> API.</p>
+  <code title="dom-document-write">document.write()</code>
+  API.</p><!-- that is, window.open() followed by document.open()
+  followed by document.write(), i guess XXX -->
 
   <p>In addition, a particular resource can have multiple entries in
   the session history of a browsing context.</p>
@@ -9854,11 +9890,22 @@ XXX selection ranges -->
   <p>This will usually eventually cause a <code
   title="event-load">load</code> event to be fired.</p> <!-- XXX continue... -->
 
+  <p class="big-issue">This needs to say that a parser is created,
+  etc.</p>
+
 
   <h5>Page load processing model for XML files</h5>
 
   <p class="big-issue">Must make sure we don't step on the toes of
   other specifications.</p>
+
+
+  <h5>Page load processing model for text files</h5>
+
+  <p class="big-issue">Must make sure we don't step on the toes of
+  other specifications. This section should be referred to by the
+  document.open() stuff.</p>
+
 
 
   <h3>Scripting</h3>
@@ -11162,6 +11209,9 @@ XXX selection ranges -->
 
   <h4>The <dfn>session history</dfn> of browsing contexts</h4>
 
+  <!-- XXX would be nice to have an intro paragraph that DFNed session
+  history instead of having the header do it -->
+
   <p><code>History</code> objects provide a representation of the
   pages in the session history of their <code>Window</code> object's
   <span>browsing context</span>. Each browsing context
@@ -11516,12 +11566,13 @@ XXX selection ranges -->
   script that set the attribute is running. If the script ran as the
   direct result of the execution of a <code>script</code> element in
   the document represented by the <code>Location</code> object's
-  associated <code>DocumentUI</code> object, then the user agent
-  must act as if the <code
-  title="dom-location-replace">replace()</code> method had been called
-  with the new value as its argument. Otherwise,--> the user agent
-  must act as if the <code title="dom-location-assign">assign()</code>
-  method had been called with the new value as its argument.</p>
+  associated <code>DocumentUI</code> object, then the user agent must
+  act as if the <code title="dom-location-replace">replace()</code>
+  method had been called with the new value as its
+  argument. Otherwise,--> the user agent must act as if the <code
+  title="dom-location-assign">assign()</code> method had been called
+  with the new value as its argument.</p><!-- XXX may wish to allow
+  replace instead as a UI improvement -->
 
   <p>When the <dfn
   title="dom-location-assign"><code>assign(<var title="">url</var>)</code></dfn>
@@ -11533,14 +11584,13 @@ XXX selection ranges -->
   <code title="dom-history-forward">history.forward()</code> method
   had been invoked.</p>
 
-  <p>When the <dfn
-  title="dom-location-replace"><code>replace(<var title="">url</var>)</code></dfn>
-  method is invoked, the UA must act as if the <code
-  title="dom-location-assign">assign()</code> method had been invoked,
-  but with the additional step of removing the entry that was the
-  <span>current entry</span> before the method call after the above
-  steps (thus simply causing the current page to be replaced by the
-  new one).</p>
+  <p>When the <dfn title="dom-location-replace"><code>replace(<var
+  title="">url</var>)</code></dfn> method is invoked, the UA must act
+  as if the <code title="dom-location-assign">assign()</code> method
+  had been invoked, but with the additional step of removing the entry
+  that was the <span>current entry</span> before the method call after
+  the above steps (thus simply causing the current page to be replaced
+  by the new one).</p>
 
   <p>In both cases, if the location before the method call would
   differ from the location after the method only in terms of the
