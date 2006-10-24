@@ -1340,7 +1340,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   NodeList <span title="dom-document-getElementsByClassName">getElementsByClassName</span>(in DOMString[] classNames);
 
   // <span>Dynamic markup insertion</span>
-           attribute DOMString <span title="dom-document-innerHTML">innerHTML</span>;
+           attribute DOMString <span title="dom-innerHTML">innerHTML</span>;
   void <span title="dom-document-open">open</span>();
   void <span title="dom-document-open">open</span>(in DOMString type);
   void <span title="dom-document-open">open</span>(in DOMString type, in DOMString replace);
@@ -1619,9 +1619,10 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   <h4><dfn>Dynamic markup insertion</dfn></h4>
 
   <p>The <code title="dom-document-write">document.write()</code>
-  family of methods and the <code title="">innerHTML</code> family of
-  DOM attributes enable script authors to dynamically insert markup
-  into the document.</p>
+  family of methods and the <code
+  title="dom-innerHTML">innerHTML</code> family of DOM attributes
+  enable script authors to dynamically insert markup into the
+  document.</p>
 
   <p>Because these APIs interact with the parser, their behaviour
   varies depending on whether they are used with HTML (and the
@@ -1634,22 +1635,19 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
     <tr>
      <td></td>
      <th><dfn title="dom-document-write"><code>document.write()</code></dfn></th>
-     <th><dfn title="dom-document-innerHTML"><code>document.innerHTML</code></dfn></th>
-     <th><dfn title="dom-innerHTML"><code>element.innerHTML</code></dfn></th>
+     <th><dfn title="dom-innerHTML"><code>innerHTML</code></dfn></th>
     </tr>
    </thead>
    <tbody>
     <tr>
      <th>In HTML documents</th>
      <td><span title="dom-document-write-HTML"><code>document.write()</code> in HTML</span></td>
-     <td><span title="dom-document-innerHTML-HTML"><code>document.innerHTML</code> in HTML</span></td>
-     <td><span title="dom-innerHTML-HTML"><code>element.innerHTML</code> in HTML</span></td>
+     <td><span title="dom-innerHTML-HTML"><code>innerHTML</code> in HTML</span></td>
     </tr>
     <tr>
      <th>In XML documents</th>
      <td><span title="dom-document-write-XML"><code>document.write()</code> in XML</span></td>
-     <td><span title="dom-document-innerHTML-XML"><code>document.innerHTML</code> in XML</span></td>
-     <td><span title="dom-innerHTML-XML"><code>element.innerHTML</code> in XML</span></td>
+     <td><span title="dom-innerHTML-XML"><code>innerHTML</code> in XML</span></td>
     </tr>
    </tbody>
   </table>
@@ -1835,11 +1833,12 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
   <p>In HTML, the <dfn
   title="dom-innerHTML-HTML"><code>innerHTML</code></dfn> DOM
-  attribute of all <code>HTMLElement</code> nodes returns a
-  serialisation of the element's children using the <span>HTML
-  syntax</span><!-- XXX xref -->. On setting, it replaces the
-  element's children with new nodes that result from parsing the given
-  value.</p>
+  attribute of all <code>HTMLElement</code> and
+  <code>HTMLDocument</code> nodes returns a serialisation of the
+  node's children using the <span>HTML syntax</span><!-- XXX xref
+  -->. On setting, it replaces the node's children with new nodes that
+  result from parsing the given value. The formal definitions
+  follow.</p>
 
   <p>On getting, the <code title="dom-innerHTML-HTML">innerHTML</code>
   DOM attribute must return the result of running the following
@@ -2009,14 +2008,64 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   node with the text string "<code>&lt;/</code>", or even worse,
   "<code>&lt;/script></code>".</p>
 
-  <p>On setting, the <code title="dom-innerHTML-HTML">innerHTML</code>
-  DOM attribute must run the following algorithm:</p>
+  <p>On setting, if the node is a document, the <code
+  title="dom-innerHTML-HTML">innerHTML</code> DOM attribute must run
+  the following algorithm:</p>
 
   <ol>
 
    <li>
 
-    <p>The user agent must create a new <span>HTML parser</span>.</p>
+    <p>The user agent must remove the children nodes of the
+    <code>Document</code> whose <code
+    title="dom-innerHTML-HTML">innerHTML</code> attribute is being
+    set.</p>
+
+   </li>
+
+   <li>
+
+    <p>The user agent must create a new <span>HTML parser</span>, in
+    its initial state, and associate it with the
+    <code>Document</code> node.</p>
+
+   </li>
+
+   <li>
+
+    <p>The user agent must place into the <span>input stream</span> for the
+    <span>HTML parser</span> just created the string being assigned
+    into the <code title="dom-innerHTML-HTML">innerHTML</code>
+    attribute.</p>
+
+   </li>
+
+   <li>
+
+    <p>The user agent must start the parser and let it run until it
+    has consumed all the characters just inserted into the input
+    stream. (The <code>Document</code> node will have been populated
+    with elements and a <code title="event-load">load</code> event
+    will have fired on <span title="the body element">its body
+    element</span>.)</p>
+
+   </li>
+
+  </ol>
+
+  <p>Otherwise, if the node is an element, then setting the <code
+  title="dom-innerHTML-HTML">innerHTML</code> DOM attribute must cause
+  the following algorithm to run instead:</p>
+
+  <ol>
+
+   <li>
+
+    <p>The user agent must create a new <code>Document</code>
+    node.</p>
+
+    <p>The user agent must create a new <span>HTML parser</span>, and
+    associate it with the just created <code>Document</code> node.</p>
 
     <p class="note">Parts marked <dfn title="innerHTML
     case"><code>innerHTML</code> case</dfn> in algorithms in the
@@ -2084,6 +2133,17 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
     <p>Let <var title="">root</var> be a new <code>html</code> element
     with no attributes.</p>
+
+   </li>
+
+   <li>
+
+    <p>The user agent must append the element <var title="">root</var>
+    to the <code>Document</code> node created above.</p>
+
+   </li>
+
+   <li>
 
     <p>The user agent must set up the parser's <span>stack of open
     elements</span> so that it contains just the single element <var
@@ -2167,6 +2227,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 <!--
   For XHTML: content must be well-formed. Where does
   it insert? Immediately after the script that called document.write()?</p>
+  how do we handle async scripts vs sync scripts?
 -->
 
   <p class="big-issue">...innerHTML...</p>
@@ -9913,12 +9974,18 @@ XXX selection ranges -->
   document.write() pages and navigating to javascript: URIs.</p>
 
 
-  <h5>Page load processing model for HTML files</h5>
+  <h4>Page load processing model for HTML files</h4>
 
   <p>When an HTML page (as opposed to an XML page) is loaded in a
   <span>browsing context</span>, the user agent must begin to parse
   the stream of bytes as described in <a href="#parsing">the parsing
   section</a>.</p>
+
+  <p class="big-issue">create a Document node, create a parser,
+  associate them together, run the parser while pushing bytes into the
+  end of the input stream, push an explicit EOF when you have no more
+  bytes, and require the parser to wait for an explicit EOF in this
+  case (or some equivalent)</p>
 
   <p>This will usually eventually cause a <code
   title="event-load">load</code> event to be fired.</p> <!-- XXX continue... -->
@@ -9927,13 +9994,13 @@ XXX selection ranges -->
   etc.</p>
 
 
-  <h5>Page load processing model for XML files</h5>
+  <h4>Page load processing model for XML files</h4>
 
   <p class="big-issue">Must make sure we don't step on the toes of
   other specifications.</p>
 
 
-  <h5>Page load processing model for text files</h5>
+  <h4>Page load processing model for text files</h4>
 
   <p class="big-issue">Must make sure we don't step on the toes of
   other specifications. This section should be referred to by the
@@ -19169,21 +19236,22 @@ function receiver(e) {
 
   </dl>
 
+  <p class="big-issue">This isn't quite right. For some entities, UAs
+  require a semicolon, for others they don't. We probably need to do
+  the same for backwards compatibility. If we do that we might be able
+  to add more entities, e.g. for mathematics. Probably the way to mark
+  whether or not an entity requires a semicolon is with an additional
+  column in the <span title="entities">entity table lower
+  down</span>.</p>
+
 
   <h4><dfn>Tree construction</dfn></h4>
 
   <p>The input to the tree construction stage is a sequence of tokens
   from the <span>tokenisation</span> stage. The tree construction
-  stage must create a DOM <code>Document</code> object immediately
-  upon being invoked. This is the only formal "output" of this stage;
-  most of the real "output" consists of dynamically modifying or
-  extending that document's DOM tree.</p>
-
-  <p>The <code>Document</code> object must initially have null <code
-  title="">doctype</code> and <code title="">documentElement</code>
-  attributes, and its other attributes must be set such that the
-  implementation is in conformance with DOM3 Core. <a
-  href="#refsDOM3CORE">[DOM3CORE]</a></p>
+  stage is associated with a DOM <code>Document</code> object when a
+  parser is created. The "output" of this stage consists of
+  dynamically modifying or extending that document's DOM tree.</p>
 
   <p>Tree construction passes through several phases. Initially, UAs
   must act according to the steps described as being those of
@@ -19205,7 +19273,8 @@ function receiver(e) {
   includes the parsing of any content inserted using <code
   title="dom-document-write-HTML">document.write()</code> and <code
   title="dom-document-writeln">document.writeln()</code> calls.<!--
-  XXX xref --> <a href="#refsDOM3Events">[DOM3EVENTS]</a></p>
+  XXX xref --> <a href="#refsDOM3Events">[DOM3EVENTS]</a></p><!-- XXX
+  what abotu innerHTML? -->
 
   <p class="note">Not all of the tag names mentioned below are
   conformant tag names in this specification; many are included to
@@ -19219,6 +19288,7 @@ function receiver(e) {
   recognised that <a href="#hardwareLimitations">practical
   concerns</a> will likely force user agents to impose nesting
   depths.</p>
+
 
   <h5><dfn>The initial phase</dfn></h5>
 
@@ -20097,7 +20167,7 @@ simplified explanation instead:
         <code>script</code> element's end tag, so ignore it.</p>
 
         <p>If the parser was originally created in order to handle the
-        setting of an element's <code
+        setting of a node's <code
         title="dom-innerHTML-HTML">innerHTML</code> attribute, then
         mark the <code>script</code> element as <span>"already
         executed"</span>, and skip the rest of the processing
