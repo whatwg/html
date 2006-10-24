@@ -1675,41 +1675,69 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
   <ol>
 
-   <li>Let <var title="">type</var> be the value of the first
+   <li><p>Let <var title="">type</var> be the value of the first
    argument, if there is one, or "<code>text/html</code>"
-   otherwise.</li>
+   otherwise.</p></li>
 
-   <li>Let <var title="">replace</var> be true if there is a second
+   <li><p>Let <var title="">replace</var> be true if there is a second
    argument and it has the value "replace"<!-- case-insensitive. XXX
-   -->, and false otherwise.</li>
+   -->, and false otherwise.</p></li>
 
-   <li>If the document has an <span>active tokeniser</span><!-- XXX
-   xref -->, then stop that tokeniser, and throw away any pending
-   content in the input stream. <span class="big-issue">what about if
-   it doesn't, because it's either like a text/plain, or Atom, or PDF,
-   or XHTML, or image document, or something?</span></li>
+   <li>
 
-   <li>Remove all child nodes of the document.<span
-   class="big-issue">again, what if it's really an image?</span></li>
+    <p>If the document has an <span>active parser</span><!-- XXX xref
+    --> that isn't a <span>script-created parser</span>, and the
+    <span>insertion point</span> associated with that parser's
+    <span>input stream</span> is not undefined (that is, it
+    <em>does</em> point to somewhere in the input stream), then the
+    method does nothing. Abort these steps.</p>
 
-   <li>Create a new <span>HTML parser</span> and associate it with the
-   document.</li>
+    <p class="note">This basically causes <code
+    title="dom-document-open">document.open()</code> to be ignored
+    when it's called in an inline script found during the parsing of
+    data sent over the network, while still letting it have an effect
+    when called asynchronously or on a document that is itself being
+    spoon-fed using these APIs.</p>
 
-   <!-- text/plain handling --><li>If <var title="">type</var> does
+   </li>
+
+   <li><p>Otherwise, if the document has an <span>active
+   parser</span><!--XXX xref-->, then stop that parser, and throw away
+   any pending content in the input stream. <span
+   class="big-issue">what about if it doesn't, because it's either
+   like a text/plain, or Atom, or PDF, or XHTML, or image document, or
+   something?</span></p></li>
+
+   <li><p>Remove all child nodes of the document.</p></li>
+
+   <li><p>Create a new <span>HTML parser</span> and associate it with
+   the document. This is a <dfn>script-created parser</dfn> (meaning
+   that it can be closed by the <code
+   title="dom-document-open">document.open()</code> and <code
+   title="dom-document-close">document.close()</code> methods, and
+   that the tokeniser will wait for an explicit call to <code
+   title="dom-document-close">document.close()</code> before emitting
+   an end-of-file token).</p></li>
+
+   <!-- text/plain handling --><li><p>If <var title="">type</var> does
    not have the value "<code>text/html</code>"<!-- XXX matched how?
    -->, then act as if the tokeniser had emitted a <code>pre</code>
    element start tag, then set the <span>HTML parser</span>'s
    <span>tokenisation</span> stage's <span>content model flag</span>
-   to <em>PLAINTEXT</em>.</li>
+   to <em>PLAINTEXT</em>.</p></li>
 
-   <li>If <var title="">replace</var> is false, then: remove all the
+   <li><p>If <var title="">replace</var> is false, then: remove all the
    entries in the <span>browsing context</span>'s <span>session
    history</span> after the <span>current entry</span> in its
    <code>DocumentUI</code>'s <code>History</code> object, add a new
    entry whose address is the same as the <span>current entry</span>'s
    at the end of the list, and then advance to that page as if the
    <code title="dom-history-forward">history.forward()</code> method
-   had been invoked.</li>
+   had been invoked.</p></li>
+
+   <li><p>Finally, set the <span>insertion point</span> to point at just
+   before the end of the <span>input stream</span> (which at this
+   point will be empty).</p></li>
 
   </ol>
 
@@ -1719,8 +1747,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   that defines how this all works when stuff comes over the
   network.</p>
 
-  <p class="big-issue">Should we support XML/XHTML as a type to that
-  method?</p>
+  <!-- XXX Should we support XML/XHTML as a type to that method? -->
 
   <p>When called with three or more arguments, the <code
   title="dom-document-open">open()</code> method on the
@@ -1737,10 +1764,11 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   <code>INVALID_ACCESS_ERR</code> exception.</p>
 
   <p>The <dfn title="dom-document-close"><code>close()</code></dfn>
-  method <span class="big-issue">...</span> </p> <!-- XXX it doesn't
-  necessarily close the input stream if the stream wasn't opened by
-  document.open() (whether implied by document.write() or not); see
-  what browsers do... -->
+  method must do nothing if there is no <span>script-created
+  parser</span> associated with the document. If there is such a
+  parser, then it must have an <span>explicit "EOF" character</span>
+  inserted at the <span>insertion point</span> of the parser's
+  <span>input stream</span>.</p>
 
 
   <h5>Dynamic markup insertion in HTML</h5>
@@ -1757,8 +1785,8 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
     <p>If the <span>insertion point</span> is undefined, the <code
     title="dom-document-open">open()</code> method must be called
     (with no arguments) on the <code title="Document">document</code>
-    object, and then the <span>insertion point</span> must be set to
-    point at just before the end of the <span>input stream</span>.</p>
+    object. The <span>insertion point</span> will point at just before
+    the end of the (empty) <span>input stream</span>.</p>
 
    </li>
 
@@ -17935,14 +17963,6 @@ function receiver(e) {
   <h3 id="parsing"><span title="SCS">[SCS]</span> Parsing HTML documents</h3>
 
   <p><em>This section only applies to user agents.</em></p>
-
-  <p class="big-issue">Yet to be defined: how this integrates with
-  document.open() and document.close() -- something about opening at
-  the start and closing at the end, once all pending scripts and thus
-  all pending document.write()s have been processed. Interaction with
-  tokeniser's EOF character is important, since the tokeniser can hit
-  this character, emit a &lt;script> block causing more characters to
-  be introduced, and then has to ignore the EOF it hit before.</p>
  
   <p>The rules for parsing <span>XHTML</span> documents into DOM trees
   are covered by the XML and Namespaces in XML specifications, and are
@@ -18117,6 +18137,15 @@ function receiver(e) {
   the input stream. Initially, the insertion point is
   uninitialised.</p>
 
+  <p>The "EOF" character in the tables below is a conceptual character
+  representing the end of the <span>input stream</span>. If the parser
+  is a <span>script-created parser</span>, then the end of the
+  <span>input stream</span> is reached when an <dfn>explicit "EOF"
+  character</dfn> (inserted by the <code
+  title="dom-document-close">document.close()</code> method) is
+  consumed. Otherwise, the "EOF" charecter is not a real character in
+  the stream, but rather the lack of any further characters.</p>
+
 
   <h4><dfn>Tokenisation</dfn></h4>
 
@@ -18129,10 +18158,6 @@ function receiver(e) {
   repeats the same state (to consume the next character). Some states
   have more complicated behaviour and can consume several characters
   before switching to another state.</p>
-
-  <p>The "EOF" character in the tables below is a conceptual character
-  representing the end of the input file. It is not a real character
-  in the stream, but rather the lack of any further characters.</p>
 
   <p>The exact behaviour of certain states depends on a <dfn>content
   model flag</dfn> that is set after certain tokens are emitted. The
@@ -19017,16 +19042,16 @@ function receiver(e) {
 
   </dl>
 
+  <p>When a start tag token is emitted, its attributes must be
+  preprocessed, as follows:</p>
+
+  <p class="big-issue">need to define &lt;table rules>, etc</p>
+
   <p>When an end tag token is emitted, the <span>content model
   flag</span> must be switched to the PCDATA state.</p>
 
   <p>When an end tag token is emitted with attributes, that is a
   <span>parse error</span>.</p>
-
-  <p>When a start tag token is emitted, its attributes must be
-  preprocessed, as follows:</p>
-
-  <p class="big-issue">need to define &lt;table rules>, etc</p>
 
 
   <h5>Tokenising entities</h5>
@@ -22200,12 +22225,11 @@ Put the following into the MathML namespace if parsed:
   </dl>
 
   <p class="big-issue">Need to define the term <dfn>stop
-  parsing</dfn>. Probably need to invoke document.close() here, after
-  all pending scripts have run (so document.write()s work) and say
-  something about the load event. Also need to execute any pending
-  loads of scripts in the "<span>list of scripts that will execute
-  when the document has finished parsing</span>".</p><!-- XXX d.w()
-  CHECK WHAT UAs DO!-->
+  parsing</dfn>. have to run all pending scripts (so document.write()s
+  work) and say something about the load event. Also need to execute
+  any pending loads of scripts in the "<span>list of scripts that will
+  execute when the document has finished parsing</span>".</p><!-- XXX
+  d.w() CHECK WHAT UAs DO!-->
 
 
 <!--XXX need to handle
