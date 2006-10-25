@@ -1254,7 +1254,186 @@ and suggestions on this to the list, btw).
 -->
 
 
-  <h4><dfn>Dynamic markup insertion</dfn></h4>
+  <h3>The elements <span title="WIP">[WIP]</span></h3>
+
+  <p>The nodes representing HTML elements in the DOM must implement,
+  and expose to scripts, the interfaces listed for them in the
+  relevant sections of this specification. This includes XHTML
+  elements in XML documents, even when those documents are in another
+  context (e.g. inside an XSLT transform).</p>
+
+  <p>The basic interface, from which all the HTML elements' interfaces
+  inherit, and which is used by elements that have no additional
+  requirements, is the <code>HTMLElement</code> interface.</p>
+
+  <p class="big-issue">Define HTMLElement here. (note it's current defined elsewhere)</p>
+
+
+
+  <h4>Elements and documents</h4>
+
+  <p>An element is said to have been <dfn title="insert an element
+  into a document">inserted into a document</dfn> when either its
+  <code>parentNode</code> DOM attribute changes and its new value is
+  the <code>Document</code> in question, or, when the DOM node
+  represented by its <code>parentNode</code>, if any, has itself just
+  been <span title="insert an element into a document">inserted into a
+  document</span>.</p> <!-- XXX that doesn't work... -->
+
+
+  <h4>Reflecting content attributes in DOM attributes</h4>
+
+  <p>Some <span title="DOM attribute">DOM attributes</span> are
+  defined to <dfn>reflect</dfn> a particular <span>content
+  attribute</span>. This means that on getting, the DOM attribute
+  returns the current value of the content attribute, and on setting,
+  the DOM attribute changes the value of the content attribute to the
+  given value.</p>
+
+  <p>If a reflecting DOM attribute is a <code>DOMString</code>
+  attribute defined to contain a URI, then on getting, the DOM
+  attribute must return the value of the content attribute, resolved
+  to an absolute URI, and on setting, must set the content attribute
+  to the specified literal value. If the content attribute is absent,
+  the DOM attribute must return the default value, if the content
+  attribute has one, or else the empty string.</p>
+
+  <p>If a reflecting DOM attribute is a <code>DOMString</code>
+  attribute that is not defined to contain a URI, then the getting and
+  setting must be done in a transparent, case-sensitive manner, except
+  if the content attribute is defined to only allow a specific set of
+  values. In this latter case, the attribute's value must first be
+  <span>converted to lowercase</span><!--XXX xref --> before being
+  returned. If the content attribute is absent, the DOM attribute must
+  return the default value, if the content attribute has one, or else
+  the empty string.</p>
+
+  <p>If a reflecting DOM attribute is a boolean attribute, then the
+  DOM attribute must return true if the attribute is set, and false if
+  it is absent. On setting, the content attribute must be removed if
+  the DOM attribute is set to false, and must be set to have the same
+  value as its name if the DOM attribute is set to true.</p>
+
+  <p>If a reflecting DOM attribute is a numeric type
+  (<code>long</code>) then the content attribute must be <a
+  href="#toNumber">converted to a numeric type</a> first (truncating
+  any fractional part). If that fails, or if the attribute is absent,
+  the default value must be returned instead, or 0 if there is no
+  default value. On setting, the given value must be converted to a
+  string representing the number in base ten and then that string must
+  be used as the new content attribute value.</p>
+
+  <!-- XXX DOMTokenString attributes -->
+
+
+  <h3>APIs in HTML documents</h3>
+  <!-- XXX case-sensitivity training required here. -->
+
+  <p>For <span>HTML documents</span>, and for <span>HTML
+  elements</span> in <span>HTML documents</span>, certain APIs become
+  case-insensitive or case-changing, as sometimes defined in DOM3
+  Core, and as summarised or required below. <a
+  href="#refsDOM3CORE">[DOM3CORE]</a>.</p>
+
+  <p>This does not apply to <span>XML documents</span> or to elements
+  that are not in the <span>HTML namespace</span> despite being in
+  <span>HTML documents</span>.</p>
+
+  <dl>
+
+   <dt><code title="">Element.tagName</code>, <code
+   title="">Node.nodeName</code>, and <code
+   title="">Node.localName</code></dt>
+
+   <dd>
+
+    <p>These attributes return tag names in all uppercase<!-- XXX
+    xref-->, regardless of the case with which they were created.</p>
+
+   </dd>
+
+
+   <dt><code title="">Document.createElement()</code></dt>
+
+   <dd>
+
+    <p>The canonical form of HTML markup is all-lowercase; thus, this
+    method will lowercase<!-- XXX xref --> the argument before
+    creating the requisite element. Also, the element created must be
+    in the <span>HTML namespace</span>.</p>
+
+    <p class="note">This doesn't apply to <code
+    title="">Document.createElementNS()</code>. Thus, it is possible,
+    by passing this last method a tag name in the wrong case, to
+    create an element that claims to have the tag name of an HTML
+    element, but doesn't support its interfaces, because it really has
+    another tag name not accessible from the DOM APIs.</p>
+
+   </dd>
+
+
+   <dt><code title="">Element.setAttributeNode()</code></dt>
+
+   <dd>
+
+    <p>When an <code>Attr</code> node is set on an <span>HTML
+    element</span>, it must have its name lowercased<!-- XXX xref -->
+    before the element is affected.</p>
+
+    <p class="note">This doesn't apply to <code
+    title="">Document.setAttributeNodeNS()</code>.</p>
+
+   </dd>
+
+
+   <dt><code title="">Element.setAttribute()</code></dt>
+
+   <dd>
+
+    <p>When an attribute is set on an <span>HTML element</span>, the
+    name argument must be lowercased<!-- XXX xref --> before the
+    element is affected.</p>
+
+    <p class="note">This doesn't apply to <code
+    title="">Document.setAttributeNS()</code>.</p>
+
+   </dd>
+
+
+   <dt><code title="">Document.getElementsByTagName()</code> and <code
+   title="">Element.getElementsByTagName()</code></dt>
+
+   <dd>
+
+    <p>These methods (but not their namespaced counterparts) must
+    compare the given argument case-insensitively<!-- XXX xref -->
+    when looking at <span>HTML elements</span>, and case-sensitively
+    otherwise.</p>
+
+    <p class="note">Thus, in an <span>HTML document</span> with nodes
+    in multiple namespaces, these methods will be both case-sensitive
+    and case-insensitive at the same time.</p>
+
+   </dd>
+
+
+   <dt><code title="">Document.renameNode()</code></dt>
+
+   <dd>
+
+    <p>If the new namespace is the <span>HTML namespace</span>, then
+    the new qualified name must be lowercased before the rename takes
+    place.<!-- XXX xref --></p>
+
+   </dd>
+   
+
+  </dl>
+
+
+
+
+  <h3><dfn>Dynamic markup insertion</dfn></h3>
 
   <p>The <code title="dom-document-write">document.write()</code>
   family of methods and the <code
@@ -1300,7 +1479,7 @@ and suggestions on this to the list, btw).
   (U+000A).</p>
 
 
-  <h5>Controlling the input stream</h5>
+  <h4>Controlling the input stream</h4>
 
   <p>The <dfn title="dom-document-open"><code>open()</code></dfn>
   method comes in several variants with different numbers of
@@ -1410,7 +1589,7 @@ and suggestions on this to the list, btw).
   point</span> of the parser's <span>input stream</span>.</p>
 
 
-  <h5>Dynamic markup insertion in HTML</h5>
+  <h4>Dynamic markup insertion in HTML</h4>
 
   <p>In HTML, the <dfn
   title="dom-document-write-HTML"><code>document.write(<var
@@ -1869,7 +2048,7 @@ and suggestions on this to the list, btw).
        http://trac.webkit.org/projects/webkit/browser/trunk/WebCore/html/HTMLTokenizer.cpp#L1742
    -->
 
-  <h5>Dynamic markup insertion in XML</h5>
+  <h4>Dynamic markup insertion in XML</h4>
 
   <p>In an XML context, the <dfn
   title="dom-document-write-XML"><code>document.write(<var
@@ -1971,85 +2150,11 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
   </ol>
 
 
-  <h3>The elements <span title="WIP">[WIP]</span></h3>
 
-  <p>The nodes representing HTML elements in the DOM must implement,
-  and expose to scripts, the interfaces listed for them in the
-  relevant sections of this specification. This includes XHTML
-  elements in XML documents, even when those documents are in another
-  context (e.g. inside an XSLT transform).</p>
-
-  <p>The basic interface, from which all the HTML elements' interfaces
-  inherit, and which is used by elements that have no additional
-  requirements, is the <code>HTMLElement</code> interface.</p>
-
-  <p class="big-issue">Define HTMLElement here. (note it's current defined elsewhere)</p>
-
-  <p>In <span>HTML documents</span>, for HTML elements, the DOM APIs
-  must return tag names and attributes names in uppercase, regardless
-  of the case with which they were created. This does not apply to
-  <span>XML documents</span>; in XML documents, the DOM APIs must
-  always return tag names and attribute names in the original case
-  used to create those nodes.</p>
+  <h3>Events</h3>
 
 
-  <h4>Elements and documents</h4>
-
-  <p>An element is said to have been <dfn title="insert an element
-  into a document">inserted into a document</dfn> when either its
-  <code>parentNode</code> DOM attribute changes and its new value is
-  the <code>Document</code> in question, or, when the DOM node
-  represented by its <code>parentNode</code>, if any, has itself just
-  been <span title="insert an element into a document">inserted into a
-  document</span>.</p> <!-- XXX that doesn't work... -->
-
-
-  <h3>Reflecting content attributes in DOM attributes</h3>
-
-  <p>Some <span title="DOM attribute">DOM attributes</span> are
-  defined to <dfn>reflect</dfn> a particular <span>content
-  attribute</span>. This means that on getting, the DOM attribute
-  returns the current value of the content attribute, and on setting,
-  the DOM attribute changes the value of the content attribute to the
-  given value.</p>
-
-  <p>If a reflecting DOM attribute is a <code>DOMString</code>
-  attribute defined to contain a URI, then on getting, the DOM
-  attribute must return the value of the content attribute, resolved
-  to an absolute URI, and on setting, must set the content attribute
-  to the specified literal value. If the content attribute is absent,
-  the DOM attribute must return the default value, if the content
-  attribute has one, or else the empty string.</p>
-
-  <p>If a reflecting DOM attribute is a <code>DOMString</code>
-  attribute that is not defined to contain a URI, then the getting and
-  setting must be done in a transparent, case-sensitive manner, except
-  if the content attribute is defined to only allow a specific set of
-  values. In this latter case, the attribute's value must first be
-  <span>converted to lowercase</span><!--XXX xref --> before being
-  returned. If the content attribute is absent, the DOM attribute must
-  return the default value, if the content attribute has one, or else
-  the empty string.</p>
-
-  <p>If a reflecting DOM attribute is a boolean attribute, then the
-  DOM attribute must return true if the attribute is set, and false if
-  it is absent. On setting, the content attribute must be removed if
-  the DOM attribute is set to false, and must be set to have the same
-  value as its name if the DOM attribute is set to true.</p>
-
-  <p>If a reflecting DOM attribute is a numeric type
-  (<code>long</code>) then the content attribute must be <a
-  href="#toNumber">converted to a numeric type</a> first (truncating
-  any fractional part). If that fails, or if the attribute is absent,
-  the default value must be returned instead, or 0 if there is no
-  default value. On setting, the given value must be converted to a
-  string representing the number in base ten and then that string must
-  be used as the new content attribute value.</p>
-
-  <!-- XXX DOMTokenString attributes -->
-
-
-  <h3>Event listeners</h3>
+  <h4>Event listeners</h4>
 
   <p id="js-function-listener">In the ECMAScript DOM binding, the
   ECMAScript native <code>Function</code> type must implement the
@@ -2090,7 +2195,7 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
   href="#refsECMA262">[ECMA262]</a></p>
 
 
-  <h3>Event firing</h3>
+  <h4>Event firing</h4>
 
   <p>Certain operations and methods are defined as firing events on
   elements. For example, the <code
@@ -2157,50 +2262,12 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
   expected ways.</p>
 
 
-  <h3>Event handling</h3>
+  <h4>Event handling</h4>
 
   <p class="big-issue">We need a section to define how events all
   work, default actions, etc. For example, how does clicking on a span
   in a link that is in another link actually cause a link to be
   followed? which one? (where should this section be?)</p>
-
-
-  <h3>DOM feature strings</h3>
-
-  <p>DOM3 Core defines mechanisms for checking for interface support,
-  and for obtaining implementations of interfaces, using <a
-  href="http://www.w3.org/TR/DOM-Level-3-Core/core.html#DOMFeatures">feature
-  strings</a>. <a href="#refsDOM3CORE">[DOM3CORE]</a></p>
-
-  <p>A DOM application can use the <dfn
-  title="hasFeature"><code>hasFeature(<var title="">feature</var>,
-  <var title="">version</var>)</code></dfn> method of the
-  <code>DOMImplementation</code> interface with parameter values
-  "<code title="">HTML</code>" and "<code>5.0</code>" (respectively)
-  to determine whether or not this module is supported by the
-  implementation. In addition to the feature string "<code
-  title="">HTML</code>", the feature string "<code
-  title="">XHTML</code>" (with version string "<code>5.0</code>") can
-  be used to check if the implementation supports XHTML. User agents
-  should respond with a true value when the <code>hasFeature</code>
-  method is queried with these values. Authors are cautioned, however,
-  that UAs returning true might not be perfectly compliant, and that
-  UAs returning false might well have support for features in this
-  specification; in general, therefore, use of this method is
-  discouraged.</p>
-
-  <p>The values "<code title="">HTML</code>" and "<code
-  title="">XHTML</code>" (both with version "<code>5.0</code>") should
-  also be supported in the context of the <code>getFeature()</code>
-  and <code>isSupported()</code> methods, as defined by DOM3 Core.</p>
-
-  <p class="note">The interfaces defined in this specification are not
-  always supersets of the interfaces defined in DOM2 HTML; some
-  features that were formerly deprecated, poorly supported, rarely
-  used or considered unnecessary have been removed. Therefore it is
-  not guarenteed that an implementation that supports "<code
-  title="">HTML</code>" "<code>5.0</code>" also supports "<code
-  title="">HTML</code>" "<code>2.0</code>".</p>
 
 
   <h3>Common DOM interfaces</h3>
@@ -2540,6 +2607,43 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   <code>DOMTokenString</code> interface must stringify to the object's
   underlying string representation.</p>
 
+
+  <h4>DOM feature strings</h4>
+
+  <p>DOM3 Core defines mechanisms for checking for interface support,
+  and for obtaining implementations of interfaces, using <a
+  href="http://www.w3.org/TR/DOM-Level-3-Core/core.html#DOMFeatures">feature
+  strings</a>. <a href="#refsDOM3CORE">[DOM3CORE]</a></p>
+
+  <p>A DOM application can use the <dfn
+  title="hasFeature"><code>hasFeature(<var title="">feature</var>,
+  <var title="">version</var>)</code></dfn> method of the
+  <code>DOMImplementation</code> interface with parameter values
+  "<code title="">HTML</code>" and "<code>5.0</code>" (respectively)
+  to determine whether or not this module is supported by the
+  implementation. In addition to the feature string "<code
+  title="">HTML</code>", the feature string "<code
+  title="">XHTML</code>" (with version string "<code>5.0</code>") can
+  be used to check if the implementation supports XHTML. User agents
+  should respond with a true value when the <code>hasFeature</code>
+  method is queried with these values. Authors are cautioned, however,
+  that UAs returning true might not be perfectly compliant, and that
+  UAs returning false might well have support for features in this
+  specification; in general, therefore, use of this method is
+  discouraged.</p>
+
+  <p>The values "<code title="">HTML</code>" and "<code
+  title="">XHTML</code>" (both with version "<code>5.0</code>") should
+  also be supported in the context of the <code>getFeature()</code>
+  and <code>isSupported()</code> methods, as defined by DOM3 Core.</p>
+
+  <p class="note">The interfaces defined in this specification are not
+  always supersets of the interfaces defined in DOM2 HTML; some
+  features that were formerly deprecated, poorly supported, rarely
+  used or considered unnecessary have been removed. Therefore it is
+  not guarenteed that an implementation that supports "<code
+  title="">HTML</code>" "<code>5.0</code>" also supports "<code
+  title="">HTML</code>" "<code>2.0</code>".</p>
 
 
 
