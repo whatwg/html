@@ -2222,12 +2222,21 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
   <h5>Dynamic markup insertion in XML</h5>
 
+  <p>In an XML context, the <dfn
+  title="dom-document-write-HTML"><code>document.write(<var
+  title="">s</var>)</code></dfn> method can be called in </p>
+
   <p class="big-issue">...document.write...</p>
 
 <!--
   For XHTML: content must be well-formed. Where does
   it insert? Immediately after the script that called document.write()?</p>
   how do we handle async scripts vs sync scripts?
+
+Consider:
+data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ document.write('<foo>Test</foo>'); ]]></script>
+data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test'); alert(document.write); try { document.write('<foo>Test</foo>'); alert(document.childNodes.length); } catch (e) { alert(e); } ]]></script>
+
 -->
 
   <p class="big-issue">...innerHTML...</p>
@@ -15454,44 +15463,40 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
   representation of the image as a PNG file. <a
   href="#refsPNG">[PNG]</a>.</p>
 
-  <div class="proposal">
+  <p>The <dfn
+  title="toDataURL-type"><code>toDataURL(<var title="">type</var>)</code></dfn>
+  method (when called with one <em>or more</em> arguments) must return
+  a <code>data:</code> URI containing a representation of the image in
+  the format given by <var title="">type</var>. The possible values are MIME
+  types with no parameters, for example <code>image/png</code>,
+  <code>image/jpeg</code>, or even maybe <code>image/svg+xml</code> if
+  the implementation actually keeps enough information to reliably
+  render an SVG image from the canvas.</p>
 
-   <p>The <dfn
-   title="toDataURL-type"><code>toDataURL(<var title="">type</var>)</code></dfn>
-   method (when called with one <em>or more</em> arguments) must return
-   a <code>data:</code> URI containing a representation of the image in
-   the format given by <var title="">type</var>. The possible values are MIME
-   types with no parameters, for example <code>image/png</code>,
-   <code>image/jpeg</code>, or even maybe <code>image/svg+xml</code> if
-   the implementation actually keeps enough information to reliably
-   render an SVG image from the canvas.</p>
+  <p>Only support for <code>image/png</code> is required. User agents
+  may support other types. If the user agent does not support the
+  requested type, it must return the image using the PNG format.</p>
 
-   <p>Only support for <code>image/png</code> is required. User agents
-   may support other types. If the user agent does not support the
-   requested type, it must return the image using the PNG format.</p>
+  <p>User agents must convert the provided type to lower case before
+  establishing if they support that type and before creating the
+  <code>data:</code> URL.</p> <!-- XXX define "convert to lower case"
+  -->
 
-   <p>User agents must convert the provided type to lower case before
-   establishing if they support that type and before creating the
-   <code>data:</code> URL.</p> <!-- XXX define "convert to lower case"
-   -->
+  <p class="note">When trying to use types other than
+  <code>image/png</code>, authors can check if the image was really
+  returned in the requested format by checking to see if the returned
+  string starts with one the exact strings
+  "<code>data:image/png,</code>" or "<code>data:image/png;</code>". If
+  it does, the image is PNG, and thus the requested type was not
+  supported.</p>
 
-   <p class="note">When trying to use types other than
-   <code>image/png</code>, authors can check if the image was really
-   returned in the requested format by checking to see if the returned
-   string starts with one the exact strings
-   "<code>data:image/png,</code>" or "<code>data:image/png;</code>". If
-   it does, the image is PNG, and thus the requested type was not
-   supported.</p>
-
-   <p>Arguments other than the <var title="">type</var> must be
-   ignored, and must not cause the user agent to raise an exception (as
-   would normally occur if a method was called with the wrong number of
-   arguments). A future version of this specification will probably
-   allow extra parameters to be passed to <code>toDataURL()</code> to
-   allow authors to more carefully control compression settings, image
-   metadata, etc.</p>
-
-  </div>
+  <p>Arguments other than the <var title="">type</var> must be
+  ignored, and must not cause the user agent to raise an exception (as
+  would normally occur if a method was called with the wrong number of
+  arguments). A future version of this specification will probably
+  allow extra parameters to be passed to <code>toDataURL()</code> to
+  allow authors to more carefully control compression settings, image
+  metadata, etc.</p>
 
   <p><strong>Security:</strong> To prevent <em>information
   leakage</em>, the <code>toDataURL()</code> and
@@ -15690,36 +15695,32 @@ interface <dfn>ImageData</dfn> {
   the vertical direction. The arguments are in coordinate space
   units.</p>
 
-  <div class="proposal">
+  <p>The <dfn title="transform"><code>transform(m11, m12, m21, m22, dx,
+  dy)</code></dfn> method must multiply the current transformation
+  matrix with the matrix described by:</p>
 
-   <p>The <dfn title="transform"><code>transform(m11, m12, m21, m22, dx,
-   dy)</code></dfn> method must multiply the current transformation
-   matrix with the matrix described by:</p>
+  <table class="matrix">
+   <tr>
+    <td>m11</td>
+    <td>m12</td>
+    <td>dx</td>
+   </tr>
+   <tr>
+    <td>m21</td>
+    <td>m22</td>
+    <td>dy</td>
+   </tr>
+   <tr>
+    <td>0</td>
+    <td>0</td>
+    <td>1</td>
+   </tr>
+  </table>
 
-   <table class="matrix">
-    <tr>
-     <td>m11</td>
-     <td>m12</td>
-     <td>dx</td>
-    </tr>
-    <tr>
-     <td>m21</td>
-     <td>m22</td>
-     <td>dy</td>
-    </tr>
-    <tr>
-     <td>0</td>
-     <td>0</td>
-     <td>1</td>
-    </tr>
-   </table>
-
-   <p>The <dfn title="setTransform"><code>setTransform(m11, m12, m21,
-   m22, dx, dy)</code></dfn> method must reset the current transform to
-   the identity matrix, and then invoke the <code>transform(m11, m12,
-   m21, m22, dx, dy)</code> method with the same arguments.</p>
-
-  </div>
+  <p>The <dfn title="setTransform"><code>setTransform(m11, m12, m21,
+  m22, dx, dy)</code></dfn> method must reset the current transform to
+  the identity matrix, and then invoke the <code>transform(m11, m12,
+  m21, m22, dx, dy)</code> method with the same arguments.</p>
 
 
   <h5>Compositing</h5>
@@ -16295,28 +16296,34 @@ interface <dfn>ImageData</dfn> {
   <code>lineJoin</code>, and (if appropriate) <code>miterLimit</code>
   attributes.</p>
 
-  <p>Paths, when filled or stroked, are painted without affecting the
-  current path, and are subject to <span>transformations</span>, <span
-  title="shadows">shadow effects</span>, <span
-  title="globalAlpha">global alpha</span>, <span title="clipping
-  path">clipping paths</span>, and <span
+  <p>Paths, when filled or stroked, must be painted without affecting
+  the current path, and must be subject to
+  <span>transformations</span>, <span title="shadows">shadow
+  effects</span>, <span title="globalAlpha">global alpha</span>, <span
+  title="clipping path">clipping paths</span>, and <span
   title="globalCompositeOperation">global composition
   operators</span>.</p>
 
+  <p class="note">The transformation is applied to the path when it is
+  drawn, not when the path is constructed. Thus, a single path can be
+  constructed and then drawn according to different transformations
+  without recreating the path.</p>
 
-  <p>The <dfn><code>clip()</code></dfn> method creates a new
+
+  <p>The <dfn><code>clip()</code></dfn> method must create a new
   <dfn>clipping path</dfn> by calculating the intersection of the
-  current clipping path and the area described by the current path,
-  using the non-zero winding number rule. Open subpaths must be
-  implicitly closed when computing the clipping path, without
-  affecting the actual subpaths.</p>
+  current clipping path and the area described by the current path
+  (after applying the <span>current transformation</span>), using the
+  non-zero winding number rule. Open subpaths must be implicitly
+  closed when computing the clipping path, without affecting the
+  actual subpaths.</p>
 
   <p>When the context is created, the initial clipping path is the
   rectangle with the top left corner at (0,0) and the width and height
   of the coordinate space.</p>
 
 
-  <p class="proposal">The <dfn
+  <p>The <dfn
   title="isPointInPath"><code>isPointInPath(<var title="">x</var>,
   <var title="">y</var>)</code></dfn> method must return true if the point
   given by the <var title="">x</var> and <var title="">y</var> coordinates passed to the
@@ -16381,60 +16388,59 @@ interface <dfn>ImageData</dfn> {
   of the target element, not the rendered image (e.g. height/width
   attributes don't affect it -->
 
-  <div class="proposal">
 
-   <h5><dfn>Pixel manipulation</dfn></h5>
+  <h5><dfn>Pixel manipulation</dfn></h5>
 
-   <p>The <dfn title="getImageData"><code>getImageData(sx, sy, sw,
-   sh)</code></dfn> method must return an <code>ImageData</code> object
-   representing the underlying pixel data for the area of the canvas
-   denoted by the rectangle which has one corner at the (<var title="">sx</var>,
-   <var title="">sy</var>) coordinate, and that has width <var title="">sw</var> and
-   height <var title="">sh</var>. Pixels outside the canvas must be returned as
-   transparent black.</p>
+  <p>The <dfn title="getImageData"><code>getImageData(sx, sy, sw,
+  sh)</code></dfn> method must return an <code>ImageData</code> object
+  representing the underlying pixel data for the area of the canvas
+  denoted by the rectangle which has one corner at the (<var title="">sx</var>,
+  <var title="">sy</var>) coordinate, and that has width <var title="">sw</var> and
+  height <var title="">sh</var>. Pixels outside the canvas must be returned as
+  transparent black.</p>
 
-   <p><code>ImageData</code> objects must be initialised so that their
-   <dfn title="dom-imagedata-height"><code>height</code></dfn>
-   attribute is set to <var title="">h</var>, the number of rows in the image
-   data, their <dfn
-   title="dom-imagedata-width"><code>width</code></dfn> attribute is
-   set to <var title="">w</var>, the number of physical device pixels per row in
-   the image data, and the <dfn
-   title="dom-imagedata-data"><code>data</code></dfn> attribute is
-   initialised to an array of <var title="">h</var>&times;<var title="">w</var>&times;4
-   integers. The pixels must be represented in this array in
-   left-to-right order, row by row, starting at the top left, with each
-   pixel's red, green, blue, and alpha components being given in that
-   order. Each component of each device pixel represented in this array
-   must be in the range 0..255, representing the 8 bit value for that
-   component.</p>
+  <p><code>ImageData</code> objects must be initialised so that their
+  <dfn title="dom-imagedata-height"><code>height</code></dfn>
+  attribute is set to <var title="">h</var>, the number of rows in the image
+  data, their <dfn
+  title="dom-imagedata-width"><code>width</code></dfn> attribute is
+  set to <var title="">w</var>, the number of physical device pixels per row in
+  the image data, and the <dfn
+  title="dom-imagedata-data"><code>data</code></dfn> attribute is
+  initialised to an array of <var title="">h</var>&times;<var title="">w</var>&times;4
+  integers. The pixels must be represented in this array in
+  left-to-right order, row by row, starting at the top left, with each
+  pixel's red, green, blue, and alpha components being given in that
+  order. Each component of each device pixel represented in this array
+  must be in the range 0..255, representing the 8 bit value for that
+  component.</p>
 
-   <p>The <dfn title="putImageData"><code>putImageData(image, dx,
-   dy)</code></dfn> method must take the given <code>ImageData</code>
-   structure, and draw it at the specified location
-   <var title="">dx</var>,<var title="">dy</var> in the canvas coordinate space, mapping
-   each pixel represented by the <code>ImageData</code> structure into
-   one device pixel.</p>
+  <p>The <dfn title="putImageData"><code>putImageData(image, dx,
+  dy)</code></dfn> method must take the given <code>ImageData</code>
+  structure, and draw it at the specified location
+  <var title="">dx</var>,<var title="">dy</var> in the canvas coordinate space, mapping
+  each pixel represented by the <code>ImageData</code> structure into
+  one device pixel.</p>
 
-   <p>The handling of pixel rounding when the specified coordinates do
-   not exactly map to the device coordinate space is not defined by
-   this specification, except that the following must result in no
-   visible changes to the rendering:</p>
+  <p>The handling of pixel rounding when the specified coordinates do
+  not exactly map to the device coordinate space is not defined by
+  this specification, except that the following must result in no
+  visible changes to the rendering:</p>
 
-   <pre>context.putImageData(context.getImageData(x, y, w, h), x, y);</pre>
+  <pre>context.putImageData(context.getImageData(x, y, w, h), x, y);</pre>
 
-   <p>...for any value of <var title="">x</var> and <var
-   title="">y</var>. In other words, while user agents may round the
-   arguments of the two methods so that they map to device pixel
-   boundaries, any rounding performed must be performed consistently
-   for both the <code>getImageData()</code> and
-   <code>putImageData()</code> operations.</p>
+  <p>...for any value of <var title="">x</var> and <var
+  title="">y</var>. In other words, while user agents may round the
+  arguments of the two methods so that they map to device pixel
+  boundaries, any rounding performed must be performed consistently
+  for both the <code>getImageData()</code> and
+  <code>putImageData()</code> operations.</p>
 
-   <p>The current transformation matrix must not affect the
-   <code>getImageData()</code> and <code>putImageData()</code>
-   methods.</p>
+  <p>The current transformation matrix must not affect the
+  <code>getImageData()</code> and <code>putImageData()</code>
+  methods.</p>
 
-  </div>
+
 
   <h5>Drawing model</h5>
 
