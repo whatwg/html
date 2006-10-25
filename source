@@ -1011,6 +1011,8 @@ and suggestions on this to the list, btw).
   number of disparate features, the members of this interface are
   described in various different sections.</p>
 
+
+
   <h4><dfn>Resource metadata management</dfn></h4>
 
   <p>The <dfn title="dom-document-URL"><code>URL</code></dfn>
@@ -1075,7 +1077,154 @@ and suggestions on this to the list, btw).
 
 
 
-  <h4><dfn>DOM tree accessors</dfn></h4>
+  <h3>The elements <span title="WIP">[WIP]</span></h3>
+
+  <p>The nodes representing <span>HTML elements</span> in the DOM must
+  implement, and expose to scripts, the interfaces listed for them in
+  the relevant sections of this specification. This includes
+  <span>XHTML</span> elements in <span>XML documents</span>, even when
+  those documents are in another context (e.g. inside an XSLT
+  transform).</p>
+
+  <p>The basic interface, from which all the <span>HTML
+  elements</span>' interfaces inherit, and which must be used by
+  elements that have no additional requirements, is the
+  <code>HTMLElement</code> interface.</p>
+
+  <pre class="idl">interface <dfn>HTMLElement</dfn> : <span>Element</span> {
+  // <span>Metadata attributes</span>
+           attribute DOMString <span title="dom-id">id</span>;
+           attribute DOMString <span title="dom-title">title</span>;
+           attribute DOMString <span title="dom-lang">lang</span>;
+           attribute DOMString <span title="dom-dir">dir</span>;
+           attribute <span>DOMTokenString</span> <span title="dom-className">className</span>;
+
+  // <span>DOM tree accessors</span>
+  NodeList <span title="dom-getElementsByClassName">getElementsByClassName</span>(in DOMString[] classNames);
+
+  // <span>Dynamic markup insertion</span>
+           attribute DOMString <span title="dom-innerHTML">innerHTML</span>;
+
+  // <span>Commands</span>
+           attribute <span>HTMLMenuElement</span> <span title="dom-contextMenu">contextMenu</span>;
+
+  // <span>Editing</span>
+           attribute boolean <span title="dom-draggable">draggable</span>;
+           attribute DOMString <span title="dom-contenteditable">contenteditable</span>;
+
+  // tabindex...<!-- XXX -->
+  // event handler attributes...<!-- XXX -->
+  // click(), focus(), blur()... <!-- XXX -->
+};</pre>
+
+<!-- XXX
+click() https://bugzilla.mozilla.org/attachment.cgi?id=176950
+also focus(), blur(), innerHTML, etc.
+should the click, focus, blur methods be recursible?
+-->
+
+  <p>As with the <code>HTMLDocument</code> interface, this interface
+  holds methods and attributes related to a number of disparate
+  features, and the members of this interface are therefore described
+  in various different sections of this specification.</p>
+
+  <h4>Elements and documents</h4>
+
+  <p>An element is said to have been <dfn title="insert an element
+  into a document">inserted into a document</dfn> when either its
+  <code>parentNode</code> DOM attribute changes and its new value is
+  the <code>Document</code> in question, or, when the DOM node
+  represented by its <code>parentNode</code>, if any, has itself just
+  been <span title="insert an element into a document">inserted into a
+  document</span>.</p> <!-- XXX that doesn't work... -->
+
+
+  <h4>Reflecting content attributes in DOM attributes</h4>
+
+  <p>Some <span title="DOM attribute">DOM attributes</span> are
+  defined to <dfn>reflect</dfn> a particular <span>content
+  attribute</span>. This means that on getting, the DOM attribute
+  returns the current value of the content attribute, and on setting,
+  the DOM attribute changes the value of the content attribute to the
+  given value.</p>
+
+  <p>If a reflecting DOM attribute is a <code>DOMString</code>
+  attribute defined to contain a URI, then on getting, the DOM
+  attribute must return the value of the content attribute, resolved
+  to an absolute URI, and on setting, must set the content attribute
+  to the specified literal value. If the content attribute is absent,
+  the DOM attribute must return the default value, if the content
+  attribute has one, or else the empty string.</p>
+
+  <p>If a reflecting DOM attribute is a <code>DOMString</code>
+  attribute that is not defined to contain a URI, then the getting and
+  setting must be done in a transparent, case-sensitive manner, except
+  if the content attribute is defined to only allow a specific set of
+  values. In this latter case, the attribute's value must first be
+  <span>converted to lowercase</span><!--XXX xref --> before being
+  returned. If the content attribute is absent, the DOM attribute must
+  return the default value, if the content attribute has one, or else
+  the empty string.</p>
+
+  <p>If a reflecting DOM attribute is a boolean attribute, then the
+  DOM attribute must return true if the attribute is set, and false if
+  it is absent. On setting, the content attribute must be removed if
+  the DOM attribute is set to false, and must be set to have the same
+  value as its name if the DOM attribute is set to true.</p>
+
+  <p>If a reflecting DOM attribute is a numeric type
+  (<code>long</code>) then the content attribute must be <a
+  href="#toNumber">converted to a numeric type</a> first (truncating
+  any fractional part). If that fails, or if the attribute is absent,
+  the default value must be returned instead, or 0 if there is no
+  default value. On setting, the given value must be converted to a
+  string representing the number in base ten and then that string must
+  be used as the new content attribute value.</p>
+
+  <p>If a reflecting DOM attribute is of the type
+  <code>DOMTokenString</code>, then on getting it must return the
+  <code>DOMTokenString</code> object that represents the element's
+  correspending content attribute, and on setting, the <em>string
+  representation of the new value</em> must replace the value of the
+  element's <code title="attr-class">class</code> content attribute,
+  adding such an attribute if the element doesn't have one. The setter
+  is unusual in that it expects a string, and does not affect the
+  <code>DOMTokenString</code> object that is returned on getting. The
+  same <code>DOMTokenString</code> object must be returned every
+  time. When the attribute is absent, then the string represented by
+  the <code>DOMTokenString</code> object is the empty string.</p>
+
+  <p>If a reflecting DOM attribute has the type
+  <code>HTMLElement</code>, or an interface that descends from
+  <code>HTMLElement</code>, then, on getting, it must run the
+  following algorithm (stopping at the first point where a value is
+  returned):
+
+  <ol>
+
+   <li>If the corresponding content attribute is absent, then the
+   DOM attribute must return null.</li>
+
+   <li>Let <var title="">candidate</var> be the element that the <code
+   title="">document.getElementById()</code> method would find if it
+   was passed as its argument the current value of the corresponding
+   content attribute.</li>
+
+   <li>If <var title="">candidate</var> is null, or if it is not
+   type-compatible with the DOM attribute, then the DOM attribute must
+   return null.</li>
+
+   <li>Otherwise, it must return <var title="">candidate</var>.</li>
+
+  </ol>
+
+  <p>On setting, if the given element has an <code
+  title="attr-id">id</code> attribute, then the ...
+
+
+
+
+  <h3><dfn>DOM tree accessors</dfn></h3>
 
   <p><dfn>The <code>html</code> element</dfn> of a document is the
   document's root element, if there is one and it's an
@@ -1249,151 +1398,21 @@ and suggestions on this to the list, btw).
    the "" class).</p>
   </div>
 
+  <p>The <dfn
+  title="dom-getElementsByClassName"><code>getElementsByClassName()</code></dfn>
+  method on the <code>HTMLElement</code> interface must return the
+  nodes that the <code>HTMLDocument</code> <code
+  title="dom-document-getElementsByClassName">getElementsByClassName()</code>
+  method would return, excluding any elements that are not descendants
+  of the <code>HTMLElement</code> object on which the method was
+  invoked.</p>
+
 <!-- XXX
 >         * xGetParentElementByClassName(rootElement, className, tagName) -
 > Navigates upwards until we hit a parent element with the given class name and
 > optional tag name.
 -->
 
-
-  <h3>The elements <span title="WIP">[WIP]</span></h3>
-
-  <p>The nodes representing <span>HTML elements</span> in the DOM must
-  implement, and expose to scripts, the interfaces listed for them in
-  the relevant sections of this specification. This includes
-  <span>XHTML</span> elements in <span>XML documents</span>, even when
-  those documents are in another context (e.g. inside an XSLT
-  transform).</p>
-
-  <p>The basic interface, from which all the <span>HTML
-  elements</span>' interfaces inherit, and which must be used by
-  elements that have no additional requirements, is the
-  <code>HTMLElement</code> interface.</p>
-
-  <pre class="idl">interface <dfn>HTMLElement</dfn> : <span>Element</span> {
-           attribute DOMString <span title="dom-id">id</span>;
-           attribute DOMString <span title="dom-title">title</span>;
-           attribute DOMString <span title="dom-lang">lang</span>;
-           attribute DOMString <span title="dom-dir">dir</span>;
-           attribute DOMString <span title="dom-className">className</span>;
-           attribute HTMLMenuElement <span title="dom-contextMenu">contextMenu</span>;
-           attribute boolean <span title="dom-draggable">draggable</span>;
-           attribute DOMString <span title="dom-innerHTML">innerHTML</span>;
-  NodeList <span title="dom-getElementsByClassName">getElementsByClassName</span>(in DOMString[] classNames);
-  // contenteditable<!-- XXX -->
-  // tabindex<!-- XXX -->
-  // event handler attributes<!-- XXX -->
-};</pre>
-
-  <p>The <dfn title="dom-id"><code>id</code></dfn> attribute must
-  <span>reflect</span> the content <code title="attr-id">id</code>
-  attribute.</p>
-
-  <p>The <dfn title="dom-title"><code>title</code></dfn> attribute
-  must <span>reflect</span> the content <code
-  title="attr-title">title</code> attribute.</p>
-
-  <p>The <dfn title="dom-lang"><code>lang</code></dfn> attribute must
-  <span>reflect</span> the content <code>lang</code> attribute.</p>
-
-  <p>The <dfn title="dom-dir"><code>dir</code></dfn> attribute must
-  <span>reflect</span> the content <code>dir</code> attribute.</p>
-
-  <p>The <dfn title="dom-className"><code>className</code></dfn>
-  attribute must <span>reflect</span> the content <code>class</code>
-  attribute.</p>
-
-  <p class="big-issue"><!-- XXX DOMTokenString change -->should also
-  introduce a DOMTokenString accessor for the class attribute</p>
-<!--
-> * Right now most people directly access an elements className property, 
-> without realizing that they might be clobbering multi-classed elements (i.e.
-> something with class="class1 class2").  I usually have to create wrapper
-> methods to ensure that this doesn't happen, such as xAddClass(target,
-> className), xRemoveClass(target, className), and xHasClass(target, className),
-> but it would be much nicer if the className property itself had better support
-> for multi-classed elements.  Some example possibilities of what this might
-> look like:
->         * someElement.className.add("someNewClass")
->         * someElement.className.remove("SomeOldClass")
->         * someElement.className.hasClass("someClass")
--->
-
-  <p class="big-issue">mention that some attrs are defined elsewhere</p>
-
-  <p>The <dfn title="dom-contextMenu"><code>contextMenu</code></dfn>
-  attribute must <span class="big-issue">...</span>.</p>
-
-  <p>The <dfn
-  title="dom-getElementsByClassName"><code>getElementsByClassName()</code></dfn>
-  method must return the nodes that the <code>HTMLDocument</code>
-  <code
-  title="dom-document-getElementsByClassName">getElementsByClassName()</code>
-  method would return, excluding any elements that are not descendants
-  of the <code>HTMLElement</code> on which the method was invoked.</p>
-
-<!-- XXX
-click() https://bugzilla.mozilla.org/attachment.cgi?id=176950
-also focus(), blur(), innerHTML, etc.
-should the click, focus, blur methods be recursible?
--->
-
-
-
-  <h4>Elements and documents</h4>
-
-  <p>An element is said to have been <dfn title="insert an element
-  into a document">inserted into a document</dfn> when either its
-  <code>parentNode</code> DOM attribute changes and its new value is
-  the <code>Document</code> in question, or, when the DOM node
-  represented by its <code>parentNode</code>, if any, has itself just
-  been <span title="insert an element into a document">inserted into a
-  document</span>.</p> <!-- XXX that doesn't work... -->
-
-
-  <h4>Reflecting content attributes in DOM attributes</h4>
-
-  <p>Some <span title="DOM attribute">DOM attributes</span> are
-  defined to <dfn>reflect</dfn> a particular <span>content
-  attribute</span>. This means that on getting, the DOM attribute
-  returns the current value of the content attribute, and on setting,
-  the DOM attribute changes the value of the content attribute to the
-  given value.</p>
-
-  <p>If a reflecting DOM attribute is a <code>DOMString</code>
-  attribute defined to contain a URI, then on getting, the DOM
-  attribute must return the value of the content attribute, resolved
-  to an absolute URI, and on setting, must set the content attribute
-  to the specified literal value. If the content attribute is absent,
-  the DOM attribute must return the default value, if the content
-  attribute has one, or else the empty string.</p>
-
-  <p>If a reflecting DOM attribute is a <code>DOMString</code>
-  attribute that is not defined to contain a URI, then the getting and
-  setting must be done in a transparent, case-sensitive manner, except
-  if the content attribute is defined to only allow a specific set of
-  values. In this latter case, the attribute's value must first be
-  <span>converted to lowercase</span><!--XXX xref --> before being
-  returned. If the content attribute is absent, the DOM attribute must
-  return the default value, if the content attribute has one, or else
-  the empty string.</p>
-
-  <p>If a reflecting DOM attribute is a boolean attribute, then the
-  DOM attribute must return true if the attribute is set, and false if
-  it is absent. On setting, the content attribute must be removed if
-  the DOM attribute is set to false, and must be set to have the same
-  value as its name if the DOM attribute is set to true.</p>
-
-  <p>If a reflecting DOM attribute is a numeric type
-  (<code>long</code>) then the content attribute must be <a
-  href="#toNumber">converted to a numeric type</a> first (truncating
-  any fractional part). If that fails, or if the attribute is absent,
-  the default value must be returned instead, or 0 if there is no
-  default value. On setting, the given value must be converted to a
-  string representing the number in base ten and then that string must
-  be used as the new content attribute value.</p>
-
-  <!-- XXX DOMTokenString attributes -->
 
 
   <h3>APIs in HTML documents</h3>
@@ -3290,6 +3309,10 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
     identifiers (including those that are in error according to their
     relevant specification) for the purposes of ID matching.</p>
 
+    <p>The <dfn title="dom-id"><code>id</code></dfn> attribute must
+    <span>reflect</span> the <code title="attr-id">id</code> content
+    attribute.</p>
+
    </dd>
 
    <dt><dfn title="attr-title"><code>title</code></dfn></dt>
@@ -3318,9 +3341,14 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
     title="attr-title">title</code> attribute beyond the semantics
     described above.</p>
 
+    <p>The <dfn title="dom-title"><code>title</code></dfn> attribute
+    must <span>reflect</span> the <code title="attr-title">title</code>
+    content attribute.</p>
+
    </dd>
 
-   <dt><dfn><code>lang</code></dfn> (HTML only) and <dfn><code>xml:lang</code></dfn> (XML only)</dt>
+   <dt><dfn title="attr-lang"><code>lang</code></dfn> (HTML only) and
+   <dfn><code>xml:lang</code></dfn> (XML only)</dt>
 
    <dd>
 
@@ -3334,23 +3362,25 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
     the parent element. Setting the attribute to the empty string
     indicates that the primary language is unknown.</p>
 
-    <p>The <code>lang</code> attribute only applies to <span>HTML
-    documents</span>.  Authors must not use the <code>lang</code>
-    attribute in <span>XML documents</span>. Authors must instead use
-    the <code>xml:lang</code> attribute, defined in XML. <a
+    <p>The <code title="attr-lang">lang</code> attribute only applies
+    to <span>HTML documents</span>.  Authors must not use the <code
+    title="attr-lang">lang</code> attribute in <span>XML
+    documents</span>. Authors must instead use the
+    <code>xml:lang</code> attribute, defined in XML. <a
     href="#refsXML">[XML]</a></p> <!-- XXX -->
 
     <p>To determine the language of a node, user agents must look at
     the nearest ancestor element (including the element itself if the
-    node is an element) that has a <code>lang</code> or
-    <code>xml:lang</code> attribute set. That specifies the language
-    of the node.</p>
+    node is an element) that has a <code title="attr-lang">lang</code>
+    or <code>xml:lang</code> attribute set. That specifies the
+    language of the node.</p>
 
-    <p>If both the <code>xml:lang</code> attribute and the
-    <code>lang</code> attribute are set, user agents must use the
-    <code>xml:lang</code> attribute, and the <code>lang</code>
-    attribute must be <span title="ignore">ignored</span> for the
-    purposes of determining the element's language.</p>
+    <p>If both the <code>xml:lang</code> attribute and the <code
+    title="attr-lang">lang</code> attribute are set, user agents must
+    use the <code>xml:lang</code> attribute, and the <code
+    title="attr-lang">lang</code> attribute must be <span
+    title="ignore">ignored</span> for the purposes of determining the
+    element's language.</p>
 
     <p>If no explicit language is given for the <span>root
     element</span>, then language information from a higher-level
@@ -3365,9 +3395,13 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
     directionality. (commented out because text directionality is a
     rendering-level concern.)--></p>
 
+    <p>The <dfn title="dom-lang"><code>lang</code></dfn> attribute
+    must <span>reflect</span> the <code title="attr-lang">lang</code>
+    content attribute.</p>
+
    </dd>
 
-   <dt><dfn><code>dir</code></dfn></dt>
+   <dt><dfn title="attr-dir"><code>dir</code></dfn></dt>
 
    <dd>
 
@@ -3385,6 +3419,10 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
     layer. For example, CSS 2.1 defines a mapping from this attribute
     to the CSS 'direction' and 'unicode-bidi' properties, and defines
     rendering in terms of those property.</p>
+
+    <p>The <dfn title="dom-dir"><code>dir</code></dfn> attribute must
+    <span>reflect</span> the <code title="attr-dir">dir</code> content
+    attribute.</p>
 
    </dd>
 
@@ -3418,6 +3456,10 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
     <code>class</code> attributes have been removed as they do with
     the attributes present.</p>
 
+    <p>The <dfn title="dom-className"><code>className</code></dfn>
+    attribute must <span>reflect</span> the <code
+    title="attr-class">class</code> content attribute.</p>
+
    </dd>
 
 
@@ -3433,6 +3475,10 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
     <code>menu</code> element, then the element has no assigned
     context menu. Otherwise, the element's assigned context menu is
     the element so identified.</p>
+
+    <p>The <dfn title="dom-contextMenu"><code>contextMenu</code></dfn>
+    attribute must <span>reflect</span> the <code
+    title="attr-contextmenu">contextmenu</code> content attribute.</p>
 
    </dd>
 
@@ -5733,7 +5779,7 @@ Applications over the World Wide Web.&lt;/p></pre>
   phrase from another language, or similar.</p>
 
   <p>Terms in languages different from the main text should be
-  annotated with <code>lang</code> attributes (<code>xml:lang</code>
+  annotated with <code title="attr-lang">lang</code> attributes (<code>xml:lang</code>
   in XML).</p>
 
   <div class="example">
@@ -6528,7 +6574,7 @@ For example, the 10th point has coordinate
 
   <p>The <code>span</code> element doesn't mean anything on its own,
   but can be useful when used together with other attributes, e.g.
-  <code>lang</code> or <code>dir</code>, or when used in conjunction
+  <code title="attr-lang">lang</code> or <code title="attr-dir">dir</code>, or when used in conjunction
   with the <code>dfn</code> element.</p>
 
   <p class="big-issue">Now that we have <code>i</code>, do we need
@@ -6546,7 +6592,7 @@ For example, the 10th point has coordinate
    <dt>Content model:</dt>
    <dd><span>Strictly inline-level content</span>.</dd>
    <dt>Element-specific attributes:</dt>
-   <dd>None, but the <code>dir</code> global attribute is required on this element.</dd>
+   <dd>None, but the <code title="attr-dir">dir</code> global attribute is required on this element.</dd>
    <dt>DOM interface:</dt>
    <dd>No difference from <code>HTMLElement</code>.</dd>
   </dl>
@@ -6555,18 +6601,18 @@ For example, the 10th point has coordinate
   Unicode bidi algorithm by explicitly specifying a direction
   override. <a href="#refsBIDI">[BIDI]</a></p>
 
-  <p>Authors must specify the <code>dir</code> attribute on this
+  <p>Authors must specify the <code title="attr-dir">dir</code> attribute on this
   element, with the value <code>ltr</code> to specify a left-to-right
   override and with the value <code>rtl</code> to specify a
   right-to-left override.</p>
 
-  <p>If the element has the <code>dir</code> attribute set to the
+  <p>If the element has the <code title="attr-dir">dir</code> attribute set to the
   exact value <code>ltr</code>, then for the purposes of the bidi
   algorithm, the user agent must act as if there was a U+202D
   LEFT-TO-RIGHT OVERRIDE character at the start of the element, and a
   U+202C POP DIRECTIONAL FORMATTING at the end of the element.</p>
 
-  <p>If the element has the <code>dir</code> attribute set to the
+  <p>If the element has the <code title="attr-dir">dir</code> attribute set to the
   exact value <code>rtl</code>, then for the purposes of the bidi
   algorithm, the user agent must act as if there was a U+202E
   RIGHT-TO-LEFT OVERRIDE character at the start of the element, and a
@@ -13377,32 +13423,45 @@ interface <dfn>StorageItem</dfn> {
   work together.</p>
 
 
-  <h3 id="contenteditable"><span title="SCS">[SCS]</span>The <code>contenteditable</code> attribute</h3>
+  <h3 id="contenteditable"><span title="SCS">[SCS]</span>The <code
+  title="attr-contenteditable">contenteditable</code> attribute</h3>
 
-  <p>The <dfn><code>contenteditable</code></dfn> attribute is a common
-  attribute. User agents must support this attribute on all <span>HTML
-  elements</span>.</p> <!-- XXX define it in the appropriate place
-  then -->
+  <p>The <dfn><code
+  title="attr-contenteditable">contenteditable</code></dfn> attribute
+  is a common attribute. User agents must support this attribute on
+  all <span>HTML elements</span>.</p> <!-- XXX define it in the
+  appropriate place then -->
 
-  <p>If an HTML element has a <code>contenteditable</code> attribute
-  set to the empty string or the value <code>true</code> (by
+  <p>If an HTML element has a <code
+  title="attr-contenteditable">contenteditable</code> attribute set to
+  the empty string or the value <code>true</code> (by
   <span>case-insensitive match</span><!--XXX xref-->), or if its
-  nearest ancestor with the <code>contenteditable</code> attribute set
+  nearest ancestor with the <code
+  title="attr-contenteditable">contenteditable</code> attribute set
   has its attribute set to the empty string or the value
   <code>true</code> (by <span>case-insensitive match</span><!--XXX
   xref-->), then the UA must treat the element as <dfn>editable</dfn>
   (as described below).</p> <!-- XXX case-sensitivity in HTML -->
 
-  <p>If an HTML element has a <code>contenteditable</code> attribute
-  set but the value of the attribute is not the empty string or the
+  <p>If an HTML element has a <code
+  title="attr-contenteditable">contenteditable</code> attribute set
+  but the value of the attribute is not the empty string or the
   literal value <code>true</code>, or if its nearest ancestor with the
-  <code>contenteditable</code> attribute set is not <em>editable</em>,
-  or if it has no ancestor with the <code>contenteditable</code>
-  attribute set, then the element is not editable.</p>
+  <code title="attr-contenteditable">contenteditable</code> attribute
+  set is not <em>editable</em>, or if it has no ancestor with the
+  <code title="attr-contenteditable">contenteditable</code> attribute
+  set, then the element is not editable.</p>
 
   <p>Authors must only use the exact literal values <code>true</code>
-  and <code>false</code> with the <code>contenteditable</code>
-  attribute.</p>
+  and <code>false</code> with the <code
+  title="attr-contenteditable">contenteditable</code> attribute.</p>
+
+  <p class="big-issue">The <dfn
+  title="dom-contentEditable"><code>contentEditable</code></dfn> DOM
+  attribute...</p><!-- is a string that accepts "true", "false",
+  "inherit", case-insensitively, and sets the content attribute to
+  "true", "false", or removes it, respectively, and raises an
+  exception otherwise -->
 
   <p>If an element is <span>editable</span> and its parent element is
   not, then the element is an <dfn>editing host</dfn>. Editable
@@ -23405,9 +23464,10 @@ interface <dfn>TimeoutHandler</dfn> {
   canvas feature was designed.</p>
 
   <p>Special thanks also to the Microsoft employees who first
-  implemented the event-based drag-and-drop mechanism,
-  <code>contenteditable</code>, and other features first widely
-  deployed by the Windows Internet Explorer browser.</p>
+  implemented the event-based drag-and-drop mechanism, <code
+  title="attr-contenteditable">contenteditable</code>, and other
+  features first widely deployed by the Windows Internet Explorer
+  browser.</p>
 
   <p>Special thanks and $10,000 to David Hyatt who came up with a
   broken implementation of the <a href="#adoptionAgency">adoption
