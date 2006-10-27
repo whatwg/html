@@ -2650,8 +2650,8 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
    <li>Otherwise, if the last character of the
    <code>DOMTokenString</code> object's underlying string is not a
-   <span>space character</span><!-- XXX xref -->, then append a U+0020
-   SPACE character to the end of that string.</li>
+   <span>space character</span>, then append a U+0020 SPACE character
+   to the end of that string.</li>
 
    <li>Append the value of <var title="">token</var> to the end of the
    <code>DOMTokenString</code> object's underlying string.</li>
@@ -2665,8 +2665,8 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   <ol>
 
    <li>If the <var title="">token</var> argument contains any <span
-   title="space character">spaces</span><!-- XXX xref -->, then raise
-   an <code>INVALID_CHARACTER_ERR</code> exception and stop the
+   title="space character">spaces</span>, then raise an
+   <code>INVALID_CHARACTER_ERR</code> exception and stop the
    algorithm.</li>
 
    <li>If the token indicated by <var title="">token</var> is not one
@@ -2755,42 +2755,381 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   attribute values. e.g. contenteditable="TrUe" in HTML vs XHTML. Same
   with leading/trailing whitespace.</p>
 
+  <!-- XXX need to define how to handle U+000A LINE FEED and U+000D
+  CARRIAGE RETURN in attributes (for HTML) -->
+
+
+  <h4>Common parser idioms</h4>
+
+  <p>The <dfn title="space character">space characters</dfn>, for the
+  purposes of this specification, are U+0020 SPACE, U+0009 CHARACTER
+  TABULATION (tab), U+000A LINE FEED (LF), U+000B LINE TABULATION,
+  U+000C FORM FEED (FF), and U+000D CARRIAGE RETURN (CR).</p>
+
+  <p>Some of the micro-parsers described below follow the pattern of
+  having an <var title="">input</var> variable that holds the string
+  being parsed, and having a <var title="">position</var> variable
+  pointing at the next character to parse in <var
+  title="">input</var>.</p>
+
+  <p>For parsers based on this pattern, the step <dfn>skip
+  whitespace</dfn> means that while <var title="">position</var>
+  points at a <span>space character</span>, the user agent must
+  advance <var title="">position</var> to the next character in <var
+  title="">input</var>.</p>
+
 
   <h4>Numbers</h4>
 
-  <p>A <dfn>valid floating point number</dfn> ...</p>
+  <h5>Unsigned integers</h5>
 
-  <p>A <dfn>valid denominator punctuation character</dfn> ...</p>
+  <p>A string is a <dfn>valid non-negative integer</dfn> if it
+  consists of one of more characters in the range U+0030 DIGIT ZERO
+  (0) to U+0039 DIGIT NINE (9).</p>
 
-  <p>The <dfn title="values associated with denominator punctuation
-  characters">value associated with each denominator punctuation
-  character</dfn> is ...</p>
+  <p>The <dfn>rules for parsing non-negative integers</dfn> are as
+  given in the following algorithm. When invoked, the steps must be
+  followed in the order given, aborting at the first step that returns
+  a value. This algorithm will either return zero, a positive integer,
+  or an error. Leading spaces are ignored. Trailing spaces and indeed
+  any trailing garbage characters are ignored.</p>
 
-  <pre class="big-issue">
-        U+0025 PERCENT SIGN
-        U+066A ARABIC PERCENT SIGN
-        U+FE6A SMALL PERCENT SIGN
-        U+FF05 FULLWIDTH PERCENT SIGN
-         => 100
+  <ol>
 
-        U+2030 PER MILLE SIGN
-         => 1000
+   <li><p>Let <var title="">input</var> be the string being
+   parsed.</p></li>
 
-        U+2031 PER TEN THOUSAND SIGN
-         => 10000
-  </pre>
+   <li><p>Let <var title="">position</var> be a pointer into <var
+   title="">input</var>, initially pointing at the start of the
+   string.</p></li>
 
-  <p>The <dfn>rules for parsing floating point number values</dfn> ...</p>
+   <li><p>Let <var title="">value</var> have the value 0.</li>
 
-  <p class="big-issue">...</p>
+   <li><p><span>Skip whitespace.</span></p></li>
 
-  <!-- XXX should have the term "positive" and the term "denominator
-  punctuation character" in the following term name, since it ignores
-  "-" characters and is very specific to the whole gauge/progress
-  thing -->
+   <li><p>If <var title="">position</var> is past the end of <var
+    title="">input</var>, return an error.</p></li>
 
-  <p>The <dfn>steps for finding one or two numbers in a string</dfn>
-  are as follows:</p>
+   <li><p>If the next character is not one of U+0030 DIGIT ZERO (0)
+   .. U+0039 DIGIT NINE (9), then return an error.</p></li>
+
+   <!-- Ok. At this point we know we have a number. It might have
+   trailing garbage which we'll ignore, but it's a number, and we
+   won't return an error. -->
+
+   <li>
+
+    <p>If the next character is one of U+0030 DIGIT ZERO (0) .. U+0039
+    DIGIT NINE (9):</p>
+
+    <ol>
+
+     <li>Multiply <var title="">value</var> by ten.</li>
+
+     <li>Add the value of the current character (0..9) to <var
+     title="">value</var>.</li>
+
+     <li>Advance <var title="">position</var> to the next
+     character.</li>
+
+     <li>If <var title="">position</var> is not past the end of <var
+     title="">input</var>, return to the top of step 7 in the overall
+     algorithm (that's the step within which these substeps find
+     themselves).</li>
+
+    </ol>
+
+   </li>
+
+   <li><p>Return <var title="">value</var>.</p></li>
+
+  </ol>
+
+
+  <h5>Signed integers</h5>
+
+  <p>A string is a <dfn>valid integer</dfn> if it consists of one of
+  more characters in the range U+0030 DIGIT ZERO (0) to U+0039 DIGIT
+  NINE (9), optionally prefixed with a U+002D HYPHEN-MINUS ("-")
+  character.</p>
+
+  <p>The <dfn>rules for parsing integers</dfn> are similar to the
+  rules for non-negative integers, and are as given in the following
+  algorithm. When invoked, the steps must be followed in the order
+  given, aborting at the first step that returns a value. This
+  algorithm will either return an integer or an error. Leading spaces
+  are ignored. Trailing spaces and trailing garbage characters are
+  ignored.</p>
+
+  <ol>
+
+   <li><p>Let <var title="">input</var> be the string being
+   parsed.</p></li>
+
+   <li><p>Let <var title="">position</var> be a pointer into <var
+   title="">input</var>, initially pointing at the start of the
+   string.</p></li>
+
+   <li><p>Let <var title="">value</var> have the value 0.</li>
+
+   <li><p>Let <var title="">sign</var> have the value "positive".</li>
+
+   <li><p><span>Skip whitespace.</span></p></li>
+
+   <li><p>If <var title="">position</var> is past the end of <var
+    title="">input</var>, return an error.</p></li>
+
+   <li>
+
+    <p>If the character indicated by <var title="">position</var> (the
+    first character) is a U+002D HYPHEN-MINUS ("-") character:</p>
+
+    <ol>
+
+     <li>Let <var title="">sign</var> be "negative".</li>
+
+     <li>Advance <var title="">position</var> to the next
+     character.</li>
+
+     <li>If <var title="">position</var> is past the end of <var
+     title="">input</var>, return an error.</li>
+
+    </ol>
+
+   </li>
+
+   <li><p>If the next character is not one of U+0030 DIGIT ZERO (0)
+   .. U+0039 DIGIT NINE (9), then return an error.</p></li>
+
+   <!-- Ok. At this point we know we have a number. It might have
+   trailing garbage which we'll ignore, but it's a number, and we
+   won't return an error. -->
+
+   <li>
+
+    <p>If the next character is one of U+0030 DIGIT ZERO (0) .. U+0039
+    DIGIT NINE (9):</p>
+
+    <ol>
+
+     <li>Multiply <var title="">value</var> by ten.</li>
+
+     <li>Add the value of the current character (0..9) to <var
+     title="">value</var>.</li>
+
+     <li>Advance <var title="">position</var> to the next
+     character.</li>
+
+     <li>If <var title="">position</var> is not past the end of <var
+     title="">input</var>, return to the top of step 9 in the overall
+     algorithm (that's the step within which these substeps find
+     themselves).</li>
+
+    </ol>
+
+   </li>
+
+   <li><p>If <var title="">sign</var> is "positive", return <var
+   title="">value</var>, otherwise return 0-<var
+   title="">value</var>.</p></li>
+
+  </ol>
+
+
+  <h5>Real numbers</h5>
+
+  <p>A string is a <dfn>valid floating point number</dfn> if it
+  consists of one of more characters in the range U+0030 DIGIT ZERO
+  (0) to U+0039 DIGIT NINE (9), optionally with a single U+002E FULL
+  STOP (".") character somewhere (either before these numbers, in
+  between two numbers, or after the numbers), all optionally prefixed
+  with a U+002D HYPHEN-MINUS ("-") character.</p>
+
+  <p>The <dfn>rules for parsing floating point number values</dfn> are
+  as given in the following algorithm. As with the previous
+  algorithms, when this one is invoked, the steps must be followed in
+  the order given, aborting at the first step that returns a
+  value. This algorithm will either return a number or an
+  error. Leading spaces are ignored. Trailing spaces and garbage
+  characters are ignored.</p>
+
+  <ol>
+
+   <li><p>Let <var title="">input</var> be the string being
+   parsed.</p></li>
+
+   <li><p>Let <var title="">position</var> be a pointer into <var
+   title="">input</var>, initially pointing at the start of the
+   string.</p></li>
+
+   <li><p>Let <var title="">value</var> have the value 0.</li>
+
+   <li><p>Let <var title="">sign</var> have the value "positive".</li>
+
+   <li><p><span>Skip whitespace.</span></p></li>
+
+   <li><p>If <var title="">position</var> is past the end of <var
+    title="">input</var>, return an error.</p></li>
+
+   <li>
+
+    <p>If the character indicated by <var title="">position</var> (the
+    first character) is a U+002D HYPHEN-MINUS ("-") character:</p>
+
+    <ol>
+
+     <li>Let <var title="">sign</var> be "negative".</li>
+
+     <li>Advance <var title="">position</var> to the next
+     character.</li>
+
+     <li>If <var title="">position</var> is past the end of <var
+     title="">input</var>, return an error.</li>
+
+    </ol>
+
+   </li>
+
+   <li><p>If the next character is not one of U+0030 DIGIT ZERO (0)
+   .. U+0039 DIGIT NINE (9) or U+002E FULL STOP ("."), then return an
+   error.</p></li>
+
+   <li><p>If the next character is U+002E FULL STOP ("."), but either
+   that is the last character or the character after that one is not
+   one of U+0030 DIGIT ZERO (0) .. U+0039 DIGIT NINE (9), then return
+   an error.</p></li>
+
+   <!-- Ok. At this point we know we have a number. It might have
+   trailing garbage which we'll ignore, but it's a number, and we
+   won't return an error. -->
+
+   <li>
+
+    <p>If the next character is one of U+0030 DIGIT ZERO (0) .. U+0039
+    DIGIT NINE (9):</p>
+
+    <ol>
+
+     <li>Multiply <var title="">value</var> by ten.</li>
+
+     <li>Add the value of the current character (0..9) to <var
+     title="">value</var>.</li>
+
+     <li>Advance <var title="">position</var> to the next
+     character.</li>
+
+     <li>If <var title="">position</var> is past the end of <var
+     title="">input</var>, then if <var title="">sign</var> is
+     "positive", return <var title="">value</var>, otherwise return
+     0-<var title="">value</var>.</li>
+
+     <li>Otherwise return to the top of step 10 in the overall
+     algorithm (that's the step within which these substeps find
+     themselves).</li>
+
+    </ol>
+
+   </li>
+
+   <li><p>Otherwise, if the next character is not a U+002E FULL STOP
+   ("."), then if <var title="">sign</var> is "positive", return <var
+   title="">value</var>, otherwise return 0-<var
+   title="">value</var>.</p></li>
+
+   <li><p>The next character is a U+002E FULL STOP ("."). Advance <var
+   title="">position</var> to the character after that.</p></li>
+
+   <li><p>Let <var title="">divisor</var> be 1.</p></li>
+
+   <li>
+
+    <p>If the next character is one of U+0030 DIGIT ZERO (0) .. U+0039
+    DIGIT NINE (9):</p>
+
+    <ol>
+
+     <li>Multiply <var title="">divisor</var> by ten.</li>
+
+     <li>Add the value of the current character (0..9) divided by <var
+     title="">divisor</var>, to <var title="">value</var>.</li>
+
+     <li>Advance <var title="">position</var> to the next
+     character.</li>
+
+     <li>If <var title="">position</var> is past the end of <var
+     title="">input</var>, then if <var title="">sign</var> is
+     "positive", return <var title="">value</var>, otherwise return
+     0-<var title="">value</var>.</li>
+
+     <li>Otherwise return to the top of step 14 in the overall
+     algorithm (that's the step within which these substeps find
+     themselves).</li>
+
+    </ol>
+
+   </li>
+
+   <li><p>Otherwise, if <var title="">sign</var> is "positive", return
+   <var title="">value</var>, otherwise return 0-<var
+   title="">value</var>.</p></li>
+
+  </ol>
+
+
+  <h5>Ratios</h5>
+
+  <p class="note">The algorithms described in this section are used by
+  the <code>progress</code> and <code>gauge</code> elements.</p>
+
+  <p>A <dfn>valid denominator punctuation character</dfn> is one of
+  the characters from the table below. There is <dfn title="values
+  associated with denominator punctuation characters">a value
+  associated with each denominator punctuation character</dfn>, as
+  shown in the table below.</p>
+
+  <table>
+   <thead>
+    <tr>
+     <th colspan="2">Denominator Punctuation Character</th>
+     <th>Value</th>
+    </tr>
+   </thead>
+   <tbody>
+    <tr>
+     <td>U+0025 PERCENT SIGN</td>
+     <td>&#x0025;</td>
+     <td>100</td>
+    </tr>
+    <tr>
+     <td>U+066A ARABIC PERCENT SIGN</td>
+     <td>&#x066A;</td>
+     <td>100</td>
+    </tr>
+    <tr>
+     <td>U+FE6A SMALL PERCENT SIGN</td>
+     <td>&#xFE6A;</td>
+     <td>100</td>
+    </tr>
+    <tr>
+     <td>U+FF05 FULLWIDTH PERCENT SIGN</td>
+     <td>&#xFF05;</td>
+     <td>100</td>
+    </tr>
+    <tr>
+     <td>U+2030 PER MILLE SIGN</td>
+     <td>&#x2030;</td>
+     <td>1000</td>
+    </tr>
+    <tr>
+     <td>U+2031 PER TEN THOUSAND SIGN</td>
+     <td>&#x2031;</td>
+     <td>10000</td>
+    </tr>
+   </tbody>
+  </table>
+
+  <p>The <dfn>steps for finding one or two numbers of a ratio in a
+  string</dfn> are as follows:</p>
 
   <ol>
 
@@ -2883,20 +3222,6 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
   </ol>
 
-  <p class="big-issue">The following paragraph needs merging in to the
-  above at some point.</p>
-
-  <p id="toNumber">When a UA needs to convert a string to a number,
-  algorithms equivalent to those specified in ECMA262 sections 9.3.1
-  ("ToNumber Applied to the String Type") and 8.5 ("The Number type")
-  should be used (possibly after suitably altering the algorithms to
-  handle numbers of the range that the UA can support). <a
-  href="#refsECMA262">[ECMA262]</a></p><!-- XXX for integers, do we
-  instead want to use
-  http://lxr.mozilla.org/seamonkey/source/xpcom/string/src/nsTStringObsolete.cpp#143
-  or should we use E262's? This affects how attributes are parsed,
-  e.g. if start="1e2" means "1" or "100". -->
-
 
   <h4>Dates and times</h4>
 
@@ -2908,10 +3233,9 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   <h4>Tokens</h4>
 
   <p class="big-issue">Define <dfn>unordered set of space-separated
-  tokens</dfn> (e.g. for the "class" attribute), along with <dfn>space
-  character</dfn> in that context. Define <dfn>split a string on
-  spaces</dfn>, and probably use that to define how to interpret the
-  "class" attribute.</p>
+  tokens</dfn> (e.g. for the "class" attribute). Define <dfn>split a
+  string on spaces</dfn>, and probably use that to define how to
+  interpret the "class" attribute.</p>
 
 
 
@@ -3226,17 +3550,13 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   and character <a href="entity-references">entity reference nodes are
   treated as if they were expanded in place</a>.</p>
 
-  <p>The whitespace characters U+0020 SPACE, U+000A LINE FEED, and
-  U+000D CARRIAGE RETURN are always allowed between elements. User
-  agents must always represent these characters between elements in
-  the source markup as text nodes in the DOM. Empty text nodes and
-  text nodes consisting of just sequences of those characters are
-  considered <dfn>inter-element whitespace</dfn> and must be ignored
-  when establishing whether an element matches its content model or
-  not.</p>
-
-  <!-- XXX need to define how to handle U+000A LINE FEED and U+000D
-  CARRIAGE RETURN in attributes (for HTML) -->
+  <p>The <span title="space character">space characters</span> are
+  always allowed between elements. User agents must always represent
+  these characters between elements in the source markup as text nodes
+  in the DOM. Empty text nodes and text nodes consisting of just
+  sequences of those characters are considered <dfn>inter-element
+  whitespace</dfn> and must be ignored when establishing whether an
+  element matches its content model or not.</p>
 
   <p>Authors must only use <span>elements in the HTML namespace</span>
   in the contexts where they are allowed, as defined for each
@@ -5024,9 +5344,10 @@ To move the error from the markup to the rhyming.&lt;/p&gt;</pre>
 
   <p>If a <code>dl</code> element is empty, it contains no groups.</p>
 
-  <p>If a <code>dl</code> element contains non-whitespace text nodes,
-  or elements other than <code>dt</code> and <code>dd</code>, then
-  those elements or text nodes do not form part of any groups in that
+  <p>If a <code>dl</code> element contains non-<span
+  title="inter-element whitespace">whitespace</span> text nodes, or
+  elements other than <code>dt</code> and <code>dd</code>, then those
+  elements or text nodes do not form part of any groups in that
   <code>dl</code>, and the document is non-conforming.</p>
 
   <p>If a <code>dl</code> element contains only <code>dt</code>
@@ -5228,13 +5549,14 @@ To move the error from the markup to the rhyming.&lt;/p&gt;</pre>
 
   <p>If the element has an <code title="attr-a-href">href</code>
   attribute and a <code title="attr-a-ping">ping</code> attribute and
-  the user follows the hyperlink, the user agent should take the <code
+  the user follows the hyperlink, the user agent must take the <code
   title="attr-a-ping">ping</code> attribute's value, strip leading and
-  trailing spaces (U+0020), split the value on sequences of spaces,
-  treat each resulting part as a URI (resolving relative URIs
-  according to element's base URI) and then send a request to each of
-  the resulting URIs. This may be done in parallel with the primary
-  request, and is independent of the result of that request.</p>
+  trailing <span title="space character">spaces</span>, split the
+  value on sequences of spaces, treat each resulting part as a URI
+  (resolving relative URIs according to element's base URI) and then
+  should send a request to each of the resulting URIs. This may be
+  done in parallel with the primary request, and is independent of the
+  result of that request.</p>
 
   <p>User agents should allow the user to adjust this behaviour, for
   example in conjunction with a setting that disables the sending of
@@ -6044,8 +6366,8 @@ citations ("my favourite book is <cite>...</cite>").
   <p>If the <code title="attr-meter-value">value</code> attribute has
   been omitted, the user agent must also process the
   <code>textContent</code> of the element according to the <span>steps
-  for finding one or two numbers in a string</span>. These steps will
-  return nothing, one number, one number with a denominator
+  for finding one or two numbers of a ratio in a string</span>. These
+  steps will return nothing, one number, one number with a denominator
   punctuation character, or two numbers.</p>
 
   <p>User agents must then use all these numbers to obtain values for
@@ -6351,9 +6673,10 @@ should we make the contents accessible in some way, e.g. as a tooltip?
   <p>If the <code title="attr-progress-value">value</code> attribute
   is omitted, then user agents must also parse the
   <code>textContent</code> of the <code>progress</code> element in
-  question using the <span>steps for finding one or two numbers in a
-  string</span>. These steps will return nothing, one number, one
-  number with a denominator punctuation character, or two numbers.</p>
+  question using the <span>steps for finding one or two numbers of a
+  ratio in a string</span>. These steps will return nothing, one
+  number, one number with a denominator punctuation character, or two
+  numbers.</p>
 
   <p>Using the results of this processing, user agents must determine
   whether the progress bar is an indeterminate progress bar, or

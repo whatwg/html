@@ -22,7 +22,7 @@
 
    <h1 id=web-applications>Web Applications 1.0</h1>
 
-   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 26 October 2006</h2>
+   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 27 October 2006</h2>
 
    <p>You can take part in this work. <a
     href="http://www.whatwg.org/mailing-list">Join the working group's
@@ -245,12 +245,27 @@
      <li><a href="#common0"><span class=secno>3.2. </span>Common
       microsyntaxes <span title=WIP>[WIP]</span></a>
       <ul class=toc>
-       <li><a href="#numbers"><span class=secno>3.2.1. </span>Numbers</a>
+       <li><a href="#common1"><span class=secno>3.2.1. </span>Common parser
+        idioms</a>
 
-       <li><a href="#dates"><span class=secno>3.2.2. </span>Dates and
+       <li><a href="#numbers"><span class=secno>3.2.2. </span>Numbers</a>
+        <ul class=toc>
+         <li><a href="#unsigned"><span class=secno>3.2.2.1. </span>Unsigned
+          integers</a>
+
+         <li><a href="#signed"><span class=secno>3.2.2.2. </span>Signed
+          integers</a>
+
+         <li><a href="#real-numbers"><span class=secno>3.2.2.3. </span>Real
+          numbers</a>
+
+         <li><a href="#ratios"><span class=secno>3.2.2.4. </span>Ratios</a>
+        </ul>
+
+       <li><a href="#dates"><span class=secno>3.2.3. </span>Dates and
         times</a>
 
-       <li><a href="#tokens"><span class=secno>3.2.3. </span>Tokens</a>
+       <li><a href="#tokens"><span class=secno>3.2.4. </span>Tokens</a>
       </ul>
 
      <li><a href="#global"><span class=secno>3.3. </span>Global
@@ -3463,8 +3478,8 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
    <li>Otherwise, if the last character of the <code><a
     href="#domtokenstring0">DOMTokenString</a></code> object's underlying
-    string is not a <a href="#space">space character</a><!-- XXX xref -->,
-    then append a U+0020 SPACE character to the end of that string.
+    string is not a <a href="#space">space character</a>, then append a
+    U+0020 SPACE character to the end of that string.
 
    <li>Append the value of <var title="">token</var> to the end of the
     <code><a href="#domtokenstring0">DOMTokenString</a></code> object's
@@ -3477,9 +3492,8 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
   <ol>
    <li>If the <var title="">token</var> argument contains any <a
-    href="#space" title="space character">spaces</a><!-- XXX xref -->, then
-    raise an <code>INVALID_CHARACTER_ERR</code> exception and stop the
-    algorithm.
+    href="#space" title="space character">spaces</a>, then raise an
+    <code>INVALID_CHARACTER_ERR</code> exception and stop the algorithm.
 
    <li>If the token indicated by <var title="">token</var> is not one of the
     tokens in the object's underlying string then stop this algorithm.
@@ -3559,43 +3573,356 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
   <p class=big-issue>Somewhere we need to define case-sensitivity of
    attribute values. e.g. contenteditable="TrUe" in HTML vs XHTML. Same with
-   leading/trailing whitespace.
+   leading/trailing whitespace.</p>
+  <!-- XXX need to define how to handle U+000A LINE FEED and U+000D
+  CARRIAGE RETURN in attributes (for HTML) -->
 
-  <h4 id=numbers><span class=secno>3.2.1. </span>Numbers</h4>
+  <h4 id=common1><span class=secno>3.2.1. </span>Common parser idioms</h4>
 
-  <p>A <dfn id=valid>valid floating point number</dfn> ...
+  <p>The <dfn id=space title="space character">space characters</dfn>, for
+   the purposes of this specification, are U+0020 SPACE, U+0009 CHARACTER
+   TABULATION (tab), U+000A LINE FEED (LF), U+000B LINE TABULATION, U+000C
+   FORM FEED (FF), and U+000D CARRIAGE RETURN (CR).
 
-  <p>A <dfn id=valid0>valid denominator punctuation character</dfn> ...
+  <p>Some of the micro-parsers described below follow the pattern of having
+   an <var title="">input</var> variable that holds the string being parsed,
+   and having a <var title="">position</var> variable pointing at the next
+   character to parse in <var title="">input</var>.
 
-  <p>The <dfn id=value title="values associated with denominator punctuation
-   characters">value associated with each denominator punctuation
-   character</dfn> is ...
+  <p>For parsers based on this pattern, the step <dfn id=skip->skip
+   whitespace</dfn> means that while <var title="">position</var> points at a
+   <a href="#space">space character</a>, the user agent must advance <var
+   title="">position</var> to the next character in <var
+   title="">input</var>.
 
-  <pre class=big-issue>
-        U+0025 PERCENT SIGN
-        U+066A ARABIC PERCENT SIGN
-        U+FE6A SMALL PERCENT SIGN
-        U+FF05 FULLWIDTH PERCENT SIGN
-         => 100
+  <h4 id=numbers><span class=secno>3.2.2. </span>Numbers</h4>
 
-        U+2030 PER MILLE SIGN
-         => 1000
+  <h5 id=unsigned><span class=secno>3.2.2.1. </span>Unsigned integers</h5>
 
-        U+2031 PER TEN THOUSAND SIGN
-         => 10000
-  </pre>
+  <p>A string is a <dfn id=valid>valid non-negative integer</dfn> if it
+   consists of one of more characters in the range U+0030 DIGIT ZERO (0) to
+   U+0039 DIGIT NINE (9).
 
-  <p>The <dfn id=rules>rules for parsing floating point number values</dfn>
-   ...
+  <p>The <dfn id=rules>rules for parsing non-negative integers</dfn> are as
+   given in the following algorithm. When invoked, the steps must be followed
+   in the order given, aborting at the first step that returns a value. This
+   algorithm will either return zero, a positive integer, or an error.
+   Leading spaces are ignored. Trailing spaces and indeed any trailing
+   garbage characters are ignored.
 
-  <p class=big-issue>...</p>
-  <!-- XXX should have the term "positive" and the term "denominator
-  punctuation character" in the following term name, since it ignores
-  "-" characters and is very specific to the whole gauge/progress
-  thing -->
+  <ol>
+   <li>
+    <p>Let <var title="">input</var> be the string being parsed.
 
-  <p>The <dfn id=steps>steps for finding one or two numbers in a string</dfn>
-   are as follows:
+   <li>
+    <p>Let <var title="">position</var> be a pointer into <var
+     title="">input</var>, initially pointing at the start of the string.
+
+   <li>
+    <p>Let <var title="">value</var> have the value 0.
+
+   <li>
+    <p><a href="#skip-">Skip whitespace.</a>
+
+   <li>
+    <p>If <var title="">position</var> is past the end of <var
+     title="">input</var>, return an error.
+
+   <li>
+    <p>If the next character is not one of U+0030 DIGIT ZERO (0) .. U+0039
+     DIGIT NINE (9), then return an error.
+   </li>
+   <!-- Ok. At this point we know we have a number. It might have
+   trailing garbage which we'll ignore, but it's a number, and we
+   won't return an error. -->
+
+   <li>
+    <p>If the next character is one of U+0030 DIGIT ZERO (0) .. U+0039 DIGIT
+     NINE (9):</p>
+
+    <ol>
+     <li>Multiply <var title="">value</var> by ten.
+
+     <li>Add the value of the current character (0..9) to <var
+      title="">value</var>.
+
+     <li>Advance <var title="">position</var> to the next character.
+
+     <li>If <var title="">position</var> is not past the end of <var
+      title="">input</var>, return to the top of step 7 in the overall
+      algorithm (that's the step within which these substeps find
+      themselves).
+    </ol>
+
+   <li>
+    <p>Return <var title="">value</var>.
+  </ol>
+
+  <h5 id=signed><span class=secno>3.2.2.2. </span>Signed integers</h5>
+
+  <p>A string is a <dfn id=valid0>valid integer</dfn> if it consists of one
+   of more characters in the range U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE
+   (9), optionally prefixed with a U+002D HYPHEN-MINUS ("-") character.
+
+  <p>The <dfn id=rules0>rules for parsing integers</dfn> are similar to the
+   rules for non-negative integers, and are as given in the following
+   algorithm. When invoked, the steps must be followed in the order given,
+   aborting at the first step that returns a value. This algorithm will
+   either return an integer or an error. Leading spaces are ignored. Trailing
+   spaces and trailing garbage characters are ignored.
+
+  <ol>
+   <li>
+    <p>Let <var title="">input</var> be the string being parsed.
+
+   <li>
+    <p>Let <var title="">position</var> be a pointer into <var
+     title="">input</var>, initially pointing at the start of the string.
+
+   <li>
+    <p>Let <var title="">value</var> have the value 0.
+
+   <li>
+    <p>Let <var title="">sign</var> have the value "positive".
+
+   <li>
+    <p><a href="#skip-">Skip whitespace.</a>
+
+   <li>
+    <p>If <var title="">position</var> is past the end of <var
+     title="">input</var>, return an error.
+
+   <li>
+    <p>If the character indicated by <var title="">position</var> (the first
+     character) is a U+002D HYPHEN-MINUS ("-") character:</p>
+
+    <ol>
+     <li>Let <var title="">sign</var> be "negative".
+
+     <li>Advance <var title="">position</var> to the next character.
+
+     <li>If <var title="">position</var> is past the end of <var
+      title="">input</var>, return an error.
+    </ol>
+
+   <li>
+    <p>If the next character is not one of U+0030 DIGIT ZERO (0) .. U+0039
+     DIGIT NINE (9), then return an error.
+   </li>
+   <!-- Ok. At this point we know we have a number. It might have
+   trailing garbage which we'll ignore, but it's a number, and we
+   won't return an error. -->
+
+   <li>
+    <p>If the next character is one of U+0030 DIGIT ZERO (0) .. U+0039 DIGIT
+     NINE (9):</p>
+
+    <ol>
+     <li>Multiply <var title="">value</var> by ten.
+
+     <li>Add the value of the current character (0..9) to <var
+      title="">value</var>.
+
+     <li>Advance <var title="">position</var> to the next character.
+
+     <li>If <var title="">position</var> is not past the end of <var
+      title="">input</var>, return to the top of step 9 in the overall
+      algorithm (that's the step within which these substeps find
+      themselves).
+    </ol>
+
+   <li>
+    <p>If <var title="">sign</var> is "positive", return <var
+     title="">value</var>, otherwise return 0-<var title="">value</var>.
+  </ol>
+
+  <h5 id=real-numbers><span class=secno>3.2.2.3. </span>Real numbers</h5>
+
+  <p>A string is a <dfn id=valid1>valid floating point number</dfn> if it
+   consists of one of more characters in the range U+0030 DIGIT ZERO (0) to
+   U+0039 DIGIT NINE (9), optionally with a single U+002E FULL STOP (".")
+   character somewhere (either before these numbers, in between two numbers,
+   or after the numbers), all optionally prefixed with a U+002D HYPHEN-MINUS
+   ("-") character.
+
+  <p>The <dfn id=rules1>rules for parsing floating point number values</dfn>
+   are as given in the following algorithm. As with the previous algorithms,
+   when this one is invoked, the steps must be followed in the order given,
+   aborting at the first step that returns a value. This algorithm will
+   either return a number or an error. Leading spaces are ignored. Trailing
+   spaces and garbage characters are ignored.
+
+  <ol>
+   <li>
+    <p>Let <var title="">input</var> be the string being parsed.
+
+   <li>
+    <p>Let <var title="">position</var> be a pointer into <var
+     title="">input</var>, initially pointing at the start of the string.
+
+   <li>
+    <p>Let <var title="">value</var> have the value 0.
+
+   <li>
+    <p>Let <var title="">sign</var> have the value "positive".
+
+   <li>
+    <p><a href="#skip-">Skip whitespace.</a>
+
+   <li>
+    <p>If <var title="">position</var> is past the end of <var
+     title="">input</var>, return an error.
+
+   <li>
+    <p>If the character indicated by <var title="">position</var> (the first
+     character) is a U+002D HYPHEN-MINUS ("-") character:</p>
+
+    <ol>
+     <li>Let <var title="">sign</var> be "negative".
+
+     <li>Advance <var title="">position</var> to the next character.
+
+     <li>If <var title="">position</var> is past the end of <var
+      title="">input</var>, return an error.
+    </ol>
+
+   <li>
+    <p>If the next character is not one of U+0030 DIGIT ZERO (0) .. U+0039
+     DIGIT NINE (9) or U+002E FULL STOP ("."), then return an error.
+
+   <li>
+    <p>If the next character is U+002E FULL STOP ("."), but either that is
+     the last character or the character after that one is not one of U+0030
+     DIGIT ZERO (0) .. U+0039 DIGIT NINE (9), then return an error.
+   </li>
+   <!-- Ok. At this point we know we have a number. It might have
+   trailing garbage which we'll ignore, but it's a number, and we
+   won't return an error. -->
+
+   <li>
+    <p>If the next character is one of U+0030 DIGIT ZERO (0) .. U+0039 DIGIT
+     NINE (9):</p>
+
+    <ol>
+     <li>Multiply <var title="">value</var> by ten.
+
+     <li>Add the value of the current character (0..9) to <var
+      title="">value</var>.
+
+     <li>Advance <var title="">position</var> to the next character.
+
+     <li>If <var title="">position</var> is past the end of <var
+      title="">input</var>, then if <var title="">sign</var> is "positive",
+      return <var title="">value</var>, otherwise return 0-<var
+      title="">value</var>.
+
+     <li>Otherwise return to the top of step 10 in the overall algorithm
+      (that's the step within which these substeps find themselves).
+    </ol>
+
+   <li>
+    <p>Otherwise, if the next character is not a U+002E FULL STOP ("."), then
+     if <var title="">sign</var> is "positive", return <var
+     title="">value</var>, otherwise return 0-<var title="">value</var>.
+
+   <li>
+    <p>The next character is a U+002E FULL STOP ("."). Advance <var
+     title="">position</var> to the character after that.
+
+   <li>
+    <p>Let <var title="">divisor</var> be 1.
+
+   <li>
+    <p>If the next character is one of U+0030 DIGIT ZERO (0) .. U+0039 DIGIT
+     NINE (9):</p>
+
+    <ol>
+     <li>Multiply <var title="">divisor</var> by ten.
+
+     <li>Add the value of the current character (0..9) divided by <var
+      title="">divisor</var>, to <var title="">value</var>.
+
+     <li>Advance <var title="">position</var> to the next character.
+
+     <li>If <var title="">position</var> is past the end of <var
+      title="">input</var>, then if <var title="">sign</var> is "positive",
+      return <var title="">value</var>, otherwise return 0-<var
+      title="">value</var>.
+
+     <li>Otherwise return to the top of step 14 in the overall algorithm
+      (that's the step within which these substeps find themselves).
+    </ol>
+
+   <li>
+    <p>Otherwise, if <var title="">sign</var> is "positive", return <var
+     title="">value</var>, otherwise return 0-<var title="">value</var>.
+  </ol>
+
+  <h5 id=ratios><span class=secno>3.2.2.4. </span>Ratios</h5>
+
+  <p class=note>The algorithms described in this section are used by the
+   <code><a href="#progress0">progress</a></code> and <code>gauge</code>
+   elements.
+
+  <p>A <dfn id=valid2>valid denominator punctuation character</dfn> is one of
+   the characters from the table below. There is <dfn id=a-value
+   title="values associated with denominator punctuation characters">a value
+   associated with each denominator punctuation character</dfn>, as shown in
+   the table below.
+
+  <table>
+   <thead>
+    <tr>
+     <th colspan=2>Denominator Punctuation Character
+
+     <th>Value
+
+   <tbody>
+    <tr>
+     <td>U+0025 PERCENT SIGN
+
+     <td>&#x0025;
+
+     <td>100
+
+    <tr>
+     <td>U+066A ARABIC PERCENT SIGN
+
+     <td>&#x066A;
+
+     <td>100
+
+    <tr>
+     <td>U+FE6A SMALL PERCENT SIGN
+
+     <td>&#xFE6A;
+
+     <td>100
+
+    <tr>
+     <td>U+FF05 FULLWIDTH PERCENT SIGN
+
+     <td>&#xFF05;
+
+     <td>100
+
+    <tr>
+     <td>U+2030 PER MILLE SIGN
+
+     <td>&#x2030;
+
+     <td>1000
+
+    <tr>
+     <td>U+2031 PER TEN THOUSAND SIGN
+
+     <td>&#x2031;
+
+     <td>10000
+  </table>
+
+  <p>The <dfn id=steps>steps for finding one or two numbers of a ratio in a
+   string</dfn> are as follows:
 
   <ol>
    <li>If the string is empty, then return nothing and abort these steps.
@@ -3615,7 +3942,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
     href="#refsUNICODE">[UNICODE]</a>
 
    <li>If there are still further characters in the string, and the next
-    character in the string is a <a href="#valid0">valid denominator
+    character in the string is a <a href="#valid2">valid denominator
     punctuation character</a>, set <var title="">denominator</var> to that
     character.
 
@@ -3638,7 +3965,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
     sub-algorithm in step 9.
 
    <li>If there are still further characters in the string, and the next
-    character in the string is a <a href="#valid0">valid denominator
+    character in the string is a <a href="#valid2">valid denominator
     punctuation character</a>, return nothing and abort these steps.
 
    <li>If the string contains any other characters in the range U+0030 DIGIT
@@ -3671,39 +3998,24 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
     character then return an error condition and abort these steps.
 
    <li>Parse <var title="">string</var> according to the <a
-    href="#rules">rules for parsing floating point number values</a>, to
+    href="#rules1">rules for parsing floating point number values</a>, to
     obtain <var title="">number</var>. This step cannot fail (<var
-    title="">string</var> is guarenteed to be a <a href="#valid">valid
+    title="">string</var> is guarenteed to be a <a href="#valid1">valid
     floating point number</a>).
 
    <li>Return <var title="">number</var>.
   </ol>
 
-  <p class=big-issue>The following paragraph needs merging in to the above at
-   some point.
-
-  <p id=toNumber>When a UA needs to convert a string to a number, algorithms
-   equivalent to those specified in ECMA262 sections 9.3.1 ("ToNumber Applied
-   to the String Type") and 8.5 ("The Number type") should be used (possibly
-   after suitably altering the algorithms to handle numbers of the range that
-   the UA can support). <a href="#refsECMA262">[ECMA262]</a></p>
-  <!-- XXX for integers, do we
-  instead want to use
-  http://lxr.mozilla.org/seamonkey/source/xpcom/string/src/nsTStringObsolete.cpp#143
-  or should we use E262's? This affects how attributes are parsed,
-  e.g. if start="1e2" means "1" or "100". -->
-
-  <h4 id=dates><span class=secno>3.2.2. </span>Dates and times</h4>
+  <h4 id=dates><span class=secno>3.2.3. </span>Dates and times</h4>
 
   <p class=big-issue>define <dfn id=date-or>date or time string</dfn>; also,
    extract the stuff out of the <a href="#datetime1">attr-mod-datetime</a>
    definition and put it here.
 
-  <h4 id=tokens><span class=secno>3.2.3. </span>Tokens</h4>
+  <h4 id=tokens><span class=secno>3.2.4. </span>Tokens</h4>
 
   <p class=big-issue>Define <dfn id=unordered>unordered set of
-   space-separated tokens</dfn> (e.g. for the "class" attribute), along with
-   <dfn id=space>space character</dfn> in that context. Define <dfn
+   space-separated tokens</dfn> (e.g. for the "class" attribute). Define <dfn
    id=split>split a string on spaces</dfn>, and probably use that to define
    how to interpret the "class" attribute.
 
@@ -4011,15 +4323,13 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
    character <a href=entity-references>entity reference nodes are treated as
    if they were expanded in place</a>.
 
-  <p>The whitespace characters U+0020 SPACE, U+000A LINE FEED, and U+000D
-   CARRIAGE RETURN are always allowed between elements. User agents must
-   always represent these characters between elements in the source markup as
-   text nodes in the DOM. Empty text nodes and text nodes consisting of just
-   sequences of those characters are considered <dfn
-   id=inter-element>inter-element whitespace</dfn> and must be ignored when
-   establishing whether an element matches its content model or not.</p>
-  <!-- XXX need to define how to handle U+000A LINE FEED and U+000D
-  CARRIAGE RETURN in attributes (for HTML) -->
+  <p>The <a href="#space" title="space character">space characters</a> are
+   always allowed between elements. User agents must always represent these
+   characters between elements in the source markup as text nodes in the DOM.
+   Empty text nodes and text nodes consisting of just sequences of those
+   characters are considered <dfn id=inter-element>inter-element
+   whitespace</dfn> and must be ignored when establishing whether an element
+   matches its content model or not.
 
   <p>Authors must only use <a href="#elements">elements in the HTML
    namespace</a> in the contexts where they are allowed, as defined for each
@@ -5853,10 +6163,10 @@ To move the error from the markup to the rhyming.&lt;/p&gt;</pre>
    href="#ol0">ol</a></code> element's <code><a
    href="#start">start</a></code> attribute (unless it is further overridden
    by that <code><a href="#li0">li</a></code> element's <code><a
-   href="#value0">value</a></code> attribute).
+   href="#value">value</a></code> attribute).
 
   <p>Each subsequent item in the list has the ordinal value given by its
-   <code><a href="#value0">value</a></code> attribute, if it has one, or, if
+   <code><a href="#value">value</a></code> attribute, if it has one, or, if
    it doesn't, the ordinal value of the previous item, plus one.
 
   <p>The <dfn id=start0 title=dom-start><code>start</code></dfn> DOM
@@ -5932,7 +6242,7 @@ To move the error from the markup to the rhyming.&lt;/p&gt;</pre>
    <dt>Element-specific attributes:
 
    <dd>If the element is a child of an <code><a href="#ol0">ol</a></code>
-    element: <code><a href="#value0">value</a></code>
+    element: <code><a href="#value">value</a></code>
 
    <dd>If the element is not the child of an <code><a
     href="#ol0">ol</a></code> element: None.
@@ -5942,7 +6252,7 @@ To move the error from the markup to the rhyming.&lt;/p&gt;</pre>
    <dd>
     <pre
      class=idl>interface <dfn id=htmllielement>HTMLLIElement</dfn> : <a href="#htmlelement">HTMLElement</a> {
-           attribute long <a href="#value1" title=dom-li-value>value</a>;
+           attribute long <a href="#value0" title=dom-li-value>value</a>;
 };</pre>
   </dl>
 
@@ -5984,25 +6294,25 @@ To move the error from the markup to the rhyming.&lt;/p&gt;</pre>
    href="#paragraph">paragraph</a>.</p>
   <!-- XXX instead refer to microsyntaxes -->
 
-  <p>The <dfn id=value0><code>value</code></dfn> attribute, if present, must
+  <p>The <dfn id=value><code>value</code></dfn> attribute, if present, must
    have a value that consists of an optional U+002D HYPHEN-MINUS followed by
    one or more digits (U+0030 to U+0039) expressing a base ten integer giving
    the ordinal value of the first list item.
 
-  <p>If the <code><a href="#value0">value</a></code> attribute is present,
+  <p>If the <code><a href="#value">value</a></code> attribute is present,
    user agents must <a href="#toNumber">convert the value to a numeric
    type</a>, truncating any fractional part, in order to determine the
    attribute's value. If the attribute's value cannot be converted to a
    number, it is treated as if the attribute was absent. The attribute has no
    default value.
 
-  <p>The <code><a href="#value0">value</a></code> attribute is processed
+  <p>The <code><a href="#value">value</a></code> attribute is processed
    relative to the element's parent <code><a href="#ol0">ol</a></code>
    element, if there is one. If there is not, the attribute has no effect.
 
-  <p>The <dfn id=value1 title=dom-li-value><code>value</code></dfn> DOM
+  <p>The <dfn id=value0 title=dom-li-value><code>value</code></dfn> DOM
    attribute must <a href="#reflect">reflect</a> the value of the <code><a
-   href="#value0">value</a></code> content attribute.
+   href="#value">value</a></code> content attribute.
 
   <h4 id=the-dl><span class=secno>3.9.4. </span>The <dfn
    id=dl0><code>dl</code></dfn> element</h4>
@@ -6092,8 +6402,9 @@ To move the error from the markup to the rhyming.&lt;/p&gt;</pre>
   <p>If a <code><a href="#dl0">dl</a></code> element is empty, it contains no
    groups.
 
-  <p>If a <code><a href="#dl0">dl</a></code> element contains non-whitespace
-   text nodes, or elements other than <code><a href="#dt0">dt</a></code> and
+  <p>If a <code><a href="#dl0">dl</a></code> element contains non-<a
+   href="#inter-element" title="inter-element whitespace">whitespace</a> text
+   nodes, or elements other than <code><a href="#dt0">dt</a></code> and
    <code><a href="#dd0">dd</a></code>, then those elements or text nodes do
    not form part of any groups in that <code><a href="#dl0">dl</a></code>,
    and the document is non-conforming.
@@ -6334,13 +6645,13 @@ To move the error from the markup to the rhyming.&lt;/p&gt;</pre>
   <p>If the element has an <code title=attr-a-href><a
    href="#href3">href</a></code> attribute and a <code title=attr-a-ping><a
    href="#ping">ping</a></code> attribute and the user follows the hyperlink,
-   the user agent should take the <code title=attr-a-ping><a
+   the user agent must take the <code title=attr-a-ping><a
    href="#ping">ping</a></code> attribute's value, strip leading and trailing
-   spaces (U+0020), split the value on sequences of spaces, treat each
-   resulting part as a URI (resolving relative URIs according to element's
-   base URI) and then send a request to each of the resulting URIs. This may
-   be done in parallel with the primary request, and is independent of the
-   result of that request.
+   <a href="#space" title="space character">spaces</a>, split the value on
+   sequences of spaces, treat each resulting part as a URI (resolving
+   relative URIs according to element's base URI) and then should send a
+   request to each of the resulting URIs. This may be done in parallel with
+   the primary request, and is independent of the result of that request.
 
   <p>User agents should allow the user to adjust this behaviour, for example
    in conjunction with a setting that disables the sending of HTTP Referrer
@@ -7136,7 +7447,7 @@ citations ("my favourite book is <cite>...</cite>").
 
    <dt>Element-specific attributes:
 
-   <dd><code title=attr-meter-value><a href="#value2">value</a></code>
+   <dd><code title=attr-meter-value><a href="#value1">value</a></code>
 
    <dd><code title=attr-meter-min><a href="#min">min</a></code>
 
@@ -7153,7 +7464,7 @@ citations ("my favourite book is <cite>...</cite>").
    <dd>
     <pre
      class=idl>interface <dfn id=htmlmeterelement>HTMLMeterElement</dfn> : <a href="#htmlelement">HTMLElement</a> {
-           attribute long <a href="#value3" title=dom-meter-value>value</a>;
+           attribute long <a href="#value2" title=dom-meter-value>value</a>;
            attribute long <a href="#min0" title=dom-meter-min>min</a>;
            attribute long <a href="#max0" title=dom-meter-max>max</a>;
            attribute long <a href="#low0" title=dom-meter-low>low</a>;
@@ -7180,7 +7491,7 @@ citations ("my favourite book is <cite>...</cite>").
   <p>The <dfn id=min title=attr-meter-min><code>min</code></dfn> attribute
    specifies the lower bound of the range, and the <dfn id=max
    title=attr-meter-max><code>max</code></dfn> attribute specifies the upper
-   bound. The <dfn id=value2 title=attr-meter-value><code>value</code></dfn>
+   bound. The <dfn id=value1 title=attr-meter-value><code>value</code></dfn>
    attribute specifies the value to have the gauge indicate as the "measured"
    value.
 
@@ -7204,14 +7515,14 @@ citations ("my favourite book is <cite>...</cite>").
    current value), or as a percentage or similar (using one of the characters
    such as "%"), or as a fraction.
 
-  <p>The <code title=attr-meter-value><a href="#value2">value</a></code>,
+  <p>The <code title=attr-meter-value><a href="#value1">value</a></code>,
    <code title=attr-meter-min><a href="#min">min</a></code>, <code
    title=attr-meter-low><a href="#low">low</a></code>, <code
    title=attr-meter-high><a href="#high">high</a></code>, <code
    title=attr-meter-max><a href="#max">max</a></code>, and <code
    title=attr-meter-optimum><a href="#optimum">optimum</a></code> attributes
    are all optional. When present, they must have values that are <a
-   href="#valid" title="valid floating point number">valid floating point
+   href="#valid1" title="valid floating point number">valid floating point
    numbers</a>.
 
   <div class=example>
@@ -7230,19 +7541,19 @@ citations ("my favourite book is <cite>...</cite>").
   <p><strong>User agent requirements</strong>: User agents must parse the
    <code title=attr-meter-min><a href="#min">min</a></code>, <code
    title=attr-meter-max><a href="#max">max</a></code>, <code
-   title=attr-meter-value><a href="#value2">value</a></code>, <code
+   title=attr-meter-value><a href="#value1">value</a></code>, <code
    title=attr-meter-low><a href="#low">low</a></code>, <code
    title=attr-meter-high><a href="#high">high</a></code>, and <code
    title=attr-meter-optimum><a href="#optimum">optimum</a></code> attributes
-   using the <a href="#rules">rules for parsing floating point number
+   using the <a href="#rules1">rules for parsing floating point number
    values</a>.
 
-  <p>If the <code title=attr-meter-value><a href="#value2">value</a></code>
+  <p>If the <code title=attr-meter-value><a href="#value1">value</a></code>
    attribute has been omitted, the user agent must also process the <code><a
    href="#textcontent">textContent</a></code> of the element according to the
-   <a href="#steps">steps for finding one or two numbers in a string</a>.
-   These steps will return nothing, one number, one number with a denominator
-   punctuation character, or two numbers.
+   <a href="#steps">steps for finding one or two numbers of a ratio in a
+   string</a>. These steps will return nothing, one number, one number with a
+   denominator punctuation character, or two numbers.
 
   <p>User agents must then use all these numbers to obtain values for six
    points on the gauge, as follows. (The order in which these are evaluated
@@ -7267,21 +7578,21 @@ citations ("my favourite book is <cite>...</cite>").
      href="#max">max</a></code> attribute is specified but no value could be
      parsed out of it, or if it was not specified, but either or both of the
      <code title=attr-meter-min><a href="#min">min</a></code> or <code
-     title=attr-meter-value><a href="#value2">value</a></code> attributes
+     title=attr-meter-value><a href="#value1">value</a></code> attributes
      <em>were</em> specified, then the maximum value is 1.</p>
 
     <p>Otherwise, none of the <code title=attr-meter-max><a
      href="#max">max</a></code>, <code title=attr-meter-min><a
      href="#min">min</a></code>, and <code title=attr-meter-value><a
-     href="#value2">value</a></code> attributes were specified. If the result
+     href="#value1">value</a></code> attributes were specified. If the result
      of processing the <code><a href="#textcontent">textContent</a></code> of
      the element was either nothing or just one number with no denominator
      punctuation character, then the maximum value is 1; if the result was
      one number but it had an associated denominator punctuation character,
-     then the maximum value is the <a href="#value" title="values associated
-     with denominator punctuation characters">value associated with that
-     denominator punctuation character</a>; and finally, if there were two
-     numbers parsed out of the <code><a
+     then the maximum value is the <a href="#a-value" title="values
+     associated with denominator punctuation characters">value associated
+     with that denominator punctuation character</a>; and finally, if there
+     were two numbers parsed out of the <code><a
      href="#textcontent">textContent</a></code>, then the maximum is the
      higher of those two numbers.</p>
 
@@ -7292,11 +7603,11 @@ citations ("my favourite book is <cite>...</cite>").
    <dt>The actual value
 
    <dd>
-    <p>If the <code title=attr-meter-value><a href="#value2">value</a></code>
+    <p>If the <code title=attr-meter-value><a href="#value1">value</a></code>
      attribute is specified and a value could be parsed out of it, then that
      value is the actual value.</p>
 
-    <p>If the <code title=attr-meter-value><a href="#value2">value</a></code>
+    <p>If the <code title=attr-meter-value><a href="#value1">value</a></code>
      attribute is not specified but the <code title=attr-meter-max><a
      href="#max">max</a></code> attribute <em>is</em> specified and the
      result of processing the <code><a
@@ -7305,7 +7616,7 @@ citations ("my favourite book is <cite>...</cite>").
      is the actual value.</p>
 
     <p>If neither of the <code title=attr-meter-value><a
-     href="#value2">value</a></code> and <code title=attr-meter-max><a
+     href="#value1">value</a></code> and <code title=attr-meter-max><a
      href="#max">max</a></code> attributes are specified, then, if the result
      of processing the <code><a href="#textcontent">textContent</a></code> of
      the element was one number (with or without an associated denominator
@@ -7429,7 +7740,7 @@ citations ("my favourite book is <cite>...</cite>").
   </div>
 
   <p>The <dfn id=min0 title=dom-meter-min><code>min</code></dfn>, <dfn
-   id=max0 title=dom-meter-max><code>max</code></dfn>, <dfn id=value3
+   id=max0 title=dom-meter-max><code>max</code></dfn>, <dfn id=value2
    title=dom-meter-value><code>value</code></dfn>, <dfn id=low0
    title=dom-meter-low><code>low</code></dfn>, <dfn id=high0
    title=dom-meter-high><code>high</code></dfn>, and <dfn id=optimum0
@@ -7440,7 +7751,7 @@ citations ("my favourite book is <cite>...</cite>").
    href="#textcontent">textContent</a></code> never affects the DOM values.
 
   <p class=big-issue>Would be cool to have the <code title=dom-meter-value><a
-   href="#value3">value</a></code> DOM attribute update the <code><a
+   href="#value2">value</a></code> DOM attribute update the <code><a
    href="#textcontent">textContent</a></code> in-line...</p>
   <!-- XXX
 should we also look inside the title="" attribute?
@@ -7465,7 +7776,7 @@ should we make the contents accessible in some way, e.g. as a tooltip?
 
    <dt>Element-specific attributes:
 
-   <dd><code title=attr-progress-value><a href="#value4">value</a></code>
+   <dd><code title=attr-progress-value><a href="#value3">value</a></code>
 
    <dd><code title=attr-progress-max><a href="#max1">max</a></code>
 
@@ -7474,7 +7785,7 @@ should we make the contents accessible in some way, e.g. as a tooltip?
    <dd>
     <pre
      class=idl>interface <dfn id=htmlprogresselement>HTMLProgressElement</dfn> : <a href="#htmlelement">HTMLElement</a> {
-           attribute float <a href="#value5" title=dom-progress-value>value</a>;
+           attribute float <a href="#value4" title=dom-progress-value>value</a>;
            attribute float <a href="#max2" title=dom-progress-max>max</a>;
   readonly attribute float <a href="#position" title=dom-progress-position>position</a>;
 };</pre>
@@ -7491,7 +7802,7 @@ should we make the contents accessible in some way, e.g. as a tooltip?
   <p>There are two attributes that determine the current task completion
    represented by the element.
 
-  <p>The <dfn id=value4 title=attr-progress-value><code>value</code></dfn>
+  <p>The <dfn id=value3 title=attr-progress-value><code>value</code></dfn>
    attribute specifies how much of the task has been completed, and the <dfn
    id=max1 title=attr-progress-max><code>max</code></dfn> attribute specifies
    how much work the task requires in total. The units are arbitrary and not
@@ -7524,29 +7835,29 @@ should we make the contents accessible in some way, e.g. as a tooltip?
 
   <p><strong>Author requirements</strong>: The <code
    title=attr-progress-max><a href="#max1">max</a></code> and <code
-   title=attr-progress-value><a href="#value4">value</a></code> attributes,
-   when present, must have values that are <a href="#valid" title="valid
+   title=attr-progress-value><a href="#value3">value</a></code> attributes,
+   when present, must have values that are <a href="#valid1" title="valid
    floating point number">valid floating point numbers</a>. The <code
    title=attr-progress-max><a href="#max1">max</a></code> attribute, if
    present, must have a value greater than zero. The <code
-   title=attr-progress-value><a href="#value4">value</a></code> attribute, if
+   title=attr-progress-value><a href="#value3">value</a></code> attribute, if
    present, must have a value equal to or greater than zero, and less than or
    equal to the value of the <code title=attr-progress-max><a
    href="#max1">max</a></code> attribute, if present.
 
   <p><strong>User agent requirements</strong>: User agents must parse the
    <code title=attr-progress-max><a href="#max1">max</a></code> and <code
-   title=attr-progress-value><a href="#value4">value</a></code> attributes'
-   values according to the <a href="#rules">rules for parsing floating point
+   title=attr-progress-value><a href="#value3">value</a></code> attributes'
+   values according to the <a href="#rules1">rules for parsing floating point
    number values</a>.
 
   <p>If the <code title=attr-progress-value><a
-   href="#value4">value</a></code> attribute is omitted, then user agents
+   href="#value3">value</a></code> attribute is omitted, then user agents
    must also parse the <code><a href="#textcontent">textContent</a></code> of
    the <code><a href="#progress0">progress</a></code> element in question
-   using the <a href="#steps">steps for finding one or two numbers in a
-   string</a>. These steps will return nothing, one number, one number with a
-   denominator punctuation character, or two numbers.
+   using the <a href="#steps">steps for finding one or two numbers of a ratio
+   in a string</a>. These steps will return nothing, one number, one number
+   with a denominator punctuation character, or two numbers.
 
   <p>Using the results of this processing, user agents must determine whether
    the progress bar is an indeterminate progress bar, or whether it is a
@@ -7556,7 +7867,7 @@ should we make the contents accessible in some way, e.g. as a tooltip?
   <ol>
    <li>If the <code title=attr-progress-max><a href="#max1">max</a></code>
     attribute is omitted, and the <code title=attr-progress-value><a
-    href="#value4">value</a></code> is omitted, and the results of parsing
+    href="#value3">value</a></code> is omitted, and the results of parsing
     the <code><a href="#textcontent">textContent</a></code> was nothing, then
     the progress bar is an indeterminate progress bar. Abort these steps.
 
@@ -7568,7 +7879,7 @@ should we make the contents accessible in some way, e.g. as a tooltip?
 
    <li>Otherwise, if the <code title=attr-progress-max><a
     href="#max1">max</a></code> attribute is absent but the <code
-    title=attr-progress-value><a href="#value4">value</a></code> attribute is
+    title=attr-progress-value><a href="#value3">value</a></code> attribute is
     present, or, if the <code title=attr-progress-max><a
     href="#max1">max</a></code> attribute is present but no value could be
     parsed from it, then the maximum is 1.
@@ -7583,19 +7894,19 @@ should we make the contents accessible in some way, e.g. as a tooltip?
     value is 1.
 
    <li>If the <code title=attr-progress-value><a
-    href="#value4">value</a></code> attribute is present on the element and a
+    href="#value3">value</a></code> attribute is present on the element and a
     value could be parsed out of it, that value is the current value of the
     progress bar. Otherwise, if the attribute is present but no value could
     be parsed from it, the current value is zero.
 
    <li>Otherwise if the <code title=attr-progress-value><a
-    href="#value4">value</a></code> attribute is absent and the <code
+    href="#value3">value</a></code> attribute is absent and the <code
     title=attr-progress-max><a href="#max1">max</a></code> attribute is
     present, then, if the <code><a href="#textcontent">textContent</a></code>
     was parsed and found to contain just one number, with no associated
     denominator punctuation character, then the current value is that number.
     Otherwise, if the <code title=attr-progress-value><a
-    href="#value4">value</a></code> attribute is absent and the <code
+    href="#value3">value</a></code> attribute is absent and the <code
     title=attr-progress-max><a href="#max1">max</a></code> attribute is
     present then the current value is zero.
 
@@ -7619,14 +7930,14 @@ should we make the contents accessible in some way, e.g. as a tooltip?
    relative position of the current value relative to the maximum value.
 
   <p>The <dfn id=max2 title=dom-progress-max><code>max</code></dfn> and <dfn
-   id=value5 title=dom-progress-value><code>value</code></dfn> DOM attributes
+   id=value4 title=dom-progress-value><code>value</code></dfn> DOM attributes
    must reflect the elements' content attributes of the same name. When the
    relevant content attributes are absent, the DOM attributes must return
    zero. The value parsed from the <code><a
    href="#textcontent">textContent</a></code> never affects the DOM values.
 
   <p class=big-issue>Would be cool to have the <code
-   title=dom-progress-value><a href="#value5">value</a></code> DOM attribute
+   title=dom-progress-value><a href="#value4">value</a></code> DOM attribute
    update the <code><a href="#textcontent">textContent</a></code> in-line...
 
   <p>If the progress bar is an indeterminate progress bar, then the <dfn
@@ -12627,7 +12938,7 @@ XXX selection ranges -->
    the <a href="#label2" title=command-facet-Label>Label</a> (in DOM terms,
    this the string given by <code><var
    title="">element</var>.labels[0].textContent</code>). Otherwise, the value
-   of the <code><a href="#value0">value</a></code> attribute, if present, is
+   of the <code><a href="#value">value</a></code> attribute, if present, is
    the <a href="#label2" title=command-facet-Label>Label</a>. Otherwise, the
    <a href="#label2" title=command-facet-Label>Label</a> is the empty string.
 
@@ -12668,10 +12979,9 @@ XXX selection ranges -->
    command</dfn></h4>
 
   <p>An <code>option</code> element with an ancestor <code>select</code>
-   element and either no <code><a href="#value0">value</a></code> attribute
-   or a <code><a href="#value0">value</a></code> attribute that is not the
-   empty string <a href="#command2" title=concept-command>defines a
-   command</a>.
+   element and either no <code><a href="#value">value</a></code> attribute or
+   a <code><a href="#value">value</a></code> attribute that is not the empty
+   string <a href="#command2" title=concept-command>defines a command</a>.
 
   <p>The <a href="#type10" title=command-facet-Type>Type</a> of the command
    is "radio" if the <code>option</code>'s nearest ancestor
@@ -14200,15 +14510,15 @@ interface <dfn id=storage1>Storage</dfn> {
   <pre class=idl>
 interface <dfn id=storageitem>StorageItem</dfn> {
            attribute boolean <a href="#secure" title=dom-StorageItem-secure>secure</a>;
-           attribute DOMString <a href="#value6" title=dom-StorageItem-value>value</a>;
+           attribute DOMString <a href="#value5" title=dom-StorageItem-value>value</a>;
 };</pre>
 
   <p>In the ECMAScript DOM binding, <code><a
    href="#storageitem">StorageItem</a></code> objects must stringify to their
-   <code title=dom-StorageItem-value><a href="#value6">value</a></code>
+   <code title=dom-StorageItem-value><a href="#value5">value</a></code>
    attribute's value.
 
-  <p>The <dfn id=value6 title=dom-StorageItem-value><code>value</code></dfn>
+  <p>The <dfn id=value5 title=dom-StorageItem-value><code>value</code></dfn>
    attribute must return the current value of the key/value pair represented
    by the object. When the attribute is set, the user agent must invoke the
    <code title=dom-Storage-setItem><a href="#setitem">setItem()</a></code>
