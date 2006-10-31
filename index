@@ -22,7 +22,7 @@
 
    <h1 id=web-applications>Web Applications 1.0</h1>
 
-   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 27 October 2006</h2>
+   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 31 October 2006</h2>
 
    <p>You can take part in this work. <a
     href="http://www.whatwg.org/mailing-list">Join the working group's
@@ -4027,39 +4027,343 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
   <p>A string is a <dfn id=valid3>valid datetime</dfn> if it has four digits
    (representing the year), a literal hyphen, two digits (representing the
-   month), a literal hyphen, two digits (representing the day), a literal T,
+   month), a literal hyphen, two digits (representing the day), optionally
+   some spaces, either a literal T or a space, optionally some more spaces,
    two digits (for the hour), a colon, two digits (the minutes), another
-   colon, two digits (the seconds), optionally a decimal point followed by
-   one or more digits (for the fraction of a second), and finally either a
-   literal Z (indicating the time zone is UTC), or, a plus sign or a minus
-   sign followed by two digits, a colon, and two digits (for the sign, the
-   hours and minutes of the timezone offset respectively).
+   colon, two digits (the integer part of the seconds), optionally a decimal
+   point followed by one or more digits (for the fractional part of the
+   seconds), optionally some spaces, and finally either a literal Z
+   (indicating the time zone is UTC), or, a plus sign or a minus sign
+   followed by two digits, a colon, and two digits (for the sign, the hours
+   and minutes of the timezone offset respectively); with the month-day
+   combination being a valid date in the given year according to the
+   Gregorian calendar, the hour values (<var title="">h</var>) being in the
+   range 0&nbsp;&le;<var title="">h</var>&nbsp;&le;23, the minute values
+   (<var title="">m</var>) in the range 0&nbsp;&le;<var
+   title="">m</var>&nbsp;&le;59, and the second value (<var title="">s</var>)
+   being in the range 0&nbsp;&le;<var title="">h</var>&nbsp;&lt;60. <a
+   href="#refsGREGORIAN">[GREGORIAN]</a></p>
+  <!--XXX [GREGORIAN] should point to
+  <dd id="refsGREGORIAN">[GREGORIAN]</dd>
+  <dd>(Non-normative) <cite>Inter Gravissimas</cite>, A. Lilius, C. Clavius. Gregory XIII Papal Bulls, February 1582.</dd>
+  -->
 
-  <p>In other words: <code><var title="">YYYY</var>-<var
-   title="">MM</var>-<var title="">DD</var>T<var title="">hh</var>:<var
-   title="">mm</var>:<var title="">ss</var>.<var title="">s</var><var
-   title="">TZ</var></code>
+  <p>The digits must be characters in the range U+0030 DIGIT ZERO (0) to
+   U+0039 DIGIT NINE (9), the hyphens must be a U+002D HYPHEN-MINUS
+   characters, the T must be a U+0054 LATIN CAPITAL LETTER T, the colons must
+   be U+003A COLON characters, the decimal point must be a U+002E FULL STOP,
+   the Z must be a U+005A LATIN CAPITAL LETTER Z, the plus sign must be a
+   U+002B PLUS SIGN, and the minus U+002D (same as the hyphen).
 
-  <p>A digit must be a character in the range U+0030 DIGIT ZERO (0) to U+0039
-   DIGIT NINE (9), the hyphen must be a U+002D HYPHEN-MINUS, the T must be a
-   U+0054 LATIN CAPITAL LETTER T, the colon must be a U+003A COLON, the
-   decimal point must be a U+002E FULL STOP, the Z must be a U+005A LATIN
-   CAPITAL LETTER Z, the plus sign must be a U+002B PLUS SIGN, and the minus
-   U+002D (same as the hyphen).
+  <div>
+   <p>The following are some examples of dates written as <a href="#valid3"
+    title="valid datetime">valid datetimes</a>.</p>
 
-  <p>To interpret this value, user agents must first check to see if the
-   value matches the pattern described here. If it does, then the values must
-   be extracted and interpreted as a date and time with a timezone offset, as
-   follows:
+   <dl>
+    <dt>"<code>0037-12-13 00:00 Z</code>"
+
+    <dd>Midnight UTC on the birthday of Nero (the Roman Emperor).
+
+    <dt>"<code>1979-10-14T12:00:00.001-04:00</code>"
+
+    <dd>One millisecond after noon on October 14th 1979, in the time zone in
+     use on the east coast of North America during daylight saving time.
+
+    <dt>"<code>8592-01-01 T 02:09 +02:09</code>"
+
+    <dd>Midnight UTC on the 1st of January, 8592. The time zone associated
+     with that time is two hours and nine minutes ahead of UTC.
+   </dl>
+
+   <p>Several things are notable about these dates:</p>
+
+   <ul>
+    <li>Years with fewer than four digits have to be zero-padded. The date
+     "37-12-13" would not be a valid date.
+
+    <li>To unambiguously identify a moment in time prior to the introduction
+     of the Gregorian calendar, the date has to be first converted to the
+     Gregorian calendar from the calendar in use at the time (e.g. from the
+     Julian calendar). The date of Nero's birth is the 15th of December 37,
+     in the Julian Calendar, which is the 13th of December 37 in the
+     Gregorian Calendar.</li>
+    <!--
+    XXX this might not be true. I can't find a reference that gives
+    his birthday with an explicit statement about the calendar being
+    used. However, it seems unlikely that it would be given in the
+    Gregorian calendar, so I assume sites use the Julian one. -->
+
+    <li>The time and timezone components are not optional.
+
+    <li>Dates before the year 0 or after the year 9999 can't be represented
+     as a datetime in this version of HTML.
+
+    <li>Time zones differ based on daylight savings time.
+   </ul>
+  </div>
+
+  <p class=note>Conformance checkers can use the algorithm below to determine
+   if a datetime is a valid datetime or not.
+
+  <p>To <dfn id=datetime-parser>parse a string as a datetime value</dfn>, a
+   user agent must apply the following algorithm to the string. This will
+   either return a time in UTC, with associated timezone information for
+   round tripping or display purposes, or nothing, indicating the value is
+   not a <a href="#valid3">valid datetime</a>. If at any point the algorithm
+   says that it "fails", this means that it returns nothing.
 
   <ol>
    <li>
+    <p>Let <var title="">input</var> be the string being parsed.
+
+   <li>
+    <p>Let <var title="">position</var> be a pointer into <var
+     title="">input</var>, initially pointing at the start of the string.
+
+   <li>
+    <p><a href="#collect">Collect a sequence of characters</a> in the range
+     U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9). If the collected
+     sequence is not exactly four characters long, then fail. Otherwise,
+     interpret the resulting sequence as a base ten integer. Let that number
+     be the <var title="">year</var>.
+
+   <li>
+    <p>If <var title="">position</var> is beyond the end of <var
+     title="">input</var> or if the character at <var title="">position</var>
+     is not a U+002D HYPHEN-MINUS character, then fail. Otherwise, move <var
+     title="">position</var> forwards one character.
+
+   <li>
+    <p><a href="#collect">Collect a sequence of characters</a> in the range
+     U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9). If the collected
+     sequence is not exactly two characters long, then fail. Otherwise,
+     interpret the resulting sequence as a base ten integer. Let that number
+     be the <var title="">month</var>.
+
+   <li>If <var title="">month</var> is not a number in the range
+    1&nbsp;&le;<var title="">month</var>&nbsp;&le;12, then fail.
+
+   <li>
+    <p>Let <var title="">maxday</var> be 31 if <var title="">month</var> is
+     1, 3, 5, 7, 8, 10, or 12; let it be 30 if <var title="">month</var> is
+     4, 6, 9, or 11; let it be 29 if <var title="">month</var> is 2 and <var
+     title="">year</var> is a number divisible by 400, or if <var
+     title="">year</var> is a number divisible by 4 but not by 100; and let
+     it be 28 otherwise. (<var title="">maxday</var> is the number of days in
+     the February of the given year, taking into account leap years.)
+
+   <li>
+    <p>If <var title="">position</var> is beyond the end of <var
+     title="">input</var> or if the character at <var title="">position</var>
+     is not a U+002D HYPHEN-MINUS character, then fail. Otherwise, move <var
+     title="">position</var> forwards one character.
+
+   <li>
+    <p><a href="#collect">Collect a sequence of characters</a> in the range
+     U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9). If the collected
+     sequence is not exactly two characters long, then fail. Otherwise,
+     interpret the resulting sequence as a base ten integer. Let that number
+     be the <var title="">day</var>.
+
+   <li>
+    <p>If <var title="">day</var> is not a number in the range
+     1&nbsp;&le;<var title="">month</var>&nbsp;&le;<var
+     title="">maxday</var>, then fail.
+
+   <li>
+    <p><a href="#collect">Collect a sequence of characters</a> that are
+     either U+0054 LATIN CAPITAL LETTER T characters or <a href="#space"
+     title="space character">space characters</a>. If the collected sequence
+     is zero characters long, or if it contains more than one U+0054 LATIN
+     CAPITAL LETTER T character, then fail.
+
+   <li>
+    <p><a href="#collect">Collect a sequence of characters</a> in the range
+     U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9). If the collected
+     sequence is not exactly two characters long, then fail. Otherwise,
+     interpret the resulting sequence as a base ten integer. Let that number
+     be the <var title="">hour</var>.
+
+   <li>If <var title="">hour</var> is not a number in the range
+    0&nbsp;&le;<var title="">hour</var>&nbsp;&le;23, then fail.
+
+   <li>
+    <p>If <var title="">position</var> is beyond the end of <var
+     title="">input</var> or if the character at <var title="">position</var>
+     is not a U+003A COLON character, then fail. Otherwise, move <var
+     title="">position</var> forwards one character.
+
+   <li>
+    <p><a href="#collect">Collect a sequence of characters</a> in the range
+     U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9). If the collected
+     sequence is not exactly two characters long, then fail. Otherwise,
+     interpret the resulting sequence as a base ten integer. Let that number
+     be the <var title="">minute</var>.
+
+   <li>If <var title="">minute</var> is not a number in the range
+    0&nbsp;&le;<var title="">minute</var>&nbsp;&le;59, then fail.
+
+   <li>
+    <p>Let <var title="">second</var> be a string with the value "0".
+
+   <li>
+    <p>If <var title="">position</var> is beyond the end of <var
+     title="">input</var>, then fail.
+
+   <li>
+    <p>If the character at <var title="">position</var> is a U+003A COLON,
+     then:</p>
+
+    <ol>
+     <li>
+      <p>Advance <var title="">position</var> to the next character in <var
+       title="">input</var>.
+
+     <li>
+      <p>If <var title="">position</var> is beyond the end of <var
+       title="">input</var>, or at the last character in <var
+       title="">input</var>, or if the next <em>two</em> characters in <var
+       title="">input</var> starting at <var title="">position</var> are not
+       two characters both in the range U+0030 DIGIT ZERO (0) to U+0039 DIGIT
+       NINE (9), then fail.
+
+     <li>
+      <p><a href="#collect">Collect a sequence of characters</a> that are
+       either characters in the range U+0030 DIGIT ZERO (0) to U+0039 DIGIT
+       NINE (9) or U+002E FULL STOP characters. If the collected sequence has
+       more than one U+002E FULL STOP characters, or if the last character in
+       the sequence is a U+002E FULL STOP character, then fail. Otherwise,
+       let the collected string be <var title="">second</var> instead of its
+       previous value.
+    </ol>
+
+   <li>
+    <p>Interpret <var title="">second</var> as a base ten number (possibly
+     with a fractional part). Let that number be <var title="">second</var>
+     instead of the string version.
+
+   <li>If <var title="">second</var> is not a number in the range
+    0&nbsp;&le;<var title="">hour</var>&nbsp;&lt;60, then fail. (The values
+    60 and 61 are not allowed: leap seconds cannot be represented by datetime
+    values.)
+
+   <li>
+    <p>If <var title="">position</var> is beyond the end of <var
+     title="">input</var>, then fail.
+
+   <li>
+    <p><a href="#skip-">Skip whitespace.</a>
+
+   <li>
+    <p>If the character at <var title="">position</var> is a U+005A LATIN
+     CAPITAL LETTER Z, then:</p>
+
+    <ol>
+     <li>
+      <p>Let <var title="">timezone<sub>hours</sub></var> be 0.
+
+     <li>
+      <p>Let <var title="">timezone<sub>minutes</sub></var> be 0.
+
+     <li>
+      <p>Advance <var title="">position</var> to the next character in <var
+       title="">input</var>.
+    </ol>
+
+   <li>
+    <p>Otherwise, if the character at <var title="">position</var> is either
+     a U+002B PLUS SIGN ("+") or a U+002D HYPHEN-MINUS ("-"), then:</p>
+
+    <ol>
+     <li>
+      <p>If the character at <var title="">position</var> is a U+002B PLUS
+       SIGN ("+"), let <var title="">sign</var> be "positive". Otherwise,
+       it's a U+002D HYPHEN-MINUS ("-"); let <var title="">sign</var> be
+       "negative".
+
+     <li>
+      <p>Advance <var title="">position</var> to the next character in <var
+       title="">input</var>.
+
+     <li>
+      <p><a href="#collect">Collect a sequence of characters</a> in the range
+       U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9). If the collected
+       sequence is not exactly two characters long, then fail. Otherwise,
+       interpret the resulting sequence as a base ten integer. Let that
+       number be the <var title="">timezone<sub>hours</sub></var>.
+
+     <li>If <var title="">timezone<sub>hours</sub></var> is not a number in
+      the range 0&nbsp;&le;<var
+      title="">timezone<sub>hours</sub></var>&nbsp;&le;23, then fail.
+
+     <li>If <var title="">sign</var> is "negative", then negate <var
+      title="">timezone<sub>hours</sub></var>.
+
+     <li>
+      <p>If <var title="">position</var> is beyond the end of <var
+       title="">input</var> or if the character at <var
+       title="">position</var> is not a U+003A COLON character, then fail.
+       Otherwise, move <var title="">position</var> forwards one character.
+
+     <li>
+      <p><a href="#collect">Collect a sequence of characters</a> in the range
+       U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9). If the collected
+       sequence is not exactly two characters long, then fail. Otherwise,
+       interpret the resulting sequence as a base ten integer. Let that
+       number be the <var title="">timezone<sub>minutes</sub></var>.
+
+     <li>If <var title="">timezone<sub>minutes</sub></var> is not a number in
+      the range 0&nbsp;&le;<var
+      title="">timezone<sub>minutes</sub></var>&nbsp;&le;59, then fail.
+    </ol>
+
+   <li>
+    <p>If <var title="">position</var> is <em>not</em> beyond the end of <var
+     title="">input</var>, then fail.
+
+   <li>
+    <p>Let <var title="">time</var> be the moment in time at year <var
+     title="">year</var>, month <var title="">month</var>, day <var
+     title="">day</var>, hours <var title="">hour</var>, minute <var
+     title="">minute</var>, second <var title="">second</var>, adding <var
+     title="">timezone<sub>hours</sub></var> hours and <var
+     title="">timezone<sub>minutes</sub></var> minutes. That moment in time
+     is a moment in the UTC timezone.
+
+   <li>
+    <p>Let <var title="">timezone</var> be <var
+     title="">timezone<sub>hours</sub></var> hours and <var
+     title="">timezone<sub>minutes</sub></var> minutes from UTC.
+
+   <li>
+    <p>Return <var title="">time</var> and <var title="">timezone</var>.
   </ol>
 
-  <p>If the attribute value does not match the format, or, if the date or
-   time given is not a valid date and time (e.g. because the month is out of
-   range) then the user agent must <a href="#ignored">ignore</a> the
-   attribute (the modification has no associated timestamp).
+  <p>When the algorithm above says to <dfn id=collect>collect a sequence of
+   characters</dfn>, it means that the following steps must be run, with <var
+   title="">characters</var> being the set of characters that can be
+   collected:
+
+  <ol>
+   <li>
+    <p>Let <var title="">input</var> and <var title="">position</var> be the
+     same variables as those of the same name in the algorithm that invoked
+     these steps.
+
+   <li>
+    <p>Let <var title="">result</var> be the empty string.
+
+   <li>
+    <p>While <var title="">position</var> doesn't point past the end of <var
+     title="">input</var> and the character at <var title="">position</var>
+     is one of the <var title="">characters</var>, append that character to
+     the end of <var title="">result</var> and advance <var
+     title="">position</var> to the next character in <var
+     title="">input</var>.
+
+   <li>
+    <p>Return <var title="">result</var>.
+  </ol>
 
   <h4 id=tokens><span class=secno>3.2.4. </span>Tokens</h4>
 
@@ -8644,7 +8948,19 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
    title=attr-mod-datetime><code>datetime</code></dfn> attribute may be used
    to specify the time and date of the change.
 
-  <p class=big-issue>Intergrate with the "common microsyntaxes" section
+  <p>If present, the <code title=attr-mod-datetime><a
+   href="#datetime1">datetime</a></code> attribute must be a <a
+   href="#valid3">valid datetime</a> value.
+
+  <p>User agents must parse the <code title=attr-mod-datetime><a
+   href="#datetime1">datetime</a></code> attribute according to the <a
+   href="#datetime-parser">parse a string as a datetime value</a> algorithm.
+   If that doesn't return a time, then the modification has no associated
+   timestamp (the value is non-conforming; it is not a <a
+   href="#valid3">valid datetime</a>). Otherwise, the modification is marked
+   as having been made at the given datetime. User agents should use the
+   associated timezone information to determine which timezone to present the
+   given datetime in.
 
   <p>The <code><a href="#ins0">ins</a></code> and <code><a
    href="#del0">del</a></code> elements must implement the <code><a
