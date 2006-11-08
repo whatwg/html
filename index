@@ -9798,7 +9798,10 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
   <p>When the <code title=attr-embed-src><a href="#src3">src</a></code>
    attribute is set, user agents are expected to find an appropriate handler
    for the specified resource, based on the <a href="#type-of"
-   title=concept-embed-type>content's type</a>.
+   title=concept-embed-type>content's type</a>, and hand that handler the
+   content of the resource. If the handler supports a scriptable interface,
+   the <code><a href="#htmlembedelement">HTMLEmbedElement</a></code> object
+   representing the element should expose that interfaces.
 
   <p class=note>This specification does not define a mechanism for this, as
    it is expected to be user-agent-specific. Some UAs might opt to support a
@@ -9911,10 +9914,14 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
      href="#htmlobjectelement">HTMLObjectElement</a></code> interface must
      also implement the <code>EmbeddingElement</code> interface defined in
      the Window Object specification. <a href="#refsWINDOW">[WINDOW]</a></p>
+
+    <p>Depending on the type of content instantiated by the <code><a
+     href="#object0">object</a></code> element, the node may also support
+     other interfaces.</p>
   </dl>
 
-  <p>The <code><a href="#object0">object</a></code> element either represents
-   an external resource, which, depending on the type of the resource, will
+  <p>The <code><a href="#object0">object</a></code> element can represent an
+   external resource, which, depending on the type of the resource, will
    either be treated as an image, as a nested <a href="#browsing">browsing
    context</a>, or as an external resource to be processed by a third-party
    software package.
@@ -9937,7 +9944,8 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
    title=attr-object-data><a href="#data">data</a></code> attribute is not
    present, whenever the <code title=attr-object-type><a
    href="#type6">type</a></code> attribute changes, the user agent must
-   follow the following steps:
+   follow the following steps to determine what the <code><a
+   href="#object0">object</a></code> element represents:
 
   <ol>
    <li>
@@ -9947,33 +9955,30 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
     <ol>
      <li>
       <p>Begin a load for the resource.
+     </li>
+     <!-- XXX define
+     that -->
+     <!-- XXX xref -->
 
      <li>
       <p>If the resource is not yet available (e.g. because the resource was
        not available in the cache, so that loading the resource required
-       making a request over the network), then jump to step 2 in the overall
-       set of steps. When the resource becomes available or the load fails,
-       restart this algorithm from this step. Resources can load
-       incrementally; user agents may opt to consider a resource "available"
-       whenever enough data has been obtained to begin processing the
-       resource.
+       making a request over the network), then jump to step 3 in the overall
+       set of steps (fallback). When the resource becomes available, or if
+       the load fails, restart this algorithm from this step. Resources can
+       load incrementally; user agents may opt to consider a resource
+       "available" whenever enough data has been obtained to begin processing
+       the resource.
 
      <li>
       <p>If the load failed (e.g. DNS error), <a href="#firing5">fire an
-       <code title=event-error>error</code> event</a>, then, continue these
-       steps, but instead of the original resource, use a user-agent-defined
-       resource indicating error.</p>
+       <code title=event-error>error</code> event</a>, then jump to step 3 in
+       the overall set of steps (fallback).
 
      <li>
       <p>Determine the <em>resource type</em>, as follows:</p>
 
       <dl class=switch>
-       <dt>If the resource is a user-agent-defined resource indicating error
-        (see the previous step)
-
-       <dd>The type is a special type referred to in the steps below as "an
-        error page".
-
        <dt>If the resource has <a href="#content-type1"
         title=Content-Type>associated Content-Type metadata</a>
 
@@ -9997,34 +10002,94 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
       <dl class=switch>
        <dt>If the resource requires a special handler (e.g. a plugin)
 
-       <dd class=big-issue>plugin, like embed
+       <dd>The user agent should find an appropriate handler for the
+        specified resource, based on the <em>resource type</em> found in the
+        previous step, and pass the content of the resource to that handler.
+        If the handler supports a scriptable interface, the <code><a
+        href="#htmlobjectelement">HTMLObjectElement</a></code> object
+        representing the element should expose that interface. The handler is
+        not a nested <a href="#browsing">browsing context</a>. If no
+        appropriate handler can be found, then jump to step 3 in the overall
+        set of steps (fallback).
 
-       <dt>Otherwise, if the type of the resource is <em>not</em> an image
-        type
+       <dt>If the type of the resource is an <span>XML MIME
+        type</span><!-- XXX xref -->
 
-       <dd class=big-issue>nested browsing context, like iframe
+       <dt>If the type of the resource is HTML
 
-       <dt>Otherwise, the resource is an image type that the user agent
-        supports natively
+       <dt>If the type of the resource does not start with
+        "<code>image/</code>"
 
-       <dd class=big-issue>like img
+       <dd>The <code><a href="#object0">object</a></code> element must be
+        associated with a nested <a href="#browsing">browsing context</a>, if
+        it does not already have one. The element's nested <a
+        href="#browsing">browsing context</a> must then be
+        <span>navigated</span> to the given resource. (The <code
+        title=attr-object-data><a href="#data">data</a></code> attribute of
+        the <code><a href="#object0">object</a></code> element doesn't get
+        updated if the browsing context gets further navigated to other
+        locations.)
+
+       <dt>If the resource is a supported image format, and support for
+        images has not been disabled
+
+       <dd>The <code><a href="#object0">object</a></code> element represents
+        the specified image. The image is not a nested <a
+        href="#browsing">browsing context</a>.
+
+       <dt>Otherwise
+
+       <dd>The <code><a href="#object0">object</a></code> element represents
+        the specified image, but the image cannot be shown. Jump to step 3
+        below in the overall set of steps (fallback).
       </dl>
+
+     <li>
+      <p>The element's contents are not part of what the <code><a
+       href="#object0">object</a></code> element represents.</p>
 
      <li>
       <p>Once the resource is completely loaded, <a href="#firing4">fire a
        <code title=event-load>load</code> event</a>.
+     </li>
+     <!-- XXX
+     ordering of events (like with iframe) -->
     </ol>
 
    <li>
-    <p class=big-issue>if type only: data-less plugins
+    <p>If the <code title=attr-object-data><a href="#data">data</a></code>
+     attribute is absent but the <code title=attr-object-type><a
+     href="#type6">type</a></code> attribute is present, and if the user
+     agent can find a handler suitable according to the value of the <code
+     title=attr-object-type><a href="#type6">type</a></code> attribute, then
+     that handler should be used. If the handler supports a scriptable
+     interface, the <code><a
+     href="#htmlobjectelement">HTMLObjectElement</a></code> object
+     representing the element should expose that interface. The handler is
+     not a nested <a href="#browsing">browsing context</a>. If no suitable
+     handler can be found, jump to the next step (fallback).
 
    <li>
-    <p class=big-issue>fallback
+    <p>(Fallback.) The <code><a href="#object0">object</a></code> element
+     doesn't represent except what the element's contents represent.
   </ol>
 
+  <p>In the absence of other factors (such as style sheets), user agents must
+   show the user what the <code><a href="#object0">object</a></code> element
+   represents. Thus, the contents of <code><a
+   href="#object0">object</a></code> elements act as fallback content, to be
+   used only when referenced resources can't be shown (e.g. because it
+   returned a 404 error). This allows multiple <code><a
+   href="#object0">object</a></code> elements to be nested inside each other,
+   targetting multiple user agents with different capabilities, with the user
+   agent picking the best one it supports.
+
   <p>The <code title=attr-hyperlink-usemap><a
-   href="#usemap1">usemap</a></code> attribute, if present, can indicate that
-   the object has an associated <a href="#image0">image map</a>.
+   href="#usemap1">usemap</a></code> attribute, if present while the <code><a
+   href="#object0">object</a></code> element represents an image, can
+   indicate that the object has an associated <a href="#image0">image
+   map</a>. The attribute must be ignored if the <code><a
+   href="#object0">object</a></code> element doesn't represent an image.
 
   <p class=big-issue>height/width
 
