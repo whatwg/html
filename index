@@ -15107,7 +15107,10 @@ disallow: http://microformats.org/wiki/rel-enclosure
            from <span>x=<var title="">x<sub title="">start</sub></var></span>
            to <span>x=<var title="">x<sub title="">max</sub></var></span>
            form a new <a href="#column0" title=concept-column-group>column
-           group</a> corresponding to the <code><a
+           group</a>, anchored at the slot (<var title="">x<sub
+           title="">start</sub></var>, 1), with width <var title="">x<sub
+           title="">max</sub></var>-<var title="">x<sub
+           title="">start</sub></var>-1, corresponding to the <code><a
            href="#colgroup0">colgroup</a></code> element.</p>
         </ol>
 
@@ -15140,7 +15143,9 @@ disallow: http://microformats.org/wiki/rel-enclosure
           <p>Let the last <var title="">span</var> <a href="#column"
            title=concept-column>columns</a> in <var title="">the table</var>
            form a new <a href="#column0" title=concept-column-group>column
-           group</a> corresponding to the <code><a
+           group</a>, anchored at the slot (<var title="">x<sub
+           title="">max</sub></var>-<var title="">span</var>+1, 1), with
+           width <var title="">span</var>, corresponding to the <code><a
            href="#colgroup0">colgroup</a></code> element.</p>
         </ol>
       </dl>
@@ -15180,6 +15185,10 @@ disallow: http://microformats.org/wiki/rel-enclosure
      error</a>.</p>
 
    <li>
+    <p>Let the <var title="">list of downward-growing cells</var> be an empty
+     list.</p>
+
+   <li>
     <p><em>Rows.</em> While the <var title="">current element</var> is not
      one of the following elements, advance the <var title="">current
      element</var> to the next child of the <code><a
@@ -15197,17 +15206,13 @@ disallow: http://microformats.org/wiki/rel-enclosure
 
    <li>
     <p>If the <var title="">current element</var> is a <code><a
-     href="#tr0">tr</a></code>, then run the <a href="#algorithm">algorithm
+     href="#tr0">tr</a></code>, then run the <a href="#algorithm0">algorithm
      for processing rows</a> (defined below), then return to the previous
      step (rows).</p>
 
    <li>
-    <p>Otherwise, if <var title="">y<sub title="">current</sub></var> is less
-     than <var title="">y<sub title="">max</sub></var>, then this is a <a
-     href="#table3">table model error</a>; let <var title="">y<sub
-     title="">current</sub></var> equal <var title="">y<sub
-     title="">max</sub></var>. (This prevents cells that would otherwise flow
-     out of their row group from doing so.)</p>
+    <p>Otherwise, run the <a href="#algorithm">algorithm for ending a row
+     group</a>.</p>
 
    <li>
     <p>Let <var title="">y<sub title="">start</sub></var> have the value
@@ -15216,23 +15221,52 @@ disallow: http://microformats.org/wiki/rel-enclosure
    <li>
     <p>For each <code><a href="#tr0">tr</a></code> element that is a child of
      the <var title="">current element</var>, in tree order, run the <a
-     href="#algorithm">algorithm for processing rows</a> (defined below).</p>
+     href="#algorithm0">algorithm for processing rows</a> (defined below).</p>
 
-   <li>
+   <li> <!-- if we added any rows, make them part of a row group -->
     <p>If <span><var title="">y<sub
      title="">max</sub></var>&nbsp;&ge;&nbsp;<var title="">y<sub
      title="">start</sub></var></span>, then let all the last <a href="#row"
      title=concept-row>rows</a> in <var title="">the table</var> from
      <span>y=<var title="">y<sub title="">start</sub></var></span> to
      <span>y=<var title="">y<sub title="">max</sub></var></span> form a new
-     <a href="#row-group" title=concept-row-group>row group</a> corresponding
-     to the <var title="">current element</var>.</p>
+     <a href="#row-group" title=concept-row-group>row group</a>, anchored at
+     the slot with coordinate (1, <var title="">y<sub
+     title="">start</sub></var>), with height <var title="">y<sub
+     title="">max</sub></var>-<var title="">y<sub
+     title="">start</sub></var>+1, corresponding to the <var title="">current
+     element</var>.</p>
 
    <li>
-    <p>Return to step 11 (rows).</p>
+    <p>Run the <a href="#algorithm">algorithm for ending a row group</a>
+     again.</p>
+
+   <li>
+    <p>Return to step 12 (rows).</p>
   </ol>
 
-  <p>The <dfn id=algorithm>algorithm for processing rows</dfn>, which is
+  <p>The <dfn id=algorithm>algorithm for ending a row group</dfn>, which is
+   invoked by the set of steps above when starting and eding a block of rows,
+   is:
+
+  <ol>
+   <li>
+    <p>If <var title="">y<sub title="">current</sub></var> is less than <var
+     title="">y<sub title="">max</sub></var>, then this is a <a
+     href="#table3">table model error</a>; let <var title="">y<sub
+     title="">current</sub></var> equal <var title="">y<sub
+     title="">max</sub></var>. (This prevents cells that would otherwise flow
+     out of their row group from doing so.)</p>
+
+   <li>
+    <p class=big-issue>grow all the growing cells downward up to the new <var
+     title="">y<sub title="">max</sub></var></p>
+
+   <li>
+    <p>Empty the <var title="">list of downward-growing cells</var>.</p>
+  </ol>
+
+  <p>The <dfn id=algorithm0>algorithm for processing rows</dfn>, which is
    invoked by the set of steps above for processing <code><a
    href="#tr0">tr</a></code> elements, is:
 
@@ -15269,10 +15303,71 @@ disallow: http://microformats.org/wiki/rel-enclosure
      equal).</p>
 
    <li>
-    <p class=big-issue> parse colspan/rowspan, assign slots (including anchor
-     slot), increase x-max/y-max as appropriate</p>
+    <p>If the <var title="">current cell</var> has a <code
+     title="">colspan</code> attribute, then <span title="rules for parsing
+     non-negative integer values">parse that attribute's value</span>, and
+     let <var title="">colspan</var> be the result.</p>
 
-    <p class=big-issue> rowspan=0</p>
+    <p>If parsing that value failed, or returned zero, or if the attribute is
+     absent, then let <var title="">colspan</var> be 1, instead.</p>
+
+   <li>
+    <p>If the <var title="">current cell</var> has a <code
+     title="">rowspan</code> attribute, then <span title="rules for parsing
+     non-negative integer values">parse that attribute's value</span>, and
+     let <var title="">rowspan</var> be the result.</p>
+
+    <p>If parsing that value failed or if the attribute is absent, then let
+     <var title="">rowspan</var> be 1, instead.</p>
+
+   <li>
+    <p>If <var title="">rowspan</var> is zero, then let <var title="">cell
+     grows downward</var> be true, and set <var title="">rowspan</var> to 1.
+     Otherwise, let <var title="">cell grows downward</var> be false.</p>
+
+   <li>
+    <p>If <span><var title="">x<sub
+     title="">max</sub></var>&nbsp;&lt;&nbsp;<var title="">x<sub
+     title="">current</sub></var>+<var title="">colspan</var>-1</span>, then
+     let <var title="">x<sub title="">max</sub></var> be <var title="">x<sub
+     title="">current</sub></var>+<var title="">colspan</var>-1.</p>
+
+   <li>
+    <p>If <span><var title="">y<sub
+     title="">max</sub></var>&nbsp;&lt;&nbsp;<var title="">y<sub
+     title="">current</sub></var>+<var title="">rowspan</var>-1</span>, then
+     let <var title="">y<sub title="">max</sub></var> be <var title="">y<sub
+     title="">current</sub></var>+<var title="">rowspan</var>-1.</p>
+
+   <li>
+    <p>Let the slots with coordinates (<var title="">x</var>, <var
+     title="">y</var>) such that <span><var title="">x<sub
+     title="">current</sub></var>&nbsp;&le;&nbsp;<var
+     title="">x</var>&nbsp;&lt;&nbsp;<var title="">x<sub
+     title="">current</sub></var>+<var title="">colspan</var></span> and
+     <span><var title="">y<sub
+     title="">current</sub></var>&nbsp;&le;&nbsp;<var
+     title="">y</var>&nbsp;&lt;&nbsp;<var title="">y<sub
+     title="">current</sub></var>+<var title="">rowspan</var></span> be
+     covered by a new <a href="#cell" title=concept-cell>cell</a>, anchored
+     at (<var title="">x<sub title="">current</sub></var>, <var
+     title="">y<sub title="">current</sub></var>), which has width <var
+     title="">colspan</var> and height <var title="">rowspan</var>,
+     corresponding to the <var title="">current cell</var> element.</p>
+
+    <p>If the <var title="">current cell</var> element is a <code><a
+     href="#th0">th</a></code> element, let this new cell be a header cell;
+     otherwise, let it be a data cell.</p>
+
+    <p>If any of the slots involved already had a <a href="#cell"
+     title=concept-cell>cell</a> covering them, then this is a <a
+     href="#table3">table model error</a>.</p>
+
+   <li>
+    <p>If <var title="">cell grows downward</var> is true, then add the tuple
+     {<var title="">current cell</var>, <var title="">x<sub
+     title="">current</sub>, <var title="">colspan</var>} to the <var
+     title="">list of downward-growing cells</var>.</var></p>
 
    <li>
     <p>If <var title="">current cell</var> is the last <code><a
@@ -15289,10 +15384,12 @@ disallow: http://microformats.org/wiki/rel-enclosure
     <p>Return to step 5 (cells).</p>
   </ol>
 
-  <p class=big-issue> if there's a column containing no anchor slots, then
-   it's a table model error
-
-  <p class=big-issue>...
+  <p>If, after establishing which elements correspond to which slots, there
+   exists a <a href="#column" title=concept-column>column</a> in the <a
+   href="#table2" title=concept-table>table</a> containing only <span
+   title=concept-slot>slots</span> that do not have a <a href="#cell"
+   title=concept-cell>cell</a> anchored to them, then this is a <a
+   href="#table3">table model error</a>.
 
   <h3 id=forms0><span class=secno>4.7. </span>Forms <a href="#tbw"
    title=TBW>[TBW]</a></h3>
