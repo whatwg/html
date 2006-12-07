@@ -938,7 +938,7 @@ and suggestions on this to the list, btw).
   title="dom-document">document</code> attribute of the script's
   primary <code>Window</code> object (in UAs that implement
   ECMAScript, <a href="#globalScopeObject">that is the global scope
-  object</a>).</p>
+  object</a>).</p> <!-- scripting context? -->
 
   <p><dfn>The string representing the script's domain in IDNA
   format</dfn> is obtained as follows: take the <span>script's
@@ -2210,6 +2210,9 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
 
 
   <h3>Events</h3>
+
+  <p class="big-issue">merge with scripting processing model
+  later?</p>
 
 
   <h4>Event listeners</h4>
@@ -4448,9 +4451,10 @@ DOCUMENT
 
   <p>The <dfn
   title="dom-document-hasFocus"><code>hasFocus</code></dfn> attribute
-  must return true if the document, one of its <span>nested browsing
-  contexts</span><!-- XXX xref? -->, or any element in the document or
-  its browsing contexts currently has the system focus.</p>
+  must return true if the document, one of its nested <span
+  title="browsing context">browsing contexts</span>, or any element in
+  the document or its browsing contexts currently has the system
+  focus.</p>
 
 
   <h6>Sequential focus navigation</h6>
@@ -10299,6 +10303,10 @@ Address: &lt;input name="address"&gt;&lt;/p&gt;</pre>
   <code>script</code> element when the element was inserted into the
   document, as described above.</p>
 
+  <p class="big-issue"> Have to define that the script executes in
+  context of global scope, scripting context, browsing context, etc.
+  </p>
+
   <p class="note">The element's attributes' values might have changed
   between when the element was inserted into the document and when the
   script has finished loading, as may its other attributes; similarly,
@@ -12846,6 +12854,12 @@ XXX selection ranges -->
   <p class="big-issue">Must define the interaction of this with
   document.write() pages and navigating to javascript: URIs.</p>
 
+  <p class="big-issue">Must define that the global scope is
+  cleared/put back when navigating, so that Window objects from other
+  windows looking at this one see the attributes change when the page
+  navigates; this does/doesn't affect .watch(); make sure the
+  .back()/.forward() definitions refer to this section.</p>
+
 
   <h4>Page load processing model for HTML files <span title="TBW">[TBW]</span></h4>
 
@@ -12896,7 +12910,7 @@ XXX selection ranges -->
 
 
 
-  <h3>Scripting <span title="TBW">[TBW]</span></h3>
+  <h3>Scripting<span title="WIP">[WIP]</span></h3>
 
   <div class="big-issue">
 
@@ -12920,6 +12934,11 @@ XXX selection ranges -->
     readystatechange events</li>
 
    </ul>
+
+   <!-- XXX what about event handlers on elements in document A
+   referring to methods in document A when browsing context holding
+   document A is moved to document B? Same with executing javascript:
+   URIs on elements from doc A in that situation -->
 
   </div>
 
@@ -12957,6 +12976,72 @@ XXX selection ranges -->
   agent with scripting disabled is a <span title="User agents with no
   scripting support">user agent with no scripting support</span> for
   the purposes of conformance.</p>
+
+
+  <h4>Scripting contexts</h4>
+
+  <p>Each <code>Document</code> in a <span>browsing context</span> has
+  an associated <dfn>scripting context</dfn>.</p>
+
+
+  <h4><code>javascript:</code> URIs</h4>
+
+  <p class="big-issue">What's the scripting context for javascript:
+  URIs in &lt;img src>, &lt;iframe src>, &lt;location.href>, &lt;a
+  href>, @import, background-image, etc?</p>
+
+
+  <h4>Threads</h4>
+
+  <p>Each <span>scripting context</span> is defined as having a list
+  of zero or more <dfn>reachable scripting contexts</dfn>. These
+  are:</p>
+
+  <ul>
+
+   <li>All the <span title="scripting context">scripting
+   contexts</span> of all the <code>Document</code>s in each nested
+   <span>browsing context</span> inside the scripting context's
+   <code>Document</code>.</li>
+
+   <li>The <span>scripting context</span> of the <code>Document</code>
+   that contains the <code>Document</code>'s <span>browsing
+   context</soan>.</li>
+
+   <li>All the <span title="scripting context">scripting
+   contexts</span> of all the <code>Document</code>s associated with
+   any <span title="top-level browsing context">top-level browsing
+   contexts</span> that were opened from a <code>Document</code>
+   associated with the <span>scripting context</span>'s
+   <code>Document</code>'s <span>browsing context</span>.</li>
+
+   <li>All the <span title="scripting context">scripting
+   contexts</span> of all the <code>Document</code>s associated with
+   the <span title="top-level browsing context">top-level browsing
+   contexts</span> of the <span>browsing context</span> of the
+   <code>WindowHTML</code> object returned by the <span>scripting
+   context</span>'s <code>Document</code>'s <code>WindowHTML</code>'s
+   <code title="dom-opener">opener</code> attribute.</li>
+
+  </ul>
+
+  <p>The transitive closure of all the <span title="scripting
+  context">scripting contexts</span> that are <span>reachable
+  scripting contexts</span> consists of a <dfn>unit of related
+  scripting contexts</dfn>.</p>
+
+  <p>All the executable code in a <span>unit of related scripting
+  contexts</span> must execute on a single conceptual thread. While a
+  script is executing, no other scripts in that <span>unit of related
+  scripting contexts</span> must be started.</p>
+
+  <p>Events fired by the user agent in response to user actions must
+  be queued, as must the execution of any timers. There must be only
+  one queue per <span>unit of related scripting contexts</span>. When
+  no script in the <span>unit of related scripting contexts</span> is
+  executing, the oldest entry in the queue must be processed, either
+  by firing the appropriate event, or by executing the relevant timer
+  callback code.</p>
 
 
   <h4><span title="SCS">[SCS]</span> Runtime script errors</h4>
@@ -16134,9 +16219,9 @@ mpt says:
   underlying session history.</p>
 
   <p>The <dfn title="dom-history"><code>history</code></dfn> attribute
-  of the <code>Window</code> interface must return the object
+  of the <code>WindowHTML</code> interface must return the object
   implementing the <code>History</code> interface for that
-  <code>Window</code> object's associated <code>DocumentUI</code>
+  <code>WindowHTML</code> object's associated <code>DocumentUI</code>
   object.</p>
 
   <p><code>History</code> objects represent their <span>browsing
@@ -16424,14 +16509,14 @@ mpt says:
   <h4>The <code>Location</code> interface</h4>
 
   <p>The <dfn title="dom-location"><code>location</code></dfn>
-  attribute of the <code>Window</code> interface must return
-  an object implementing the <code>Location</code> interface.</p>
+  attribute of the <code>WindowHTML</code> interface must return an
+  object implementing the <code>Location</code> interface.</p>
 
   <p>For historical reasons, the <dfn
   title="dom-document-location"><code>location</code></dfn> attribute
-  of the <code>DocumentUI</code> interface must return the same
-  object as the <code title="dom-location">location</code> attribute
-  on its associated <code>Window</code> object.</p>
+  of the <code>DocumentUI</code> interface must return the same object
+  as the <code title="dom-location">location</code> attribute on its
+  associated <code>WindowHTML</code> object.</p>
 
   <p><code>Location</code> objects provide a representation of the URI
   of their document, and allow the <span>current entry</span> of the
@@ -16458,8 +16543,8 @@ mpt says:
   title="dom-location-href">href</code> attribute.</p>
 
   <p id="settingLocation">In the ECMAScript DOM binding, the <code
-  title="">location</code> members of the <code>DocumentUI</code>
-  and <code>Window</code> interfaces behave as if they had a setter:
+  title="">location</code> members of the <code>DocumentUI</code> and
+  <code>WindowHTML</code> interfaces behave as if they had a setter:
   user agents must treats attempts to set these <code
   title="">location</code> attribute as attempts at setting the <code
   title="dom-location-href">href</code> attribute of the relevant
@@ -16587,7 +16672,7 @@ user reload must be equivalent to .reload()
   <h3>Browser state</h3>
 
   <p>The <dfn title="dom-navigator"><code>navigator</code></dfn>
-  attribute of the <code>Window</code> interface must return an
+  attribute of the <code>WindowHTML</code> interface must return an
   instance of the <code>ClientInformation</code> interface, which
   represents the identity and state of the user agent (the client),
   and allows Web pages to register themselves as potential protocol
@@ -16611,20 +16696,20 @@ user reload must be equivalent to .reload()
 
   <p>The <dfn title="event-offline"><code>offline</code></dfn> event
   must be fired when the value of the <code
-  title="dom-navigator-onLine">navigator.onLine</code> attribute of the
-  <code>Window</code> changes from true to false.</p>
+  title="dom-navigator-onLine">navigator.onLine</code> attribute of
+  the <code>WindowHTML</code> changes from true to false.</p>
 
   <p>The <dfn title="event-online"><code>online</code></dfn> event
   must be fired when the value of the <code
-  title="dom-navigator-onLine">navigator.onLine</code> attribute of the
-  <code>Window</code> changes from false to true.</p>
+  title="dom-navigator-onLine">navigator.onLine</code> attribute of
+  the <code>WindowHTML</code> changes from false to true.</p>
 
   <p>These events are in the
   <code>http://www.w3.org/2001/xml-events</code> namespace, do bubble,
   are not cancelable, have no default action, and use the normal
   <code>Event</code> interface. They must be fired on <span>the body
   element</span>. (As the events bubble, they will reach the
-  <code>Window</code> object.)</p>
+  <code>WindowHTML</code> object.)</p>
 
   <!-- XXX ononline onoffline need to be defined -->
 
@@ -17295,7 +17380,7 @@ interface <dfn>StorageItem</dfn> {
   for that document's domain must be created.</p>
 
   <p>The <code>Storage</code> object for the document's associated
-  <code>Window</code> object's <code
+  <code>WindowHTML</code> object's <code
   title="dom-sessionStorage">sessionStorage</code> attribute must then
   be associated with the domain's session storage area.</p>
 
@@ -17325,7 +17410,7 @@ interface <dfn>StorageItem</dfn> {
   <code>Storage</code> object <var title="">x</var> that is associated
   with a session storage area, then, if the method does not raise a
   <span>security exception</span>, in every <code>HTMLDocument</code>
-  object whose <code>Window</code> object's <code
+  object whose <code>WindowHTML</code> object's <code
   title="dom-sessionStorage">sessionStorage</code> attribute's
   <code>Storage</code> object is associated with the same storage
   area, other than <var title="">x</var>, a <code
@@ -17471,7 +17556,7 @@ interface <dfn>StorageItem</dfn> {
    might be called on a <code>Storage</code> object that is associated
    with a global storage area for a domain <var title="">d</var>,
    created by a <code>StorageList</code> object associated with a
-   <code>Window</code> object <var title="">x</var>. Whenever this
+   <code>WindowHTML</code> object <var title="">x</var>. Whenever this
    occurs, if the method didn't raise an exception, a <code
    title="event-storage">storage</code> event must be fired, as
    described below, in every <code>HTMLDocument</code> object that
@@ -17479,14 +17564,16 @@ interface <dfn>StorageItem</dfn> {
 
    <ul>
 
-    <li>Its <code>Window</code> object is not <var title="">x</var>, and</li>
+    <li>Its <code>WindowHTML</code> object is not <var
+    title="">x</var>, and</li>
 
-    <li>Its <code>Window</code> object's <code
+    <li>Its <code>WindowHTML</code> object's <code
     title="dom-sessionStorage">globalStorage</code> attribute's
     <code>StorageList</code> object's <code
-    title="dom-Storagelist-namedItem">namedItem()</code> method would not
-    raise a <span>security exception</span> according to the rules above if it was
-    invoked with the domain <var title="">d</var>.</li>
+    title="dom-Storagelist-namedItem">namedItem()</code> method would
+    not raise a <span>security exception</span> according to the rules
+    above if it was invoked with the domain <var
+    title="">d</var>.</li>
 
    </ul>
 
@@ -19264,11 +19351,11 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
   readonly attribute unsigned long <span title="dom-UndoManager-position">position</span>;
 };</pre>
 
-  <p>The <code title="dom-undoManager">undoManager</code> attribute of
-  the <code>Window</code> interface must return the object
-  implementing the <code>UndoManager</code> interface for that
-  <code>Window</code> object's associated <code>HTMLDocument</code>
-  object.</p>
+  <p>The <dfn title="dom-undoManager"><code>undoManager</code></dfn>
+  attribute of the <code>WindowHTML</code> interface must return the
+  object implementing the <code>UndoManager</code> interface for that
+  <code>WindowHTML</code> object's associated
+  <code>HTMLDocument</code> object.</p>
 
   <p>In the ECMAScript DOM binding, objects implementing this interface
   must also support being dereferenced using the square bracket
@@ -19671,9 +19758,10 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
   may let the user create selections with multiple ranges.)</p>
 
   <p>This one selection must be shared by all the content of the
-  browsing context (though not by nested browsing contexts), including
-  any editing hosts in the document. (Editing hosts that are not
-  inside a document cannot have a selection.)</p>
+  browsing context (though not by nested <span title="browsing
+  context">browsing contexts</span>), including any editing hosts in
+  the document. (Editing hosts that are not inside a document cannot
+  have a selection.)</p>
 
   <p>If the selection is empty (collapsed, so that it has only one
   segment and that segment's start and end points are the same) then
@@ -19712,10 +19800,10 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
 
   <p>The <dfn
   title="dom-getSelection"><code>getSelection()</code></dfn> method on
-  the <code>Window</code> interface must return the
+  the <code>WindowHTML</code> interface must return the
   <code>Selection</code> object representing <span>the
-  selection</span> of that <code>Window</code> object's <span>browsing
-  context</span>.
+  selection</span> of that <code>WindowHTML</code> object's
+  <span>browsing context</span>.
 
   <p>For historical reasons, the <dfn
   title="dom-document-getSelection"><code>getSelection()</code></dfn>
@@ -21755,8 +21843,8 @@ document.getElementById('stock').addEventListener('stock change',
   with their originating server, this specification introduces the
   <code>Connection</code> interface.</p>
 
-  <p>The <code>Window</code> interface provides three constructors for
-  creating <code>Connection</code> objects: <code
+  <p>The <code>WindowHTML</code> interface provides three constructors
+  for creating <code>Connection</code> objects: <code
   title="dom-TCPConnection">TCPConnection()</code>, for creating a
   direct (possibly encrypted) link to another node on the Internet
   using TCP/IP; <code
@@ -21975,9 +22063,9 @@ document.getElementById('stock').addEventListener('stock change',
   <p>The <dfn title="dom-TCPConnection"><code>TCPConnection(<var
   title="">subdomain</var>, <var title="">port</var>, <var
   title="">secure</var>)</code></dfn> constructor on the
-  <code>Window</code> interface returns a new object implementing the
-  <code>Connection</code> interface, set up for a direct connection to
-  a specified host on the page's domain.</p>
+  <code>WindowHTML</code> interface returns a new object implementing
+  the <code>Connection</code> interface, set up for a direct
+  connection to a specified host on the page's domain.</p>
 
   <p>When this constructor is invoked, the following steps must be
   followed.</p>
@@ -22061,7 +22149,7 @@ document.getElementById('stock').addEventListener('stock change',
 
   <p>The <dfn
   title="dom-LocalBroadcastConnection"><code>LocalBroadcastConnection()</code></dfn>
-  constructor on the <code>Window</code> interface returns a new
+  constructor on the <code>WindowHTML</code> interface returns a new
   object implementing the <code>Connection</code> interface, set up to
   broadcast on the local network.</p>
 
@@ -22204,7 +22292,7 @@ document.getElementById('stock').addEventListener('stock change',
 
   <p>The <dfn
   title="dom-PeerToPeerConnection"><code>PeerToPeerConnection()</code></dfn>
-  constructor on the <code>Window</code> interface returns a new
+  constructor on the <code>WindowHTML</code> interface returns a new
   object implementing the <code>Connection</code> interface, set up
   for a direct connection to a user-specified host.</p>
 
