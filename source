@@ -16313,36 +16313,97 @@ XXX selection ranges -->
 
   <h3>Navigating across documents</h3>
 
-  <p><em>This section only applies to Web browsers.</em></p> <!-- XXX or should it? should conformance checkers do the whole content-type sniffing thing? -->
+  <p><em>This section only applies to Web browsers.</em></p>
+  <!-- XXX or should it? should conformance checkers do the whole content-type sniffing thing? -->
 
-<!--
- http://blogs.msdn.com/rssteam/articles/PublishersGuide.aspx
- http://lxr.mozilla.org/seamonkey/source/browser/components/feeds/src/nsFeedSniffer.cpp#192
--->
+  <p>Certain actions cause the <span>browsing context</span> to
+  <dfn>navigate</dfn>. For example, <span title="following
+  hyperlinks">following a hyperlink</span>, <span title="">form
+  submission</span>, and the <code
+  title="dom-window-open">window.open()</code> and <code
+  title="dom-location-assign">location.assign()</code> methods can all
+  cause a browsing context to navigate. A user agent may also provide
+  various ways for the user to explicitly cause a browsing context to
+  navigate.</p>
 
-  <p>Web browsers operate on <span title="browsing context">browsing
-  contexts</span>, which have a <em>session history</em>.</p>
+  <p>When a browsing context is navigated, the user agent must follow
+  the following steps:</p>
 
-  <p>Certain actions cause the browsing context to <em>navigate</em>
-  to a new document. A new document could be an HTML or XML
-  <code>Document</code>, with a DOM, or it could be an image, or some
-  other content. The new resource in question could have a URI, or it
-  could be anonymous, for example a new document generated using the
-  <code title="dom-document-write">document.write()</code>
-  API.</p><!-- that is, window.open() followed by document.open()
-  followed by document.write(), i guess XXX -->
+  <ol>
 
-  <p>In addition, a particular resource can have multiple entries in
-  the session history of a browsing context.</p>
+   <li><p>Cancel any existing attempt to navigate the browsing context
+   to a new URI.</p></li>
 
-  <p>The requirements that the session history concept puts on user
-  agents are defined in <a href="#history">the session history and
-  navigation section</a>, which is structured around the APIs provided
-  for scripts to interact with the session history.</p>
+   <li><p>If the new resource is the same as the current resource, but
+   a fragment identifier has been specified, then <span title="scroll
+   to fragment identifier">scroll the document to the specified
+   element</span> and abort these steps.</p></li>
 
-  <p><em>This</em> section discusses the various types of content that
-  a user agent may find itself requested to dispay in a content area,
-  and covers how those types of content should be handled.</p>
+   <li><p>If the new resource is to be handled by displaying some sort
+   of inline content, e.g. an error message because the specified
+   scheme is not one of the supported protocols, or an inline prompt
+   to allow the user to select <span
+   title="dom-navigator-registerProtocolHandler">a registered
+   handler</span> for the given scheme, then <span title="display a
+   user agent page inline">display the inline content</span> and abort
+   these steps.</p></li>
+
+   <li><p>If the new resource is to be handled using a mechanism that
+   does not affect the browsing context, then abort these steps and
+   proceed with that mechanism instead.</p></li>
+
+   <li><p>Fetch the specified resource, as appropriate
+   (e.g. performing an HTTP GET or POST operation, or reading the file
+   from disk). If this results in a redirect, return to step 2 with
+   the new resource.</p></li>
+
+   <li><p>Wait for one or more bytes to be available or for the user
+   agent to establish that the resource in question is empty. During
+   this time, the user agent may allow the user to cancel this
+   navigation attempt or start other navigation attempts.</p></li>
+
+   <li><p>If the document's out-of-band metadata (e.g. HTTP headers),
+   not counting any type information (such as the Content-Type HTTP
+   header), requires some sort of processing that will not affect the
+   browsing context, then perform that processing and abort these
+   steps.</p>
+
+   <p>Such processing might be triggered by, amongst other things, the
+   following:</p>
+   <ul class="brief">
+    <li>HTTP Content-Disposition headers</li>
+    <li>Network errors</li>
+   </ul>
+   </li>
+
+   <li><p>Let <var title="">type</var> be <span title="Content-Type
+   sniffing">the sniffed type of the resource</span>.</p></li>
+
+   <li><p>If <var title="">type</var> is one of the following types,
+   jump to the appropriate section below and process the resource as
+   described there:</p>
+   <ul class="brief">
+    <li><span title="navigate-html">An HTML document</span></li>
+    <li><span title="navigate-xml">An XML document</span></li>
+    <li><span title="navigate-text">A plain text file</span></li>
+   </ul>
+   </li>
+
+   <li><p>Otherwise, if, given <var title="">type</var>, the new
+   resource is to be handled by displaying some sort of inline
+   content, e.g. a native rendering of the content, a full-page
+   plugin, an error message because the specified type is not
+   supported, or an inline prompt to allow the user to select <span
+   title="dom-navigator-registerContentHandler">a registered
+   handler</span> for the given type, then <span title="display a user
+   agent page inline">display the inline content</span> and abort
+   these steps.</p></li>
+
+   <li><p>Otherwise, the document's <var title="">type</var> is such
+   that the resource will not affect the browsing context. Process it
+   appropriately.</p>
+
+  </ol>
 
   <p class="big-issue">This section will end up defining what the UA
   should do when the user clicks a link, types a link in the address
@@ -16361,7 +16422,25 @@ XXX selection ranges -->
    http://www.alvestrand.no/pipermail/ietf-types/2006-April/001707.html
    http://ln.hixie.ch/?start=1144794177&count=1
    http://www.intertwingly.net/blog/2006/04/13/Dont-throw-charset-out-with-the-bathwater
+   http://blogs.msdn.com/rssteam/articles/PublishersGuide.aspx
+   http://lxr.mozilla.org/seamonkey/source/browser/components/feeds/src/nsFeedSniffer.cpp#192
+   http://lxr.mozilla.org/seamonkey/source/browser/components/feeds/src/nsFeedSniffer.cpp#127
+   http://lxr.mozilla.org/seamonkey/source/uriloader/base/nsURILoader.cpp#279 // text plain nonsense
 -->
+
+
+  <p class="big-issue">"...remove all the entries after the
+  <span>current entry</span> in its <code>DocumentUI</code>'s
+  <code>History</code> object, add a new entry, with the given <var
+  title="">url</var>, at the end of the list (asynchronously loading
+  the new page if necessary), and then advance to that page as if the
+  <code title="dom-history-forward">history.forward()</code> method
+  had been invoked."</p>
+
+  <p class="big-issue">for replaced case: "...but with the additional
+  final step of removing the entry that was the <span>current
+  entry</span> before the method call (thus simply causing the current
+  page to be replaced by the new one)."</p>
 
   <!-- XXX continue ... -->
 
@@ -16407,7 +16486,7 @@ XXX selection ranges -->
   -->
 
 
-  <h4 id="read-html">Page load processing model for HTML files</h4>
+  <h4 id="read-html"><dfn title="navigate-html">Page load processing model for HTML files</dfn></h4>
 
   <p>When an HTML page<!-- should we say "a resource with a text/html
   MIME type? --> (as opposed to an XML page) is loaded in a
@@ -16429,22 +16508,35 @@ XXX selection ranges -->
   etc.</p>
 
 
-  <h4 id="read-xml">Page load processing model for XML files</h4>
+  <h4 id="read-xml"><dfn title="navigate-xml">Page load processing model for XML files</dfn></h4>
 
   <p class="big-issue">Must make sure we don't step on the toes of
   other specifications.</p>
 
 
-  <h4 id="read-text">Page load processing model for text files</h4>
+  <h4 id="read-text"><dfn title="navigate-text">Page load processing model for text files</dfn></h4>
 
   <p class="big-issue">Must make sure we don't step on the toes of
   other specifications. This section should be referred to by the
   document.open() stuff.</p>
 
 
-  <h4 id="read-feed">Page load processing model for syndication feeds</h4>
+  <h4 id="scroll-to-fragid">Scrolling to a fragment identifier</h4>
 
-  <p class="big-issue">...</p>
+  <p class="big-issue"><dfn title="scroll to fragment
+  identifier">...</dfn> update scroll position, qv rendering section,
+  update history object</p>
+
+  <p class="big-issue">"In both cases, if the location before the
+  method call would differ from the location after the method only in
+  terms of the fragment identifier, then the user agent must use the
+  same <code>DocumentUI</code> object, updating only the scroll
+  position in the document's view(s) appropriately."</p>
+
+
+  <h4 id="non-DOM-inline-content">Displaying inline content that doesn't have a DOM</h4>
+
+  <p class="big-issue"><dfn>display a user agent page inline</dfn>, update history object</p>
 
 
   <h4 id="content-type"><dfn title="Content-Type">Content-Type metadata</dfn></h4>
@@ -16459,6 +16551,10 @@ XXX selection ranges -->
   systems the extension of a URI determines the Content-Type for
   file:// content, or something.</p>
 
+
+  <h4 id="content-type-sniffing"><dfn>Content-Type sniffing</dfn></h4>
+
+  <p class="big-issue">...</p>
 
 
 
@@ -19008,29 +19104,17 @@ mpt says:
   with the new value as its argument.</p><!-- XXX may wish to allow
   replace instead as a UI improvement -->
 
-  <p>When the <dfn
-  title="dom-location-assign"><code>assign(<var title="">url</var>)</code></dfn>
-  method is invoked, the UA must remove all the entries after the
-  <span>current entry</span> in its <code>DocumentUI</code>'s
-  <code>History</code> object, add a new entry, with the given
-  <var title="">url</var>, at the end of the list (asynchronously loading the
-  new page if necessary), and then advance to that page as if the
-  <code title="dom-history-forward">history.forward()</code> method
-  had been invoked.</p>
+  <p>When the <dfn title="dom-location-assign"><code>assign(<var
+  title="">url</var>)</code></dfn> method is invoked, the UA must
+  <span>navigate</span> to the specified <var title="">url</var>.</p>
 
   <p>When the <dfn title="dom-location-replace"><code>replace(<var
-  title="">url</var>)</code></dfn> method is invoked, the UA must act
-  as if the <code title="dom-location-assign">assign()</code> method
-  had been invoked, but with the additional step of removing the entry
-  that was the <span>current entry</span> before the method call after
-  the above steps (thus simply causing the current page to be replaced
-  by the new one).</p>
-
-  <p>In both cases, if the location before the method call would
-  differ from the location after the method only in terms of the
-  fragment identifier, then the user agent must use the same
-  <code>DocumentUI</code> object, updating only the scroll
-  position in the document's view(s) appropriately.</p>
+  title="">url</var>)</code></dfn> method is invoked, the UA must
+  <span>navigate</span> to the specified <var
+  title="">url</var>. However, the navigation being initiated by the
+  <code title="dom-location-replace">replace()</code> method causes
+  one of the steps in the navigation processing model to be slightly
+  different.</p>
 
   <p>Relative <var title="">url</var> arguments for <code
   title="dom-location-assign">assign()</code> and <code
