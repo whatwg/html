@@ -16533,18 +16533,77 @@ XXX selection ranges -->
   </ol>
 
 
-  <h5><dfn>Content-Type sniffing: text or binary</dfn></h5>
+  <h5 class="big-issue"><dfn>Content-Type sniffing: text or binary</dfn></h5>
+
+  <ol>
+
+   <li><p>The user agent may wait for 512 or more bytesof the resource
+   to be available.</p></li>
+
+   <li><p>Let <var title="">n</var> be the biggest of either 512 or
+   the number of bytes already available.</p></li>
+
+   <li><p>If <var title="">n</var> is 4 or more, and the first bytes
+   of the file match one of the following byte sets:</p>
+
+    <table>
+     <thead>
+      <tr>
+       <th>Bytes in Hexadecimal
+       <th>Description
+     <tbody>
+      <tr>
+       <td>fe ff
+       <td>UTF-16BE BOM
+      <tr>
+       <td>ff fe
+       <td>UTF-16LE BOM
+      <tr>
+       <td>ef bb bf
+       <td>UTF-8 BOM
+      <tr>
+       <td>00 00 fe ff
+       <td>UCS-4BE BOM
+      <tr>
+       <td>00 00 ff fe
+       <td>UCS-4 BOM
+    </table>
+
+   <p>...then the sniffed type of the resource is "text/plain".</p></li>
+
+   <li><p>Otherwise, if any of the first <var title="">n</var> bytes
+   of the resource is in one of the following byte ranges:</p>
+
+    <!-- This byte list is based on RFC 2046 Section 4.1.2. Characters
+    in the range 0x00-0x1f, with the exception of 0x09 - 0x0d (ASCII
+    for TAB, LF, VT, FF, and CR), and character 0x1b (reportedly used
+    by some encodings as a shift escape), are invalid. Thus, if we see
+    them, we assume it's not text. -->
+
+    <ul class="brief">
+     <li> 0x00 - 0x08 </li>
+     <li> 0x0e - 0x1a </li>
+     <li> 0x1c - 0x1f </li>
+    </ul>
+
+   <p>...then the sniffed type of the resource is
+   "application/octet-stream".</p></li>
+
+   <li><p>Otherwise, the sniffed type of the resource is
+   "text/plain".</p></li>
+
+  </ol>
+
   <!--
    text/plain nonsense:
    http://lxr.mozilla.org/seamonkey/source/netwerk/streamconv/converters/nsUnknownDecoder.cpp#551
   -->
 
-  <h5><dfn>Content-Type sniffing: unknown type</dfn></h5>
+  <h5 class="big-issue"><dfn>Content-Type sniffing: unknown type</dfn></h5>
 
-  <h5><dfn>Content-Type sniffing: image</dfn></h5>
+  <h5 class="big-issue"><dfn>Content-Type sniffing: image</dfn></h5>
 
-  <h5><dfn>Content-Type sniffing: feed or HTML</dfn></h5>
-
+  <h5 class="big-issue"><dfn>Content-Type sniffing: feed or HTML</dfn></h5>
   <!--
    http://blogs.msdn.com/rssteam/articles/PublishersGuide.aspx
    http://lxr.mozilla.org/seamonkey/source/browser/components/feeds/src/nsFeedSniffer.cpp#192
@@ -16554,17 +16613,21 @@ XXX selection ranges -->
 
   <h4 id="read-html"><dfn title="navigate-html">Page load processing model for HTML files</dfn></h4>
 
-  <p class="big-issue">need to clear up how to detect the content
-  encoding</p>
-
   <p>When an HTML document is to be loaded in a <span>browsing
   context</span>, the user agent must create a <code>Document</code>
   object, mark it as being an <span>HTML document</span>, create an
   <span>HTML parser</span>, associate it with the document, and begin
-  to parse the stream of bytes with that parser.</p>
+  to use the bytes provided for the document as the <span>input
+  stream</span> for that parser.</p>
 
-  <!-- next two paragraphs are identical to the navigate-text section,
-  keep them in sync -->
+  <p class="note">The <span>input stream</span> converts bytes into
+  characters for use in the <span>tokeniser</span>. This process
+  relies, in part, on character encoding information found in the real
+  <span>Content-Type metadata</span> of the resource; the "sniffed
+  type" is not used for this purpose.</p>
+
+  <!-- next two paragraphs are nearly identical to the navigate-text
+  section, keep them in sync -->
 
   <p>When no more bytes are available, an EOF character is implied,
   which eventually causes a <code title="event-load">load</code> event
@@ -16611,24 +16674,26 @@ XXX selection ranges -->
 
   <h4 id="read-text"><dfn title="navigate-text">Page load processing model for text files</dfn></h4>
 
-  <p class="big-issue">need to clear up how to detect the content
-  encoding</p>
-
   <p>When a plain text document is to be loaded in a <span>browsing
   context</span>, the user agent should create a <code>Document</code>
   object, mark it as being an <span>HTML document</span>, create an
   <span>HTML parser</span>, associate it with the document, act as if
   the tokeniser had emitted a start tag token with the tag name "pre",
-  set the </span>tokenisation</span> stage's <span>content model
-  flag</span> to <i>PLAINTEXT</i>, and begin to parse the stream of
-  bytes with that parser.</p>
+  set the <span>tokenisation</span> stage's <span>content model
+  flag</span> to <i>PLAINTEXT</i>, and begin to pass the stream of
+  characters in the plain text document to that tokeniser.</p>
 
-  <!-- next two paragraphs are identical to the navigate-html section,
-  keep them in sync -->
+  <p>The rules for how to convert the bytes of the plain text document
+  into actual characters are defined in RFC 2046, RFC 2646, and
+  subsequent versions thereof. <a href="#refsRFC2046">[RFC2046]</a> <a
+  href="#refsRFC2046">[RFC2646]</a></p>
 
-  <p>When no more bytes are available, an EOF character is implied,
-  which eventually causes a <code title="event-load">load</code> event
-  to be fired.</p>
+  <!-- next two paragraphs are nearly identical to the navigate-html
+  section, keep them in sync -->
+
+  <p>When no more character are available, an EOF character is
+  implied, which eventually causes a <code
+  title="event-load">load</code> event to be fired.</p>
 
   <p>After creating the <code>Document</code> object, but potentially
   before the page has finished parsing, the user agent must
