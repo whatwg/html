@@ -11652,6 +11652,9 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
      <li>
       <p>Determine the <em>resource type</em>, as follows:</p>
 
+      <p class=big-issue>This says to trust the type. Should we instead use
+       the same mechanism as for browsing contexts?</p>
+
       <dl class=switch>
        <dt>If the resource has <a href="#content-type13"
         title=Content-Type>associated Content-Type metadata</a>
@@ -11667,7 +11670,8 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
 
        <dt>Otherwise, there is no explicit type information
 
-       <dd class=big-issue>Sniffing. Default.
+       <dd>The type is the <span title="sniffed type of a resource">sniffed
+        type of the resource</span>.
       </dl>
 
      <li>
@@ -11701,6 +11705,11 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
          content convertors or have built-in support for certain types. <a
          href="#refsNPAPI">[NPAPI]</a></p>
 
+        <p class=big-issue>this doesn't completely duplicate the navigation
+         section, since it handles <object>
+         <param>
+         , etc, but surely some work should be done to work with it</object></p>
+
        <dt>If the type of the resource is an <span>XML MIME
         type</span><!-- XXX xref -->
 
@@ -11720,6 +11729,9 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
          updated if the browsing context gets further navigated to other
          locations.)</p>
 
+        <p class=big-issue>navigation might end up treating it as something
+         else, because it can do sniffing. how should we handle that?</p>
+
        <dt>If the resource is a supported image format, and support for
         images has not been disabled
 
@@ -11727,6 +11739,8 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
         <p>The <code><a href="#object0">object</a></code> element represents
          the specified image. The image is not a nested <a
          href="#browsing">browsing context</a>.</p>
+
+        <p class=big-issue>shouldn't we use the image-sniffing stuff here?</p>
 
        <dt>Otherwise
 
@@ -18403,8 +18417,11 @@ XXX selection ranges -->
      sniffing">the sniffed type of the resource</a>.
 
    <li>
-    <p>If <var title="">type</var> is one of the following types, jump to the
-     appropriate entry in the following list and process the resource as
+    <p>If the user agent has been configured to process resources of the
+     given <var title="">type</var> using some mechanism other than native
+     rendering, then skip this step. Otherwise, if the <var
+     title="">type</var> is one of the following types, jump to the
+     appropriate entry in the following list, and process the resource as
      described there:</p>
 
     <dl class=switch>
@@ -18413,7 +18430,11 @@ XXX selection ranges -->
      <dd>Follow the steps given in the <a href="#page-load2"
       title=navigate-html>HTML document</a> section, and abort these steps.
 
+     <dt>Any type ending in "+xml"
+
      <dt>"application/xml"
+
+     <dt>"text/xml"
 
      <dd>Follow the steps given in the <a href="#page-load3"
       title=navigate-xml>XML document</a> section. If that section determines
@@ -18428,18 +18449,20 @@ XXX selection ranges -->
     </dl>
 
    <li>
-    <p>Otherwise, if, given <var title="">type</var>, the new resource is to
-     be handled by displaying some sort of inline content, e.g. a native
-     rendering of the content, a full-page plugin, an error message because
-     the specified type is not supported, or an inline prompt to allow the
-     user to select <a href="#registercontenthandler"
+    <p>If, given <var title="">type</var>, the new resource is to be handled
+     by displaying some sort of inline content, e.g. a native rendering of
+     the content, a full-page plugin, an error message because the specified
+     type is not supported, or an inline prompt to allow the user to select
+     <a href="#registercontenthandler"
      title=dom-navigator-registerContentHandler>a registered handler</a> for
      the given type, then <a href="#display" title="display a user agent page
      inline">display the inline content</a> and abort these steps.
 
    <li>
     <p>Otherwise, the document's <var title="">type</var> is such that the
-     resource will not affect the browsing context. Process it appropriately.</p>
+     resource will not affect the browsing context, e.g. because the resource
+     is to be handed to an external application. Process the resource
+     appropriately.</p>
   </ol>
 
   <p>Some of the sections below, to which the above algorithm defers in
@@ -18502,8 +18525,9 @@ XXX selection ranges -->
   <ol>
    <li>
     <p>If the resource was fetched over an HTTP protocol, and there is no
-     HTTP Content-Encoding header, and the HTTP Content-Type header had a
-     value whose bytes exactly match one of the following three lines:</p>
+     HTTP Content-Encoding header, but there is an HTTP Content-Type header
+     and it has a value whose bytes exactly match one of the following three
+     lines:</p>
 
     <table>
      <thead>
@@ -18548,7 +18572,11 @@ XXX selection ranges -->
    <li>
     <p>If the <var title="">official type</var> ends in "+xml", or if it is
      either "text/xml" or "application/xml", then the the sniffed type of the
-     resource is "application/xml"; return that and abort these steps.
+     resource is <var title="">official type</var>; return that and abort
+     these steps.
+   </li>
+   <!-- we don't want
+   image/svg+xml going through the next step -->
 
    <li>
     <p>If the <var title="">official type</var> is an image type supported by
@@ -18678,8 +18706,10 @@ XXX selection ranges -->
       steps.
     </ol>
 
-   <li>Otherwise, the <i>sniffed type</i> of the resource is unknown. User
-    agents should treat such content as "application/octect-stream".
+   <li>
+    <p>As a last-ditch effort, jump to the <a href="#content-type9"
+     title="content-type sniffing: text or binary">text or binary</a>
+     section.
   </ol>
 
   <table>
@@ -18809,7 +18839,7 @@ XXX selection ranges -->
    support.
 
   <p>Otherwise, the <i>sniffed type</i> of the resource is the same as its
-   <i>official type</i>.
+   <var title="">official type</var>.
 
   <h5 class=big-issue id=content-type3><span class=secno>4.1.1.4. </span><dfn
    id=content-type12>Content-Type sniffing: feed or HTML</dfn></h5>
@@ -21912,9 +21942,9 @@ user reload must be equivalent to .reload()
    types, or protocols.
 
   <p><strong>Leaking secure URIs.</strong> User agents should not send HTTPS
-   URIs to third party sites registered as content handlers, in the same way
+   URIs to third-party sites registered as content handlers, in the same way
    that user agents do not send <code>Referer</code> headers from secure
-   sites to third party sites.
+   sites to third-party sites.
 
   <p><strong>Leaking credentials.</strong> User agents must never send
    username or password information in the URIs that are escaped and included
@@ -21923,7 +21953,7 @@ user reload must be equivalent to .reload()
    authentication to access, as such sites would be unable to access the
    resources in question without prompting the user for credentials
    themselves (a practice that would require the user to know whether to
-   trust the third party handler, a decision many users are unable to make or
+   trust the third-party handler, a decision many users are unable to make or
    even understand).
 
   <h5 id=sample-handler-impl><span class=secno>5.3.2.2. </span>Sample user
