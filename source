@@ -16764,12 +16764,157 @@ XXX selection ranges -->
 
 
   <h5><dfn>Content-Type sniffing: feed or HTML</dfn></h5>
-  <!--
+  <!-- mostly based on:
    http://blogs.msdn.com/rssteam/articles/PublishersGuide.aspx
    http://lxr.mozilla.org/seamonkey/source/browser/components/feeds/src/nsFeedSniffer.cpp#192
    http://lxr.mozilla.org/seamonkey/source/browser/components/feeds/src/nsFeedSniffer.cpp#127
   -->
-  <p class="big-issue">...</p>
+
+  <ol>
+
+   <li><p>The user agent may wait for 512 or more bytes of the
+   resource to be available.</p></li>
+
+   <li><p>Let <var title="">s</var> be the stream of bytes, and let
+   <span><var title="">s</var>[<var title="">i</var>]</span> represent
+   the byte in <var title="">s</var> with position <var
+   title="">i</var>, treating <var title="">s</var> as zero-indexed
+   (so the first byte is at <span><var
+   title="">i</var>=0</span>).</p></li>
+
+   <li><p>If at any point this algorithm requires the user agent to
+   determine the value of a byte in <var title="">s</var> which is not
+   yet available, or which is past the first 512 bytes of the
+   resource, or which is beyond the end of the resource, the user
+   agent must stop this algorithm, and assume that the sniffed type of
+   the resource is "text/html".</p>
+
+   <p class="note">User agents are allowed, by the first step of this
+   algorithm, to wait until the first 512 bytes of the resource are
+   available.</p></li>
+
+   <li><p>Initialise <var title="">pos</var> to 0.</p></li>
+
+   <li><p>Examine <span><var title="">s</var>[<var
+   title="">pos</var>]</span>.</p>
+
+   <dl class="switch">
+
+    <!-- skip whitespace (S token as defined in XML 1.0 section 2.3; production [3] -->
+    <dt>If it is 0x09 (ASCII tab), 0x20 (ASCII space), 0x0A (ASCII LF), or 0x0D (ASCII CR)</dt>
+    <dd>Increase <var title="">pos</var> by 1 and repeat this step.</dd>
+
+    <dt>If it is 0x3C (ASCII "<code title="">&lt;</code>")</dt>
+    <dd>Increase <var title="">pos</var> by 1 and go to the next step.</dd>
+
+    <dt>If it is anything else, the sniffed type of the resource is
+    "text/html". Abort these steps.</dt>
+
+   </dl>
+
+   </li>
+
+   <li><p>If the bytes with positions <var title="">pos</var> to
+   <span><var title="">pos</var>+2</span> in <var title="">s</var> are
+   exactly equal to 0x21, 0x2D, 0x2D respectively, then:</p>
+
+    <ol>
+
+     <li>Increase <var title="">pos</var> by 3.</li> <!-- skips past the " ! - - " -->
+
+     <li>If the bytes with positions <span><var
+     title="">pos</var></span> to <span><var
+     title="">pos</var>+2</span> in <var title="">s</var> are exactly
+     equal to 0x2D, 0x2D, 0x3E respectively, then increase <var
+     title="">pos</var> by 3 and jump back to the previous step (step
+     6) in the overall algorithm in this section.</li>
+
+     <li>Otherwise, increase <var title="">pos</var> by 1.</li>
+
+     <li>Otherwise, return to step 2 in these substeps.</li>
+
+    </ol>
+
+   </li>
+
+   <li><p>If <span><var title="">s</var>[<var
+   title="">pos</var>]</span> is 0x21 (ASCII "<code
+   title="">!</code>"):</p>
+
+    <!-- this skips past a DOCTYPE if there is one. It is brain-dead
+    because we don't have to be clever to parse the Atom and RSS x.y
+    DOCTYPEs, as they don't do anything clever like have internal
+    subsets of quoted ">" characters. If this fails, then that's ok,
+    we'll treat it as HTML which is fine since we know it's not a feed
+    in that case. -->
+
+    <ol>
+
+     <li>Increase <var title="">pos</var> by 1.</li>
+
+     <li>If <span><var title="">s</var>[<var
+     title="">pos</var>]</span> equal 0x3E, then increase <var
+     title="">pos</var> by 1 and jump back to step 6 in the overall
+     algorithm in this section.</li>
+
+     <li>Otherwise, return to step 1 in these substeps.</li>
+
+    </ol>
+
+   </li>
+
+   <li><p>If <span><var title="">s</var>[<var
+   title="">pos</var>]</span> is 0x3F (ASCII "<code
+   title="">?</code>"):</p>
+
+    <ol>
+
+     <li>Increase <var title="">pos</var> by 1.</li>
+
+     <li>If <span><var title="">s</var>[<var
+     title="">pos</var>]</span> and <span><var title="">s</var>[<var
+     title="">pos</var>+1]</span> equal 0x3F and 0x3E respectively,
+     then increase <var title="">pos</var> by 1 and jump back to
+     step 6 in the overall algorithm in this section.</li>
+
+     <li>Otherwise, return to step 1 in these substeps.</li>
+
+    </ol>
+
+   </li>
+
+   <li><p>Otherwise, if the bytes in <var title="">s</var> starting at
+   <var title="">pos</var> match any of the sequences of bytes in the
+   first column of the following table, then the sniffed type of the
+   resource is the type given in the corresponding cell in the second
+   column of the same row.</p>
+
+    <table>
+     <thead>
+      <tr>
+       <th>Bytes in Hexadecimal
+       <th>Sniffed type
+       <th>Comment
+
+     <tbody>
+      <tr>
+       <td>3C 72 73 73
+       <td>application/rss+xml
+       <td>The four ASCII characters "<code title="">&lt;rss</code>"
+      <tr>
+       <td>3C 66 65 65 64
+       <td>application/atom+xml
+       <td>The four ASCII characters "<code title="">&lt;feed</code>"
+    </table>
+
+   </li>
+
+   <li><p class="big-issue">This doesn't yet detect RSS 1.0</p></li>
+
+   <li><p>Otherwise, the sniffed type of the resource is
+   "text/html".</p></li>
+
+  </ol>
 
 
   <h4 id="read-html"><dfn title="navigate-html">Page load processing model for HTML files</dfn></h4>
