@@ -3186,6 +3186,9 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
 
     <dl class="switch">
 
+     <!-- XXX this doesn't quite match what IE does: http://www.hixie.ch/tests/adhoc/html/flow/image-maps/004-demo.html
+          I couldn't work out a pattern to IE's results. Let me know if you can see one. -->
+
      <dt>A U+002D HYPHEN-MINUS character</dt>
 
      <dd>
@@ -5259,6 +5262,11 @@ DOCUMENT
   <p>The <dfn title="dom-focus"><code>focus()</code></dfn> and <dfn
   title="dom-blur"><code>blur()</code></dfn> methods must focus and
   unfocus the element respectively, if the element is focusable.</p>
+
+  <p>Some elements, most notably <code>area</code>, can correspond to
+  more than one distinct focusable area. When such an element is
+  focused using the <code title="dom-focus">focus()</code> method, the
+  first such region in tree order is the one that must be focused.</p>
 
   <p class="big-issue">Well that clearly needs more.</p>
   <!-- XXX e.g. should the click, focus, blur methods be recursible? -->
@@ -11881,33 +11889,175 @@ interface <dfn>ImageData</dfn> {
   </ol>
 
   <p>If the user agent intends to show the image and allow interaction
-  with the image to select hyperlinks, then it must instead use the
-  following steps:</p>
+  with the image to select hyperlinks, then the image must be
+  associated with a set of layered shapes, taken from the
+  <code>area</code> elements in <var title="">areas</var>, in reverse
+  tree order (so the last specified <code>area</code> element in the
+  <var title="">map</var> is the bottom-most shape, and the first
+  element in the <var title="">map</var>, in tree order, is the
+  top-most shape).</p>
 
-  <ol class="big-issue">
-  <!-- coords parsing:
+  <p>Each <code>area</code> element in <var title="">areas</var> must
+  be processed as follows to obtain a shape to layer onto the
+  image:</p>
 
-   1. use rules for parsing lists of integers to get list of coords
-   2. treat those with missing coords as hidden shapes, focusable but not covering any part of the image
-       poly: < 6
-       rect: < 4
-       circ: < 3 or r<=0
-      ...then abort
-   3. drop any excess coords:
-       poly: drop the last one if there's an odd number
-       rect: drop > 4
-       circ: drop > 3
-   4. reorder coords:
-       rect: rearrange (a,b,c,d) such that:
-               if a < c and b < d: a,b,c,d
-               if c < a and b < d: c,b,a,d
-               if a < c and d < b: a,d,c,b
-               if c < a and d < b: c,d,a,b
-       circ, poly: none
-  -->
+  <ol>
+
+   <li><p>Find the state that the element's <code
+   title="attr-area-shape">shape</code> attribute represents.</p></li>
+
+   <li><p>Use the <span>rules for parsing a list of integers</span> to
+   parse the element's <code title="attr-area-coords">coords</code>
+   attribute, if it is present, and let the result be the <var
+   title="">coords</var> list. If the attribute is absent, let the
+   <var title="">coords</var> list be the empty list.</p></li>
+
+   <li><p>If the number of items in the <var title="">coords</var>
+   list is less than the minimum number given for the
+   <code>area</code> element's current state, as per the following
+   table, then the shape is empty; abort these steps.</p>
+    <table>
+     <thead>
+      <tr>
+       <th>State
+       <th>Minimum number of items
+     <tbody>
+      <tr>
+       <td><span title="attr-area-shape-circle">Circle state</span>
+       <td>3
+      <tr>
+       <td><span title="attr-area-shape-default">Default state</span>
+       <td>0
+      <tr>
+       <td><span title="attr-area-shape-poly">Polygon state</span>
+       <td>6
+      <tr>
+       <td><span title="attr-area-shape-rect">Rectangle state</span>
+       <td>4
+    </table>
+   </li>
+
+   <li><p>Check for excess items in the <var title="">coords</var>
+   list as per the entry in the following list corresponding to the
+   <code title="attr-area-shape">shape</code> attribute's state:</p>
+    <dl class="switch">
+     <dt><span title="attr-area-shape-circle">Circle state</span></dt>
+     <dd>Drop any items in the list beyond the third.</dd>
+     <dt><span title="attr-area-shape-default">Default state</span></dt>
+     <dd>Drop all items in the list.</dd>
+     <dt><span title="attr-area-shape-poly">Polygon state</span></dt>
+     <dd>Drop the last item if there's an odd number of items.</dd>
+     <dt><span title="attr-area-shape-rect">Rectangle state</span></dt>
+     <dd>Drop any items in the list beyond the fourth.</dd>
+    </dl>
+   </li>
+
+   <li><p>If the <code title="attr-area-shape">shape</code> attribute
+   represents the <span title="attr-area-shape-rect">rectangle
+   state</span>, and the first number in the list is numerically less
+   than the third number in the list, then swap those two numbers
+   around.</p></li>
+
+   <li><p>If the <code title="attr-area-shape">shape</code> attribute
+   represents the <span title="attr-area-shape-rect">rectangle
+   state</span>, and the second number in the list is numerically less
+   than the fourth number in the list, then swap those two numbers
+   around.</p></li>
+
+   <li><p>If the <code title="attr-area-shape">shape</code> attribute
+   represents the <span title="attr-area-shape-circle">circle
+   state</span>, and the third number in the list is less than or
+   equal to zero, then the shape is empty; abort these steps.</p></li>
+
+   <li><p>The shape is a <dfn>valid area</dfn>.</p></li>
+
+   <li><p>Now, the shape represented by the element is the one
+   described for the entry in the list below corresponding to the
+   state of the <code title="attr-area-shape">shape</code>
+   attribute:</p>
+    <dl class="switch">
+
+     <dt><span title="attr-area-shape-circle">Circle state</span></dt>
+     <dd>
+      <p>Let <var title="">x</var> be the first number in <var
+      title="">coords</var>, <var title="">y</var> be the second
+      number, and <var title="">r</var> be the third number.</p>
+      <p>The shape is a circle whose center is <var title="">x</var>
+      CSS pixels from the left edge of the image and <var
+      title="">x</var> CSS pixels from the top edge of the image, and
+      whose radius is <var title="">r</var> pixels.</p>
+     </dd>
+
+     <dt><span title="attr-area-shape-default">Default state</span></dt>
+     <dd>
+      <p>The shape is a rectangle that exactly covers the entire
+      image.</p>
+     </dd>
+
+     <dt><span title="attr-area-shape-poly">Polygon state</span></dt>
+     <dd>
+
+      <p>Let <var title="">x<sub><var title="">i</var></sub></var> be
+      the <span>(2<var title="">i</var>)</span>th entry in <var
+      title="">coords</var>, and <var title="">y<sub><var
+      title="">i</var></sub></var> be the <span>(2<var
+      title="">i</var>+1)</span>th entry in <var
+      title="">coords</var> (the first entry in <var
+      title="">coords</var> being the one with index 0).</p>
+
+      <p>Let <var title="">the coordinates</var> be (<var
+      title="">x<sub><var title="">i</var></sub></var>, <var
+      title="">y<sub><var title="">i</var></sub></var>), interpreted
+      in CSS pixels measured from the top left of the image, for all
+      integer values of <var title="">i</var> from 0 to <span>(<var
+      title="">N</var>/2)-1</span>, where <var title="">N</var> is the
+      number of items in <var title="">coords</var>.</p>
+
+      <p>The shape is a polygon whose vertices are given by <var
+      title="">the coordinates</var>, and whose interior is
+      established using the even-odd rule. <a
+      href="#refsGRAPHICS">[GRAPHICS]</a></p>
+
+      <!-- If anyone has this book ("Computer Graphics: Principles and
+           Practice in C"), please check page 34 or so and see if it
+           makes any references to literature in the bibliographic
+           section to define the "even-odd" rule for polygon filling
+           and hit testing.
+        <dd id="refsGRAPHICS">[GRAPHICS]</dd>
+        <dd>(Non-normative) <cite>Computer Graphics: Principles and Practice in C</cite>, Second Edition, J. Foley, A. van Dam, S. Feiner, J. Hughes. Addison-Wesley, July 1995. ISBN 0-201-84840-6.</dd>
+      -->
+
+      <!--
+        browsers implement the even-odd rule / even winding rule:
+        http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E%0A%3Cimg%20usemap%3D%22%23x%22%20src%3D%22/resources/images/sample%22%3E%0A%3Cmap%20name%3D%22x%22%3E%0A%20%20%3Carea%20shape%3Dpolygon%20coords%3D%220%2C0%200%2C100%20100%2C100%20100%2C2%201%2C2%202%2C1%202%2C99%2099%2C99%2099%2C0%22%20href%3Da%3E%0A%3C/map%3E%0A
+       -->
+
+     </dd>
+
+     <dt><span title="attr-area-shape-rect">Rectangle state</span></dt>
+
+     <dd>
+
+      <p>Let <var title="">x1</var> be the first number in <var
+      title="">coords</var>, <var title="">y1</var> be the second
+      number, <var title="">x2</var> be the third number in <var
+      title="">coords</var>, and <var title="">y2</var> be the fourth
+      number.</p>
+
+      <p>The shape is a rectangle whose top-left corner is given by
+      the coordinate (<var title="">x1</var>, <var title="">y1</var>)
+      and whose bottom right corner is given by the coordinate (<var
+      title="">x2</var>, <var title="">y2</var>), those coordinates
+      being interpreted as CSS pixels from the top left corner of the
+      image.</p>
+
+     </dd>
+
+    </dl>
+   </li>
+
   </ol>
 
-  <p class="big-issue"><dfn>valid area</dfn></p>
 
   <p class="big-issue">mouse clicks on an image where an area is
   result in clicks dispatched at the area, not the image.</p>
