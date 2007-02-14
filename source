@@ -13975,20 +13975,11 @@ interface <dfn>ImageData</dfn> {
   parser</span> and is used to handle <code
   title="dom-document-write-HTML">document.write()</code> calls.</p>
 
-  <p><dfn title="running a script">When a script block is inserted
-  into a document</dfn>: When a <code>script</code> element whose
-  <span>"already executed"</span> flag is not set is <span>inserted
-  into a document</span><!-- XXX xref -->, the user agent must act as
-  follows:</p>
+  <p><dfn title="running a script">Running a script</dfn>: when a
+  script block is <span>inserted into a document</span>, the user
+  agent must act as follows:</p>
 
   <ol>
-
-   <li>
-
-    <p>The user agent must set the element's <span>"already
-    executed"</span> flag.</p>
-
-   </li>
 
    <li>
 
@@ -13996,6 +13987,25 @@ interface <dfn>ImageData</dfn> {
     title="attr-script-type">type</code> and <code
     title="attr-script-language">language</code> attributes should be
     defined here, probably with reference to the next section.</p>
+
+   </li>
+
+   <li>
+
+    <p>If <span>scripting is disabled</span>, or if the user agent
+    does not support the scripting language in question, or if the
+    <code>Document</code> has <code
+    title="dom-document-designMode">designMode</code> enabled, or if
+    the <code>script</code> element has its <span>"already
+    executed"</span> flag set, then the user agent must abort these
+    steps at this point. The script is not executed.</p>
+
+   </li>
+
+   <li>
+
+    <p>The user agent must set the element's <span>"already
+    executed"</span> flag.</p>
 
    </li>
 
@@ -14241,7 +14251,12 @@ interface <dfn>ImageData</dfn> {
   block</dfn>: If the load resulted in an error (for example a DNS
   error, or an HTTP 404 error), then executing the script consists of
   doing nothing. If the load was successful, then the behaviour
-  depends on the scripting language.
+  depends on the scripting language.</p>
+
+  <p>If <span>scripting is disabled</span>, or if the
+  <code>Document</code> has <code
+  title="dom-document-designMode">designMode</code> enabled, then the
+  user agent must abort these steps without executing the script.</p>
 
   <p>If the script is from an external file, then that file must be
   used as the file to execute.</p>
@@ -17793,6 +17808,8 @@ XXX selection ranges -->
   document.write() pages (done?) and navigating to javascript:
   URIs.</p>
 
+  <!-- XXX see below for another javascript: section -->
+
 
 
   <h3 id="scripting">Scripting</h3>
@@ -18042,6 +18059,12 @@ XXX selection ranges -->
   URIs in &lt;img src>, &lt;iframe src>, &lt;location.href>, &lt;a
   href>, @import, background-image, etc?</p>
 
+  <!--XXX don't execute them when <span>scripting is disabled</span>
+  or when the <code>Document</code> has <code
+  title="dom-document-designMode">designMode</code> enabled -->
+
+  <!-- XXX see above for another javascript: section -->
+
 
   <h4 id="runtime-script-errors">Runtime script errors</h4>
 
@@ -18181,9 +18204,12 @@ XXX selection ranges -->
 
   </dl>
 
-  <p>All event handler attributes on an element, whether set to null
-  or to a function, must be registered as event listeners on the
-  element, as if the <code
+  <p>When <span>scripting is disabled</span>, event handler attributes
+  must do nothing.</p>
+
+  <p>When <span>scripting is enabled</span>, all event handler
+  attributes on an element, whether set to null or to a function, must
+  be registered as event listeners on the element, as if the <code
   title="dom-EventTarget-addEventListenerNS">addEventListenerNS()</code>
   method on the <code>Element</code> object's <code>EventTarget</code>
   interface had been invoked when the element was created, with the
@@ -18200,7 +18226,6 @@ XXX selection ranges -->
   nothing while the event handler attribute is null, and set to invoke
   the function associated with the event handler attribute
   otherwise.</p>
-
 
 
   <h5>Event firing</h5>
@@ -22002,16 +22027,22 @@ MAYBE WANT
   title="attr-contenteditable">contenteditable</code> attribute set to
   the true state, or if its nearest ancestor with the <code
   title="attr-contenteditable">contenteditable</code> attribute set
-  has its attribute set to the true state, then the UA must treat the
-  element as <dfn>editable</dfn> (as described below).</p>
+  has its attribute set to the true state, or if it has no ancestors
+  with the <code title="attr-contenteditable">contenteditable</code>
+  attribute set but the <code>Document</code> has <code
+  title="dom-document-designMode">designMode</code> enabled, then the
+  UA must treat the element as <dfn>editable</dfn> (as described
+  below).</p>
 
   <p>Otherwise, either the HTML element has a <code
   title="attr-contenteditable">contenteditable</code> attribute set to
   the false state, or its nearest ancestor with the <code
   title="attr-contenteditable">contenteditable</code> attribute set is
   not <em>editable</em>, or it has no ancestor with the <code
-  title="attr-contenteditable">contenteditable</code> attribute set,
-  and the element is thus not editable.</p>
+  title="attr-contenteditable">contenteditable</code> attribute set
+  and the <code>Document</code> itself has <code
+  title="dom-document-designMode">designMode</code> disabled, and the
+  element is thus not editable.</p>
 
   <p>The <dfn
   title="dom-contentEditable"><code>contentEditable</code></dfn> DOM
@@ -22031,7 +22062,8 @@ MAYBE WANT
   a <code>SYNTAX_ERR</code> exception.</p>
 
   <p>If an element is <span>editable</span> and its parent element is
-  not, then the element is an <dfn>editing host</dfn>. Editable
+  not, or if an element is <span>editable</span> and it has no parent
+  element, then the element is an <dfn>editing host</dfn>. Editable
   elements can be nested. User agents must make editing hosts
   focusable (which typicially means they enter the <span
   title="tabindex">tab order</span>). An editing host can contain
@@ -22041,7 +22073,8 @@ MAYBE WANT
 
   <p>When an editing host has focus, it must have a <dfn>caret
   position</dfn> that specifies where the current editing position
-  is. It may also have a <span title="the selection">selection</span>.</p> <!--- XXX xref to later section -->
+  is. It may also have a <span title="the
+  selection">selection</span>.</p> <!--- XXX xref to later section -->
 
   <p class="note">How the caret and selection are represented depends
   entirely on the UA.</p>
@@ -22237,8 +22270,38 @@ MAYBE WANT
 
   <h4 id="designMode">Making entire documents editable</h4>
 
-  <p class="big-issue">This section will define document.<dfn
-  title="dom-document-designMode"><code>designMode</code></dfn>.</p>
+  <p>Documents have a <dfn
+  title="dom-document-designMode"><code>designMode</code></dfn>, which
+  can be either enabled or disabled.</p>
+
+  <p>The <code title="dom-document-designMode">designMode</code> DOM
+  attribute on the <code>Document</code> object takes takes two
+  values, "<code title="">on</code>" and "<code
+  title="">off</code>". When it is set, the new value must be
+  case-insensitively <!-- XXX ASCII case-folding --> compared to these
+  two values. If it matches the "<code title="">on</code>" value, then
+  <code title="dom-document-designMode">designMode</code> must be
+  enabled, and if it matches the "<code title="">off</code>" value,
+  then <code title="dom-document-designMode">designMode</code> must be
+  disabled. Other values must be ignored.</p>
+
+  <p>When <code title="dom-document-designMode">designMode</code> is
+  enabled, the DOM attribute must return the value "<code
+  title="">on</code>", and when it is disabled, it must return the
+  value "<code title="">off</code>".</p>
+
+  <p>The last state set must persist until the document is destroyed
+  or the state is changed. Initially, documents must have their <code
+  title="dom-document-designMode">designMode</code> disabled.</p>
+
+  <p>Enabling <code title="dom-document-designMode">designMode</code>
+  causes scripts in general to be disabled and the document to become
+  editable.</p>
+
+  <p>When the <code>Document</code> has <code
+  title="dom-document-designMode">designMode</code> enabled, event
+  listeners registered on the document or any elements owned by the
+  document must do nothing.</p>
 
 
 
