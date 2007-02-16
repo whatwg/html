@@ -22,7 +22,7 @@
 
    <h1 id=web-applications>Web Applications 1.0</h1>
 
-   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 15 February
+   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 16 February
     2007</h2>
 
    <p>You can take part in this work. <a
@@ -19496,29 +19496,29 @@ XXX selection ranges -->
 
      <tbody>
       <tr>
-       <td>fe ff
+       <td>FE FF
 
        <td>UTF-16BE BOM <!-- followed by a character -->
 
       <tr>
-       <td>ff fe
+       <td>FF FE
 
        <td>UTF-16LE BOM <!-- followed by a character -->
 
       <tr>
-       <td>ef bb bf
+       <td>EF BB BF
 
        <td>UTF-8 BOM
         <!-- followed by a character, or the first byte of a multiple character sequence -->
         
 
       <tr>
-       <td>00 00 fe ff
+       <td>00 00 FE FF
 
        <td>UCS-4BE BOM
 
       <tr>
-       <td>00 00 ff fe
+       <td>00 00 FF FE
 
        <td>UCS-4 BOM
     </table>
@@ -28913,35 +28913,160 @@ function receiver(e) {
    algorithm in determining the character encoding of a document:
 
   <ol>
-   <li>If the transport layer specifies an encoding, use that.
+   <li>
+    <p>If the transport layer specifies an encoding, use that, and abort
+     these steps.
 
-   <li>Otherwise, if the user agent can find a <code><a
-    href="#meta1">meta</a></code> element that <a href="#charset">specifies
-    character encoding information</a>, then use that. (The exact parsing
-    rules for finding and using this information are not yet described in
-    this specification.) <span class=big-issue>This needs to be fleshed out a
-    whole heck of a lot more.</span></li>
-   <!-- XXX -->
+   <li>
+    <p>
 
-   <li>Otherwise, the user agent may attempt to autodetect the character
-    encoding from applying frequency analysis or other algorithms to the data
-    stream. If autodetection succeeds in determining a character encoding,
-    then use that.</li>
-   <!-- is it a
-   parse error to reach this step? XXX -->
+    <p>The user agent may wait for 512 or more bytes of the resource to be
+     available.
 
-   <li>Otherwise, use an implementation-defined or user-specified default
-    character encoding (<code>ISO-8859-1</code>, <code>windows-1252</code>,
-    and <code>UTF-8</code> are recommended as defaults, and can in many cases
-    be identified by inspection as they have different ranges of valid
-    bytes).</li>
-   <!-- only default
-   to win1252? XXX -->
+   <li>
+    <p>
+
+    <p>Let <var title="">n</var> be the bigger of either 512 or the number of
+     bytes already available.
+
+   <li>
+    <p>For each of the rows in the following table, if <var title="">n</var>
+     is equal to or greater than the number of bytes in the first column, and
+     the first bytes of the file match the bytes given in the first column,
+     then use the encoding given in the cell in the second column of that
+     row, and abort these steps:</p>
+
+    <table>
+     <thead>
+      <tr>
+       <th>Bytes in Hexadecimal
+
+       <th>Description
+
+     <tbody>
+      <tr>
+       <td>FE FF
+
+       <td>UTF-16BE BOM
+
+      <tr>
+       <td>FF FE
+
+       <td>UTF-16LE BOM
+
+      <tr>
+       <td>EF BB BF
+
+       <td>UTF-8 BOM
+
+      <tr>
+       <td>00 00 FE FF
+
+       <td>UCS-4BE BOM
+
+      <tr>
+       <td>00 00 FF FE
+
+       <td>UCS-4 BOM
+    </table>
+
+   <li>
+    <p>Otherwise, the user agent will have to search for explicit character
+     encoding information in the file itself. This must proceed as follows:
+
+    <p>Let <var title="">position</var> be a pointer to a byte in the input
+     stream, initially pointing at the first byte. If at any point during
+     these steps the <var title="">position</var> pointer points beyond the
+     <var title="">n</var>th byte of the input stream, then skip to the next
+     step of the overall character encoding detection algorithm (the step
+     which mentions frequency analysis below).</p>
+
+    <p>Now, repeat the following "two" steps until the algorithm aborts
+     (either because <var title="">position</var> reaches beyond the <var
+     title="">n</var>th byte, or because a character encoding is found):</p>
+
+    <ol>
+     <li>
+      <p>If <var title="">position</var> points to:</p>
+
+      <dl class=switch>
+       <dt>A sequence of bytes starting with: 0x3C 0x21 0x2D 0x2D (ASCII
+        '&lt;!--')
+
+       <dd>
+        <p class=big-issue>skip comment</p>
+
+       <dt>A sequence of bytes starting with: 0x3C, 0x4D or 0x6D, 0xe5 or
+        0x65, 0x54 or 0x74, 0x41 or 0x61, and finally one of 0x09, 0x0A,
+        0x0B, 0x0C, 0x0D, 0x20 (case-insensitive ASCII '&lt;meta' followed by
+        a space)
+
+       <dd>
+        <p class=big-issue>try to find charset attribute or content attribute
+         with charset parameter, <a href="#skip-an"
+         title=concept-skip-attributes-when-sniffing>skip other
+         attributes</a></p>
+
+       <dt>A sequence of bytes starting with a 0x2C byte (ASCII '&lt;'),
+        optionally a 0x2F byte (ASCII '/'), and finally a byte in the range
+        0x41-0x5A or 0x61-0x7A (an ASCII letter)
+
+       <dd>
+        <p class=big-issue>skip start or end tag, and <a href="#skip-an"
+         title=concept-skip-attributes-when-sniffing>skip any attributes</a></p>
+
+       <dt>A sequence of bytes starting with: 0x3C 0x2D (ASCII '&lt;!')
+
+       <dt>A sequence of bytes starting with: 0x3C 0x2F (ASCII '&lt;/')
+
+       <dt>A sequence of bytes starting with: 0x3C 0x3F (ASCII '&lt;?')
+
+       <dd>
+        <p class=big-issue>skip bogus comment</p>
+      </dl>
+
+     <li>Move <var title="">position</var> so it points at the next byte in
+      the input stream, and return to the first step of this "two step"
+      algorithm.
+    </ol>
+
+    <p>When the above "two step" algorithm says to <dfn id=skip-an
+     title=concept-skip-attributes-when-sniffing>skip an attribute</dfn>, it
+     means doing this:</p>
+
+    <ol>
+     <li class=big-issue>skip the attribute
+    </ol>
+
+   <li>
+    <p>The user agent may attempt to autodetect the character encoding from
+     applying frequency analysis or other algorithms to the data stream. If
+     autodetection succeeds in determining a character encoding, then use
+     that; abort these steps. <a href="#refsUNIVCHARDET">[UNIVCHARDET]</a>
+   </li>
+   <!--
+   http://www.mozilla.org/projects/intl/UniversalCharsetDetection.html
+   -->
+
+   <li>
+    <p>Otherwise, use an implementation-defined or user-specified default
+     character encoding. Due to its use in legacy content,
+     <code>windows-1252</code> is recommended as a default in predominantly
+     Western demographics. In non-legacy environments, the more comprehensive
+     <code>UTF-8</code> encoding is recommended instead. Since these
+     encodings can in many cases be distinguished by inspection, a user agent
+     may heuristically decide which to use as a default.
   </ol>
 
   <p class=note>For XML documents, the algorithm user agents must use to
    determine the character encoding is given by the XML specification. This
    section does not apply to XML documents. <a href="#refsXML">[XML]</a>
+
+  <p>When a user agent would otherwise use the ISO-8859-1 encoding, it must
+   instead use the Windows-1252 encoding. User agents must not support the
+   CESU-8, UTF-7, BOCU-1 and SCSU encodings. <a href="#refsCESU8">[CESU8]</a>
+   <a href="#refsUTF7">[UTF7]</a> <a href="#refsBOCU1">[BOCU1]</a> <a
+   href="#refsSCSU">[SCSU]</a>
 
   <p>Bytes or sequences of bytes in the original byte stream that could not
    be converted to Unicode characters must be converted to U+FFFD REPLACEMENT
