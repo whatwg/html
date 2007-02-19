@@ -22,7 +22,7 @@
 
    <h1 id=web-applications>Web Applications 1.0</h1>
 
-   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 17 February
+   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 19 February
     2007</h2>
 
    <p>You can take part in this work. <a
@@ -19915,6 +19915,10 @@ XXX selection ranges -->
     <p>Otherwise, the sniffed type of the resource is "text/html".
   </ol>
 
+  <p class=note>For efficiency reaons, implementations may wish to implement
+   this algorithm and the algorithm for detecting the character encoding of
+   HTML documents in parallel.
+
   <h4 id=read-html><span class=secno>4.1.2. </span><dfn id=page-load2
    title=navigate-html>Page load processing model for HTML files</dfn></h4>
 
@@ -29181,10 +29185,91 @@ function receiver(e) {
      means doing this:</p>
 
     <ol>
-     <li class=big-issue>skip the attribute
+     <li>
+      <p>If the byte at <var title="">position</var> is one of 0x09 (ASCII
+       TAB), 0x0A (ASCII LF), 0x0B (ASCII VT), 0x0C (ASCII FF), 0x0D (ASCII
+       CR), 0x20 (ASCII space), or 0x2F (ASCII '/') then advance <var
+       title="">position</var> to the next byte and start over.
 
-     <li class=big-issue>handle 0x3C (ASCII '<') by moving the pointer back
-      one
+     <li>
+      <p>If the byte at <var title="">position</var> is 0x3C (ASCII '&lt;'),
+       then move <var title="">position</var> back to the previous byte, and
+       stop looking for an attribute. There isn't one.
+
+     <li>
+      <p>If the byte at <var title="">position</var> is 0x3E (ASCII '>'),
+       then stop looking for an attribute. There isn't one.
+
+     <li>
+      <p>Otherwise, the byte at <var title="">position</var> is the start of
+       the attribute name. Let <var title="">attribute name</var> and <var
+       title="">attribute value</var> be the empty string.
+
+     <li>
+      <p><em>Attribute name</em>: Process the byte at <var
+       title="">position</var> as follows:</p>
+
+      <dl class=switch>
+       <dt>If it is in the range 0x41 (ASCII 'A') to 0x5A (ASCII 'Z')
+
+       <dd>Append the Unicode character with codepoint <span><var
+        title="">b</var>+0x20</span> to <var title="">attribute name</var>
+        (where <var title="">b</var> is the value of the byte at <var
+        title="">position</var>).
+
+       <dt>If it is 0x3D (ASCII '='), and the <var title="">attribute
+        name</var> is longer than the empty string
+
+       <dd>Jump to the step below labelled <em>value</em>.
+
+       <dt>If it is 0x09 (ASCII TAB), 0x0A (ASCII LF), 0x0B (ASCII VT), 0x0C
+        (ASCII FF), 0x0D (ASCII CR), or 0x20 (ASCII space)
+
+       <dd>Jump to the step below labelled <em>spaces</em>.
+
+       <dt>If it is 0x2F (ASCII '/'), 0x3C (ASCII '&lt;'), or 0x3E (ASCII
+        '&gt;').
+
+       <dd>Stop looking for an attribute. Move <var title="">position</var>
+        back to the previous byte. The attribute's name is the value of <var
+        title="">attribute name</var>, its value is the empty string.
+
+       <dt>Anything else
+
+       <dd>Append the Unicode character with the same codepoint as the value
+        of the byte at <var title="">position</var>). (It doesn't actually
+        matter how bytes outside the ASCII range are handled here, since only
+        ASCII characters can contribute to the detection of a character
+        encoding.)
+      </dl>
+
+     <li>
+      <p>Advance <var title="">position</var> to the next byte and return to
+       the previous step.
+
+     <li>
+      <p><em>Spaces.</em> If the byte at <var title="">position</var> is one
+       of 0x09 (ASCII TAB), 0x0A (ASCII LF), 0x0B (ASCII VT), 0x0C (ASCII
+       FF), 0x0D (ASCII CR), or 0x20 (ASCII space) then advance <var
+       title="">position</var> to the next byte, then, repeat this step.
+
+     <li>
+      <p>If the byte at <var title="">position</var> is <em>not</em> 0x3D
+       (ASCII '='), stop looking for an attribute. Move <var
+       title="">position</var> back to the previous byte. The attribute's
+       name is the value of <var title="">attribute name</var>, its value is
+       the empty string.
+
+     <li>
+      <p>Advance <var title="">position</var> past the 0x3D (ASCII '=') byte.
+
+     <li>
+      <p><em>Value.</em> If the byte at <var title="">position</var> is one
+       of 0x09 (ASCII TAB), 0x0A (ASCII LF), 0x0B (ASCII VT), 0x0C (ASCII
+       FF), 0x0D (ASCII CR), or 0x20 (ASCII space) then advance <var
+       title="">position</var> to the next byte, then, repeat this step.
+
+     <li class=big-issue>parse attribute value
     </ol>
 
    <li>
