@@ -3164,7 +3164,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
    argument <var title="">s</var>, and then call the <code
    title=dom-document-write><a
    href="#document.write">document.write()</a></code> method with, as its
-   argument, a string consisting of a single newline character (U+000A).
+   argument, a string consisting of a single line feed character (U+000A).
 
   <h4 id=controlling><span class=secno>2.5.1. </span>Controlling the input
    stream</h4>
@@ -27220,23 +27220,35 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
   <p>This event stream format's MIME type is
    <code>application/x-dom-event-stream</code>.
 
-  <p>Event streams in this format must always be encoded as UTF-8. Lines must
-   always be terminated by a single U+000A LINE FEED character.
-
   <p>The event stream format is (in pseudo-BNF):
 
-  <pre>&lt;stream&gt;  ::= &lt;bom&gt;? &lt;event&gt;*
-&lt;event&gt;   ::= [ &lt;comment&gt; | &lt;command&gt; | &lt;field&gt; ]* &lt;newline&gt;
+  <pre>&lt;stream&gt;          ::= &lt;bom&gt;? &lt;event&gt;*
+&lt;event&gt;           ::= [ &lt;comment&gt; | &lt;command&gt; | &lt;field&gt; ]* &lt;newline&gt;
+&lt;comment&gt;         ::= ';' &lt;name-char&gt;* &lt;newline&gt;
+&lt;command&gt;         ::= ':' &lt;name-char&gt;* &lt;newline&gt;
+&lt;field&gt;           ::= &lt;name&gt; [ ':' &lt;space&gt;? &lt;any-char&gt;* ]? &lt;newline&gt;
+&lt;name&gt;            ::= &lt;name-start-char&gt; &lt;name-char&gt;*
 
-&lt;comment&gt; ::= ';' &lt;data&gt; &lt;newline&gt;
-&lt;command&gt; ::= ':' &lt;data&gt; &lt;newline&gt;
-&lt;field&gt;   ::= &lt;name&gt; [ ':' &lt;space&gt;? &lt;data&gt; ]? &lt;newline&gt;
+# characters:
+&lt;bom&gt;             ::= a single U+FEFF BYTE ORDER MARK character
+&lt;space&gt;           ::= a single U+0020 SPACE character (' ')
+&lt;newline&gt;         ::= a U+000D CARRIAGE RETURN character
+                            followed by a U+000A LINE FEED character
+                            | a single U+000D CARRIAGE RETURN character
+                            | a single U+000A LINE FEED character
+                            | the end of the file</pre>
 
-&lt;name&gt;    ::= one or more UNICODE characters other than ':', ';', and U+000A LINE FEED
-&lt;data&gt;    ::= zero or more UNICODE characters other than U+000A LINE FEED
-&lt;bom&gt;     ::= a single U+FEFF BYTE ORDER MARK character
-&lt;space&gt;   ::= a single U+0020 SPACE character (' ')
-&lt;newline&gt; ::= a single U+000A LINE FEED character, or, the end of the file</pre>
+  <p>&lt;name-start-char&gt; ::= a single Unicode character other than ':',
+   ';', U+000D CARRIAGE RETURN and U+000A LINE FEED &lt;name-char&gt; ::= a
+   single Unicode character other than ':', U+000D CARRIAGE RETURN and U+000A
+   LINE FEED &lt;char&gt; ::= a single Unicode character other than U+000D
+   CARRIAGE RETURN and U+000A LINE FEED
+
+  <p>Event streams in this format must always be encoded as UTF-8. Lines must
+   be separated by either a U+000D CARRIAGE RETURN U+000A LINE FEED (CRLF)
+   character pair, a single U+000A LINE FEED (LF) character, or a single
+   U+000D CARRIAGE RETURN (CR) character. User agents must treat those three
+   variants as equivalent line terminators.
 
   <p>Bytes that are not valid UTF-8 sequences must be interpreted as the
    U+FFFD REPLACEMENT CHARACTER.
@@ -27244,8 +27256,7 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
   <p>A leading U+FEFF BYTE ORDER MARK character must be ignored if present.
 
   <p>The stream must then be parsed by reading everything line by line, in
-   blocks separated by blank lines (blank lines are those consisting of just
-   a single lone line feed character). Comment lines (those starting with the
+   blocks separated by blank lines. Comment lines (those starting with the
    character ';') and command lines (those starting with the character ':')
    must be ignored.
 
@@ -27253,11 +27264,11 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
 
   <p>For each non-blank, non-comment, non-command line, the field name must
    first be taken. This is everything on the line up to but not including the
-   first colon (':') or the line feed, whichever comes first. Then, if there
-   was a colon, the data for that line must be taken. This is everything
-   after the colon, ignoring a single space after the colon if there is one,
-   up to the end of the line. If there was no colon the data is the empty
-   string.
+   first colon (':') or the line terminator, whichever comes first. Then, if
+   there was a colon, the data for that line must be taken. This is
+   everything after the colon, ignoring a single space after the colon if
+   there is one, up to the end of the line. If there was no colon the data is
+   the empty string.
 
   <div class=example>
    <p>Examples:</p>
@@ -27273,11 +27284,13 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
 2. But these two lines:&nbsp;do not</pre>
   </div>
 
-  <p>If a field name occurs multiple times, the data values for those lines
-   are concatenated with a newline between them.
+  <p>If a field name occurs multiple times in a block, the value for that
+   field in that black must consist of the data parts for each of those
+   lines, concatenated with U+000A LINE FEED characters between them
+   (regardless of what the line terminators used in the stream actually are).
 
   <div class=example>
-   <p>For example, the following:</p>
+   <p>For example, the following block:</p>
 
    <pre>Test:&nbsp;Line 1
 Foo:&nbsp;&nbsp;Bar
