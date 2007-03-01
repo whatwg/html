@@ -991,10 +991,11 @@
 
   <p>The <dfn
   title="dom-document-referrer"><code>referrer</code></dfn> attribute
-  must return either the URI of the page which navigated<!-- xref XXX
-  --> the <span>browsing context</span> to the current document (if
-  any), or the empty string (if there is no such originating page, or
-  if the UA has been configured not to report referrers).</p>
+  must return either the URI of the page which <span
+  title="navigate">navigated</span> the <span>browsing context</span>
+  to the current document (if any), or the empty string (if there is
+  no such originating page, or if the UA has been configured not to
+  report referrers).</p>
 
   <p class="note">In the case of HTTP, the <code
   title="dom-document-referrer">referrer</code> DOM attribute will
@@ -10164,14 +10165,14 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   <p>The <dfn title="attr-iframe-src"><code>src</code></dfn>
   attribute, if present, must be a URI (or IRI) to a page that the
   nested <span>browsing context</span> is to contain. If the user
-  navigates away from this page, the <code>iframe</code>'s
-  corresponding <code>Window</code> object will reference new
-  <code>Document</code> objects, but the <code
+  <span title="navigate">navigates</span> away from this page, the
+  <code>iframe</code>'s corresponding <code>Window</code> object will
+  reference new <code>Document</code> objects, but the <code
   title="attr-iframe-src">src</code> attribute will not change.</p>
 
   <p>Whenever the <code title="attr-iframe-src">src</code> attribute
-  is set, the nested <span>browsing context</span> must be
-  <span>navigated</span><!-- XXX xref --> to the given URI.</p>
+  is set, the nested <span>browsing context</span> must be <span
+  title="navigate">navigated</span> to the given URI.</p>
 
   <p>The default value, which must be used if the <code
   title="attr-iframe-src">src</code> attribute is not set when the
@@ -10530,11 +10531,12 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
         <p>The <code>object</code> element must be associated with a
         nested <span>browsing context</span>, if it does not already
         have one. The element's nested <span>browsing context</span>
-        must then be <span>navigated</span> to the given
-        resource. (The <code title="attr-object-data">data</code>
-        attribute of the <code>object</code> element doesn't get
-        updated if the browsing context gets further navigated to
-        other locations.)</p>
+        must then be <span title="navigate">navigated</span> to the
+        given resource. (The <code
+        title="attr-object-data">data</code> attribute of the
+        <code>object</code> element doesn't get updated if the
+        browsing context gets further navigated to other
+        locations.)</p>
 
         <p class="big-issue">navigation might end up treating it as
         something else, because it can do sniffing. how should we
@@ -18226,15 +18228,6 @@ XXX selection ranges -->
   file:// content, or something.</p>
 
 
-  <h4 id="javascript-protocol"><dfn title="javascript protocol">The <code title="">javascript:</code> protocol</dfn></h4>
-
-  <p class="big-issue">Must define the interaction of navigation with
-  document.write() pages (done?) and navigating to javascript:
-  URIs.</p>
-
-  <!-- XXX see below for another javascript: section -->
-
-
 
   <h3 id="scripting">Scripting</h3>
 
@@ -18477,17 +18470,69 @@ XXX selection ranges -->
   <p class="big-issue">Define <dfn>security exception</dfn>.</p>
 
 
-  <h4><code>javascript:</code> URIs</h4>
+  <h4 id="javascript-protocol"><dfn title="javascript protocol">The <code title="">javascript:</code> protocol</dfn></h4>
 
-  <p class="big-issue">What's the scripting context for javascript:
-  URIs in &lt;img src>, &lt;iframe src>, &lt;location.href>, &lt;a
-  href>, @import, background-image, etc?</p>
+  <p>A URI using the <code title="">javascript:</code> protocol must,
+  if evaluated, be evaluated using the in-context evaluation operation
+  defined for <code title="">javascript:</code> URIs. <a
+  href="#refsJSURI">[JSURI]</a></p>
 
-  <!--XXX don't execute them when <span>scripting is disabled</span>
-  or when the <code>Document</code> has <code
-  title="dom-document-designMode">designMode</code> enabled -->
+<!--
+JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.txt and
+       http://www.websitedev.de/ietf/draft-hoehrmann-javascript-scheme-00.txt should be as stable as it gets,
+       http://ietfreport.isoc.org/idref/draft-hoehrmann-javascript-scheme/ for the latest version
+-->
 
-  <!-- XXX see above for another javascript: section -->
+  <p>When a browsing context is <span
+  title="navigate">navigated</span> to a <code>javascript:</code> URI,
+  the dereference context must be the <span>global scope</span> of the
+  <span>browsing context</span> being navigated. Otherwise, the
+  dereference context must be <span>global scope</span> of the
+  <span>browsing context</span> to which belongs the element for which
+  the URI is being dereferenced.</p>
+
+  <p>URIs using the <code title="">javascript:</code> protocol should
+  be evaluated when the resource for that URI is needed, unless
+  <span>scripting is disabled</span> or the <code>Document</code>
+  corresponding to the dereference context (as defined above), if any,
+  has <code title="dom-document-designMode">designMode</code>
+  enabled.</p>
+
+  <p>If the dereference by-product is void (there is no return value),
+  then the URI must be treated in a manner equivalent to an HTTP
+  resource with an HTTP 204 No Content response.</p>
+
+  <p>Otherwise, the URI must be treated in a manner equivalent to an
+  HTTP resource with a 200 OK response whose <span>Content-Type
+  metadata</span> is <code title="">text/html</code> and whose
+  response body is the dereference by-product, converted to a string
+  value.</p>
+
+  <p class="note">Certain contexts, in particular <code>img</code>
+  elements, ignore the <span>Content-Type metadata</span>.</p>
+
+  <div class="example">
+
+   <p>So for example a <code title="">javascript:</code> URI for a
+   <code title="attr-img-src">src</code> attribute of an
+   <code>img</code> element would be evaluated in the context of the
+   page as soon as the attribute is set; it would then be sniffed to
+   determine the image type and decoded as an image.</p>
+
+   <p>A <code title="">javascript:</code> URI in an <code
+   title="attr-a-href">href</code> attribute of an <code>a</code>
+   element would only be evaluated when the link was <span
+   title="following hyperlinks">followed</span>.</p>
+
+   <p>The <code title="attr-iframe-src">src</code> attribute of an
+   <code>iframe</code> element would be evaluated in the context of
+   the <code>iframe</code>'s own <span>browsing context</span>; once
+   evaluated, its return value (if it was not void) would replace that
+   <span>browsing context</span>'s document, thus changing the
+   variables visible in the <span>global scope</span> of that
+   <span>browsing context</span>.</p>
+
+  </div>
 
 
   <h4 id="runtime-script-errors">Runtime script errors</h4>
