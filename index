@@ -22,7 +22,7 @@
 
    <h1 id=web-applications>Web Applications 1.0</h1>
 
-   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 3 March 2007</h2>
+   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 6 March 2007</h2>
 
    <p>You can take part in this work. <a
     href="http://www.whatwg.org/mailing-list">Join the working group's
@@ -20566,17 +20566,12 @@ XXX selection ranges -->
    scripting contexts</dfn>.
 
   <p>All the executable code in a <a href="#unit-of">unit of related
-   scripting contexts</a> must execute on a single conceptual thread. While a
-   script is executing, no other scripts in that <a href="#unit-of">unit of
-   related scripting contexts</a> must be started.
-
-  <p>Events fired by the user agent in response to user actions must be
-   queued, as must the execution of any timers. There must be only one queue
-   per <a href="#unit-of">unit of related scripting contexts</a>. When no
-   script in the <a href="#unit-of">unit of related scripting contexts</a> is
-   executing, the oldest entry in the queue must be processed, either by
-   firing the appropriate event, or by executing the relevant timer callback
-   code.
+   scripting contexts</a> must execute on a single conceptual thread. The
+   dispatch of events fired by the user agent (e.g. in response to user
+   actions or network activity) and the execution of any scripts associated
+   with timers must be serialised so that for each <a href="#unit-of">unit of
+   related scripting contexts</a> there is only one script being executed at
+   a time.
 
   <h4 id=scripting-security><span class=secno>4.2.4. </span>The security
    model</h4>
@@ -25015,17 +25010,61 @@ MAYBE WANT
   <p>The browsing context to navigate to must be selected by <a
    href="#the-rules">the rules for chosing a browsing context given a
    browsing context name</a> using the <var title="">target</var> argument as
-   the name.
+   the name, unless the user has indicated a preference, in which case the
+   browsing context to navigate may instead be the one indicated by the user.
+
+  <p class=example>For example, suppose there is a user agent that supports
+   control-clicking a link to open it in a new tab. If a user clicks in that
+   user agent on an element whose <code title=handler-onclick><a
+   href="#onclick">onclick</a></code> handler uses the <code
+   title=dom-open><a href="#window.open">window.open()</a></code> API to open
+   a page in an iframe, but, while doing so, holds the control key down, the
+   user agent could override the selection of the target browsing context to
+   instead target a new tab.
 
   <p class=big-issue>The <dfn id=opener
    title=dom-opener><code>opener</code></dfn> DOM attribute...
 
   <h4 id=browsing><span class=secno>5.7.1. </span>Browsing context names</h4>
 
-  <p class=big-issue>A <dfn id=valid7>valid browsing context name</dfn> is...
+  <p>A <dfn id=valid7>valid browsing context name</dfn> is any string that
+   does not start with a U+005F LOW LINE character, or, a string that
+   case-insensitively <!-- ASCII --> matches one of: <code
+   title="">_blank</code>, <code title="">_self</code>, <code
+   title="">_parent</code>, or <code title="">_top</code>. (Names starting
+   with an underscore are reserved for special keywords.)
 
-  <p class=big-issue><dfn id=the-rules>The rules for chosing a browsing
-   context given a browsing context name</dfn> are as follows: ...
+  <p><dfn id=the-rules>The rules for chosing a browsing context given a
+   browsing context name</dfn> are as follows:
+
+  <ol>
+   <li>If the given browsing context name is the empty string or <code
+    title="">_self</code>, then the chosen browsing context must be the
+    current one.
+
+   <li>If the given browsing context name is <code title="">_parent</code>,
+    then the chosen browsing context must be the <em>parent</em> browsing
+    context of the current one.
+
+   <li>If the given browsing context name is <code title="">_top</code>, then
+    the chosen browsing context must be the most removed ancestor browsing
+    context of the current one.
+
+   <li>If the given browsing context name is not <code title="">_blank</code>
+    and there exists a browsing context whose <span title="browsing context
+    name">name</span> is the same as the given browsing context name, and
+    that browsing context's <a href="#domain0">document's domain</a> is the
+    same as the current browsing context's <a href="#domain0">document's
+    domain</a>, then that browsing context should be the chosen one.
+
+   <li>Otherwise, the chosen browsing context must be a new auxillary
+    browsing context. If the given browsing context name is not <code
+    title="">_blank</code>, then the new auxillary browsing context's name
+    must be the given browsing context name. Otherwise, it has no name.
+  </ol>
+
+  <p class=big-issue>this section should move to somewhere where we define
+   browsing contexts.
 
   <h2 id=editing><span class=secno>6. </span><dfn id=editing1>Editing</dfn></h2>
 
@@ -29972,7 +30011,7 @@ function receiver(e) {
         or 0x3E (ASCII '&gt;').
 
        <dd>Stop looking for an attribute. The attribute's name is the value
-        of <var title="">attribute name</var> and its vale is the value of
+        of <var title="">attribute name</var> and its value is the value of
         <var title="">attribute value</var>.
 
        <dt>If it is in the range 0x41 (ASCII 'A') to 0x5A (ASCII 'Z')
