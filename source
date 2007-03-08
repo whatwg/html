@@ -17539,6 +17539,491 @@ XXX selection ranges -->
 
 
 
+  <h3 id="commands">Commands</h3>
+
+  <p>A <dfn title="concept-command">command</dfn> is the abstraction
+  behind menu items, buttons, and links. Once a command is defined,
+  other parts of the interface can refer to the same command, allowing
+  many access points to a single feature to share aspects such as the
+  disabled state.</p>
+
+  <p id="facets">Commands are defined to have the following
+  <em>facets</em>:</p>
+
+  <dl>
+
+   <dt><dfn title="command-facet-Type">Type</dfn></dt>
+
+   <dd>The kind of command: "command", meaning it is a normal command;
+   "radio", meaning that triggering the command will, amongst other
+   things, set the <span title="command-facet-CheckedState">Checked
+   State</span> to true (and probably uncheck some other commands); or
+   "checkbox", meaning that triggering the command will, amongst other
+   things, toggle the value of the <span
+   title="command-facet-CheckedState">Checked State</span>.</dd>
+
+   <dt><dfn title="command-facet-ID">ID</dfn></dt>
+
+   <dd>The name of the command, for referring to the command from the
+   markup or from script. If a command has no ID, it is an
+   <dfn>anonymous command</dfn>.</dd>
+
+   <dt><dfn title="command-facet-Label">Label</dfn></dt>
+
+   <dd>The name of the command as seen by the user.</dd>
+
+   <dt><dfn title="command-facet-Hint">Hint</dfn></dt>
+
+   <dd>A helpful or descriptive string that can be shown to the
+   user.</dd>
+
+   <dt><dfn title="command-facet-Icon">Icon</dfn></dt>
+
+   <dd>A graphical image that represents the action.</dd>
+
+   <dt><dfn title="command-facet-HiddenState">Hidden State</dfn></dt>
+
+   <dd>Whether the command is hidden or not (basically, whether it
+   should be shown in menus).</dd>
+
+   <dt><dfn title="command-facet-DisabledState">Disabled State</dfn></dt>
+
+   <dd>Whether the command can be triggered or not. If the <span
+   title="command-facet-HiddenState">Hidden State</span> is true
+   (hidden) then the <span
+   title="command-facet-DisabledState">Disabled State</span> will be
+   true (disabled) regardless. <span class="issue">We could make this
+   into a string value that acts as a Hint for why the command is
+   disabled.</span></dd>
+
+   <dt><dfn title="command-facet-CheckedState">Checked State</dfn></dt>
+
+   <dd>Whether the command is checked or not.</dd>
+
+   <dt><dfn title="command-facet-Action">Action</dfn></dt>
+
+   <dd>The actual effect that triggering the command will have. This
+   could be a scripted event handler, a URI to which to navigate, or a
+   form submission.</dd>
+
+   <dt><dfn title="command-facet-Triggers">Triggers</dfn></dt>
+
+   <dd>The list of elements that can trigger the command. The element
+   defining a command is always in the list of elements that can
+   trigger the command. For anonymous commands, only the element
+   defining the command is on the list, since other elements have no
+   way to refer to it.</dd>
+
+  </dl>
+
+  <p>Commands are represented by elements in the DOM. Any element that
+  can define a command also implements the <code title="command-ro">Command</code>
+  interface:</p>
+
+  <pre class="idl">interface <dfn title="command-ro">Command</dfn> {<!--
+ NOTE: to avoid clashing with the HTMLCommandElement interface's names,
+       the members of this interface use cross-references with the title
+       dom-command-ro-foo (note the "ro", which stands for "readonly").
+-->
+  readonly attribute DOMString <span title="dom-command-ro-commandType">commandType</span>;          
+  readonly attribute DOMString <span title="dom-command-ro-id">id</span>;
+  readonly attribute DOMString <span title="dom-command-ro-label">label</span>;
+  readonly attribute DOMString <span title="dom-command-ro-title">title</span>;
+  readonly attribute DOMString <span title="dom-command-ro-icon">icon</span>;
+  readonly attribute boolean <span title="dom-command-ro-hidden">hidden</span>;
+  readonly attribute boolean <span title="dom-command-ro-disabled">disabled</span>;              
+  readonly attribute boolean <span title="dom-command-ro-checked">checked</span>;              
+  void <span title="dom-command-ro-click">click</span>();
+  readonly attribute <span>HTMLCollection</span> <span title="dom-command-ro-triggers">triggers</span>;
+  readonly attribute <span>Command</span> <span title="dom-command-ro-command">command</span>;
+};</pre>
+
+  <p>The <code title="command-ro">Command</code> interface is implemented by any element
+  capable of defining a command. (If an element can define a command,
+  its definition will list this interface explicitly.) All the
+  attributes of the <code title="command-ro">Command</code> interface are
+  read-only. Elements implementing this interface may implement other
+  interfaces that have attributes with identical names but that are
+  mutable; in bindings that simply flatten all supported interfaces on
+  the object, the mutable attributes must shadow the readonly
+  attributes defined in the <code title="command-ro">Command</code> interface.</p>
+
+  <p>The <dfn
+  title="dom-command-ro-commandType"><code>commandType</code></dfn>
+  attribute must return a string whose value is either "<code
+  title="">command</code>", "<code title="">radio</code>", or "<code
+  title="">checked</code>", depending on whether the <span
+  title="command-facet-Type">Type</span> of the command defined by the
+  element is "command", "radio", or "checked" respectively. If the
+  element does not define a command, it must return null.</p>
+
+  <p>The <dfn title="dom-command-ro-id"><code>id</code></dfn> attribute
+  must return the command's <span title="command-facet-ID">ID</span>,
+  or null if the element does not define a command or defines an
+  <span>anonymous command</span>. This attribute will be shadowed by
+  the <code title="dom-id">id</code> DOM attribute on the
+  <code>HTMLElement</code> interface.</p>
+
+  <p>The <dfn title="dom-command-ro-label"><code>label</code></dfn>
+  attribute must return the command's <span
+  title="command-facet-Label">Label</span>, or null if the element
+  does not define a command or does not specify a <span
+  title="command-facet-Label">Label</span>. This attribute will be
+  shadowed by the <code title="">label</code> DOM attribute on
+  <code>option</code> and <code>command</code> elements.</p>
+
+  <p>The <dfn title="dom-command-ro-title"><code>title</code></dfn>
+  attribute must return the command's <span
+  title="command-facet-Hint">Hint</span>, or null if the element does
+  not define a command or does not specify a <span
+  title="command-facet-Hint">Hint</span>. This attribute will be
+  shadowed by the <code title="dom-title">title</code> DOM attribute
+  on the <code>HTMLElement</code> interface.</p>
+
+  <p>The <dfn title="dom-command-ro-icon"><code>icon</code></dfn>
+  attribute must return an absolute URI to the command's <span
+  title="command-facet-Icon">Icon</span>. If the element does not
+  specify an icon, or if the element does not define a command, then
+  the attribute must return null. This attribute will be shadowed by
+  the <code title="dom-command-icon">icon</code> DOM attribute on
+  <code>command</code> elements.</p>
+
+  <p>The <dfn title="dom-command-ro-hidden"><code>hidden</code></dfn>
+  attribute must return true if the command's <span
+  title="command-facet-HiddenState">Hidden State</span> is that the
+  command is hidden, and false if it is that the command is not
+  hidden. If the element does not define a command, the attribute must
+  return false. This attribute will be shadowed by the <code
+  title="dom-command-hidden">hidden</code> DOM attribute on
+  <code>command</code> elements.</p>
+
+  <p>The <dfn
+  title="dom-command-ro-disabled"><code>disabled</code></dfn>
+  attribute must return true if the command's <span
+  title="command-facet-DisabledState">Disabled State</span> is that
+  the command is disabled, and false if the command is not
+  disabled. This attribute is not affected by the command's <span
+  title="command-facet-HiddenState">Hidden State</span>. If the
+  element does not define a command, the attribute must return
+  false. This attribute will be shadowed by the <code
+  title="">disabled</code> attribute on <code>button</code>,
+  <code>input</code>, <code>option</code>, and <code>command</code>
+  elements.</p>
+
+  <p>The <dfn
+  title="dom-command-ro-checked"><code>checked</code></dfn> attribute
+  must return true if the command's <span
+  title="command-facet-CheckedState">Checked State</span> is that the
+  command is checked, and false if it is that the command is not
+  checked. If the element does not define a command, the attribute
+  must return false. This attribute will be shadowed by the <code
+  title="">checked</code> attribute on <code>input</code> and
+  <code>command</code> elements.</p>
+
+  <p>The <dfn title="dom-command-ro-click"><code>click()</code></dfn>
+  method must trigger the <span
+  title="command-facet-Action">Action</span> for the command. If the
+  element does not define a command, this method must do nothing. This
+  method will be shadowed by the <code
+  title="dom-click">click()</code> method on HTML elements, and is
+  included only for completeness.</p>
+
+  <p>The <dfn
+  title="dom-command-ro-triggers"><code>triggers</code></dfn>
+  attribute must return a list containing the elements that can
+  trigger the command (the command's <span
+  title="command-facet-Triggers">Triggers</span>). The list must be
+  <span>live</span>. While the element does not define a command, the
+  list must be empty.</p>
+
+  <p>The <dfn
+  title="dom-document-commands"><code>commands</code></dfn> attribute
+  of the document's <code>HTMLDocument</code> interface must return an
+  <code>HTMLCollection</code> rooted at the <code>Document</code>
+  node, whose filter matches only elements that define commands and
+  have IDs.</p>
+
+  <p>The following elements can define commands: <code
+  title="a-command">a</code>, <code
+  title="button-command">button</code>, <code
+  title="input-command">input</code>, <code
+  title="option-command">option</code>, <code
+  title="command-element">command</code>.</p>
+
+
+  <h4><dfn title="a-command">Using the <code>a</code> element to define a command</dfn></h4>
+
+  <p>An <code>a</code> element with an <code
+  title="attr-hyperlink-href">href</code> attribute <span
+  title="concept-command">defines a command</span>.</p>
+
+  <p>The <span title="command-facet-Type">Type</span> of the command
+  is "command".</p>
+
+  <p>The <span title="command-facet-ID">ID</span> of the command is
+  the value of the <code title="attr-id">id</code> attribute of the
+  element, if the attribute is present and not empty. Otherwise the
+  command is an <span>anonymous command</span>.</p>
+
+  <p>The <span title="command-facet-Label">Label</span> of the command
+  is the string given by the element's <code>textContent</code> DOM
+  attribute.</p>
+
+  <p>The <span title="command-facet-Hint">Hint</span> of the command
+  is the value of the <code title="attr-title">title</code> attribute
+  of the <code>a</code> element. If the attribute is not present, the
+  <span title="command-facet-Hint">Hint</span> is the empty
+  string.</p>
+
+  <p>The <span title="command-facet-Icon">Icon</span> of the command
+  is the absolute URI of the first image in the element. Specifically,
+  in a depth-first search of the children of the element, the first
+  element that is <!--either an--> <code>img</code> element with a
+  <code>src</code> attribute<!--, or an <code>object</code> element
+  with a <code>data</code> attribute, or, if the UA supports SVG, an
+  <code>svg</code> element in the SVG namespace with a valid <code
+  title="">id</code> attribute,--> is the one that is used as the
+  image. <!--If it is an <code>img</code> element then--> The URI must
+  be taken from the element's <code>src</code> attribute. <!--If it is
+  an <code>object</code> element then the URI is taken from the
+  <code>data</code> attribute. --> Relative URIs must be resolved
+  relative to the base URI of the image element. <!-- If it is an
+  <code>svg</code> element then the URI is formed by taking the URI of
+  the document and appending a "#" (U+0023 NUMBER SIGN) and the ID of
+  the element.--> If no image is found, then the Icon facet is left
+  blank.</p>
+
+  <p>The <span title="command-facet-HiddenState">Hidden State</span>
+  and <span title="command-facet-DisabledState">Disabled State</span>
+  facets of the command are always false. (The command is always
+  enabled.)</p>
+
+  <p>The <span title="command-facet-CheckedState">Checked State</span>
+  of the command is always false. (The command is never checked.)</p>
+
+  <p>The <span title="command-facet-Action">Action</span> of the
+  command is to <span title="fire a click event">fire a <code
+  title="">click</code> event</span> at the element.</p>
+
+
+  <h4><dfn title="button-command">Using the <code>button</code> element to define a command</dfn></h4>
+
+  <p>A <code>button</code> element always <span
+  title="concept-command">defines a command</span>.</p>
+
+  <p>The <span title="command-facet-Type">Type</span>, <span
+  title="command-facet-ID">ID</span>, <span
+  title="command-facet-Label">Label</span>, <span
+  title="command-facet-Hint">Hint</span>, <span
+  title="command-facet-Icon">Icon</span>, <span
+  title="command-facet-HiddenState">Hidden State</span>, <span
+  title="command-facet-CheckedState">Checked State</span>, and <span
+  title="command-facet-Action">Action</span> facets of the command are
+  determined <span title="a-command">as for <code>a</code>
+  elements</span> (see the previous section).</p>
+
+  <p>The <span title="command-facet-DisabledState">Disabled
+  State</span> of the command mirrors the disabled state of the
+  button. Typically this is given by the element's <code
+  title="attr-button-disabled">disabled</code> attribute, but certain
+  button types become disabled at other times too (for example, the
+  <code>move-up</code> button type is disabled when it would have no
+  effect).</p>
+
+
+  <h4><dfn title="input-command">Using the <code>input</code> element to define a command</dfn></h4>
+
+  <p>An <code>input</code> element whose <code
+  title="attr-input-type">type</code> attribute is one of
+  <code>submit</code>, <code>reset</code>, <code>button</code>,
+  <code>radio</code>, <code>checkbox</code>, <code>move-up</code>,
+  <code>move-down</code>, <code>add</code>, and <code>remove</code>
+  <span title="concept-command">defines a command</span>.</p>
+
+  <p>The <span title="command-facet-Type">Type</span> of the command
+  is "radio" if the <code title="attr-input-type">type</code>
+  attribute has the value <code>radio</code>, "checkbox" if the
+  <code>type</code> attribute has the value <code>checkbox</code>, and
+  "command" otherwise.</p>
+
+  <p>The <span title="command-facet-ID">ID</span> of the command is
+  the value of the <code title="attr-id">id</code> attribute of the
+  element, if the attribute is present and not empty. Otherwise the
+  command is an <span>anonymous command</span>.</p>
+
+  <p>The <span title="command-facet-Label">Label</span> of the command
+  depends on the Type of the command:</p>
+
+  <p>If the <span title="command-facet-Type">Type</span> is "command",
+  then it is the string given by the <code
+  title="attr-input-value">value</code> attribute, if any, and a
+  <span>UA-dependent value</span><!-- XXX xref--> that the UA uses to
+  label the button itself if the attribute is absent.</p>
+
+  <p>Otherwise, the <span title="command-facet-Type">Type</span> is
+  "radio" or "checkbox". If the element has a <code>label</code>
+  element associated with it, the <code>textContent</code> of the
+  first such element is the <span
+  title="command-facet-Label">Label</span> (in DOM terms, this the
+  string given by
+  <code><var title="">element</var>.labels[0].textContent</code>).  Otherwise,
+  the value of the <code>value</code> attribute, if present, is the
+  <span title="command-facet-Label">Label</span>. Otherwise, the <span
+  title="command-facet-Label">Label</span> is the empty string.</p>
+
+  <p>The <span title="command-facet-Hint">Hint</span> of the command
+  is the value of the <code title="attr-title">title</code> attribute
+  of the <code>input</code> element. If the attribute is not present, the
+  <span title="command-facet-Hint">Hint</span> is the empty
+  string.</p>
+
+  <p>There is no <span title="command-facet-Icon">Icon</span> for the
+  command.</p>
+
+  <p>The <span title="command-facet-HiddenState">Hidden State</span>
+  of the command is always false. (The command is never hidden.)</p>
+
+  <p>The <span title="command-facet-DisabledState">Disabled
+  State</span> of the command mirrors the disabled state of the
+  control. Typically this is given by the element's <code
+  title="attr-input-disabled">disabled</code> attribute, but certain
+  input types become disabled at other times too (for example, the
+  <code>move-up</code> input type is disabled when it would have no
+  effect).</p>
+
+  <p>The <span title="command-facet-CheckedState">Checked State</span>
+  of the command is true if the command is of <span
+  title="command-facet-Type">Type</span> "radio" or "checkbox" and the
+  element has a <code title="attr-input-checked">checked</code>
+  attribute, and false otherwise.</p>
+
+  <p>The <span title="command-facet-Action">Action</span> of the
+  command is to <span title="fire a click event">fire a <code
+  title="">click</code> event</span> at the element.</p> <!-- XXX this
+  is probably wrong for radio and checkbox types, depending on how we
+  define <input>. -->
+
+
+  <h4><dfn title="option-command">Using the <code>option</code> element to define a command</dfn></h4>
+
+  <p>An <code>option</code> element with an ancestor
+  <code>select</code> element and either no <code
+  title="attr-option-value">value</code> attribute or a <code
+  title="attr-option-value">value</code> attribute that is not the
+  empty string <span title="concept-command">defines a
+  command</span>.</p>
+
+  <p>The <span title="command-facet-Type">Type</span> of the command
+  is "radio" if the <code>option</code>'s nearest ancestor
+  <code>select</code> element has no <code
+  title="attr-select-multiple">multiple</code> attribute, and
+  "checkbox" if it does.</p>
+
+  <p>The <span title="command-facet-ID">ID</span> of the command is
+  the value of the <code title="attr-id">id</code> attribute of the
+  element, if the attribute is present and not empty. Otherwise the
+  command is an <span>anonymous command</span>.</p>
+
+  <p>The <span title="command-facet-Label">Label</span> of the command
+  is the value of the <code>option</code> element's <code
+  title="attr-option-label">label</code> attribute, if there is one,
+  or the value of the <code>option</code> element's
+  <code>textContent</code> DOM attribute if it doesn't.</p>
+
+  <p>The <span title="command-facet-Hint">Hint</span> of the command
+  is the string given by the element's <code
+  title="attr-title">title</code> attribute, if any, and the empty
+  string if the attribute is absent.</p>
+
+  <p>There is no <span title="command-facet-Icon">Icon</span> for the
+  command.</p>
+
+  <p>The <span title="command-facet-HiddenState">Hidden State</span>
+  of the command is always false. (The command is never hidden.)</p>
+
+  <p>The <span title="command-facet-DisabledState">Disabled
+  State</span> of the command is true (disabled) if the element has a
+  <code title="attr-option-disabled">disabled</code> attribute, and
+  false otherwise.</p>
+
+  <p>The <span title="command-facet-CheckedState">Checked State</span>
+  of the command is true (checked) if the element's <code
+  title="dom-option-selected">selected</code> DOM attribute is true,
+  and false otherwise.</p>
+
+  <p>The <span title="command-facet-Action">Action</span> of the
+  command depends on its <span
+  title="command-facet-Type">Type</span>. If the command is of <span
+  title="command-facet-Type">Type</span> "radio" then this must set
+  the <code title="dom-option-selected">selected</code> DOM attribute
+  of the <code>option</code> element to true, otherwise it must toggle
+  the state of the <code title="dom-option-selected">selected</code>
+  DOM attribute (set it to true if it is false and vice versa). Then
+  <span title="fire a change event">a <code title="">change</code>
+  event must be fired</span> on the <code>option</code> element's
+  nearest ancestor <code>select</code> element (if there is one), as
+  if the selection had been changed directly.</p>
+
+
+  <h4>Using the <dfn
+  title="command-element"><code>command</code></dfn> element to define
+  a command</h4>
+
+  <p>A <code>command</code> element <span
+  title="concept-command">defines a command</span>.</p>
+
+  <p>The <span title="command-facet-Type">Type</span> of the command
+  is "radio" if the <code>command</code>'s <code
+  title="attr-command-type">type</code> attribute is
+  "<code>radio</code>", "checkbox" if the attribute's value is
+  "<code>checkbox</code>", and "command" otherwise.</p>
+
+  <p>The <span title="command-facet-ID">ID</span> of the command is
+  the value of the <code title="attr-id">id</code> attribute of the
+  element, if the attribute is present and not empty. Otherwise the
+  command is an <span>anonymous command</span>.</p>
+
+  <p>The <span title="command-facet-Label">Label</span> of the command
+  is the value of the element's <code
+  title="attr-command-label">label</code> attribute, if there is one,
+  or the empty string if it doesn't.</p>
+
+  <p>The <span title="command-facet-Hint">Hint</span> of the command
+  is the string given by the element's <code
+  title="attr-command-title">title</code> attribute, if any, and the
+  empty string if the attribute is absent.</p>
+
+  <p>The <span title="command-facet-Icon">Icon</span> for the command
+  is the absolute URI resulting from resolving the value of the
+  element's <code title="attr-command-icon">icon</code> attribute as a
+  URI relative to the element's base URI. If the element has no <code
+  title="attr-command-icon">icon</code> attribute then the command has
+  no <span title="command-facet-Icon">Icon</span>.</p>
+
+  <p>The <span title="command-facet-HiddenState">Hidden State</span>
+  of the command is true (hidden) if the element has a <code
+  title="attr-command-hidden">hidden</code> attribute, and false
+  otherwise.</p>
+
+  <p>The <span title="command-facet-DisabledState">Disabled
+  State</span> of the command is true (disabled) if the element has
+  either a <code title="attr-command-disabled">disabled</code>
+  attribute or a <code title="attr-command-hidden">hidden</code>
+  attribute (or both), and false otherwise.</p>
+
+  <p>The <span title="command-facet-CheckedState">Checked State</span>
+  of the command is true (checked) if the element has a <code
+  title="attr-command-checked">checked</code> attribute, and false
+  otherwise.</p>
+
+  <p>The <span title="command-facet-Action">Action</span> of the
+  command is to invoke the behaviour described in the definition of
+  the <code title="dom-command-click">click()</code> method of the
+  <code>HTMLCommandElement</code> interface.</p> <!-- XXX update to
+  point to dom-click when we remove dom-command-click -->
+
+
+
   <h3>Miscellaneous elements</h3>
 
   <h4>The <dfn><code>legend</code></dfn> element</h4>
@@ -20207,489 +20692,6 @@ mpt says:
   addresses this.</p>
 
 
-
-  <h3 id="commands">Commands</h3>
-
-  <p>A <dfn title="concept-command">command</dfn> is the abstraction
-  behind menu items, buttons, and links. Once a command is defined,
-  other parts of the interface can refer to the same command, allowing
-  many access points to a single feature to share aspects such as the
-  disabled state.</p>
-
-  <p id="facets">Commands are defined to have the following
-  <em>facets</em>:</p>
-
-  <dl>
-
-   <dt><dfn title="command-facet-Type">Type</dfn></dt>
-
-   <dd>The kind of command: "command", meaning it is a normal command;
-   "radio", meaning that triggering the command will, amongst other
-   things, set the <span title="command-facet-CheckedState">Checked
-   State</span> to true (and probably uncheck some other commands); or
-   "checkbox", meaning that triggering the command will, amongst other
-   things, toggle the value of the <span
-   title="command-facet-CheckedState">Checked State</span>.</dd>
-
-   <dt><dfn title="command-facet-ID">ID</dfn></dt>
-
-   <dd>The name of the command, for referring to the command from the
-   markup or from script. If a command has no ID, it is an
-   <dfn>anonymous command</dfn>.</dd>
-
-   <dt><dfn title="command-facet-Label">Label</dfn></dt>
-
-   <dd>The name of the command as seen by the user.</dd>
-
-   <dt><dfn title="command-facet-Hint">Hint</dfn></dt>
-
-   <dd>A helpful or descriptive string that can be shown to the
-   user.</dd>
-
-   <dt><dfn title="command-facet-Icon">Icon</dfn></dt>
-
-   <dd>A graphical image that represents the action.</dd>
-
-   <dt><dfn title="command-facet-HiddenState">Hidden State</dfn></dt>
-
-   <dd>Whether the command is hidden or not (basically, whether it
-   should be shown in menus).</dd>
-
-   <dt><dfn title="command-facet-DisabledState">Disabled State</dfn></dt>
-
-   <dd>Whether the command can be triggered or not. If the <span
-   title="command-facet-HiddenState">Hidden State</span> is true
-   (hidden) then the <span
-   title="command-facet-DisabledState">Disabled State</span> will be
-   true (disabled) regardless. <span class="issue">We could make this
-   into a string value that acts as a Hint for why the command is
-   disabled.</span></dd>
-
-   <dt><dfn title="command-facet-CheckedState">Checked State</dfn></dt>
-
-   <dd>Whether the command is checked or not.</dd>
-
-   <dt><dfn title="command-facet-Action">Action</dfn></dt>
-
-   <dd>The actual effect that triggering the command will have. This
-   could be a scripted event handler, a URI to which to navigate, or a
-   form submission.</dd>
-
-   <dt><dfn title="command-facet-Triggers">Triggers</dfn></dt>
-
-   <dd>The list of elements that can trigger the command. The element
-   defining a command is always in the list of elements that can
-   trigger the command. For anonymous commands, only the element
-   defining the command is on the list, since other elements have no
-   way to refer to it.</dd>
-
-  </dl>
-
-  <p>Commands are represented by elements in the DOM. Any element that
-  can define a command also implements the <code title="command-ro">Command</code>
-  interface:</p>
-
-  <pre class="idl">interface <dfn title="command-ro">Command</dfn> {<!--
- NOTE: to avoid clashing with the HTMLCommandElement interface's names,
-       the members of this interface use cross-references with the title
-       dom-command-ro-foo (note the "ro", which stands for "readonly").
--->
-  readonly attribute DOMString <span title="dom-command-ro-commandType">commandType</span>;          
-  readonly attribute DOMString <span title="dom-command-ro-id">id</span>;
-  readonly attribute DOMString <span title="dom-command-ro-label">label</span>;
-  readonly attribute DOMString <span title="dom-command-ro-title">title</span>;
-  readonly attribute DOMString <span title="dom-command-ro-icon">icon</span>;
-  readonly attribute boolean <span title="dom-command-ro-hidden">hidden</span>;
-  readonly attribute boolean <span title="dom-command-ro-disabled">disabled</span>;              
-  readonly attribute boolean <span title="dom-command-ro-checked">checked</span>;              
-  void <span title="dom-command-ro-click">click</span>();
-  readonly attribute <span>HTMLCollection</span> <span title="dom-command-ro-triggers">triggers</span>;
-  readonly attribute <span>Command</span> <span title="dom-command-ro-command">command</span>;
-};</pre>
-
-  <p>The <code title="command-ro">Command</code> interface is implemented by any element
-  capable of defining a command. (If an element can define a command,
-  its definition will list this interface explicitly.) All the
-  attributes of the <code title="command-ro">Command</code> interface are
-  read-only. Elements implementing this interface may implement other
-  interfaces that have attributes with identical names but that are
-  mutable; in bindings that simply flatten all supported interfaces on
-  the object, the mutable attributes must shadow the readonly
-  attributes defined in the <code title="command-ro">Command</code> interface.</p>
-
-  <p>The <dfn
-  title="dom-command-ro-commandType"><code>commandType</code></dfn>
-  attribute must return a string whose value is either "<code
-  title="">command</code>", "<code title="">radio</code>", or "<code
-  title="">checked</code>", depending on whether the <span
-  title="command-facet-Type">Type</span> of the command defined by the
-  element is "command", "radio", or "checked" respectively. If the
-  element does not define a command, it must return null.</p>
-
-  <p>The <dfn title="dom-command-ro-id"><code>id</code></dfn> attribute
-  must return the command's <span title="command-facet-ID">ID</span>,
-  or null if the element does not define a command or defines an
-  <span>anonymous command</span>. This attribute will be shadowed by
-  the <code title="dom-id">id</code> DOM attribute on the
-  <code>HTMLElement</code> interface.</p>
-
-  <p>The <dfn title="dom-command-ro-label"><code>label</code></dfn>
-  attribute must return the command's <span
-  title="command-facet-Label">Label</span>, or null if the element
-  does not define a command or does not specify a <span
-  title="command-facet-Label">Label</span>. This attribute will be
-  shadowed by the <code title="">label</code> DOM attribute on
-  <code>option</code> and <code>command</code> elements.</p>
-
-  <p>The <dfn title="dom-command-ro-title"><code>title</code></dfn>
-  attribute must return the command's <span
-  title="command-facet-Hint">Hint</span>, or null if the element does
-  not define a command or does not specify a <span
-  title="command-facet-Hint">Hint</span>. This attribute will be
-  shadowed by the <code title="dom-title">title</code> DOM attribute
-  on the <code>HTMLElement</code> interface.</p>
-
-  <p>The <dfn title="dom-command-ro-icon"><code>icon</code></dfn>
-  attribute must return an absolute URI to the command's <span
-  title="command-facet-Icon">Icon</span>. If the element does not
-  specify an icon, or if the element does not define a command, then
-  the attribute must return null. This attribute will be shadowed by
-  the <code title="dom-command-icon">icon</code> DOM attribute on
-  <code>command</code> elements.</p>
-
-  <p>The <dfn title="dom-command-ro-hidden"><code>hidden</code></dfn>
-  attribute must return true if the command's <span
-  title="command-facet-HiddenState">Hidden State</span> is that the
-  command is hidden, and false if it is that the command is not
-  hidden. If the element does not define a command, the attribute must
-  return false. This attribute will be shadowed by the <code
-  title="dom-command-hidden">hidden</code> DOM attribute on
-  <code>command</code> elements.</p>
-
-  <p>The <dfn
-  title="dom-command-ro-disabled"><code>disabled</code></dfn>
-  attribute must return true if the command's <span
-  title="command-facet-DisabledState">Disabled State</span> is that
-  the command is disabled, and false if the command is not
-  disabled. This attribute is not affected by the command's <span
-  title="command-facet-HiddenState">Hidden State</span>. If the
-  element does not define a command, the attribute must return
-  false. This attribute will be shadowed by the <code
-  title="">disabled</code> attribute on <code>button</code>,
-  <code>input</code>, <code>option</code>, and <code>command</code>
-  elements.</p>
-
-  <p>The <dfn
-  title="dom-command-ro-checked"><code>checked</code></dfn> attribute
-  must return true if the command's <span
-  title="command-facet-CheckedState">Checked State</span> is that the
-  command is checked, and false if it is that the command is not
-  checked. If the element does not define a command, the attribute
-  must return false. This attribute will be shadowed by the <code
-  title="">checked</code> attribute on <code>input</code> and
-  <code>command</code> elements.</p>
-
-  <p>The <dfn title="dom-command-ro-click"><code>click()</code></dfn>
-  method must trigger the <span
-  title="command-facet-Action">Action</span> for the command. If the
-  element does not define a command, this method must do nothing. This
-  method will be shadowed by the <code
-  title="dom-click">click()</code> method on HTML elements, and is
-  included only for completeness.</p>
-
-  <p>The <dfn
-  title="dom-command-ro-triggers"><code>triggers</code></dfn>
-  attribute must return a list containing the elements that can
-  trigger the command (the command's <span
-  title="command-facet-Triggers">Triggers</span>). The list must be
-  <span>live</span>. While the element does not define a command, the
-  list must be empty.</p>
-
-  <p>The <dfn
-  title="dom-document-commands"><code>commands</code></dfn> attribute
-  of the document's <code>HTMLDocument</code> interface must return an
-  <code>HTMLCollection</code> rooted at the <code>Document</code>
-  node, whose filter matches only elements that define commands and
-  have IDs.</p>
-
-  <p>The following elements can define commands: <code
-  title="a-command">a</code>, <code
-  title="button-command">button</code>, <code
-  title="input-command">input</code>, <code
-  title="option-command">option</code>, <code
-  title="command-element">command</code>.</p>
-
-
-  <h4><dfn title="a-command">Using the <code>a</code> element to define a command</dfn></h4>
-
-  <p>An <code>a</code> element with an <code
-  title="attr-hyperlink-href">href</code> attribute <span
-  title="concept-command">defines a command</span>.</p>
-
-  <p>The <span title="command-facet-Type">Type</span> of the command
-  is "command".</p>
-
-  <p>The <span title="command-facet-ID">ID</span> of the command is
-  the value of the <code title="attr-id">id</code> attribute of the
-  element, if the attribute is present and not empty. Otherwise the
-  command is an <span>anonymous command</span>.</p>
-
-  <p>The <span title="command-facet-Label">Label</span> of the command
-  is the string given by the element's <code>textContent</code> DOM
-  attribute.</p>
-
-  <p>The <span title="command-facet-Hint">Hint</span> of the command
-  is the value of the <code title="attr-title">title</code> attribute
-  of the <code>a</code> element. If the attribute is not present, the
-  <span title="command-facet-Hint">Hint</span> is the empty
-  string.</p>
-
-  <p>The <span title="command-facet-Icon">Icon</span> of the command
-  is the absolute URI of the first image in the element. Specifically,
-  in a depth-first search of the children of the element, the first
-  element that is <!--either an--> <code>img</code> element with a
-  <code>src</code> attribute<!--, or an <code>object</code> element
-  with a <code>data</code> attribute, or, if the UA supports SVG, an
-  <code>svg</code> element in the SVG namespace with a valid <code
-  title="">id</code> attribute,--> is the one that is used as the
-  image. <!--If it is an <code>img</code> element then--> The URI must
-  be taken from the element's <code>src</code> attribute. <!--If it is
-  an <code>object</code> element then the URI is taken from the
-  <code>data</code> attribute. --> Relative URIs must be resolved
-  relative to the base URI of the image element. <!-- If it is an
-  <code>svg</code> element then the URI is formed by taking the URI of
-  the document and appending a "#" (U+0023 NUMBER SIGN) and the ID of
-  the element.--> If no image is found, then the Icon facet is left
-  blank.</p>
-
-  <p>The <span title="command-facet-HiddenState">Hidden State</span>
-  and <span title="command-facet-DisabledState">Disabled State</span>
-  facets of the command are always false. (The command is always
-  enabled.)</p>
-
-  <p>The <span title="command-facet-CheckedState">Checked State</span>
-  of the command is always false. (The command is never checked.)</p>
-
-  <p>The <span title="command-facet-Action">Action</span> of the
-  command is to <span title="fire a click event">fire a <code
-  title="">click</code> event</span> at the element.</p>
-
-
-  <h4><dfn title="button-command">Using the <code>button</code> element to define a command</dfn></h4>
-
-  <p>A <code>button</code> element always <span
-  title="concept-command">defines a command</span>.</p>
-
-  <p>The <span title="command-facet-Type">Type</span>, <span
-  title="command-facet-ID">ID</span>, <span
-  title="command-facet-Label">Label</span>, <span
-  title="command-facet-Hint">Hint</span>, <span
-  title="command-facet-Icon">Icon</span>, <span
-  title="command-facet-HiddenState">Hidden State</span>, <span
-  title="command-facet-CheckedState">Checked State</span>, and <span
-  title="command-facet-Action">Action</span> facets of the command are
-  determined <span title="a-command">as for <code>a</code>
-  elements</span> (see the previous section).</p>
-
-  <p>The <span title="command-facet-DisabledState">Disabled
-  State</span> of the command mirrors the disabled state of the
-  button. Typically this is given by the element's <code
-  title="attr-button-disabled">disabled</code> attribute, but certain
-  button types become disabled at other times too (for example, the
-  <code>move-up</code> button type is disabled when it would have no
-  effect).</p>
-
-
-  <h4><dfn title="input-command">Using the <code>input</code> element to define a command</dfn></h4>
-
-  <p>An <code>input</code> element whose <code
-  title="attr-input-type">type</code> attribute is one of
-  <code>submit</code>, <code>reset</code>, <code>button</code>,
-  <code>radio</code>, <code>checkbox</code>, <code>move-up</code>,
-  <code>move-down</code>, <code>add</code>, and <code>remove</code>
-  <span title="concept-command">defines a command</span>.</p>
-
-  <p>The <span title="command-facet-Type">Type</span> of the command
-  is "radio" if the <code title="attr-input-type">type</code>
-  attribute has the value <code>radio</code>, "checkbox" if the
-  <code>type</code> attribute has the value <code>checkbox</code>, and
-  "command" otherwise.</p>
-
-  <p>The <span title="command-facet-ID">ID</span> of the command is
-  the value of the <code title="attr-id">id</code> attribute of the
-  element, if the attribute is present and not empty. Otherwise the
-  command is an <span>anonymous command</span>.</p>
-
-  <p>The <span title="command-facet-Label">Label</span> of the command
-  depends on the Type of the command:</p>
-
-  <p>If the <span title="command-facet-Type">Type</span> is "command",
-  then it is the string given by the <code
-  title="attr-input-value">value</code> attribute, if any, and a
-  <span>UA-dependent value</span><!-- XXX xref--> that the UA uses to
-  label the button itself if the attribute is absent.</p>
-
-  <p>Otherwise, the <span title="command-facet-Type">Type</span> is
-  "radio" or "checkbox". If the element has a <code>label</code>
-  element associated with it, the <code>textContent</code> of the
-  first such element is the <span
-  title="command-facet-Label">Label</span> (in DOM terms, this the
-  string given by
-  <code><var title="">element</var>.labels[0].textContent</code>).  Otherwise,
-  the value of the <code>value</code> attribute, if present, is the
-  <span title="command-facet-Label">Label</span>. Otherwise, the <span
-  title="command-facet-Label">Label</span> is the empty string.</p>
-
-  <p>The <span title="command-facet-Hint">Hint</span> of the command
-  is the value of the <code title="attr-title">title</code> attribute
-  of the <code>input</code> element. If the attribute is not present, the
-  <span title="command-facet-Hint">Hint</span> is the empty
-  string.</p>
-
-  <p>There is no <span title="command-facet-Icon">Icon</span> for the
-  command.</p>
-
-  <p>The <span title="command-facet-HiddenState">Hidden State</span>
-  of the command is always false. (The command is never hidden.)</p>
-
-  <p>The <span title="command-facet-DisabledState">Disabled
-  State</span> of the command mirrors the disabled state of the
-  control. Typically this is given by the element's <code
-  title="attr-input-disabled">disabled</code> attribute, but certain
-  input types become disabled at other times too (for example, the
-  <code>move-up</code> input type is disabled when it would have no
-  effect).</p>
-
-  <p>The <span title="command-facet-CheckedState">Checked State</span>
-  of the command is true if the command is of <span
-  title="command-facet-Type">Type</span> "radio" or "checkbox" and the
-  element has a <code title="attr-input-checked">checked</code>
-  attribute, and false otherwise.</p>
-
-  <p>The <span title="command-facet-Action">Action</span> of the
-  command is to <span title="fire a click event">fire a <code
-  title="">click</code> event</span> at the element.</p> <!-- XXX this
-  is probably wrong for radio and checkbox types, depending on how we
-  define <input>. -->
-
-
-  <h4><dfn title="option-command">Using the <code>option</code> element to define a command</dfn></h4>
-
-  <p>An <code>option</code> element with an ancestor
-  <code>select</code> element and either no <code
-  title="attr-option-value">value</code> attribute or a <code
-  title="attr-option-value">value</code> attribute that is not the
-  empty string <span title="concept-command">defines a
-  command</span>.</p>
-
-  <p>The <span title="command-facet-Type">Type</span> of the command
-  is "radio" if the <code>option</code>'s nearest ancestor
-  <code>select</code> element has no <code
-  title="attr-select-multiple">multiple</code> attribute, and
-  "checkbox" if it does.</p>
-
-  <p>The <span title="command-facet-ID">ID</span> of the command is
-  the value of the <code title="attr-id">id</code> attribute of the
-  element, if the attribute is present and not empty. Otherwise the
-  command is an <span>anonymous command</span>.</p>
-
-  <p>The <span title="command-facet-Label">Label</span> of the command
-  is the value of the <code>option</code> element's <code
-  title="attr-option-label">label</code> attribute, if there is one,
-  or the value of the <code>option</code> element's
-  <code>textContent</code> DOM attribute if it doesn't.</p>
-
-  <p>The <span title="command-facet-Hint">Hint</span> of the command
-  is the string given by the element's <code
-  title="attr-title">title</code> attribute, if any, and the empty
-  string if the attribute is absent.</p>
-
-  <p>There is no <span title="command-facet-Icon">Icon</span> for the
-  command.</p>
-
-  <p>The <span title="command-facet-HiddenState">Hidden State</span>
-  of the command is always false. (The command is never hidden.)</p>
-
-  <p>The <span title="command-facet-DisabledState">Disabled
-  State</span> of the command is true (disabled) if the element has a
-  <code title="attr-option-disabled">disabled</code> attribute, and
-  false otherwise.</p>
-
-  <p>The <span title="command-facet-CheckedState">Checked State</span>
-  of the command is true (checked) if the element's <code
-  title="dom-option-selected">selected</code> DOM attribute is true,
-  and false otherwise.</p>
-
-  <p>The <span title="command-facet-Action">Action</span> of the
-  command depends on its <span
-  title="command-facet-Type">Type</span>. If the command is of <span
-  title="command-facet-Type">Type</span> "radio" then this must set
-  the <code title="dom-option-selected">selected</code> DOM attribute
-  of the <code>option</code> element to true, otherwise it must toggle
-  the state of the <code title="dom-option-selected">selected</code>
-  DOM attribute (set it to true if it is false and vice versa). Then
-  <span title="fire a change event">a <code title="">change</code>
-  event must be fired</span> on the <code>option</code> element's
-  nearest ancestor <code>select</code> element (if there is one), as
-  if the selection had been changed directly.</p>
-
-
-  <h4>Using the <dfn
-  title="command-element"><code>command</code></dfn> element to define
-  a command</h4>
-
-  <p>A <code>command</code> element <span
-  title="concept-command">defines a command</span>.</p>
-
-  <p>The <span title="command-facet-Type">Type</span> of the command
-  is "radio" if the <code>command</code>'s <code
-  title="attr-command-type">type</code> attribute is
-  "<code>radio</code>", "checkbox" if the attribute's value is
-  "<code>checkbox</code>", and "command" otherwise.</p>
-
-  <p>The <span title="command-facet-ID">ID</span> of the command is
-  the value of the <code title="attr-id">id</code> attribute of the
-  element, if the attribute is present and not empty. Otherwise the
-  command is an <span>anonymous command</span>.</p>
-
-  <p>The <span title="command-facet-Label">Label</span> of the command
-  is the value of the element's <code
-  title="attr-command-label">label</code> attribute, if there is one,
-  or the empty string if it doesn't.</p>
-
-  <p>The <span title="command-facet-Hint">Hint</span> of the command
-  is the string given by the element's <code
-  title="attr-command-title">title</code> attribute, if any, and the
-  empty string if the attribute is absent.</p>
-
-  <p>The <span title="command-facet-Icon">Icon</span> for the command
-  is the absolute URI resulting from resolving the value of the
-  element's <code title="attr-command-icon">icon</code> attribute as a
-  URI relative to the element's base URI. If the element has no <code
-  title="attr-command-icon">icon</code> attribute then the command has
-  no <span title="command-facet-Icon">Icon</span>.</p>
-
-  <p>The <span title="command-facet-HiddenState">Hidden State</span>
-  of the command is true (hidden) if the element has a <code
-  title="attr-command-hidden">hidden</code> attribute, and false
-  otherwise.</p>
-
-  <p>The <span title="command-facet-DisabledState">Disabled
-  State</span> of the command is true (disabled) if the element has
-  either a <code title="attr-command-disabled">disabled</code>
-  attribute or a <code title="attr-command-hidden">hidden</code>
-  attribute (or both), and false otherwise.</p>
-
-  <p>The <span title="command-facet-CheckedState">Checked State</span>
-  of the command is true (checked) if the element has a <code
-  title="attr-command-checked">checked</code> attribute, and false
-  otherwise.</p>
-
-  <p>The <span title="command-facet-Action">Action</span> of the
-  command is to invoke the behaviour described in the definition of
-  the <code title="dom-command-click">click()</code> method of the
-  <code>HTMLCommandElement</code> interface.</p> <!-- XXX update to
-  point to dom-click when we remove dom-command-click -->
 
 
   <h3 id="repetition-templates">Repetition templates</h3>
