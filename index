@@ -22,7 +22,7 @@
 
    <h1 id=web-applications>Web Applications 1.0</h1>
 
-   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 16 March 2007</h2>
+   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 20 March 2007</h2>
 
    <p>You can take part in this work. <a
     href="http://www.whatwg.org/mailing-list">Join the working group's
@@ -12907,7 +12907,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
            attribute DOMString <a href="#src6" title=dom-video-src>src</a>;
   readonly attribute unsigned long <a href="#videowidth" title=dom-video-videoWidth>videoWidth</a>;
   readonly attribute unsigned long <a href="#videoheight" title=dom-video-videoHeight>videoHeight</a>;
-  readonly attribute unsigned long <a href="#length2" title=dom-video-length>length</a>;
+  readonly attribute unsigned long <a href="#duration" title=dom-video-duration>duration</a>;
 
   // playback state
   const unsigned short <a href="#stopped" title=dom-video-STOPPED>STOPPED</a> = 0;
@@ -12930,6 +12930,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   void <a href="#play" title=dom-video-play>play</a>();
   void <a href="#pause0" title=dom-video-pause>pause</a>();
   void <a href="#togglepause" title=dom-video-togglePause>togglePause</a>();
+  void <a href="#stop" title=dom-video-stop>stop</a>();
   void <a href="#seekoffset" title=dom-video-seek>seek</a>(in unsigned long offset);
 };</pre>
   </dl>
@@ -12947,6 +12948,8 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
     * control over closed captions
     * ability to control looping declaratively
     * ability to control start/end position declaratively (see also XXX-VB comments)
+    * ability to control autostart declaratively (autostart="" attribute)
+    * fire an 'ended' event when playback ends and 'ended' becomes true
   -->
 
   <p>A <code><a href="#video">video</a></code> element represents a video or
@@ -13010,12 +13013,13 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
    id=current>current playback position</dfn>, which must initially be zero.
    The current position is a time.
 
-  <p>Video content must be rendered inside the element's playback area such
+  <p>Video content should be rendered inside the element's playback area such
    that the video content is shown centered in the playback area at the
    largest possible size that fits completely within it, with the video
    content's aspect ratio being preserved. Thus, if the aspect ratio of the
    playback area does not match the aspect ratio of the video, the video will
-   be shown letterboxed.
+   be shown letterboxed. Areas of the element's playback area that do not
+   contain the video should be filled with pure black.
 
   <p>The <dfn id=src5 title=attr-video-src><code>src</code></dfn> attribute
    gives the address of the video to show. The attribute must be present, and
@@ -13047,7 +13051,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
    <li>
     <p>If the element's <code title=attr-video-src><a
      href="#src5">src</a></code> attribute is absent, then the user agent
-     must raise an <span>INVALID_STATE_ERR</span> exception, and abort these
+     must raise an <code>INVALID_STATE_ERR</code> exception, and abort these
      steps.
 
    <li>
@@ -13115,7 +13119,17 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
      the <code title=attr-video-src><a href="#src5">src</a></code> attribute.
      The rate of the download may be throttled, however, in response to user
      preferences (including throttling it to zero until the user indicates
-     that the download can start).
+     that the download can start).</p>
+
+    <p>UAs may begin downloads in the background before the <code
+     title=dom-video-play><a href="#play">play()</a></code> method is called,
+     to pre-buffer content. If UAs do this, the <code
+     title=event-begin>begin</code> event, the <code
+     title=event-progress>progress</code> event, etc, are not fired: the
+     pre-buffering must happen independent of the page itself. When the <code
+     title=dom-video-play><a href="#play">play()</a></code> method
+     <em>is</em> called, the cached content would then be used (in line with
+     local HTTP caching principles).</p>
 
    <li>
     <p>While the download is progressing, the user agent must <span>fire a
@@ -13193,7 +13207,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
      href="#src5">src</a></code> attribute is absent, or if the <code><a
      href="#video">video</a></code> element is in the <a href="#stopped"
      title=dom-video-STOPPED>STOPPED</a> state, then the user agent must
-     raise an <span>INVALID_STATE_ERR</span> exception, and abort these
+     raise an <code>INVALID_STATE_ERR</code> exception, and abort these
      steps.
 
    <li>
@@ -13223,7 +13237,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
    <li>
     <p>If the element's <code title=attr-video-src><a
      href="#src5">src</a></code> attribute is absent, then the user agent
-     must raise an <span>INVALID_STATE_ERR</span> exception and abort these
+     must raise an <code>INVALID_STATE_ERR</code> exception and abort these
      steps.
 
    <li>
@@ -13249,7 +13263,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
      href="#src5">src</a></code> attribute is absent, or if the <code><a
      href="#video">video</a></code> element is in the <a href="#stopped"
      title=dom-video-STOPPED>STOPPED</a> state, then the user agent must
-     raise an <span>INVALID_STATE_ERR</span> exception, and abort these
+     raise an <code>INVALID_STATE_ERR</code> exception, and abort these
      steps.
    </li>
    <!-- XXX should be allowed to fail (not all media can seek) -->
@@ -13362,11 +13376,12 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
    pixel in the video corresponds to one CSS pixel. If no video data is
    available, then the attributes must return 0.
 
-  <p>The <dfn id=length2 title=dom-video-length><code>length</code></dfn>
-   attribute must return the length of the video, in milliseconds. If no
-   video data is available, then the attributes must return 0. If video data
-   is available but the length is not known, the attribute must return the
-   length of the currently available data, in milliseconds.
+  <p>The <dfn id=duration
+   title=dom-video-duration><code>duration</code></dfn> attribute must return
+   the length of the video, in milliseconds. If no video data is available,
+   then the attributes must return 0. If video data is available but the
+   length is not known, the attribute must return the length of the currently
+   available data, in milliseconds.
 
   <p>The <dfn id=buffering
    title=dom-video-buffering><code>buffering</code></dfn> attribute returns
@@ -13517,6 +13532,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   non-conforming when they have no choice in the matter) -->
   <!-- XXX mention that this spec doesn't require native support or
   plugin support, either is fine -->
+  <!-- XXX <h5>Summary</h5> non-normative: summary of events -->
 
   <h5 id=time-range><span class=secno>3.14.7.2. </span>Time range</h5>
 
@@ -13525,12 +13541,12 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
    ranges (periods) of time.
 
   <pre class=idl>interface <dfn id=timeranges>TimeRanges</dfn> {
-  readonly attribute unsigned long <a href="#length3" title=dom-TimeRanges-length>length</a>;
+  readonly attribute unsigned long <a href="#length2" title=dom-TimeRanges-length>length</a>;
   unsigned long <a href="#start2" title=dom-TimeRanges-start>start</a>(in unsigned long index);
   unsigned long <a href="#endindex" title=dom-TimeRanges-end>end</a>(in unsigned long index);
 };</pre>
 
-  <p>The <dfn id=length3
+  <p>The <dfn id=length2
    title=dom-TimeRanges-length><code>length</code></dfn> DOM attribute must
    return the number of ranges represented by the object.
 
@@ -19680,7 +19696,7 @@ XXX selection ranges -->
    depth, which would then require the selection to be infinite if every row,
    including every hidden row, was selected.
 
-  <p>The <dfn id=length4
+  <p>The <dfn id=length3
    title=dom-DataGridSelection-length><code>length</code></dfn> attribute
    must return the number of rows currently present in the selection. The
    <dfn id=itemindex2 title=dom-DataGridSelection-item><code>item(<var
@@ -19711,7 +19727,7 @@ XXX selection ranges -->
    method must mark all the rows in the data grid as selected. After a call
    to <code title=dom-DataGridSelection-selectAll><a
    href="#selectall">selectAll()</a></code>, the <code
-   title=dom-DataGridSelection-length><a href="#length4">length</a></code>
+   title=dom-DataGridSelection-length><a href="#length3">length</a></code>
    attribute will return the number of rows in the data grid, not counting
    children of closed rows.
 
@@ -19725,7 +19741,7 @@ XXX selection ranges -->
    mark all the rows in the data grid to be marked as not selected. After a
    call to <code title=dom-DataGridSelection-clear><a
    href="#clear">clear()</a></code>, the <code
-   title=dom-DataGridSelection-length><a href="#length4">length</a></code>
+   title=dom-DataGridSelection-length><a href="#length3">length</a></code>
    attribute will return zero.
 
   <p>If the <code><a href="#datagrid1">datagrid</a></code> element has a <dfn
@@ -23762,7 +23778,7 @@ at the first element with the given ID must be treated as if it was cloned and r
   readonly attribute <span>Window</span> <a href="#window" title=dom-window>window</a>;
   readonly attribute <span>Window</span> <a href="#frames" title=dom-frames>frames</a>;
   readonly attribute <span>Window</span> <a href="#self" title=dom-self>self</a>;
-  readonly attribute unsigned long <a href="#length7" title=dom-length>length</a>;
+  readonly attribute unsigned long <a href="#length6" title=dom-length>length</a>;
   readonly attribute <span>Window</span> <a href="#opener" title=dom-opener>opener</a>;
   <span>Window</span> <a href="#window.open" title=dom-open>open</a>();
   <span>Window</span> <a href="#window.open" title=dom-open>open</a>(in DOMString url);
@@ -23928,7 +23944,7 @@ at the first element with the given ID must be treated as if it was cloned and r
    href="#history1">History</a></code> interface</h4>
 
   <pre class=idl>interface <dfn id=history1>History</dfn> {
-  readonly attribute long <a href="#length5" title=dom-history-length>length</a>;
+  readonly attribute long <a href="#length4" title=dom-history-length>length</a>;
 <!--  DOMString <span title="dom-history-item">item</span>(in unsigned long index);
   readonly attribute DOMString <span title="dom-history-current">current</span>;
   readonly attribute DOMString <span title="dom-history-previous">previous</span>;
@@ -23941,7 +23957,7 @@ at the first element with the given ID must be treated as if it was cloned and r
   void <a href="#clearstate" title=dom-history-clearState>clearState</a>();
 };</pre>
 
-  <p>The <dfn id=length5 title=dom-history-length><code>length</code></dfn>
+  <p>The <dfn id=length4 title=dom-history-length><code>length</code></dfn>
    attribute of the <code><a href="#history1">History</a></code> interface
    must return the number of entries in this session history.
 
@@ -23964,7 +23980,7 @@ at the first element with the given ID must be treated as if it was cloned and r
 
   <p>If the index of the <a href="#current0">current entry</a> plus <var
    title="">delta</var> is less than zero or greater than or equal to the <a
-   href="#length5" title=dom-history-length>number of items in the session
+   href="#length4" title=dom-history-length>number of items in the session
    history</a>, then the user agent must do nothing.
 
   <p>If the <var title="">delta</var> is zero, then the user agent must act
@@ -24779,7 +24795,7 @@ user reload must be equivalent to .reload()
 
   <pre class=idl>
 interface <dfn id=storage2>Storage</dfn> {
-  readonly attribute unsigned long <a href="#length6" title=dom-Storage-length>length</a>;
+  readonly attribute unsigned long <a href="#length5" title=dom-Storage-length>length</a>;
   DOMString <a href="#keyn" title=dom-Storage-key>key</a>(in unsigned long index);
   <a href="#storageitem">StorageItem</a> <a href="#getitem" title=dom-Storage-getItem>getItem</a>(in DOMString key);
   void <a href="#setitem" title=dom-Storage-setItem>setItem</a>(in DOMString key, in DOMString data);
@@ -24811,7 +24827,7 @@ interface <dfn id=storage2>Storage</dfn> {
    the script in question is running in a <span title="secure scripting
    contexts">secure scripting context</span>.
 
-  <p>The <dfn id=length6 title=dom-Storage-length><code>length</code></dfn>
+  <p>The <dfn id=length5 title=dom-Storage-length><code>length</code></dfn>
    attribute must return the number of key/value pairs currently present and
    <a href="#accessible" title="accessible keys">accessible</a> in the list
    associated with the object.
@@ -25310,7 +25326,7 @@ interface <dfn id=storageitem>StorageItem</dfn> {
    detect any concurrent script execution.
 
   <p>This is required to guarentee that the <code title=dom-Storage-length><a
-   href="#length6">length</a></code> attribute of a <code><a
+   href="#length5">length</a></code> attribute of a <code><a
    href="#storage2">Storage</a></code> object never changes while a script is
    executing, other than in a way that is predictable by the script itself.
 
@@ -25712,7 +25728,7 @@ interface <dfn id=storageitem>StorageItem</dfn> {
   xref -->
    of the current <code>Document</code>.
 
-  <p>The <dfn id=length7 title=dom-length><code>length</code></dfn> DOM
+  <p>The <dfn id=length6 title=dom-length><code>length</code></dfn> DOM
    attribute on the <code><a href="#windowhtml">WindowHTML</a></code>
    interface must return the number of <span title="child browsing
    context">child browsing contexts</span><!-- XXX xref --> of the current
@@ -27207,7 +27223,7 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
   void <a href="#clearundo" title=dom-UndoManager-clearUndo>clearUndo</a>();
   void <a href="#clearredo" title=dom-UndoManager-clearRedo>clearRedo</a>();
   DOMObject <a href="#itemn" title=dom-UndoManager-item>item</a>(in unsigned long index);
-  readonly attribute unsigned long <a href="#length8" title=dom-UndoManager-length>length</a>;
+  readonly attribute unsigned long <a href="#length7" title=dom-UndoManager-length>length</a>;
   readonly attribute unsigned long <a href="#position1" title=dom-UndoManager-position>position</a>;
 };</pre>
 
@@ -27233,7 +27249,7 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
    entries are absent from the <a href="#undo-transaction">undo transaction
    history</a>.
 
-  <p>The <dfn id=length8
+  <p>The <dfn id=length7
    title=dom-UndoManager-length><code>length</code></dfn> attribute must
    return the number of <a href="#undo-object">undo object</a> entries in the
    <a href="#undo-transaction">undo transaction history</a>.
@@ -27257,7 +27273,7 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
    nearest to the <a href="#current3">undo position</a>, on the "redo" side.
    If there are no <a href="#undo-object">undo object</a> entries on the
    "redo" side, then the attribute must return the same as the <code
-   title=dom-UndoManager-length><a href="#length8">length</a></code>
+   title=dom-UndoManager-length><a href="#length7">length</a></code>
    attribute. If there are no <a href="#undo-object">undo object</a> entries
    on the "undo" side of the <a href="#current3">undo position</a>, the <code
    title=dom-UndoManager-position><a href="#position1">position</a></code>
@@ -27304,7 +27320,7 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
    href="#undo-object">undo object</a> entry with the specified <var
    title="">index</var>. If the index is less than zero or greater than or
    equal to <code title=dom-UndoManager-length><a
-   href="#length8">length</a></code> then the method must raise an
+   href="#length7">length</a></code> then the method must raise an
    <code>INDEX_SIZE_ERR</code> exception. <a href="#dom-changes">DOM
    changes</a> entries are unaffected by this method.
 

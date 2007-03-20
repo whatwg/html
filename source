@@ -10873,7 +10873,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
            attribute DOMString <span title="dom-video-src">src</span>;
   readonly attribute unsigned long <span title="dom-video-videoWidth">videoWidth</span>;
   readonly attribute unsigned long <span title="dom-video-videoHeight">videoHeight</span>;
-  readonly attribute unsigned long <span title="dom-video-length">length</span>;
+  readonly attribute unsigned long <span title="dom-video-duration">duration</span>;
 
   // playback state
   const unsigned short <span title="dom-video-STOPPED">STOPPED</span> = 0;
@@ -10896,6 +10896,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   void <span title="dom-video-play">play</span>();
   void <span title="dom-video-pause">pause</span>();
   void <span title="dom-video-togglePause">togglePause</span>();
+  void <span title="dom-video-stop">stop</span>();
   void <span title="dom-video-seek">seek</span>(in unsigned long offset);
 };</pre>
    </dd>
@@ -10915,6 +10916,8 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
     * control over closed captions
     * ability to control looping declaratively
     * ability to control start/end position declaratively (see also XXX-VB comments)
+    * ability to control autostart declaratively (autostart="" attribute)
+    * fire an 'ended' event when playback ends and 'ended' becomes true
   -->
 
   <p>A <code>video</code> element represents a video or movie, with an
@@ -10981,12 +10984,14 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   position</dfn>, which must initially be zero. The current position
   is a time.</p>
 
-  <p>Video content must be rendered inside the element's playback area
-  such that the video content is shown centered in the playback area
-  at the largest possible size that fits completely within it, with
-  the video content's aspect ratio being preserved. Thus, if the
+  <p>Video content should be rendered inside the element's playback
+  area such that the video content is shown centered in the playback
+  area at the largest possible size that fits completely within it,
+  with the video content's aspect ratio being preserved. Thus, if the
   aspect ratio of the playback area does not match the aspect ratio of
-  the video, the video will be shown letterboxed.</p>
+  the video, the video will be shown letterboxed. Areas of the
+  element's playback area that do not contain the video should be
+  filled with pure black.</p>
 
   <p>The <dfn title="attr-video-src"><code>src</code></dfn> attribute
   gives the address of the video to show. The attribute must be
@@ -11018,7 +11023,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
 
    <li><p>If the element's <code title="attr-video-src">src</code>
    attribute is absent, then the user agent must raise an
-   <span>INVALID_STATE_ERR</span> exception, and abort these
+   <code>INVALID_STATE_ERR</code> exception, and abort these
    steps.</p></li>
 
    <li><p>If the <code>video</code> element is in either the <span
@@ -11079,11 +11084,25 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
    scripts to finish before this event actually fires, but it should
    be queued straight away) -->
 
-   <li><p>The user agent must then begin to download the resources
-   specified by the <code title="attr-video-src">src</code>
-   attribute. The rate of the download may be throttled, however, in
-   response to user preferences (including throttling it to zero until
-   the user indicates that the download can start).</p></li>
+   <li>
+
+    <p>The user agent must then begin to download the resources
+    specified by the <code title="attr-video-src">src</code>
+    attribute. The rate of the download may be throttled, however, in
+    response to user preferences (including throttling it to zero
+    until the user indicates that the download can start).</p>
+
+    <p>UAs may begin downloads in the background before the <code
+    title="dom-video-play">play()</code> method is called, to
+    pre-buffer content. If UAs do this, the <code
+    title="event-begin">begin</code> event, the <code
+    title="event-progress">progress</code> event, etc, are not fired:
+    the pre-buffering must happen independent of the page itself. When
+    the <code title="dom-video-play">play()</code> method <em>is</em>
+    called, the cached content would then be used (in line with local
+    HTTP caching principles).</p>
+
+   </li>
 
    <li>
 
@@ -11165,7 +11184,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
    <li><p>If the element's <code title="attr-video-src">src</code>
    attribute is absent, or if the <code>video</code> element is in the
    <span title="dom-video-STOPPED">STOPPED</span> state, then the user
-   agent must raise an <span>INVALID_STATE_ERR</span> exception, and
+   agent must raise an <code>INVALID_STATE_ERR</code> exception, and
    abort these steps.</p></li>
 
    <li><p>If the <code>video</code> element is in the <span
@@ -11191,7 +11210,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
 
    <li><p>If the element's <code title="attr-video-src">src</code>
    attribute is absent, then the user agent must raise an
-   <span>INVALID_STATE_ERR</span> exception and abort these
+   <code>INVALID_STATE_ERR</code> exception and abort these
    steps.</p></li>
 
    <li><p>If the <code>video</code> element is in the <span
@@ -11215,7 +11234,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
    <li><p>If the element's <code title="attr-video-src">src</code>
    attribute is absent, or if the <code>video</code> element is in the
    <span title="dom-video-STOPPED">STOPPED</span> state, then the user
-   agent must raise an <span>INVALID_STATE_ERR</span> exception, and
+   agent must raise an <code>INVALID_STATE_ERR</code> exception, and
    abort these steps.</p></li>
 
    <!-- XXX should be allowed to fail (not all media can seek) -->
@@ -11324,7 +11343,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   assume that one pixel in the video corresponds to one CSS pixel. If
   no video data is available, then the attributes must return 0.</p>
 
-  <p>The <dfn title="dom-video-length"><code>length</code></dfn>
+  <p>The <dfn title="dom-video-duration"><code>duration</code></dfn>
   attribute must return the length of the video, in milliseconds. If
   no video data is available, then the attributes must return 0. If
   video data is available but the length is not known, the attribute
@@ -11490,6 +11509,8 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
 
   <!-- XXX mention that this spec doesn't require native support or
   plugin support, either is fine -->
+
+  <!-- XXX <h5>Summary</h5> non-normative: summary of events -->
 
 
   <h5>Time range</h5>
