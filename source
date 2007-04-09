@@ -7357,15 +7357,15 @@ XXX attributes to give the date authored, date published
     return NodeFilter.FILTER_REJECT;
 
   // Skip any descendants of headings.
-  if (n.parentNode &amp;&amp; n.parentNode.namespaceURI == 'http://www.w3.org/1999/xhtml') &amp;&amp;
+  if ((n.parentNode &amp;&amp; n.parentNode.namespaceURI == 'http://www.w3.org/1999/xhtml') &amp;&amp;
       (n.parentNode.localName == 'h1' || n.parentNode.localName == 'h2' ||
        n.parentNode.localName == 'h3' || n.parentNode.localName == 'h4' ||
        n.parentNode.localName == 'h5' || n.parentNode.localName == 'h6' ||
-       n.parentNode.localName == 'header')
+       n.parentNode.localName == 'header'))
     return NodeFilter.FILTER_REJECT;
 
   // Skip any blockquotes.
-  if (n.namespaceURI == 'http://www.w3.org/1999/xhtml') &amp;&amp;
+  if ((n.namespaceURI == 'http://www.w3.org/1999/xhtml') &amp;&amp;
       (n.localName == 'blockquote'))
     return NodeFilter.FILTER_REJECT;
 
@@ -10908,15 +10908,6 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   whose <span>media data</span> is video data, possibly with
   associated audio data.</p>
 
-  <p class="note">In this version, the <code>video</code> element is
-  aimed primarily at authors wanting to write their own video player
-  user interfaces, rather than those authors wanting to expose video
-  clips as part of other content, without concern to the details of
-  the UI. To this end, the element in this version merely exposes a
-  JavaScript API, and does not have declarative features or the
-  ability to enable a default user interface. A future version of this
-  specification will probably introduce such features.</p>
-
   <p>The <code title="attr-media-src">src</code>, <code
   title="attr-media-start">start</code>, <code
   title="attr-media-loopstart">loopstart</code>, <code
@@ -10937,33 +10928,40 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   assume that one pixel in the video corresponds to one CSS pixel. If
   no video data is available, then the attributes must return 0.</p>
 
-  <p>When no video data is available, <code>video</code> elements
-  represent pure black.</p>
+  <p>When no video data is available (the element's <code
+  title="dom-media-networkState">networkState</code> attribute is
+  either <code title="dom-media-EMPTY">EMPTY</code>, <code
+  title="dom-media-LOADING">LOADING</code>, or <code
+  title="dom-media-LOADED_METADATA">LOADED_METADATA</code>),
+  <code>video</code> elements represent pure black.</p>
  
-  <p>In the <span title="dom-media-PLAYING">PLAYING</span> state,
-  <code>video</code> elements represent the frame of video at the
-  continuously increasing <span title="current playback
-  position">"current" position</span>. When the <span>current playback
-  position</span> changes such that the last frame rendered is no
-  longer the frame corresponding to the <span>current playback
-  position</span> in the video, the new frame must be
-  rendered. Similarly, any audio associated with the video must, if
-  played, be played synchronised with the <span>current playback
-  position</span>. If there is associated audio data, the audio must
-  play synchronised with the video, at the specified <span
-  title="dom-media-volume">volume</span> with the specified <span
-  title="dom-media-muted">mute state</span>.</p>
+  <p>When a <code>video</code> element is <span>actively
+  playing</span>, it represents the frame of video at the continuously
+  increasing <span title="current playback position">"current"
+  position</span>. When the <span>current playback position</span>
+  changes such that the last frame rendered is no longer the frame
+  corresponding to the <span>current playback position</span> in the
+  video, the new frame must be rendered. Similarly, any audio
+  associated with the video must, if played, be played synchronised
+  with the <span>current playback position</span>, at the specified
+  <span title="dom-media-volume">volume</span> with the specified
+  <span title="dom-media-muted">mute state</span>.</p>
 
-  <p>In the <span title="dom-media-PAUSED">PAUSED</span> state, the
-  element represents the frame of video at the <span title="current
-  playback position">current playback position</span>, or, if that is
-  not available yet (e.g. because the video is seeking or buffering),
-  the last rendered frame of video.</p>
+  <p>When a <code>video</code> element is <span
+  title="dom-media-paused">paused</span>, the element represents the
+  frame of video corresponding to the <span title="current playback
+  position">current playback position</span>, or, if that is not
+  available yet (e.g. because the video is seeking or buffering), the
+  last rendered frame of video.</p>
 
-  <p>In the <span title="dom-media-AUTO_PAUSED">AUTO-PAUSED</span>
-  state, the element represents either the last frame of the video to
-  have been rendered, or pure black if no frame from the video has
-  been rendered yet.</p>
+  <p>When a <code>video</code> element is neither <span>actively
+  playing</span> nor <span title="dom-media-paused">paused</span>, the
+  element represents the last frame of the video to have been
+  rendered.</p>
+
+  <p class="note">Which frame in a video stream corresponds to a
+  particular playback position is defined by the video stream's
+  format.</p>
 
   <p>Video content should be rendered inside the element's playback
   area such that the video content is shown centered in the playback
@@ -10974,9 +10972,10 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   element's playback area that do not contain the video should be
   filled with pure black.</p>
 
-  <!-- XXX, XXX-VTP
+  <!-- XXX
    make it an interactive element
-   default activation behaviour is to do the togglePause() action
+   default activation behaviour is to do the play() if paused, pause()
+   otherwise
   -->
 
   <p>User agents should provide controls to enable or disable the
@@ -10988,9 +10987,12 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   more suitable to the user (e.g. full-screen or in an independent
   resizable window). As for the other user interface features,
   controls to enable this should not interfere with the page's normal
-  rendering. In such an independent context, however, user agents may
-  make full user interfaces visible, with, e.g., play, pause, seeking,
-  and volume controls.</p>
+  rendering unless the user agent is <span title="expose a user
+  interface to the user">exposing a user interface</span>. In such an
+  independent context, however, user agents may make full user
+  interfaces visible, with, e.g., play, pause, seeking, and volume
+  controls, even if the <code
+  title="attr-media-controls">controls</code> attribute is absent.</p>
 
   <p>User agents may allow video playback to affect system features
   that could interfere with the user's experience; for example, user
@@ -11068,32 +11070,24 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   <p>The <code>audio</code> element is a <span>media element</span>
   whose <span>media data</span> is audio data.</p>
 
-  <p class="note">In this version, the <code>audio</code> element is
-  aimed primarily at authors wanting to add sound effects to games. To
-  this end, the element in this version merely exposes a JavaScript
-  API, and does not have declarative features or the ability to enable
-  a default user interface. A future version of this specification
-  will probably introduce such features.</p>
-
   <p>The <code title="attr-media-src">src</code>, <code
   title="attr-media-start">start</code>, <code
   title="attr-media-loopstart">loopstart</code>, <code
   title="attr-media-loopend">loopend</code>, <code
   title="attr-media-end">end</code>, <code
   title="attr-media-loopcount">loopcount</code>, and <code
-  title="attr-media-controls">controls</code> attributes are <span title="media
-  element attributes">the attributes common to all media
+  title="attr-media-controls">controls</code> attributes are <span
+  title="media element attributes">the attributes common to all media
   elements</span>.</p>
  
-  <p>In the <span title="dom-media-PLAYING">PLAYING</span> state,
-  <code>audio</code> elements must have their audio data played
-  synchronised with the <span>current playback position</span>, at the
-  specified <span title="dom-media-volume">volume</span> with the
-  specified <span title="dom-media-muted">mute state</span>.</p>
+  <p>When an <code>audio</code> element is <span>actively
+  playing</span>, it must have its audio data played synchronised with
+  the <span>current playback position</span>, at the specified <span
+  title="dom-media-volume">volume</span> with the specified <span
+  title="dom-media-muted">mute state</span>.</p>
 
-  <p>In the <span title="dom-media-PAUSED">PAUSED</span> and <span
-  title="dom-media-AUTO_PAUSED">AUTO-PAUSED</span> states, audio must
-  not play.</p>
+  <p>When an <code>audio</code> element is not <span>actively
+  playing</span>, audio must not play for the element.</p>
 
 
 
@@ -11115,65 +11109,64 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
 
   <h4>Media elements</h4>
 
-  <!--
-     XXX-VTP comments in the source hide the togglePause() method.
-  -->
-
   <p><dfn title="media element">Media elements</dfn> implement the
   following interface:</p>
 
   <pre class="idl">interface <dfn>HTMLMediaElement</dfn> : <span>HTMLElement</span> {
-  // media
-           attribute DOMString <span title="dom-media-src">src</span>;
-  readonly attribute DOMString <span title="dom-media-currentSrc">currentSrc</span>;
-  readonly attribute float <span title="dom-media-duration">duration</span>;
 
-  <span class="big-issue"> The next three blocks are not yet defined. </span>
+  // error state
+  const unsigned short <span title="dom-media-MEDIA_ERR_SUCCESS">MEDIA_ERR_SUCCESS</span> = 0;
+  const unsigned short <span title="dom-media-MEDIA_ERR_ABORTED">MEDIA_ERR_ABORTED</span> = 1;
+  const unsigned short <span title="dom-media-MEDIA_ERR_NETWORK">MEDIA_ERR_NETWORK</span> = 2;
+  const unsigned short <span title="dom-media-MEDIA_ERR_DECODE">MEDIA_ERR_DECODE</span> = 3;
+  readonly attribute unsigned short <span title="dom-media-error">error</span>;
 
   // network state
+           attribute DOMString <span title="dom-media-src">src</span>;
+  readonly attribute DOMString <span title="dom-media-currentSrc">currentSrc</span>;
   const unsigned short <span title="dom-media-EMPTY">EMPTY</span> = 0;
   const unsigned short <span title="dom-media-LOADING">LOADING</span> = 1;
-  const unsigned short <span title="dom-media-LOADED_METADATA">LOADED_METADATA</span> = 2; // other fields initialised after this
-  const unsigned short <span title="dom-media-LOADED_INITIAL_FRAME">LOADED_INITIAL_FRAME</span> = 3; // transition to this first time readyState goes to CAN_SHOW_CURRENT_FRAME
+  const unsigned short <span title="dom-media-LOADED_METADATA">LOADED_METADATA</span> = 2;
+  const unsigned short <span title="dom-media-LOADED_INITIAL_FRAME">LOADED_INITIAL_FRAME</span> = 3;
   const unsigned short <span title="dom-media-LOADED">LOADED</span> = 4;
-  const unsigned short <span title="dom-media-ERROR">ERROR</span> = 100;
   readonly attribute unsigned short <span title="dom-media-networkState">networkState</span>;
   readonly attribute float <span title="dom-media-bufferingRate">bufferingRate</span>;
   readonly attribute <span>TimeRanges</span> <span title="dom-media-buffered">buffered</span>;
+  void <span title="dom-media-load">load</span>();
 
   // ready state
-  const unsigned short <span title="dom-media-UNAVAILABLE">UNAVAILABLE</span> = 0;
+  const unsigned short <span title="dom-media-DATA_UNAVAILABLE">DATA_UNAVAILABLE</span> = 0;
   const unsigned short <span title="dom-media-CAN_SHOW_CURRENT_FRAME">CAN_SHOW_CURRENT_FRAME</span> = 1;
   const unsigned short <span title="dom-media-CAN_PLAY">CAN_PLAY</span> = 2;
-  const unsigned short <span title="dom-media-CAN_PLAY_THROUGH">CAN_PLAY_THROUGH</span> = 3; // on first transition, play if paused and position=start and autostart
+  const unsigned short <span title="dom-media-CAN_PLAY_THROUGH">CAN_PLAY_THROUGH</span> = 3;
   readonly attribute unsigned short <span title="dom-media-readyState">readyState</span>;
   readonly attribute boolean <span title="dom-media-seeking">seeking</span>;
 
   // playback state
            attribute float <span title="dom-media-position">position</span>;
+  readonly attribute float <span title="dom-media-duration">duration</span>;
   readonly attribute unsigned short <span title="dom-media-paused">paused</span>;
   readonly attribute <span>TimeRanges</span> <span title="dom-media-played">played</span>;
   readonly attribute <span>TimeRanges</span> <span title="dom-media-seekable">seekable</span>;
   readonly attribute boolean <span title="dom-media-ended">ended</span>;
-
-  // controls
-           attribute boolean <span title="dom-media-controls">controls</span>;
-           attribute float <span title="dom-media-volume">volume</span>;
-           attribute boolean <span title="dom-media-muted">muted</span>;
-  void <span title="dom-media-load">load</span>();
   void <span title="dom-media-play">play</span>();
   void <span title="dom-media-pause">pause</span>();
-<!-- XXX-VTP  void <span title="dom-media-togglePause">togglePause</span>();
---><!-- XXX-VSTOP  void <span title="dom-media-stop">stop</span>();
--->
 
-  // cue points
+  // looping
            attribute float <span title="dom-media-start">start</span>;
            attribute float <span title="dom-media-end">end</span>;
            attribute float <span title="dom-media-loopStart">loopStart</span>;
            attribute float <span title="dom-media-loopEnd">loopEnd</span>;
            attribute unsigned long <span title="dom-media-loopCount">loopCount</span>;
-           attribute float <span title="dom-media-currentLoop">currentLoop</span>;
+           attribute unsigned long <span title="dom-media-currentLoop">currentLoop</span>;
+<!--
+  // cue points
+  // ...-->
+
+  // controls
+           attribute boolean <span title="dom-media-controls">controls</span>;
+           attribute float <span title="dom-media-volume">volume</span>;
+           attribute boolean <span title="dom-media-muted">muted</span>;
 };</pre>
 
   <p>The <dfn>media element attributes</dfn>, <code
@@ -11183,13 +11176,12 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   title="attr-media-loopend">loopend</code>, <code
   title="attr-media-end">end</code>, <code
   title="attr-media-loopcount">loopcount</code>, and <code
-  title="attr-media-controls">controls</code>, apply to all <span>media
-  elements</span>. They are defined in this section.</p>
+  title="attr-media-controls">controls</code>, apply to all <span
+  title="media element">media elements</span>. They are defined in
+  this section.</p>
 
   <!-- XXX v2 features:
-    * more events from:
-      http://webkit.org/specs/HTML_Timed_Media_Elements.html
-      e.g. mediarendererror
+    * should 'error' be an object instead or a number?
     * volumechange mutechange
     * change rate/direction of playback (ffwd)
     * frame forward / backwards / step(n) while paused
@@ -11198,11 +11190,8 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
       should be able to say whether to pause or just trigger event
       possibly stop points should have an associated object (cue
       marks; time triggers)
-    * some of the mediaStatus stuff from:
-      http://webkit.org/specs/HTML_Timed_Media_Elements.html
     * autoplay="" that waits for the buffer to be full enough that it
       is estimated that it can play all the way through without stopping
-    * ability to control looping declaratively
   -->
 
   <!-- XXX v3 features:
@@ -11233,11 +11222,596 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
 
 
 
+  <h5>Error codes</h5>
+
+  <p>All <span title="media element">media elements</span> have an
+  associated error status, which records the last error the element
+  encountered since the <code title="dom-media-load">load()</code>
+  method was last invoked. The <dfn
+  title="dom-media-error"><code>error</code></dfn> attribute, on
+  getting, must return the code of this last error, which must be one
+  of the following values:</p>
+
+  <dl>
+
+   <dt><dfn title="dom-media-MEDIA_ERR_SUCCESS"><code>MEDIA_ERR_SUCCESS</code></dfn> (numeric value 0)</dt>
+
+   <dd>There has not yet been an error. This value must be returned if
+   no error has yet been set for the element.</dd>
+
+   <dt><dfn title="dom-media-MEDIA_ERR_ABORTED"><code>MEDIA_ERR_ABORTED</code></dfn> (numeric value 1)</dt>
+
+   <dd>The download of the <span>media resource</span> was aborted by
+   the user agent at the user's request.</dd>
+
+   <dt><dfn title="dom-media-MEDIA_ERR_NETWORK"><code>MEDIA_ERR_NETWORK</code></dfn> (numeric value 2)</dt>
+
+   <dd>A network error of some description caused the user agent to
+   stop downloading the <span>media resource</span>.</dd>
+
+   <dt><dfn title="dom-media-MEDIA_ERR_DECODE"><code>MEDIA_ERR_DECODE</code></dfn> (numeric value 3)</dt>
+
+   <dd>An error of some description occurred while decoding the
+   <span>media resource</span>.</dd>
+
+  </dl>
+
+
+
+  <h5>Location of the media resource</h5>
+
+  <p>The <dfn title="attr-media-src"><code>src</code></dfn> content
+  attribute on <span title="media element">media elements</span> gives
+  the address of the video to show. The attribute, if present, must
+  contain a URI (or IRI).</p>
+
+  <p class="note">If a <code title="attr-media-src">src</code>
+  attribute is specified, the resource it specifies is the <span>media
+  resource</span> that will be used. Otherwise, the resource specified
+  by the first suitable <code>source</code> element child of the
+  <span>media element</span> is the one used.</p>
+
+  <p>The <dfn title="dom-media-src"><code>src</code></dfn> DOM
+  attribute on <span title="media element">media elements</span> must
+  <span>reflect</span> the content attribute of the same name.</p>
+
+  <p>To <dfn>pick a media resource</dfn> for a <span>media
+  element</span>, a user agent must follow the following steps:</p>
+
+  <ol>
+
+   <li><p>If the <span>media element</span> has a <code
+   title="attr-media-src">src</code>, then the address given in that
+   attribute is the address of the <span>media resource</span>; jump
+   to the last step.</p></li>
+
+   <li><p>Otherwise, let <var title="">candidate</var> be the first
+   <code>source</code> element child in the <span>media
+   element</span>, or null if there is no such child.</p></li>
+
+   <li>
+
+    <p>If <var title="">candidate</var> is not null and the <var
+    title="">candidate</var> element has a <code
+    title="attr-source-src">src</code> attribute, and either:</p>
+
+    <ul>
+
+     <li>the <var title="">candidate</var> element has a <code
+     title="attr-source-type">type</code> attribute and that
+     attribute's value, when parsed as a MIME type, represents a type
+     that the user agent can render (including any codecs described by
+     the <code title="">codec</code> parameter), or <a
+     href="#refsRFC2046">[RFC2046]</a> <a
+     href="#refsRFC4281">[RFC4281]</a></li>
+
+     <li>the <var title="">candidate</var> element has no <code
+     title="attr-source-type">type</code> attribute,</li>
+
+    </ul>
+
+    <p>...then the address given in that <var title="">candidate</var>
+    element's <code title="attr-source-src">src</code> attribute is
+    the address of the <span>media resource</span>; jump to the last
+    step.</p>
+
+   </li>
+
+   <li><p>Let <var title="">candidate</var> be the next
+   <code>source</code> element child in the <span>media
+   element</span>, or null if there are no more such
+   children.</p></li>
+
+   <li><p>If <var title="">candidate</var> is not null, return to step
+   3.</p></li>
+
+   <li><p>There is no <span>media resource</span>. Abort these
+   steps.</p></li>
+
+   <li><p>Let the address of the <dfn>chosen media resource</dfn> be
+   the one that was found before jumping to this step.</p></li>
+
+  </ol>
+
+  <p>The <dfn
+  title="dom-media-currentSrc"><code>currentSrc</code></dfn> DOM
+  attribute must return the empty string if the <span>media
+  element</span>'s <code
+  title="dom-media-networkState">networkState</code> has the value
+  <span title="dom-media-EMPTY">EMPTY</span>, and the absolute URL of
+  the <span>chosen media resource</span> otherwise.</p>
+
+
+
+  <h5>Network states</h5>
+
+  <p>As <span title="media element">media elements</span> interact
+  with the network, they go through several states. The <dfn
+  title="dom-media-networkState"><code>networkState</code></dfn>
+  attribute, on getting, must return the current network state of the
+  element, which must be one of the following values:</p>
+
+  <dl>
+
+   <dt><dfn title="dom-media-EMPTY"><code>EMPTY</code></dfn> (numeric value 0)</dt>
+
+   <dd>The element has not yet been initialised. All attributes are in
+   their initial states.</dd>
+
+   <dt><dfn title="dom-media-LOADING"><code>LOADING</code></dfn> (numeric value 1)</dt>
+
+   <dd>The element has <span title="pick a media resource">picked a
+   media resource</span> (the <span>chosen media resource</span> is
+   available from the <code
+   title="dom-media-currentSrc">currentSrc</code> attribute), but none
+   of the metadata has yet been obtained and therefore all the other
+   attributes are still in their initial states.</dd>
+
+   <dt><dfn title="dom-media-LOADED_METADATA"><code>LOADED_METADATA</code></dfn> (numeric value 2)</dt>
+
+   <dd>Enough of the resource has been obtained that the metadata
+   attributes are initialized (e.g. the length is known). The API will
+   no longer raise exceptions when used.</dd>
+
+   <dt><dfn title="dom-media-LOADED_INITIAL_FRAME"><code>LOADED_INITIAL_FRAME</code></dfn> (numeric value 3)</dt>
+
+   <dd>Actual <span>media data</span> has been obtained. In the case
+   of video, this specifically means that a frame of video is
+   available and can be shown.</dd>
+
+   <dt><dfn title="dom-media-LOADED"><code>LOADED</code></dfn> (numeric value 4)</dt>
+
+   <dd>The entire <span>media resource</span> has been obtained and is
+   available to the user agent locally. Network connectivity could be
+   lost without affecting the media playback.</dd>
+
+  </dl>
+
+  <p>The algorithm for the <code title="dom-media-load">load()</code>
+  method defined below describes exactly when the <code
+  title="dom-media-networkState">networkState</code> attribute changes
+  value.</p>
+
+
+
+  <h5>Loading the media resource</h5>
+
+  <p>All <span title="media element">media elements</span> have a
+  <dfn>begun flag</dfn>, which must begin in the false state, a
+  <dfn>loaded-first-frame flag</dfn>, which must begin in the false
+  state, and an <dfn>autoplay flag</dfn>, which must begin in the true
+  state.</p>
+
+  <p>When the <dfn title="dom-media-load"><code>load()</code></dfn>
+  method on a <span>media element</span> is invoked, the user agent
+  must run the following steps. Note that this algorithm might get
+  aborted, e.g. if the <code title="dom-media-load">load()</code>
+  method itself is invoked again.</p>
+
+  <ol>
+
+   <li><p>Any already-running instance of this algorithm for this
+   element must be aborted. If those method calls have not yet
+   returned, they must finish the step they are on, and then
+   immediately return.</p></li>
+
+   <li><p>If the element's <span>begun flag</span> is true, then the
+   <span>begun flag</span> must be set to false, the <code
+   title="dom-media-error">error</code> attribute must be set to <code
+   title="dom-media-MEDIA_ERR_ABORTED">MEDIA_ERR_ABORTED</code>, and
+   the user agent must synchronously <span>fire a progress
+   event</span> called <code title="event-abort">abort</code> at the
+   <span>media element</span>.</p></li>
+
+   <li><p>The <code title="dom-media-error">error</code> attribute
+   must be set to <code
+   title="dom-media-MEDIA_ERR_SUCCESS">MEDIA_ERR_SUCCESS</code>, and
+   the <span>loaded-first-frame flag</span> and
+   <span>loaded-enough-to-play-through flag</span> must be both set to
+   false.</p></li>
+
+   <li><p>If the <span>media element</span>'s <code
+   title="dom-media-networkState">networkState</code> is not set to
+   <span title="dom-media-EMPTY">EMPTY</span>, then the following
+   substeps must be followed:
+
+    <ol>
+
+     <!--<li>Let <var title="">events</var> be a list of event names,
+     initially empty.</li>-->
+
+     <li>The <code title="dom-media-networkState">networkState</code>
+     attribute must be set to <span
+     title="dom-media-EMPTY">EMPTY</span><!--, and the user agent must
+     add <code title="event-emptied">emptied</code> to the <var
+     title="">events</var> list-->.</li>
+
+     <li>If <code title="dom-media-readyState">readyState</code> is
+     not set to <code
+     title="dom-media-DATA_UNAVAILABLE">DATA_UNAVAILABLE</code>, it must be set
+     to that state<!-- and the user agent must add <code
+     title="event-dataunavailable">dataunavailable</code> to the
+     <var title="">events</var> list-->.</li>
+
+     <li>If the <code title="dom-media-paused">paused</code> attribute
+     is false, it must be set to true<!--, and the user agent must add
+     <code title="event-pause">pause</code> to the <var
+     title="">events</var> list-->.</li>
+
+     <li>If <code title="dom-media-seeking">seeking</code> is true, it
+     must be set to false.</li>
+
+     <li>The <span>current playback position</span> must be set to
+     0.</li>
+
+     <li>The <code title="dom-media-currentLoop">currentLoop</code> DOM
+     attribute must be set to 0.</li>
+
+     <!--<li>The user agent must synchronously <span>fire a simple
+     event</span> at the <span>media element</span> for each event
+     name in <var title="">events</var>, in the same order that they
+     were added to that list.</li>-->
+
+     <li>The user agent must synchronously <span>fire a simple
+     event</span> called <code title="event-emptied">emptied</code> at
+     the <span>media element</span>.</li>
+
+    </ol>
+
+   </li>
+
+   <li><p>The user agent must <span>pick a media resource</span> for
+   the <span>media element</span>. If that fails, the method must
+   raise an <code>INVALID_STATE_ERR</code> exception, and abort these
+   steps.</p></li>
+
+   <li><p>The <code title="dom-media-networkState">networkState</code>
+   attribute must be set to <span
+   title="dom-media-LOADING">LOADING</span>.</li>
+
+   <li><p class="note">The <code
+   title="dom-media-currentSrc">currentSrc</code> attribute starts
+   returning the new value.</p></li>
+
+   <li><p>The user agent must then set the <span>begun flag</span> to
+   true and <span>fire a progress event</span> colled
+   <code>begin</code> at the <span>media element</span>.</p></li>
+
+   <li><p>The method must return, but these steps must
+   continue.</p></li>
+
+   <li><p class="note">Playback of any previously playing <span>media
+   resource</span> for this element stops.</p></li>
+ 
+   <li><p>If a download is in progress for the <span>media
+   element</span>, the user agent should stop the download.</p></li>
+
+   <li><p>The user agent must then begin to download the <span>chosen
+   media resource</span>. The rate of the download may be throttled,
+   however, in response to user preferences (including throttling it
+   to zero until the user indicates that the download can start), or
+   to balance the download with other connections sharing the same
+   bandwidth.</p></li>
+
+   <li>
+
+    <p>While the download is progressing, the user agent must
+    <span>fire a progress event</span> called <code
+    title="event-progress">progress</code> at the element every 350ms
+    (&#xB1;200ms) or for every byte received, whichever is
+    <em>least</em> frequent.</p>
+
+    <p>If at any point the user agent has received no data for more
+    than about three seconds, the user agent must <span>fire a
+    progress event</span> called <code
+    title="event-stalled">stalled</code> at the element.</p>
+
+    <p>User agents may allow users to selectively block or slow
+    <span>media data</span> downloads. When a <span>media
+    element</span>'s download has been blocked, the user agent must
+    act as if it was stalled (as opposed to acting as if the
+    connection was closed).</p>
+
+    <p>The user agent may use whatever means necessary to download the
+    resource (within the constraints put forward by this and other
+    specifications); for example, reconnecting to the server in the
+    face of network errors, using HTTP partial range requests, or
+    switching to a streaming protocol. The user agent must only
+    consider a resource erroneous if it has given up trying to
+    download it.</p>
+
+    <dl class="switch">
+
+     <dt>If the <span>media data</span> cannot be downloaded at all,
+     due to network errors, causing the user agent to give up trying
+     to download the resource</dt>
+
+     <dd>
+
+      <p>DNS errors and HTTP 4xx and 5xx errors (and equivalents in
+      other protocols) must cause the user agent to follow the
+      following steps. User agents may also follow these steps in
+      response to other network errors of similar severity.</p>
+
+      <ol>
+
+       <li>The user agent should cancel the download.</li>
+
+       <li>The <code title="dom-media-error">error</code> attribute
+       must be set to <code
+       title="dom-media-MEDIA_ERR_NETWORK">MEDIA_ERR_NETWORK</code>.</li>
+
+       <li>The <span>begun flag</span> must be set to false and the
+       user agent must <span>fire a progress event</span> called <code
+       title="event-error">error</code> at the <span>media
+       element</span>.</li>
+
+       <li>The element's <code
+       title="dom-media-networkState">networkState</code> attribute
+       must be switched to the <span
+       title="dom-media-EMPTY">EMPTY</span> value and the user agent
+       must <span>fire a simple event</span> called <code
+       title="event-emptied">emptied</code> at the element.</li>
+
+       <li>These steps must be aborted.</li>
+
+      </ol>
+
+     </dd>
+
+     <dt id="fatal-decode-error">If the <span>media data</span> can be
+     downloaded but is in an unsupported format, or can otherwise not
+     be properly rendered at all</dt>
+
+     <dd>
+
+      <p>The server returning a file of the wrong kind (e.g. one that
+      that turns out to not be pure audio when the <span>media
+      element</span> is a <code>audio</code> element), or the file
+      using unsupported codecs for all the data, must cause the user
+      agent to follow the following steps. User agents may also follow
+      these steps in response to other codec-related fatal errors,
+      such as the file requiring more resources to process than the
+      user agent can provide in real time.</p>
+
+      <ol>
+
+       <li>The user agent should cancel the download.</li>
+
+       <li>The <code title="dom-media-error">error</code> attribute
+       must be set to <code
+       title="dom-media-MEDIA_ERR_DECODE">MEDIA_ERR_DECODE</code>.</li>
+
+       <li>The <span>begun flag</span> must be set to false and the
+       user agent must <span>fire a progress event</span> called <code
+       title="event-error">error</code> at the <span>media
+       element</span>.</li>
+
+       <li>The element's <code
+       title="dom-media-networkState">networkState</code> attribute
+       must be switched to the <span
+       title="dom-media-EMPTY">EMPTY</span> value and the user agent
+       must <span>fire a simple event</span> called <code
+       title="event-emptied">emptied</code> at the element.</li>
+
+       <li>These steps must be aborted.</li>
+
+      </ol>
+
+     </dd>
+
+     <dt>If the <span>media data</span> download is aborted by the
+     user</dt>
+
+     <dd>
+
+      <p>The download is aborted by the user, e.g. because the user
+      navigated the browsing context to another page, the user agent
+      must follow the following steps. These steps are not followed if
+      the <code title="dom-media-load">load()</code> method itself is
+      reinvoked, as the steps above handle that particular kind of
+      abort.</p>
+
+      <ol>
+
+       <li>The user agent should cancel the download.</li>
+
+       <li>The <code title="dom-media-error">error</code> attribute
+       must be set to <code
+       title="dom-media-MEDIA_ERR_ABORT">MEDIA_ERR_ABORT</code>.</li>
+
+       <li>The <span>begun flag</span> must be set to false and the
+       user agent must <span>fire a progress event</span> called <code
+       title="event-abort">abort</code> at the <span>media
+       element</span>.</li>
+
+       <li>If the <span>media element</span>'s <code
+       title="dom-media-networkState">networkState</code> attribute
+       has the value <code title="dom-media-LOADING">LOADING</code>,
+       the element's <code
+       title="dom-media-networkState">networkState</code> attribute
+       must be switched to the <span
+       title="dom-media-EMPTY">EMPTY</span> value and the user agent
+       must <span>fire a simple event</span> called <code
+       title="event-emptied">emptied</code> at the element.</li>
+
+       <li>These steps must be aborted.</li>
+
+      </ol>
+
+     </dd>
+
+     <dt id="non-fatal-media-error">If the <span>media data</span> can
+     be downloaded but has non-fatal errors or uses, in part, codecs
+     that are unsupported, preventing the user agent from rendering
+     the content completely correctly but not preventing playback
+     altogether</dt>
+
+     <dd>
+
+      <p>The server returning data that is partially usable but cannot
+      be optimally rendered must cause the user agent to follow the
+      following steps.</p>
+
+      <ol>
+
+       <li class="big-issue">Should we fire a 'warning' event? Set the
+       'error' flag to 'MEDIA_ERR_SUBOPTIMAL' or something?</li>
+
+      </ol>
+
+     </dd>
+
+     <dt>Once enough of the <span>media data</span> has been
+     downloaded to determine the duration of the <span>media
+     resource</span>, its dimensions, and other metadata</dt>
+
+     <dd>
+
+      <p>The user agent must follow these substeps:</p>
+
+      <ol>
+
+       <li><p>The <span>current playback position</span> must be set
+       to the <var>effective start</var>.</p></li>
+
+       <li><p>The <code
+       title="dom-media-networkState">networkState</code> attribute
+       must be set to <code
+       title="dom-media-LOADED_METADATA">LOADED_METADATA</code>.</p></li>
+
+       <li><p class="note">A number of attributes, including <code
+       title="dom-media-duration">duration</code>, <code
+       title="dom-media-buffered">buffered</code>, and <code
+       title="dom-media-played">played</code>, become
+       available.</p></li>
+
+       <li><p>The user agent must <span>fire a simple event</span>
+       called <code title="event-loadedmetadata">loadedmetadata</code>
+       at the element.</li>
+
+      </ol>
+
+     </dd>
+
+     <dt id="handling-first-frame-available">Once enough of the
+     <span>media data</span> has been downloaded to enable the user
+     agent to display the first frame of the <span>media
+     resource</span></dt>
+
+     <dd>
+
+      <p>The user agent must follow these substeps:</p>
+
+      <ol>
+
+       <li><p>The <code
+       title="dom-media-networkState">networkState</code> attribute
+       must be set to <code
+       title="dom-media-LOADED_INITIAL_FRAME">LOADED_INITIAL_FRAME</code>.</p></li>
+
+       <li><p>The <code
+       title="dom-media-readyState">readyState</code> attribute must
+       change to <code
+       title="dom-media-CAN_SHOW_CURRENT_FRAME">CAN_SHOW_CURRENT_FRAME</code>.</p></li>
+
+       <li><p>The <span>loaded-first-frame flag</span> must be set to
+       true.</p></li>
+
+       <li><p>The user agent must <span>fire a simple event</span>
+       called <code
+       title="event-loadedinitialfame">loadedinitialframe</code> at
+       the element.</li>
+
+       <li><p>The user agent must <span>fire a simple event</span>
+       called <code
+       title="event-canshowcurrentframe">canshowcurrentframe</code> at
+       the element.</li>
+
+      </ol>
+
+     </dd>
+
+    </dl>
+
+    <p>When the user agent has completed the download of the entire
+    <span>media resource</span>, it must move on to the next step.</p>
+
+   </li>
+
+   <li><p>If the download completes without errors, the <span>begun
+   flag</span> must be set to false and the user agent must <span>fire
+   a progress event</span> called <code title="event-load">load</code>
+   at the element.</p></li>
+
+  </ol>
+
+  <p>If a <span>media element</span> whose <code
+  title="dom-media-networkState">networkState</code> has the value
+  <code title="dom-media-EMPTY">EMPTY</code> is inserted into a
+  document, user agents must implicitly invoke the <code
+  title="dom-media-load">load()</code> method on the <span>media
+  element</span> as soon as all other scripts have finished
+  executing<!-- XXX phrase that better? -->. Any exceptions raised
+  must be ignored.</p>
+
+  <p>The <dfn
+  title="dom-media-bufferingRate"><code>bufferingRate</code></dfn>
+  attribute must return the average number of bits received per second
+  for the current download over the past few seconds. If there is no
+  download in progress, the attribute must return 0.</p>
+
+  <p>The <dfn title="dom-media-buffered"><code>buffered</code></dfn>
+  attribute must return a static <span>normalised
+  <code>TimeRanges</code> object</span> that represents the ranges of
+  the <span>media resource</span>, if any, that the user agent has
+  downloaded, at the time the attribute is evaluated.</p>
+
+  <p class="note">Typically this will be a single range anchored at
+  the zero point, but if, e.g. the user agent uses HTTP range requests
+  in response to seeking, then there could be multiple ranges.</p>
+
+
+
   <h5>Offsets into the media resource</h5>
+
+  <p>The <dfn title="dom-media-duration"><code>duration</code></dfn>
+  attribute must return the length of the <span>media resource</span>,
+  in seconds. If no <span>media data</span> is available, then the
+  attributes must return 0. If <span>media data</span> is available
+  but the length is not known, the attribute must return the
+  Not-a-number value. If the <span>media resource</span> is known to
+  be unbounded (e.g. a streaming radio), then the attribute must
+  return the positive Infinity value.</p>
 
   <p><span title="media element">Media elements</span> have a
   <dfn>current playback position</dfn>, which must initially be
   zero. The current position is a time.</p>
+
+  <p>The <dfn title="dom-media-position"><code>position</code></dfn>
+  attribute must, on getting, return the <span>current playback
+  position</span>, expressed in seconds. On setting, the user agent
+  must <span title="dom-media-seek">seek</span> to the new value.</p>
 
   <p>The <dfn title="attr-media-start"><code>start</code></dfn>
   content attribute gives the offset into the <span>media
@@ -11335,8 +11909,10 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
    title="dom-media-loopCount">loopCount</code> DOM attribute's value
    (which will make the current loop the last loop).</p></li>
 
-   <li><p>If the <span>media element</span> is in the <span
-   title="dom-media-EMPTY">EMPTY</span> state, then the user agent
+   <li><p>If the <span>media element</span>'s <code
+   title="dom-media-networkState">networkState</code> is in the <code
+   title="dom-media-EMPTY">EMPTY</code> state or the <code
+   title="dom-media-LOADING">LOADING</code> state, then the user agent
    must at this point abort these steps.</p></li>
 
    <li><p>If the <code
@@ -11374,293 +11950,215 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
 
 
 
-  <h5>Playback states</h5>
+  <h5>The ready states</h5>
 
-  <p><span title="media element">Media elements</span> can be in one
-  of four states: <span title="dom-media-EMPTY">EMPTY</span>,
-  <span title="dom-media-PLAYING">PLAYING</span>, <span
-  title="dom-media-PAUSED">PAUSED</span>, and <span
-  title="dom-media-AUTO_PAUSED">AUTO-PAUSED</span>. The current state
-  is exposed to scripts through the <dfn
-  title="dom-media-state"><code>state</code></dfn> DOM attribute,
-  whose value must be the value of the constant corresponding to the
-  element's state.</p>
+  <p><span title="media element">Media elements</span> have a
+  <em>ready state</em>, which describes to what degree they are ready
+  to be rendered at the <span>current playback position</span>. The
+  possible values are as follows; the ready state of a media element
+  at any particular time is the greatest value describing the state of
+  the element:</p>
 
-  <p>When created, <span title="media element">media elements</span>
-  must start in the EMPTY state. This state is represented by the
-  <dfn title="dom-media-EMPTY"><code>EMPTY</code></dfn> constant,
-  whose value is zero. In the EMPTY state, no <span>media
-  data</span> is available.</p>
+  <dl>
 
-  <p>The PLAYING state is the state when the element has <span>media
-  data</span> and is rendering it in real time. This state is
-  represented by the <dfn
-  title="dom-media-PLAYING"><code>PLAYING</code></dfn> constant, whose
-  value is 1.</p>
+   <dt><dfn title="dom-media-DATA_UNAVAILABLE"><code>DATA_UNAVAILABLE</code></dfn> (numeric value 0)</dt>
 
-  <p>The PAUSED state is the state when the element has <span>media
-  data</span> but its rendering has been intentionally stopped. This
-  state is represented by the <dfn
-  title="dom-media-PAUSED"><code>PAUSED</code></dfn> constant, whose
-  value is 2.</p>
+   <dd>No data for the <span>current playback position</span> is
+   available. <span title="media element">Media elements</span> whose
+   <code title="dom-media-networkState">networkState</code> attribute
+   is less than <code
+   title="dom-media-LOADED_INITIAL_FRAME">LOADED_INITIAL_FRAME</code>
+   are always in the <code
+   title="dom-media-DATA_UNAVAILABLE">DATA_UNAVAILABLE</code>
+   state.</dd>
 
-  <p>The AUTO-PAUSED state is the state when the element would be
-  playing if there was <span>media data</span> available, but, for one
-  reason or another, the <span>media data</span> is not yet available
-  and therefore rendering has been automatically (and typically
-  temporarily) stopped by the user agent. This state is represented by
-  the <dfn
-  title="dom-media-AUTO_PAUSED"><code>AUTO_PAUSED</code></dfn>
-  constant, whose value is 3.</p>
+   <dt><dfn title="dom-media-CAN_SHOW_CURRENT_FRAME"><code>CAN_SHOW_CURRENT_FRAME</code></dfn> (numeric value 1)</dt>
 
+   <dd>Data for the immediate <span>current playback position</span>
+   is available, but not enough data is available that the user agent
+   could successfully advance the <span>current playback
+   position</span> at all without immediately reverting to the <code
+   title="dom-media-DATA_UNAVAILABLE">DATA_UNAVAILABLE</code> state. In video,
+   this corresponds to the user agent having data from the current
+   frame, but not the next frame. In audio, this corresponds to the
+   user agent only having audio up to the <span>current playback
+   position</span>, but no further.</dd>
 
-  <h5>Location the media resource</h5>
+   <dt><dfn title="dom-media-CAN_PLAY"><code>CAN_PLAY</code></dfn> (numeric value 2)</dt>
 
-  <p>The <dfn title="attr-media-src"><code>src</code></dfn> content
-  attribute on <span title="media element">media elements</span> gives
-  the address of the video to show. The attribute, if present, must
-  contain a URI (or IRI).</p>
+   <dd>Data for the immediate <span>current playback position</span>
+   is available, as well as enough data for the user agent to advance
+   the <span>current playback position</span> at least a little
+   without immediately reverting to the <code
+   title="dom-media-DATA_UNAVAILABLE">DATA_UNAVAILABLE</code> state. In video,
+   this corresponds to the user agent having data for the current
+   frame and the next frame. In audio, this corresponds ot the user
+   agent having data beyond the <span>current playback
+   position</span>.</dd>
 
-  <p class="note">If a <code title="attr-media-src">src</code>
-  attribute is specified, the resource it specifies is the <span>media
-  resource</span> that will be used. Otherwise, the resource specified
-  by the first suitable <code>source</code> element child of the
-  <span>media element</span> is the one used.</p>
+   <dt><dfn title="dom-media-CAN_PLAY_THROUGH"><code>CAN_PLAY_THROUGH</code></dfn> (numeric value 3)</dt>
 
-  <p>The <dfn title="dom-media-src"><code>src</code></dfn> DOM
-  attribute on <span title="media element">media elements</span> must
-  <span>reflect</span> the content attribute of the same name.</p>
+   <dd>Data for the immediate <span>current playback position</span>
+   is available, as well as enough data for the user agent to advance
+   the <span>current playback position</span> at least a little
+   without immediately reverting to the <code
+   title="dom-media-DATA_UNAVAILABLE">DATA_UNAVAILABLE</code> state, and, in
+   addition, the user agent estimates that data is being downloaded at
+   a rate where the <span>current playback position</span>, if it were
+   to advance in real time, would not overtake the available data
+   before playback reaches the <span>effective end</span> of the
+   <span>media resource</span> on the last <span
+   title="dom-media-loopCount">loop</span>.</dd>
 
-  <p>To <dfn>pick a media resource</dfn> for a <span>media
-  element</span>, a user agent must follow the following steps:</p>
+  </dl>
 
-  <ol>
+  <p>When the ready state of a <span>media element</span> whose <code
+  title="dom-media-networkState">networkState</code> is not <code
+  title="dom-media-EMPTY">EMPTY</code> changes, the user agent must
+  follow the steps given below:</p>
 
-   <li><p>If the <span>media element</span> has a <code
-   title="attr-media-src">src</code>, then the address given in that
-   attribute is the address of the <span>media resource</span>; jump
-   to the last step.</p></li>
+  <dl class="switch">
 
-   <li><p>Otherwise, let <var title="">candidate</var> be the first
-   <code>source</code> element child in the <span>media
-   element</span>, or null if there is no such child.</p></li>
+   <dt>If the new ready state is <code
+   title="dom-media-DATA_UNAVAILABLE">DATA_UNAVAILABLE</code></dt>
 
-   <li>
+   <dd><p>The user agent must <span>fire a simple event</span> called
+   <code title="event-dataunavailable">dataunavailable</code> at the
+   element.</p></dd>
 
-    <p>If <var title="">candidate</var> is not null and the <var
-    title="">candidate</var> element has a <code
-    title="attr-source-src">src</code> attribute, and either:</p>
+   <dt>If the new ready state is <code
+   title="dom-media-CAN_SHOW_CURRENT_FRAME">CAN_SHOW_CURRENT_FRAME</code></dt>
 
-    <ul>
+   <dd>
 
-     <li>the <var title="">candidate</var> element has a <code
-     title="attr-source-type">type</code> attribute and that
-     attribute's value, when parsed as a MIME type, represents a type
-     that the user agent can render (including any codecs described by
-     the <code title="">codec</code> parameter), or <a
-     href="#refsRFC2046">[RFC2046]</a> <a
-     href="#refsRFC4281">[RFC4281]</a></li>
+    <p>If the element's <span>loaded-first-frame flag</span> is true,
+    the user agent must <span>fire a simple event</span> called <code
+    title="event-canshowcurrentframe">canshowcurrentframe</code>
+    event.</p>
 
-     <li>the <var title="">candidate</var> element has no <code
-     title="attr-source-type">type</code> attribute,</li>
+    <p class="note">The first time the <code
+    title="dom-media-networkState">networkState</code> attribute
+    switches to this value, the <span>loaded-first-frame flag</span>
+    is false, and the event is fired <a
+    href="#handling-first-frame-available">by the algorithm described
+    above</a> for the <code title="dom-media-load">load()</code>
+    method, in conjunction with other steps.</p>
 
-    </ul>
+   </dd>
 
-    <p>...then the address given in that <var title="">candidate</var>
-    element's <code title="attr-source-src">src</code> attribute is
-    the address of the <span>media resource</span>; jump to the last
-    step.</p>
+   <dt>If the new ready state is <code
+   title="dom-media-CAN_PLAY">CAN_PLAY</code></dt>
 
-   </li>
+   <dd><p>The user agent must <span>fire a simple event</span> called
+   <code title="event-canplay">canplay</code>.</p></dd>
 
-   <li><p>Let <var title="">candidate</var> be the next
-   <code>source</code> element child in the <span>media
-   element</span>, or null if there are no more such
-   children.</p></li>
+   <dt>If the new ready state is <code
+   title="dom-media-CAN_PLAY_THROUGH">CAN_PLAY_THROUGH</code></dt>
 
-   <li><p>If <var title="">candidate</var> is not null, return to step
-   3.</p></li>
+   <dd><p>The user agent must <span>fire a simple event</span> called
+   <code title="event-canplaythrough">canplaythrough</code> event. If
+   the <span>autoplaying flag</span> is true, and the <code
+   title="dom-media-paused">paused</code> attribute is true, <!-- XXX
+   and the <span>media element</span> has its autoplay attribute
+   specified, --> then the user agent must also set the <code
+   title="dom-media-paused">paused</code> attribute to false and
+   <span>fire a simple event</span> called <code
+   title="event-play">play</code>.</p></dd>
 
-   <li><p>There is no <span>media resource</span>. Abort these
-   steps.</p></li>
-
-   <li><p>Let the address of the <dfn>chosen media resource</dfn> be
-   the one that was found before jumping to this step.</p></li>
-
-  </ol>
+  </dl>
 
   <p>The <dfn
-  title="dom-media-currentSrc"><code>currentSrc</code></dfn> DOM
-  attribute must return the empty string if the <span>media
-  element</span> is in the <span
-  title="dom-media-EMPTY">EMPTY</span> state, and the absolute URL
-  of the <span>chosen media resource</span> otherwise.</p>
+  title="dom-media-readyState"><code>readyState</code></dfn> DOM
+  attribute must, on getting, return the value described above that
+  describes the current ready state of the <span>media
+  element</span>.</p>
 
 
 
-  <h5>Methods</h5>
+  <h5>Playing the media resource</h5>
 
-  <p>All <span title="media element">media elements</span> have a
-  <dfn>begun flag</dfn>, which must begin in the false state.</p>
+  <p>The <dfn title="dom-media-paused"><code>paused</code></dfn>
+  attribute represents whether the <span>media element</span> is
+  paused or not. The attribute must initially be true.</p>
 
-  <p>When the <dfn title="dom-media-load"><code>load()</code></dfn>
-  method on a <span>media element</span> is invoked, the user agent
-  must run the following steps. Note that this algorithm might get
-  aborted, e.g. if the <code title="dom-media-stop">stop()</code>
-  method is invoked, or if the method itself is invoked again.</p>
+  <p>A <span>media element</span> is said to be <dfn>actively
+  playing</dfn> when its <code title="dom-media-paused">paused</code>
+  attribute is false, the <code
+  title="dom-media-readyState">readyState</code> attribute is either
+  <code title="dom-media-CAN_PLAY">CAN_PLAY</code> or <code
+  title="dom-media-CAN_PLAY_THROUGH">CAN_PLAY_THROUGH</code>, the
+  element has not <span>ended playback</span>, and playback has not
+  <span>stopped due to errors</span>.</p>
+
+  <p>A <span>media element</span> is said to have <dfn>ended
+  playback</dfn> when the element's <code
+  title="dom-media-networkState">networkState</code> attribute is
+  <code title="dom-media-LOADED_METADATA">LOADED_METADATA</code> or
+  greater, the <span>current playback position</span> is equal to the
+  <var>effective end</var> of the <span>media resource</span>, and the
+  <code title="dom-media-currentLoop">currentLoop</code> attribute is
+  equal to the <code title="dom-media-loopCount">loopCount</code> DOM
+  attribute.</p>
+
+  <p>A <span>media element</span> is said to have <dfn>stopped due to
+  errors</dfn> when the element's <code
+  title="dom-media-networkState">networkState</code> attribute is
+  <code title="dom-media-LOADED_METADATA">LOADED_METADATA</code> or
+  greater, and the user agent has <a
+  href="#non-fatal-media-error">encounters a non-fatal error</a>
+  during the processing of the <span>media data</span>, and due to
+  that error, is not able to play the content at the <span>current
+  playback position</span>.</p>
+
+  <p>When a <span>media element</span> is <span>actively
+  playing</span>, its <span>current playback position</span> must
+  increase monotonically at one unit time of media time per unit time
+  of wall clock time.</p>
+
+  <p>When a <span>media element</span> that is <dfn>actively
+  playing</dfn> stops playing because its <code
+  title="dom-media-readyState">readyState</code> attribute changes to
+  a value lower than <code title="dom-media-CAN_PLAY">CAN_PLAY</code>,
+  without the element having <span>ended playback</span> or playback
+  having <span>stopped due to errors</span>, the user agent must
+  <span>fire a simple event</span> called <code
+  title="event-timeupdate">timeupdate</code> at the element, and then
+  must <span>fire a simple event</span> called <code
+  title="event-waiting">waiting</code> at the element.</p>
+
+  <p>When <code title="dom-media-currentLoop">currentLoop</code> is
+  less than <span><code
+  title="dom-media-loopCount">loopCount</code>-1</span> and the
+  <span>current playback position</span> reaches the <var>effective
+  loop end</var>, then the user agent must <span
+  title="dom-media-seek">seek</span> to the <var>effective loop
+  start</var>, increase <code
+  title="dom-media-loopCount">loopCount</code> by 1, and
+  <span>fire a simple event</span> called <code
+  title="event-timeupdate">timeupdate</code>.</p>
+
+  <p>When <code title="dom-media-currentLoop">currentLoop</code> is
+  equal to the <span><code
+  title="dom-media-loopCount">loopCount</code>-1</span> and the
+  <span>current playback position</span> reaches the <var>effective
+  end</var>, then the user agent must follow these steps:</p>
 
   <ol>
 
-   <li><p>Any already-running instance of this algorithm for this
-   element must be aborted. If those method calls have not yet
-   returned, they must finish the step they are on, and then
-   immediately return.</p></li>
+   <li><p>The user agent must stop playback.</p></li>
 
-   <li><p>The <span>media element</span>'s <code
-   title="dom-media-buffering">buffering</code> attribute must be set
-   to false.</p></li>
+   <li><p>The <code title="dom-media-ended">ended</code> attribute
+   becomes true, as described below.</p></li>
 
-   <li><p>If the <span>media element</span> is not in the <span
-   title="dom-media-EMPTY">EMPTY</span> state, then the element
-   must be switched to the <span
-   title="dom-media-EMPTY">EMPTY</span> state and the user agent
-   must synchronously <span>fire a <code>stopped</code>
-   event</span><!-- XXX xref --> at the element.</p></li>
-
-   <li><p>The user agent must <span>pick a media resource</span><!--
-   XXX xref --> for the <span>media element</span>. If that fails, the
-   method must raise an <code>INVALID_STATE_ERR</code> exception, and
-   abort these steps.</p></li>
-
-   <li><p>The <span>current playback position</span> must be set to
-   the <var>effective start</var>.</p></li> <!-- XXX but this is
-   unknown at this point! that doesn't work! -->
-
-   <li><p>The <code title="dom-media-currentLoop">currentLoop</code>
-   DOM attribute must be set to 0.</p></li>
-
-   <li><p>The element must be switched to the <span
-   title="dom-media-PAUSED">PAUSED</span> state and the user agent
-   must synchronously <span>fire a <code>paused</code>
-   event</span><!-- XXX xref --> at the element.</p></li>
-
-   <li><p>The method must return, but these steps must
-   continue.</p></li>
-
-   <li><p>Playback of any previously playing <span>media
-   resource</span> for this element stops.</p></li>
-
-   <li><p>If the element's <span>begun flag</span> is true, then the
-   <span>begun flag</span> must be set to false and the user agent
-   must <span>fire an <code>abort</code> event</span><!-- XXX xref -->
-   at the <span>media element</span>. <!-- event queuing?
-   --></p></li>
- 
-   <li><p>If a download is in progress for the <span>media
-   element</span>, the user agent should stop the download.</p></li>
-
-   <li><p>The element's <code
-   title="dom-media-buffering">buffering</code> attribute must be set
-   to true.</p></li>
-
-   <li><p>The user agent must then set the <span>begun flag</span> to
-   true and <span>fire a <code>begin</code> event</span><!-- XXX xref
-   --> at the <span>media element</span>.</p></li> <!-- event queueing
-   issue (should wait for scripts to finish before this event actually
-   fires, but it should be queued straight away) -->
-
-   <li><p>The user agent must then begin to download the <span>chosen
-   media resource</span><!-- XXX xref -->. The rate of the download
-   may be throttled, however, in response to user preferences
-   (including throttling it to zero until the user indicates that the
-   download can start), or to balance the download with other
-   connections sharing the same bandwidth.</p></li>
-
-   <li>
-
-    <p>While the download is progressing, the user agent must
-    <span>fire a <code title="event-progress">progress</code>
-    event</span><!-- XXX xref --> at the element every 350ms
-    (&#xB1;200ms) or for every byte received, whichever is
-    <em>least</em> frequent.</p>
-
-    <p>If at any point the user agent has received no data for more
-    than about three seconds, the user agent must <span>fire a
-    <code>stalled</code> event</span><!-- XXX xref --> at the
-    element.</p>
-
-    <p>User agents may allow users to selectively block or slow
-    <span>media data</span> downloads. When a <span>media
-    element</span>'s download has been blocked, the user agent must
-    act as if it was stalled (as opposed to acting as if the
-    connection was closed).</p>
-
-    <p>The user agent may use whatever means necessary to download the
-    resource (within the constraints put forward by this and other
-    specifications); for example, reconnecting to the server in the
-    face of network errors, or using HTTP partial range requests. The
-    user agent must only consider a resource erroneous if it has given
-    up trying to download it.</p>
-
-    <p>When the user agent has completed the download of the entire
-    <span>media resource</span>, or when it has determined that the
-    resource is erroneous, it must move on to the next step.</p>
-
-   </li>
-
-   <li><p>Once the download stops, for whatever reason, the element's
-   <code title="dom-media-buffering">buffering</code> attribute must
-   be set to false.</p></li>
-
-   <li>
-
-    <p>If the resource is erroneous and no <span>media data</span> has
-    been obtained (e.g. because it is an HTTP 404 response, or the
-    server returned a file that turns out to not be pure audio when
-    the <span>media element</span> is a <code>video</code> element, or
-    the file uses an unsupported codec), then:
-
-    <ol>
-
-     <li>The user agent should cancel the download.</li>
-
-     <li>The element must be switched to the <span
-     title="dom-media-EMPTY">EMPTY</span> state and the user agent
-     must synchronously <span>fire a <code>stopped</code>
-     event</span><!-- XXX xref --> at the element.</li> <!-- event
-     queueing issue again -->
-
-     <li>The <span>begun flag</span> must be set to false and the user
-     agent must <span>fire an <code>error</code> event</span><!-- XXX
-     xref --> at the <span>media element</span>.</li> <!-- event
-     queueing issue (should wait for scripts to finish before this
-     event actually fires, but it should be queued straight away) -->
-
-    </ol>
-
-   </li>
-
-   <li><p>In the case of a download being interrupted after some
-   <span>media data</span> has been received, then the <span>begun
-   flag</span> must be set to false and the user agent must <span>fire
-   an <code>error</code> event</span><!-- XXX xref --> at the
-   <span>media element</span>, but the element must not be switched to
-   the <span title="dom-media-EMPTY">EMPTY</span> state.</p></li>
-   <!-- event queueing issues -->
-
-   <li><p>If the download completes without errors, the <span>begun
-   flag</span> must be set to false and the user agent must <span>fire
-   a <code>load</code> event</span><!-- XXX xref --> at the
+   <li><p>The user agent must <span>fire a simple event</span> called
+   <code title="event-timeupdate">timeupdate</code> at the
    element.</p></li>
+
+   <li><p>The user agent must <span>fire a simple event</span> called
+   <code title="event-ended">ended</code> at the element.</p></li>
 
   </ol>
 
-  <p>If a <span>media element</span> in the <span
-  title="dom-media-EMPTY">EMPTY</span> state is inserted into a
-  document, user agents must implicitly invoke the <code
-  title="dom-media-load">load()</code> method on the <span>media
-  element</span>. Any exceptions raised must be ignored.</p> <!-- XXX
-  queue; do it after the scripts have finished executing -->
 
 
   <p>When the <dfn title="dom-media-play"><code>play()</code></dfn>
@@ -11669,52 +12167,33 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
 
   <ol>
 
-   <li><p>If the <span>media element</span> is in the <span
-   title="dom-media-EMPTY">EMPTY</span> state, then the user agent
-   must invoke the <code title="dom-media-load">load()</code>
-   method. If that raises an exception, that exception must be
-   reraised by the <code title="dom-media-play">play()</code>
-   method.</p></li>
+   <li><p>If the <span>media element</span>'s <code
+   title="dom-media-networkState">networkState</code> attribute has
+   the value <span title="dom-media-EMPTY">EMPTY</span>, then the user
+   agent must sychronously invoke the <code
+   title="dom-media-load">load()</code> method. If that raises an
+   exception, that exception must be reraised by the <code
+   title="dom-media-play">play()</code> method.</p></li>
 
-   <li><p>If the playback has <span
-   title="dom-media-ended">ended</span>, then the method must set
-   <code title="dom-media-currentLoop">currentLoop</code> to zero and
-   <span title="dom-media-seek">seek</span> to the <var>effective
+   <li><p>If the <span title="ended playback">playback has
+   ended</span>, then the user agent must set <code
+   title="dom-media-currentLoop">currentLoop</code> to zero and <span
+   title="dom-media-seek">seek</span> to the <var>effective
    start</var>.</p>
 
-   <li><p>If the <span>media element</span> is in either the <span
-   title="dom-media-PLAYING">PLAYING</span> state or the <span
-   title="dom-media-AUTO_PAUSED">AUTO-PAUSED</span> state, then the
-   method must return and the user agent must abort these
-   steps.</p></li>
+   <li><p>If the <span>media element</span>'s <code
+   title="dom-media-paused">paused</code> attribute is true, it must
+   be set to false.</p></li>
 
-   <li><p>If the user agent has enough <span>media data</span> to
-   begin playback at the <span>current playback position</span>, then
-   the <span>media element</span> must be switched to the <span
-   title="dom-media-PLAYING">PLAYING</span> state, the user agent must
-   synchronously <span>fire a <code>playing</code> event</span><!--
-   XXX xref --> at the element, and then the method call must
-   return. These steps must be aborted at this point. As described
-   below, playback will then start.</p></li>
+   <li><p>The method must then return.</p></li>
 
-   <li>
-
-    <p>Otherwise, the user agent does not have enough data to begin
-    playback at the <span>current playback position</span>.</p>
-
-    <p>If the <span>media element</span> is in the <span
-    title="dom-media-PAUSED">PAUSED</span> state, then it must be
-    switched to the <span
-    title="dom-media-AUTO_PAUSED">AUTO-PAUSED</span> state; the user
-    agent must then synchronously <span>fire an
-    <code>autopaused</code> event</span><!-- XXX xref --> at the
-    element, and the method call must return. These steps must then be
-    aborted. As described below, playback will resume when the data is
-    available.</p>
-
-   </li>
+   <li><p>If the third step above changed the value of <code
+   title="dom-media-paused">paused</code>, the user agent must
+   <span>fire a simple event</span> called <code
+   title="event-play">play</code>.</p></li>
 
   </ol>
+
 
 
   <p>When the <dfn title="dom-media-pause"><code>pause()</code></dfn>
@@ -11722,193 +12201,139 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
 
   <ol>
 
-   <li><p>If the <span>media element</span> is in the <span
-   title="dom-media-EMPTY">EMPTY</span> state, then the user agent
-   must raise an <code>INVALID_STATE_ERR</code> exception, and abort
-   these steps.</p></li>
+   <li><p>If the <span>media element</span>'s <code
+   title="dom-media-networkState">networkState</code> attribute has
+   the value <span title="dom-media-EMPTY">EMPTY</span>, then the user
+   agent must sychronously invoke the <code
+   title="dom-media-load">load()</code> method. If that raises an
+   exception, that exception must be reraised by the <code
+   title="dom-media-play">play()</code> method.</p></li>
 
-   <li><p>If the <span>media element</span> is in the <span
-   title="dom-media-PAUSED">PAUSED</span> state, then the method must
-   return and the user agent must abort these steps.</p></li>
+   <li><p>If the <span>media element</span>'s <code
+   title="dom-media-paused">paused</code> attribute is false, it must
+   be set to true.</p></li>
 
-   <li><p>The <span>media element</span> must be switched to the <span
-   title="dom-media-PAUSED">PAUSED</span> state and the user agent
-   must synchronously <span>fire a <code>paused</code>
-   event</span><!-- XXX xref --> at the element.</p></li> <!-- event
-   queueing issue again -->
+   <li><p>The method must then return.</p></li>
 
-   <li><p>The method must then return. As described below, playback of
-   will stop.</p></li>
-
-  </ol>
-
-
-<!-- XXX-VTP
-  <p>When the <dfn
-  title="dom-media-togglePause"><code>togglePause()</code></dfn>
-  method is invoked, the user agent must run the following steps:</p>
-
-  <ol>
-
-   <li><p>If the <span>media element</span> is in the <span
-   title="dom-media-EMPTY">EMPTY</span> state, then the user agent
-   must raise an <code>INVALID_STATE_ERR</code> exception, and abort
-   these steps.</p></li>
-
-   <li><p>If the <span>media element</span> is in the <span
-   title="dom-media-PAUSED">PAUSED</span> state or in the <span
-   title="dom-media-EMPTY">EMPTY</span> state, then the method
-   must act as if the <code title="dom-media-play">play()</code>
-   method had been invoked.</p></li>
-
-   <li><p>Otherwise, the method must act as if the <code
-   title="dom-media-pause">pause()</code> method had been
-   invoked.</p></li>
-
-  </ol>
--->
-
-
-  <p>When the <dfn title="dom-media-seek"><code>seek(<var
-  title="">offset</var>)</code></dfn> method is invoked, the user
-  agent must run the following steps:</p>
-
-  <ol>
-
-   <li><p>If the <span>media element</span> is in the <span
-   title="dom-media-EMPTY">EMPTY</span> state, then the user agent
-   must raise an <code>INVALID_STATE_ERR</code> exception, and abort
-   these steps.</p></li>
-
-   <!-- XXX should be allowed to fail (not all media can seek) -->
-
-   <li><p>If the given <var title="">offset</var> is below zero, then
-   the user agent must raise an <code>INDEX_SIZE_ERR</code> exception,
-   and abort these steps.</p></li>
-
-   <li><p>The <span>current playback position</span> must be set to
-   the given <var title="">offset</var>, treating this argument as a
-   time in seconds from the start of the <span>media
-   resource</span>. If the given <var title="">offset</var> is beyond
-   the end of the media resource, then the <span>current playback
-   position</span> must be set to the end of the <span>media
-   resource</span>.</p></li>
-
-   <li><p>If the <span>media element</span> is in the <span
-   title="dom-media-PLAYING">PLAYING</span> state, then the element
-   must be switched to the <span
-   title="dom-media-AUTO_PAUSED">AUTO-PAUSED</span> state, and the
-   user agent must synchronously <span>fire an <code>autopaused</code>
-   event</span><!-- XXX xref --> at the element.</p></li>
-
-   <li><p>The method must then return. As described below, the user
-   agent will then seek to the given <var title="">offset</var>, and,
-   if appropriate, start playing.</p></li>
+   <li><p>If the second step above changed the value of <code
+   title="dom-media-paused">paused</code>, the user agent must first
+   <span>fire a simple event</span> called <code
+   title="event-timeupdate">timeupdate</code> at the element, and then
+   <span>fire a simple event</span> called
+   title="event-pause">pause</code> at the element.</p></li>
 
   </ol>
 
-
-  <p>When the <dfn title="dom-media-stop"><code>stop()</code></dfn>
-  method is invoked, the user agent must run the following steps:</p>
-
-  <ol>
-
-   <li><p>Any already-running instance of the algorithm for the <code
-   title="dom-media-load">load()</code> method for this element must
-   be aborted. If those method calls have not yet returned, they must
-   finish the step they are on, and then immediately return.</p></li>
-
-   <li><p>The <span>media element</span>'s <code
-   title="dom-media-buffering">buffering</code> attribute must be set
-   to false.</p></li>
-
-   <li><p>If the <span>media element</span> is not in the <span
-   title="dom-media-EMPTY">EMPTY</span> state, then the element
-   must be switched to the <span
-   title="dom-media-EMPTY">EMPTY</span> state and the user agent
-   must synchronously <span>fire a <code>stopped</code>
-   event</span><!-- XXX xref --> at the element.</p></li>
-
-   <li><p>The method must return, but these steps must
-   continue.</p></li>
-
-   <li><p>Playback stops.</p></li>
-
-   <li><p>If the element's <span>begun flag</span> is true, then the
-   <span>begun flag</span> must be set to false and the user agent
-   must <span>fire an <code>abort</code> event</span><!-- XXX xref -->
-   at the <span>media element</span>. <!-- event queuing?
-   --></p></li>
- 
-   <li><p>If a download is in progress for the <span>media
-   element</span>, the user agent should stop the download.</p></li>
-
-  </ol>
-
-
-
-
-  <h5>Attributes</h5>
-
-  <p>The <dfn title="dom-media-duration"><code>duration</code></dfn>
-  attribute must return the length of the <span>media resource</span>,
-  in seconds. If no <span>media data</span> is available, then the
-  attributes must return 0. If <span>media data</span> is available
-  but the length is not known, the attribute must return the length of
-  the currently available data, in seconds.</p>
-
-  <p>The <dfn title="dom-media-buffering"><code>buffering</code></dfn>
-  attribute returns true if data is still being buffered, and false
-  otherwise. The exact rules for this are described above as part of
-  the algorithm for the <code title="dom-media-play">play()</code>
-  method. When the <span>media element</span> is created, the <code
-  title="dom-media-buffering">buffering</code> attribute must
-  initially be false.</p>
-
-  <p>The <dfn title="dom-media-seeking"><code>seeking</code></dfn>
-  attribute must return false if the <span>media element</span> is in
-  the <span title="dom-media-EMPTY">EMPTY</span> state or if the
-  user agent would be able to immediately start playing at the
-  <span>current playback position</span>. Otherwise it must return
-  true.</p>
 
   <p>The <dfn title="dom-media-ended"><code>ended</code></dfn>
-  attribute must return true if the <span>media element</span> is in
-  the <span title="dom-media-PAUSED">PAUSED</span> or <span
-  title="dom-media-AUTO_PAUSED">AUTO-PAUSED</span> state and the
-  <span>current playback position</span> is at the end of the
-  <span>media resource</span>. Otherwise it must return false.</p>
-
-  <p>The <dfn
-  title="dom-media-bufferingRate"><code>bufferingRate</code></dfn>
-  attribute must return the average number of bits received per second
-  for the current download over the past few seconds. If there is no
-  download in progress, the attribute must return 0.</p>
-
-  <p>The <dfn title="dom-media-position"><code>position</code></dfn>
-  attribute must return the <span>current playback position</span>,
-  expressed in seconds.</p> <!-- XXX rounding? -->
-
-  <p>The <dfn title="dom-media-buffered"><code>buffered</code></dfn>
-  attribute must return a static <span>normalised
-  <code>TimeRanges</code> object</span> that represents the ranges of
-  the <span>media resource</span>, if any, that the user agent has downloaded, at
-  the time the attribute is evaluated.</p>
-
-  <p class="note">Typically this will be a single range anchored at
-  the zero point, but if, e.g. the user agent uses HTTP range requests
-  in response to seeking, then there could be multiple ranges.</p>
+  attribute must return true if the <span>media element</span> has
+  <span>ended playback</span>, and false otherwise.</p>
 
   <p>The <dfn title="dom-media-played"><code>played</code></dfn>
   attribute must return a static <span>normalised
   <code>TimeRanges</code> object</span> that represents the ranges of
-  the <span>media resource</span>, if any, that the user agent has so far rendered,
-  at the time the attribute is evaluated.</p>
+  the <span>media resource</span>, if any, that the user agent has so
+  far rendered, at the time the attribute is evaluated.</p>
 
-  <p>The timeline of the objects returned by the <code
-  title="dom-media-buffered">buffered</code> and <code
-  title="dom-media-played">played</code> attributes must be the same
-  as the <span>media resource</span>'s timeline.</p>
+
+
+
+  <h5>Seeking</h5>
+
+  <p>The <dfn title="dom-media-seeking"><code>seeking</code></dfn>
+  attribute must initially have the value false.</p>
+
+  <p>When the user agent is required to <dfn
+  title="dom-media-seek">seek</dfn> to a particular <var title="">new
+  playback position</var> in the <span>media resource</span>, it means
+  that the user agent must run the following steps:</p>
+
+  <ol>
+
+   <li><p>If the <span>media element</span>'s <code
+   title="dom-media-networkState">networkState</code> is less than
+   <code title="dom-media-LOADED_METADATA">LOADED_METADATA</code>,
+   then the user agent must raise an <code>INVALID_STATE_ERR</code>
+   exception (if the seek was in response to a DOM method call or
+   setting of a DOM attribute), and abort these steps.</p></li>
+
+   <li><p>If the <var title="">new playback position</var> is not in
+   one of the ranges given in the <code
+   title="dom-media-seekable">seekable</code> attribute, then the user
+   agent must raise an <code>INDEX_SIZE_ERR</code> exception (if the
+   seek was in response to a DOM method call or setting of a DOM
+   attribute), and abort these steps.</p></li>
+
+   <li><p>The <span>current playback position</span> must be set to
+   the given <var title="">new playback position</var>.</p></li>
+
+   <li><p>The <code title="dom-media-seeking">seeking</code> DOM
+   attribute must be set to true.</p></li>
+
+   <li><p>The user agent must <span>fire a simple event</span> called
+   <code title="event-timeupdate">timeupdate</code> at the
+   element.</p></li>
+
+   <li><p>As soon as the user agent has established whether or not the
+   <span>media data</span> for the <var title="">new playback
+   position</var> is available, and, if it is, decoded enough data to
+   play back that position, the <code
+   title="dom-media-seeking">seeking</code> DOM attribute must be set
+   to false.</p></li>
+
+  </ol>
+
+  <p>The <dfn title="dom-media-seekable"><code>seekable</code></dfn>
+  attribute must return a static <span>normalised
+  <code>TimeRanges</code> object</span> that represents the ranges of
+  the <span>media resource</span>, if any, that the user agent is able
+  to seek to, at the time the attribute is evaluated, notwithstanding
+  the looping attributes (i.e. the <var>effective start</var> and
+  <var>effective end</var>, etc, don't affect the <code
+  title="dom-media-seekable">seeking</code> attribute).</p>
+
+  <p class="note">If the user agent can seek to anywhere in the
+  <span>media resource</span>, e.g. because the user agent and the
+  server support HTTP Range requests, then the attribute would return
+  an object with one range, whose start is 0, and whose end is the
+  same as the <code title="dom-media-duration">duration</code>
+  attribute's value.</p>
+
+
+
+  <h5>User interface</h5>
+
+  <p>The <dfn title="attr-media-controls"><code>controls</code></dfn>
+  attribute is a <span>boolean attribute</span>. If the attribute is
+  present, or if <span>scripting is disabled</span>, then the user
+  agent should <dfn>expose a user interface to the user</dfn>. This
+  user interface should include features to begin playback, pause
+  playback, seek to an arbitrary position in the content (if the
+  content supports arbitrary seeking), change the volume, and showe
+  the media content in manners more suitable to the user
+  (e.g. full-screen video or in an independent resizable
+  window). Other controls may also be made available.</p>
+
+  <p>If the attribute is absent, then the user agent should avoid
+  making a user interface available that could conflict with an
+  author-provided user interface. User agents may make the following
+  features available, however, even when the attribute is absent:</p>
+
+  <p>User agents may provide controls to affect playback of the media
+  resource (e.g. play, pause, seeking, and volume controls), but such
+  features should not interfere with the page's normal rendering. For
+  example, such features could be exposed in the <span>media
+  element</span>'s context menu.</p>
+
+  <p>Where possible (specifically, for starting, stopping, pausing,
+  and unpausing playback, for muting or changing the volume of the
+  audio, and for seeking), user interface features exposed by the user
+  agent must be implemented in terms of the DOM API described above,
+  so that, e.g., all the same events fire.</p>
+
+  <p>The <dfn title="dom-media-controls"><code>controls</code></dfn>
+  DOM attribute must <span>reflect</span> the content attribute of the
+  same name.</p>
 
   <p>The <dfn title="dom-media-volume"><code>volume</code></dfn>
   attribute must return the playback volume of any audio portions of
@@ -11937,107 +12362,6 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   <!-- XXX 'volumechange' event, 'mutechange' event -->
 
 
-  <h5>Behavior during playback</h5>
-
-  <p>While in the <span title="dom-media-PLAYING">PLAYING</span>
-  state, the <span>current playback position</span> must increase
-  monotonically at one unit time of media time per unit time of wall
-  clock time.</p>
-
-  <!-- XXX fire a 'playing' event regularly (350ms +/- 200ms) while
-  playing, so that the author doesn't have to use timeouts -->
-
-  <p>If the <span>media data</span> for the <span>current playback
-  position</span> is not yet available, the user agent must switch the
-  <span>media element</span> to the <span
-  title="dom-media-AUTO_PAUSED">AUTO-PAUSED</span> state, <span>fire a
-  <code title="event-autopaused">autopaused</code> event</span>, and
-  stop playback.</p>
-
-  <p>When <code title="dom-media-currentLoop">currentLoop</code> is
-  less than <span><code
-  title="dom-media-loopCount">loopCount</code>-1</span> and the
-  <span>current playback position</span> reaches the <var>effective
-  loop end</var>, then the user agent must <span
-  title="dom-media-seek">seek</span> to the <var>effective loop
-  start</var>, and increase <code
-  title="dom-media-loopCount">loopCount</code> by 1.</p>
-
-  <p>When <code title="dom-media-currentLoop">currentLoop</code> is
-  equal to the <span><code
-  title="dom-media-loopCount">loopCount</code>-1</span> and the
-  <span>current playback position</span> reaches the <var>effective
-  end</var>, then the user agent must follow these steps:</p>
-
-  <ol>
-
-   <li><p>The user agent must switch the <span>media element</span> to
-   the <span title="dom-media-AUTO_PAUSED">AUTO-PAUSED</span> state,
-   <span>fire a <code title="event-autopaused">autopaused</code>
-   event</span>, and stop playback.</p></li>
-
-   <li><p>The <code title="dom-media-ended">ended</code> attribute
-   becomes true, as described below.</p></li>
-
-   <li><p>The user agent must <span>fire an <code
-   title="event-ended">ended</code> event</span>.</p></li>
-
-  </ol>
-
-  <p>While in the <span
-  title="dom-media-AUTO_PAUSED">AUTO-PAUSED</span> state, once
-  <span>media data</span> becomes available for playing back at the
-  <span>current playback position</span>, and if the user agent
-  estimates that data is being downloaded at a rate where the
-  <span>current playback position</span>, if it were to advance in
-  real time, would not soon overtake the available data, and once the
-  user agent is able to start playing at the <span>current playback
-  position</span> (e.g. after seeking to that position), the user
-  agent must switch the <span>media element</span> to the <span
-  title="dom-media-PLAYING">PLAYING</span> state and resume
-  playback.</p>
-
-  <!-- XXX define that the frame for a position t is the latest frame
-  whose start time is less than or equal to t. -->
-
-
-  <h5>User interface</h5>
-
-  <p>The <dfn title="attr-media-controls"><code>controls</code></dfn> attribute is
-  a <span>boolean attribute</span>. If the attribute is present, or if
-  <span>scripting is disabled</span>, then the user agent should
-  expose a user interface to the user. This user interface should
-  include features to begin playback, pause playback, seek to an
-  arbitrary position in the content (if the content supports arbitrary
-  seeking), change the volume, and showe the media content in manners
-  more suitable to the user (e.g. full-screen video or in an
-  independent resizable window). Other controls may also be made
-  available.</p>
-
-  <p>If the attribute is absent, then the user agent should avoid
-  making a user interface available that could conflict with an
-  author-provided user interface. User agents may make the following
-  features available, however, even when the attribute is absent:</p>
-
-  <p>User agents may provide controls to affect playback of the media
-  resource (e.g. play, pause, seeking, and volume controls), but such
-  features should not interfere with the page's normal rendering. For
-  example, such features could be exposed in the <span>media
-  element</span>'s context menu.</p>
-
-  <p>Where possible (specifically, for starting, stopping, pausing,
-  and unpausing playback, for muting or changing the volume of the
-  audio, and for seeking), user interface features exposed by the user
-  agent must be implemented in terms of the DOM API described above,
-  so that, e.g., all the same events fire.</p>
-
-  <p>The <dfn title="dom-media-controls"><code>controls</code></dfn> DOM attribute
-  must <span>reflect</span> the content attribute of the same
-  name.</p>
-
-
-
-  <!-- XXX <h5>Summary</h5> non-normative: summary of events -->
 
 
   <h5>Time range</h5>
@@ -12084,6 +12408,133 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   overlap, and don't touch (adjacent ranges are folded into one bigger
   range).</p>
 
+  <p>The timelines used by the objects returned by the <code
+  title="dom-media-buffered">buffered</code>, <code
+  title="dom-media-seekable">seekable</code> and <code
+  title="dom-media-played">played</code> DOM attributes of <span
+  title="media element">media elements</span> must be the same as that
+  element's <span>media resource</span>'s timeline.</p>
+
+
+
+  <h5 id="mediaevents">Event summary</h5>
+
+  <p>The following events fire on <span title="media element">media
+  elements</span> as part of the processing model described above:</p>
+
+  <table>
+   <thead>
+    <tr>
+     <th>Event name
+     <th>Interface
+     <th>Dispatched when...
+     <th>Preconditions
+
+   <tbody>
+    <tr>
+     <td><dfn title="event-begin"><code>begin</code></dfn>
+     <td><code>ProgressEvent</code> <a href="#refsPROGRESS">[PROGRESS]</a>
+     <td>The user agent begins fetching the <span>media data</span>, synchronously during the <code title="dom-media-load">load()</code> method call.
+     <td><code title="dom-media-networkState">networkState</code> equals <code title="dom-media-LOADING">LOADING</code>
+    <tr>
+     <td><dfn title="event-progress"><code>progress</code></dfn>
+     <td><code>ProgressEvent</code> <a href="#refsPROGRESS">[PROGRESS]</a>
+     <td>The user agent is fetching <span>media data</span>.
+     <td><code title="dom-media-networkState">networkState</code> is more than <code title="dom-media-EMPTY">EMPTY</code> and less than <code title="dom-media-LOADED">LOADED</code>
+    <tr>
+     <td><dfn title="event-loadedmetadata"><code>loadedmetadata</code></dfn>
+     <td><code>Event</code>
+     <td>The user agent is fetching <span>media data</span>, and the <span>media resource</span>'s metadata has just been received.
+     <td><code title="dom-media-networkState">networkState</code> equals <code title="dom-media-LOADED_METADATA">LOADED_METADATA</code>
+    <tr>
+     <td><dfn title="event-loadedfirstframe"><code>loadedfirstframe</code></dfn>
+     <td><code>Event</code>
+     <td>The user agent is fetching <span>media data</span>, and the <span>media resource</span>'s metadata has just been received.
+     <td><code title="dom-media-networkState">networkState</code> equals <code title="dom-media-LOADED_INITIAL_FRAME">LOADED_INITIAL_FRAME</code>
+    <tr>
+     <td><dfn title="event-load"><code>load</code></dfn>
+     <td><code>ProgressEvent</code> <a href="#refsPROGRESS">[PROGRESS]</a>
+     <td>The user agent finishes downloading the entire <span>media resource</span>.
+     <td><code title="dom-media-networkState">networkState</code> equals <code title="dom-media-LOADED">LOADED</code>
+    <tr>
+     <td><dfn title="event-abort"><code>abort</code></dfn>
+     <td><code>ProgressEvent</code> <a href="#refsPROGRESS">[PROGRESS]</a>
+     <td>The user agent stops fetching the <span>media data</span> before it is completely downloaded. This can be fired synchronously during the <code title="dom-media-load">load()</code> method call.
+     <td><code title="dom-media-error">error</code> is <code title="dom-media-MEDIA_ERR_ABORTED">MEDIA_ERR_ABORTED</code>.
+         <code title="dom-media-networkState">networkState</code> equals either <code title="dom-media-EMPTY">EMPTY</code> or <code title="dom-media-LOADED">LOADED</code>, depending on when the download was aborted.
+    <tr>
+     <td><dfn title="event-error"><code>error</code></dfn>
+     <td><code>ProgressEvent</code> <a href="#refsPROGRESS">[PROGRESS]</a>
+     <td>An error occurs while fetching the <span>media data</span>.
+     <td><code title="dom-media-error">error</code> is <code title="dom-media-MEDIA_ERR_NETWORK_ERROR">MEDIA_ERR_NETWORK_ERROR</code> or higher.
+         <code title="dom-media-networkState">networkState</code> equals either <code title="dom-media-EMPTY">EMPTY</code> or <code title="dom-media-LOADED">LOADED</code>, depending on when the download was aborted.
+    <tr>
+     <td><code title="event-emptied">emptied</code>
+     <td><code>Event</code>
+     <td>A <span>media element</span> whose <code title="dom-media-networkState">networkState</code> was previously not in the <code title="dom-media-EMPTY">EMPTY</code> state has just switched to that state (either because of a fatal error during load that's about to be reported, or because the <code title="dom-media-load">load()</code> method was reinvoked, in which case it is fired synchronously during the <code title="dom-media-load">load()</code> method call).
+     <td><code title="dom-media-networkState">networkState</code> is <code title="dom-media-EMPTY">EMPTY</code>; all the DOM attributes are in their initial states.
+    <tr>
+     <td><dfn title="event-stalled"><code>stalled</code></dfn>
+     <td><code>ProgressEvent</code>
+     <td>The user agent is trying to fetch <span>media data</span>, but data is unexpectedly not forthcoming.
+     <td>
+    <tr>
+     <td><dfn title="event-play"><code>play</code></dfn>
+     <td><code>Event</code>
+     <td>Playback has begun. Fired after the <code title="dom-media-play">play</code> method has returned.
+     <td><code title="dom-media-paused">paused</code> is newly false.
+    <tr>
+     <td><dfn title="event-pause"><code>pause</code></dfn>
+     <td><code>Event</code>
+     <td>Playback has been paused. Fired after the <code title="dom-media-pause">pause</code> method has returned.
+     <td><code title="dom-media-paused">paused</code> is newly true.
+    <tr>
+     <td><code title="event-waiting">waiting</code>
+     <td><code>Event</code>
+     <td>Playback has stopped because the next frame is not available, but the user agent expects that frame to become available in due course.
+     <td><code title="dom-media-readyState">readyState</code> is either <code title="dom-media-DATA_UNAVAILABLE">DATA_UNAVAILABLE</code> or <code title="dom-media-CAN_SHOW_CURRENT_FRAME">CAN_SHOW_CURRENT_FRAME</code>, and <code title="dom-media-paused">paused</code> is false. Either <code title="dom-media-seeking">seeking</code> is true, or the <span>current playback position</span> is not contained in any of the ranges in <code title="dom-media-buffered">buffered</code>. It is possible for playback to stop for two other reasons without <code title="dom-media-paused">paused</code> being false, but those two reasons do not fire this event: maybe <span title="ended playback">playback ended</span>, or playback <span>stopped due to errors</span>.
+    <tr>
+     <td><dfn title="event-timeupdate"><code>timeupdate</code></dfn>
+     <td><code>Event</code>
+     <td>The <span>current playback position</span> changed in an interesting way, for example discontinuously.
+     <td>
+    <tr>
+     <td><dfn title="event-ended"><code>ended</code></dfn>
+     <td><code>Event</code>
+     <td>Playback has stopped because the end of the <span>media resource</span> was reached.
+     <td><code title="dom-media-position">position</code> equals the <var>effective end</var>; <code title="dom-media-ended">ended</code> is true.
+    <tr>
+     <td><dfn title="event-dataunavailable"><code>dataunavailable</code></dfn>
+     <td><code>Event</code>
+     <td>The user agent cannot render the data at the <span>current playback position</span> because data for the current frame is not immediately available.
+     <td>The <code title="dom-media-readyState">readyState</code> attribute is newly equal to <code title="DATA_UNAVAILABLE">DATA_UNAVAILABLE</code>.
+    <tr>
+     <td><dfn title="event-canshowcurrentframe"><code>canshowcurrentframe</code></dfn>
+     <td><code>Event</code>
+     <td>The user agent cannot render the data after the <span>current playback position</span> because data for the next frame is not immediately available.
+     <td>The <code title="dom-media-readyState">readyState</code> attribute is newly equal to <code title="CAN_SHOW_CURRENT_FRAME">CAN_SHOW_CURRENT_FRAME</code>.
+    <tr>
+     <td><dfn title="event-canplay"><code>canplay</code></dfn>
+     <td><code>Event</code>
+     <td>The user agent can resume playback of the <span>media data</span>, but estimates that if playback were to be started now, the <span>media resource</span> could not be rendered at the current playback rate up to its end without having to stop for further buffering of content.
+     <td>The <code title="dom-media-readyState">readyState</code> attribute is newly equal to <code title="CAN_PLAY">CAN_PLAY</code>.
+    <tr>
+     <td><dfn title="event-canplaythrough"><code>canplaythrough</code></dfn>
+     <td><code>Event</code>
+     <td>The user agent estimates that if playback were to be started now, the <span>media resource</span> could be rendered at the current playback rate all the way to its end without having to stop for further buffering.
+     <td>The <code title="dom-media-readyState">readyState</code> attribute is newly equal to <code title="CAN_PLAY_THROUGH">CAN_PLAY_THROUGH</code>.
+    <tr>
+     <td><dfn title="event-durationchange"><code>durationchange</code></dfn>
+     <td><code>Event</code>
+     <td>The <code title="dom-media-duration">duration</code> attribute has just been updated.
+     <td>
+    <tr>
+     <td><dfn title="event-volumechange"><code>volumechange</code></dfn>
+     <td><code>Event</code>
+     <td>Either the <code title="dom-media-volume">volume</code> attribute or the <code title="dom-media-muted">muted</code> attribute has changed. Fired after the relevant attribute's setter has returned.
+     <td>
+  </table>
+
 
 
   <h4>The <dfn><code>source</code></dfn> element</h4>
@@ -12104,8 +12555,8 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
    <dt>DOM interface:</dt>
    <dd>
 <pre class="idl">interface <dfn>HTMLSourceElement</dfn> : <span>HTMLElement</span> {
-           attribute DOMString <span title="dom-source-src">name</span>;
-           attribute DOMString <span title="dom-source-type">value</span>;
+           attribute DOMString <span title="dom-source-src">src</span>;
+           attribute DOMString <span title="dom-source-type">type</span>;
 };</pre>
    </dd>
   </dl>
@@ -19961,7 +20412,7 @@ XXX selection ranges -->
      title="">pos</var>+2</span> in <var title="">s</var> are exactly
      equal to 0x2D, 0x2D, 0x3E respectively (ASCII for "<code
      title="">--&gt;</code>"), then increase <var title="">pos</var>
-     by 3 and jump back to the previous step (step 6) in the overall
+     by 3 and jump back to the previous step (step 5) in the overall
      algorithm in this section.</li>
 
      <li>Otherwise, increase <var title="">pos</var> by 1.</li>
@@ -19989,7 +20440,7 @@ XXX selection ranges -->
 
      <li>If <span><var title="">s</var>[<var
      title="">pos</var>]</span> equal 0x3E, then increase <var
-     title="">pos</var> by 1 and jump back to step 6 in the overall
+     title="">pos</var> by 1 and jump back to step 5 in the overall
      algorithm in this section.</li>
 
      <li>Otherwise, return to step 1 in these substeps.</li>
@@ -20010,7 +20461,7 @@ XXX selection ranges -->
      title="">pos</var>]</span> and <span><var title="">s</var>[<var
      title="">pos</var>+1]</span> equal 0x3F and 0x3E respectively,
      then increase <var title="">pos</var> by 1 and jump back to
-     step 6 in the overall algorithm in this section.</li>
+     step 5 in the overall algorithm in this section.</li>
 
      <li>Otherwise, return to step 1 in these substeps.</li>
 
@@ -20948,6 +21399,11 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   title="event-error">error</code></span>.</p>
 
   <!-- XXX need to define the dispatching of DOMActivate -->
+
+  <p class="big-issue"><dfn title="fire a progress event">Firing a
+  progress event called <var title="">e</var></dfn> means something
+  that hasn't yet been defined, in the <a
+  href="#refsPROGRESS">[PROGRESS]</a> spec.</p>
 
   <p>The default action of these event is to do nothing unless
   otherwise stated.</p>
@@ -29108,7 +29564,7 @@ MAYBE WANT
        <dd>Jump to the step below labelled <em>spaces</em>.</dd>
 
        <dt>If it is 0x2F (ASCII '/'), 0x3C (ASCII '&lt;'), or 0x3E
-       (ASCII '&gt;').</dt>
+       (ASCII '&gt;')</dt>
 
        <dd>Stop looking for an attribute. The attribute's name is the
        value of <var title="">attribute name</var>, its value is the
@@ -29200,7 +29656,7 @@ MAYBE WANT
 
        </dd>
 
-       <dt>If it is 0x3C (ASCII '&lt;'), or 0x3E (ASCII '&gt;').</dt>
+       <dt>If it is 0x3C (ASCII '&lt;'), or 0x3E (ASCII '&gt;')</dt>
 
        <dd>Stop looking for an attribute. The attribute's name is the
        value of <var title="">attribute name</var>, its value is the
@@ -29232,7 +29688,7 @@ MAYBE WANT
 
        <dt>If it is 0x09 (ASCII TAB), 0x0A (ASCII LF), 0x0B (ASCII
        VT), 0x0C (ASCII FF), 0x0D (ASCII CR), 0x20 (ASCII space), 0x3C
-       (ASCII '&lt;'), or 0x3E (ASCII '&gt;').</dt>
+       (ASCII '&lt;'), or 0x3E (ASCII '&gt;')</dt>
 
        <dd>Stop looking for an attribute. The attribute's name is the
        value of <var title="">attribute name</var> and its value is the
