@@ -636,13 +636,16 @@
          <li><a href="#seeking"><span class=secno>3.14.9.8.
           </span>Seeking</a>
 
-         <li><a href="#user-interface"><span class=secno>3.14.9.9.
+         <li><a href="#cue-points"><span class=secno>3.14.9.9. </span>Cue
+          points</a>
+
+         <li><a href="#user-interface"><span class=secno>3.14.9.10.
           </span>User interface</a>
 
-         <li><a href="#time-range"><span class=secno>3.14.9.10. </span>Time
+         <li><a href="#time-range"><span class=secno>3.14.9.11. </span>Time
           range</a>
 
-         <li><a href="#mediaevents"><span class=secno>3.14.9.11. </span>Event
+         <li><a href="#mediaevents"><span class=secno>3.14.9.12. </span>Event
           summary</a>
         </ul>
 
@@ -13196,9 +13199,10 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
            attribute float <a href="#loopend0" title=dom-media-loopEnd>loopEnd</a>;
            attribute unsigned long <a href="#loopcount0" title=dom-media-loopCount>loopCount</a>;
            attribute unsigned long <a href="#currentloop" title=dom-media-currentLoop>currentLoop</a>;
-<!--
+
   // cue points
-  // ...-->
+  void <a href="#addcuepoint" title=dom-media-addCuePoint>addCuePoint</a>(in float time, in <a href="#voidcallback">VoidCallback</a> callback, in bool pause);
+  void <a href="#removecuepoint" title=dom-media-removeCuePoint>removeCuePoint</a>(in float time, in <a href="#voidcallback">VoidCallback</a> callback);
 
   // controls
            attribute boolean <a href="#controls0" title=dom-media-controls>controls</a>;
@@ -13219,16 +13223,10 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
    They are defined in this section.</p>
   <!-- XXX v2 features:
     * should 'error' be an object instead or a number?
-    * change rate/direction of playback (ffwd) temporarily, permanently
-    * frame forward / backwards / step(n) while paused
-    * ability to insert a bunch of "stop points"; points where the
-      video will pause and trigger an event possibly stop points
-      should be able to say whether to pause or just trigger event
-      possibly stop points should have an associated object (cue
-      marks; time triggers)
     * media="" on <source> [MQ]
   -->
   <!-- XXX v3 features:
+    * frame forward / backwards / step(n) while paused
     * hasAudio, hasVideo, hasCaptions, etc
     * per-frame control: get current frame; set current frame
     * queue of content
@@ -14364,8 +14362,8 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
 
   <p class=note>If the second step above involved a seek, the user agent will
    <a href="#firing2">fire a simple event</a> called <code
-   title=event-timechange>timechange</code> at the <a href="#media5">media
-   element</a>.
+   title=event-timeupdate><a href="#timeupdate">timeupdate</a></code> at the
+   <a href="#media5">media element</a>.
 
   <p class=note>If the third step above caused the <code
    title=dom-media-playbackRate><a
@@ -14519,7 +14517,82 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
    <code title=dom-media-duration><a href="#duration">duration</a></code>
    attribute's value.
 
-  <h5 id=user-interface><span class=secno>3.14.9.9. </span>User interface</h5>
+  <h5 id=cue-points><span class=secno>3.14.9.9. </span>Cue points</h5>
+
+  <p><a href="#media5" title="media element">Media elements</a> have an
+   ordered list of (<var title="">time</var>, <var title="">callback</var>)
+   tuples called the <dfn id=cue-point>cue point list</dfn>. Each entry in
+   the list also has a boolean <var title="">pause</var> associated with it.
+
+  <p>The <dfn id=addcuepoint
+   title=dom-media-addCuePoint><code>addCuePoint(<var title="">time</var>,
+   <var title="">callback</var>, <var title="">pause</var>)</code></dfn>
+   method must, when called, add a tuple made of the given <var
+   title="">time</var> and <var title="">callback</var> to the element's <a
+   href="#cue-point">cue point list</a>, and associate with that entry the
+   value of the <var title="">pause</var> argument.
+
+  <p>The <dfn id=removecuepoint
+   title=dom-media-removeCuePoint><code>removeCuePoint(<var
+   title="">time</var>, <var title="">callback</var>)</code></dfn> method
+   must, when called, remove the first tuple matching the given <var
+   title="">time</var> and <var title="">callback</var> from the element's <a
+   href="#cue-point">cue point list</a>.
+
+  <p>When the <a href="#current">current playback position</a> of a <a
+   href="#media5">media element</a> reaches one of the times given in the
+   element's <a href="#cue-point">cue point list</a>, the user agent must
+   follow these steps:
+
+  <ol>
+   <li>
+    <p>First, if any of the entries in the <a href="#cue-point">cue point
+     list</a> with that time have their associated <var title="">pause</var>
+     boolean set to true, then the user agent must immediately pause
+     playback, and then <a href="#firing2">fire a simple event</a> called
+     <code title=event-pause><a href="#pause1">pause</a></code> at the
+     element.
+
+   <li>
+    <p>The user agent must then <a href="#firing2">fire a simple event</a>
+     called <code title=event-timeupdate><a
+     href="#timeupdate">timeupdate</a></code> at the element.
+
+   <li>
+    <p>The user agent must then invoke the callbacks for all the entries in
+     the list that match the <a href="#current">current playback position</a>
+     time, in the order they were added to the list.
+  </ol>
+
+  <p>Invoking a callback, which is an object implementing the <code><a
+   href="#voidcallback">VoidCallback</a></code> interface, means calling its
+   <code title=dom-VoidCallback-handleEvent><a
+   href="#handleevent">handleEvent</a></code> method.
+
+  <pre>interface <dfn id=voidcallback>VoidCallback</dfn> {
+  void <a href="#handleevent" title=dom-voidCallback-handleEvent>handleEvent</a>();
+};</pre>
+
+  <p>The <dfn id=handleevent
+   title=dom-voidCallback-handleEvent><code>handleEvent</code></dfn> method
+   of objects implementing the <code><a
+   href="#voidcallback">VoidCallback</a></code> interface is the entrypoint
+   for the callback represented by the object.
+
+  <p>In the ECMAScript DOM binding, the ECMAScript native
+   <code>Function</code> type must implement the <code><a
+   href="#voidcallback">VoidCallback</a></code> interface such that invoking
+   the <code>handleEvent()</code> method of that interface on the object from
+   another language binding invokes the function itself. In the ECMAScript
+   binding itself, however, the <code>handleEvent()</code> method of the
+   interface is not directly accessible on <code>Function</code> objects.
+   Such functions, when invoked, must be called in the <a
+   href="#global0">global scope</a><!-- XXX -->.</p>
+  <!-- XXX if
+  you change this make sure to also look up the other mentions of
+  handleEvent() in this file -->
+
+  <h5 id=user-interface><span class=secno>3.14.9.10. </span>User interface</h5>
 
   <p>The <dfn id=controls
    title=attr-media-controls><code>controls</code></dfn> attribute is a <a
@@ -14584,7 +14657,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
    title=event-volumechange><a href="#volumechange">volumechange</a></code>
    at the <a href="#media5">media element</a>.
 
-  <h5 id=time-range><span class=secno>3.14.9.10. </span>Time range</h5>
+  <h5 id=time-range><span class=secno>3.14.9.11. </span>Time range</h5>
 
   <p>Objects implementing the <code><a
    href="#timeranges">TimeRanges</a></code> interface represent a list of
@@ -14631,7 +14704,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
    of <a href="#media5" title="media element">media elements</a> must be the
    same as that element's <a href="#media8">media resource</a>'s timeline.
 
-  <h5 id=mediaevents><span class=secno>3.14.9.11. </span>Event summary</h5>
+  <h5 id=mediaevents><span class=secno>3.14.9.12. </span>Event summary</h5>
 
   <p>The following events fire on <a href="#media5" title="media
    element">media elements</a> as part of the processing model described

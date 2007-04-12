@@ -11164,9 +11164,10 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
            attribute float <span title="dom-media-loopEnd">loopEnd</span>;
            attribute unsigned long <span title="dom-media-loopCount">loopCount</span>;
            attribute unsigned long <span title="dom-media-currentLoop">currentLoop</span>;
-<!--
+
   // cue points
-  // ...-->
+  void <span title="dom-media-addCuePoint">addCuePoint</span>(in float time, in <span>VoidCallback</span> callback, in bool pause);
+  void <span title="dom-media-removeCuePoint">removeCuePoint</span>(in float time, in <span>VoidCallback</span> callback);
 
   // controls
            attribute boolean <span title="dom-media-controls">controls</span>;
@@ -11188,17 +11189,11 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
 
   <!-- XXX v2 features:
     * should 'error' be an object instead or a number?
-    * change rate/direction of playback (ffwd) temporarily, permanently
-    * frame forward / backwards / step(n) while paused
-    * ability to insert a bunch of "stop points"; points where the
-      video will pause and trigger an event possibly stop points
-      should be able to say whether to pause or just trigger event
-      possibly stop points should have an associated object (cue
-      marks; time triggers)
     * media="" on <source> [MQ]
   -->
 
   <!-- XXX v3 features:
+    * frame forward / backwards / step(n) while paused
     * hasAudio, hasVideo, hasCaptions, etc
     * per-frame control: get current frame; set current frame
     * queue of content
@@ -12308,7 +12303,7 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
 
    <p class="note">If the second step above involved a seek, the user
    agent will <span>fire a simple event</span> called <code
-   title="event-timechange">timechange</code> at the <span>media
+   title="event-timeupdate">timeupdate</code> at the <span>media
    element</span>.</p></li>
 
    <p class="note">If the third step above caused the <code
@@ -12449,6 +12444,81 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   an object with one range, whose start is 0, and whose end is the
   same as the <code title="dom-media-duration">duration</code>
   attribute's value.</p>
+
+
+
+  <h5>Cue points</h5>
+
+  <p><span title="media element">Media elements</span> have an ordered
+  list of (<var title="">time</var>, <var title="">callback</var>)
+  tuples called the <dfn>cue point list</dfn>. Each entry in the list
+  also has a boolean <var title="">pause</var> associated with it.</p>
+
+  <p>The <dfn title="dom-media-addCuePoint"><code>addCuePoint(<var
+  title="">time</var>, <var title="">callback</var>, <var
+  title="">pause</var>)</code></dfn> method must, when called, add a
+  tuple made of the given <var title="">time</var> and <var
+  title="">callback</var> to the element's <span>cue point
+  list</span>, and associate with that entry the value of the <var
+  title="">pause</var> argument.</p>
+
+  <p>The <dfn
+  title="dom-media-removeCuePoint"><code>removeCuePoint(<var
+  title="">time</var>, <var title="">callback</var>)</code></dfn>
+  method must, when called, remove the first tuple matching the given
+  <var title="">time</var> and <var title="">callback</var> from the
+  element's <span>cue point list</span>.</p>
+
+  <p>When the <span>current playback position</span> of a <span>media
+  element</span> reaches one of the times given in the element's
+  <span>cue point list</span>, the user agent must follow these
+  steps:</p>
+
+  <ol>
+
+   <li><p>First, if any of the entries in the <span>cue point
+   list</span> with that time have their associated <var
+   title="">pause</var> boolean set to true, then the user agent must
+   immediately pause playback, and then <span>fire a simple
+   event</span> called <code title="event-pause">pause</code> at the
+   element.</p></li>
+
+   <li><p>The user agent must then <span>fire a simple event</span>
+   called <code title="event-timeupdate">timeupdate</code> at the
+   element.</p></li>
+
+   <li><p>The user agent must then invoke the callbacks for all the
+   entries in the list that match the <span>current playback
+   position</span> time, in the order they were added to the
+   list.</p></li>
+
+  </ol>
+
+  <p>Invoking a callback, which is an object implementing the
+  <code>VoidCallback</code> interface, means calling its <code
+  title="dom-VoidCallback-handleEvent">handleEvent</code> method.</p>
+
+  <pre>interface <dfn>VoidCallback</dfn> {
+  void <span title="dom-voidCallback-handleEvent">handleEvent</span>();
+};</pre>
+
+  <p>The <dfn
+  title="dom-voidCallback-handleEvent"><code>handleEvent</code></dfn>
+  method of objects implementing the <code>VoidCallback</code>
+  interface is the entrypoint for the callback represented by the
+  object.</p>
+
+  <p>In the ECMAScript DOM binding, the ECMAScript native
+  <code>Function</code> type must implement the
+  <code>VoidCallback</code> interface such that invoking the
+  <code>handleEvent()</code> method of that interface on the object
+  from another language binding invokes the function itself. In the
+  ECMAScript binding itself, however, the <code>handleEvent()</code>
+  method of the interface is not directly accessible on
+  <code>Function</code> objects. Such functions, when invoked, must be
+  called in the <span>global scope</span><!-- XXX -->.</p> <!-- XXX if
+  you change this make sure to also look up the other mentions of
+  handleEvent() in this file -->
 
 
 
