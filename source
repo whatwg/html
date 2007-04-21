@@ -939,15 +939,21 @@
   -->
 };</pre>
 
-  <p class="note">This specification requires that implementations
-  also implement some version of the Window object specification, so
-  all <code>HTMLDocument</code> objects also implement the
-  <code>DocumentWindow</code> object and thus the
-  <code>DocumentView</code> object.</p>
-
   <p>Since the <code>HTMLDocument</code> interface holds methods and
   attributes related to a number of disparate features, the members of
   this interface are described in various different sections.</p>
+
+
+  <h4>Security</h4>
+
+  <p>User agents must raise a <span>security exception</span> whenever
+  any of the members of an <code>HTMLDocument</code> object are
+  accessed by scripts whose <span>origin</span> is not the same as the
+  <code>Document</code>'s origin, with the following exceptions:</p>
+
+  <ul>
+   <li>No exceptions.
+  </ul>
 
 
 
@@ -957,25 +963,31 @@
   attribute must return <span>the document's address</span><!-- XXX
   xref -->.</p>
 
-
   <p>The <dfn title="dom-document-domain"><code>domain</code></dfn>
-  attribute must be initialised to <span>the document's
-  domain</span><!-- XXX xref --> upon the creation of the
-  <code>Document</code> object. On getting, the attribute must return
-  its current value. On setting, if the new value is an allowed value
-  (as defined below), the attribute's value must be changed to the new
-  value. If the new value is not an allowed value, then a
+  attribute must be initialised to <span>the document's domain</span>,
+  if it has one, and null otherwise. On getting, the attribute must
+  return its current value. On setting, if the new value is an allowed
+  value (as defined below), the attribute's value must be changed to
+  the new value. If the new value is not an allowed value, then a
   <span>security exception</span> must be raised instead.</p>
 
   <p>A new value is an allowed value for the <code
   title="dom-document-domain">document.domain</code> attribute if it
   is equal to the attribute's current value, or if the new value,
   prefixed by a U+002E FULL STOP ("."), exactly matches the end of the
-  current value.</p>
+  current value. If the current value is null, new values other than
+  null will never be allowed.</p>
+
+  <p>If the <code>Document</code> object's <span title="the document's
+  address">address</span><!-- XXX xref --> is hierarchical and uses a
+  server-based naming authority, then its <dfn title="document's
+  domain">domain</dfn> is the &lt;hostname&gt; part of that
+  address. Otherwise, it has no domain.</p>
 
   <p class="note">The <code title="dom-document-domain">domain</code>
   attribute is used to enable pages on different hosts of a domain to
-  access each others' DOMs.</p><!-- XXX xref -->
+  access each others' DOMs<span class="big-issue">, though this is not
+  yet defined by this specification</span>.</p><!-- XXX xref -->
 
   <!--XXX
     http://lxr.mozilla.org/seamonkey/source/content/html/document/src/nsHTMLDocument.cpp
@@ -13018,10 +13030,9 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   leakage</em>, the <code
   title="dom-canvas-toDataURL">toDataURL()</code> and <code
   title="dom-context-2d-getImageData">getImageData()</code> methods
-  should raise a <span>security exception</span> if the canvas ever
-  had images painted on it that originate from a domain other than the
-  <span title="script's domain">domain of the script</span> that
-  painted the images onto the canvas.</p>
+  should raise a <span>security exception</span> if the canvas has
+  ever had an image painted on it whose <span>origin</span> is
+  different from that of the script calling the method.</p>
 
 
   <h5>The 2D context</h5>
@@ -20327,7 +20338,8 @@ XXX selection ranges -->
    <li><p>If the given browsing context name is <code
    title="">_parent</code>, then the chosen browsing context must be
    the <span><em>parent</em> browsing context</span> of the current
-   one.</p></li>
+   one, unless there isn't one, in which case the chosen browsing
+   context must be the current browsing context.</p></li>
 
    <li><p>If the given browsing context name is <code
    title="">_top</code>, then the chosen browsing context must be the
@@ -20337,16 +20349,16 @@ XXX selection ranges -->
    <li><p>If the given browsing context name is not <code
    title="">_blank</code> and there exists a browsing context whose
    <span title="browsing context name">name</span> is the same as the
-   given browsing context name, and the <span>document's domain</span>
-   of that browsing context's <span>active document</span> is the same
-   as the <span>document's domain</span> of the current browsing
-   context's <span>active document</span>, and the user agent
-   determines that the two browsing contexts are related enough that
-   it is ok if they reach each other, then that browsing context
-   must be the chosen one. If there are multiple matching browsing
-   contexts, the user agent should select one in some arbitrary
-   consistent manner, such as the most recently opened, most
-   recently focused, or more closely related.</p></li>
+   given browsing context name, and the <span>origin</span> of that
+   browsing context's <span>active document</span> is the same as the
+   <span>origin</span> of the current browsing context's <span>active
+   document</span>, and the user agent determines that the two
+   browsing contexts are related enough that it is ok if they reach
+   each other, then that browsing context must be the chosen one. If
+   there are multiple matching browsing contexts, the user agent
+   should select one in some arbitrary consistent manner, such as the
+   most recently opened, most recently focused, or more closely
+   related.</p></li>
 
    <li>
 
@@ -20447,6 +20459,24 @@ XXX selection ranges -->
   <p class="note"><code>Window</code> objects also <span
   title="dom-item">have an implicit [[Get]] method</span> which
   returns <span>nested browsing contexts</span>.</p>
+
+
+  <h4>Security</h4>
+
+  <p>User agents must raise a <span>security exception</span> whenever
+  any of the members of a <code>Window</code> object are accessed by
+  scripts whose <span>origin</span> is not the same as the
+  <code>Window</code> object's <span>browsing context</span>'s
+  <span>active document</span>'s origin, with the following
+  exceptions:</p>
+
+  <ul>
+   <li>The <code title="dom-location">location</code> object
+  </ul>
+
+  <p>User agents must not allow scripts to override the <code
+  title="dom-location">location</code> object's setter.</p>
+
 
 
   <h4>Constructors</h4>
@@ -21001,6 +21031,21 @@ reload on shared Document updates all of them
 
 user reload must be equivalent to .reload()
 -->
+
+  <h5>Security</h5>
+
+  <p>User agents must raise a <span>security exception</span> whenever
+  any of the members of a <code>Location</code> object are accessed by
+  scripts whose <span>origin</span> is not the same as the
+  <code>Location</code> object's associated <code>Document</code>'s
+  origin, with the following exceptions:</p>
+
+  <ul>
+   <li>The <code title="dom-location-href">href</code> setter
+  </ul>
+
+  <p>User agents must not allow scripts to override the <code
+  title="dom-location-href">href</code> attribute's setter.</p>
 
 
   <h4 id="history-notes">Implementation notes for session history</h4>
@@ -23200,8 +23245,8 @@ at the first element with the given ID must be treated as if it was cloned and r
 
    <li>Processing of <code>script</code> elements.</li>
 
-   <li>Processing of inline <code
-   title="javascript-scheme">javascript:</code> URIs (e.g. the <code
+   <li>Processing of inline <code title="javascript
+   protocol">javascript:</code> URIs (e.g. the <code
    title="attr-img-src">src</code> attribute of <code>img</code>
    elements, or an <code title="">@import</code> rule in a CSS
    <code>style</code> element block).</li>
@@ -23227,121 +23272,105 @@ at the first element with the given ID must be treated as if it was cloned and r
   the purposes of conformance.</p>
 
 
-  <h4 id="scripting-security">The security model</h4>
+  <h4>Origin</h4>
+  <!-- Hallowed are the Ori -->
 
-<!-- https://bugzilla.mozilla.org/show_bug.cgi?id=346659 -->
+  <!--
+    https://bugzilla.mozilla.org/show_bug.cgi?id=346659
+    https://bugzilla.mozilla.org/show_bug.cgi?id=344495
+  -->
 
-  <p><em>Web browser vendors should implement this security model, to
-  provide Web authors with a consistent development environment that
-  is interoperable across different implementations. However,
-  implementors may use any other model if desired.</em></p>
+  <p>Access to certain APIs is granted or denied to scripts based on
+  the <dfn>origin</dfn> of the script and the API being accessed.</p>
 
-  <p>The security model for Web browsers has grown organically with
-  the development of the Web, and as such is somewhat unique.</p>
+  <dl>
 
-  <p>Access to resources and APIs is granted or denied to Web content
-  (scripts, elements, etc) based on the content's
-  <dfn>origin</dfn>. For historical reasons, the mechanism for
-  determining the <em>origin</em> of a particular piece of content
-  depends on the nature of the content.</p>
+   <dt>If a script is in a <code>script</code> element</dt>
 
-  <p class="big-issue">...</p>
-<!--
- XXX this is a very confused section, so I've commented it out
-
-  <p>For <code>Document</code>s:</p>
-
-  <dl class="switch">
-
-   <dt>If it was served over the network using HTTP, HTTPS, FTP, or
-   another protocol whose scheme contains a <em>host authority
-   component</em>:</dt>
-
-   <dd>
-
-    <p>The resource's origin consists of the scheme, host, and port
-    parts of the resource's full URI.</p>
-
-    <p class="example">For example, if a Web page has the address
-    <code>https://www.example.com/demo.html</code>, the origin
-    consists of the tuple "https", "www.example.com", and "443".</p>
-
-   </dd>
-
-   <dt>If it was created by script...</dt>
-
-   <dd>
-
-    <p>The resource's origin consists of the scheme, host, and port
-    parts of the resource's full URI.</p>
-
-    <p class="example">For example, if a Web page has the address
-    <code>https://www.example.com/demo.html</code>, the origin
-    consists of the tuple "https", "www.example.com", and "443".</p>
-
-   </dd>
+   <dd>The origin of the script is the origin of the
+   <code>Document</code> to which the <code>script</code> element
+   belongs.</dd>
 
 
-   <dt>A document resource (a <code>Document</code>) that was served
-   over the network using HTTP, HTTPS, FTP, or another protocol whose
-   scheme contains a <em>host authority component</em>:</dt>
+   <dt>If a script is a function or other code reference created by
+   another script</dt>
 
-   <dd>
+   <dd>The origin of the script is the origin of the script that
+   created it.</dd>
 
-    <p>The resource's origin consists of the scheme, host, and port
-    parts of the resource's full URI.</p>
 
-    <p class="example">For example, if a Web page has the address
-    <code>https://www.example.com/demo.html</code>, the origin
-    consists of the tuple "https", "www.example.com", and "443".</p>
+   <dt>If a script is a <span title="javascript protocol"><code
+   title="">javascript:</code> URI</span> in an attribute</dt>
 
-   </dd>
+   <dd>The origin is the origin of the <code>Document</code> of the
+   element on which the attribute is found.</dd>
 
-   <dt>If the content was generated by script:</dt>
 
-   <dd>The content shares the same origin as the script itself.</dd>
+   <dt>If a script is a <span title="javascript protocol"><code
+   title="">javascript:</code> URI</span> in a style sheet</dt>
 
-   <dt>If the content was generated by 
+   <dd>The origin is the origin of the <code>Document</code> to which
+   the style sheet applies.</dd>
+
+
+   <dt>If a script is a <span title="javascript protocol"><code
+   title="">javascript:</code> URI</span> to which a <span>browsing
+   context> is being <span title="navigate">navigated</span>, the URI
+   having been declared in markup</dt>
+
+   <dd>The origin is the origin of the <code>Document</code> of the
+   element (e.g. an <code>a</code> or <code>area</code> element) that
+   declared the URI.</dd>
+
+
+   <dt>If a script is a <span title="javascript protocol"><code
+   title="">javascript:</code> URI</span> to which a <span>browsing
+   context> is being <span title="navigate">navigated</span>, the URI
+   having been provided by script</dt>
+
+   <dd>The origin is the origin of the script that provided the
+   URI.</dd>
+
+   <!-- ... -->
 
   </dl>
 
+  <p>The origin of scripts thus comes down to finding the origin of
+  <code>Document</code> objects.</p>
 
-   what other kinds of content do we care about the origin of?
-   images, for the purpose of <canvas>?
-   Window objects?
--->
+  <p>The origin of a <code>Document</code> or image that was served
+  over the network and whose address uses a URI scheme with a
+  server-based naming authority is the tuple consisting of the scheme,
+  host, and port parts of the <code>Document</code>'s full URI.</p>
 
-  <p>The <dfn title="document's domain">domain of a
-  <code>Document</code> object</dfn> is the domain given by the
-  <code>hostname</code> attribute of the <code>Location</code> object
-  returned by the <code>Document</code> object's <code
-  title="dom-document-location">location</code> attribute, <em>if</em>
-  that <code>hostname</code> attribute is not the empty string. <span
-  class="big-issue">If it is, the domain of the document is
-  UA-defined. For now.</span> <!-- XXX data: and javascript: URIs
-  should be relative to the spawning <code>Document</code>, but we
-  need to make sure that's a defined concept first. --> <span
-  class="big-issue">Need to be more correct about where .location is
-  defined. It's not actually on Document.</span></p>
+  <p>The origin of a <code>Document</code> or image that was generated
+  from a <code>data:</code> URI found in another <code>Document</code>
+  or in a script is the origin of the that <code>Document</code> or
+  script.</p>
 
-  <p>The <dfn title="script's domain">domain of a script</dfn> is the
-  <span title="document's domain">domain of the <code>Document</code>
-  object</span> that is returned by the <code
-  title="dom-document">document</code> attribute of the script's
-  primary <code>Window</code> object.</p>
+  <p>The origin of a <code>Document</code> or image that was generated
+  from a <code>data:</code> URI from another source is a globally
+  unique identifier assigned when the document is created.</p>
+
+  <p>The origin of a <code>Document</code> or image that was generated
+  from a <span title="javascript protocol"><code>javascript:</code>
+  URI</span> is the same as the origin of that
+  <code>javascript:</code> URI.</p>
 
   <p><dfn>The string representing the script's domain in IDNA
-  format</dfn> is obtained as follows: take the <span>script's
-  domain</span> and apply the IDNA ToASCII algorithm and then the IDNA
-  ToUnicode algorithm to each component of the domain name (with both
-  the AllowUnassigned and UseSTD3ASCIIRules flags set both times). <a
-  href="#refsRFC3490">[RFC3490]</a> If ToASCII fails to convert one of
-  the components of the string, e.g. because it is too long or because
-  it contains invalid characters, then the string representing the
-  script's domain in IDNA format cannot be obtained. (ToUnicode is
-  defined to never fail.)</p>
+  format</dfn> is obtained as follows: take the domain part of the
+  script's <span>origin</span> tuple and apply the IDNA ToASCII
+  algorithm and then the IDNA ToUnicode algorithm to each component of
+  the domain name (with both the AllowUnassigned and UseSTD3ASCIIRules
+  flags set both times). <a href="#refsRFC3490">[RFC3490]</a> If
+  ToASCII fails to convert one of the components of the string,
+  e.g. because it is too long or because it contains invalid
+  characters, or if the origin of the script has no domain part, then
+  the string representing the script's domain in IDNA format cannot be
+  obtained. (ToUnicode is defined to never fail.)</p>
 
-  <p class="big-issue">This section is <em>so</em> not complete.</p>
+
+  <h4>Security exceptions</h4>
 
   <p class="big-issue">Define <dfn>security exception</dfn>.</p>
 
@@ -23361,10 +23390,21 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
 
   <p>When a browsing context is <span
   title="navigate">navigated</span> to a <code>javascript:</code> URI,
-  the dereference context must be the <span>browsing context</span>
-  being navigated. Otherwise, the dereference context must the
-  <span>browsing context</span> of the <code>Document</code> to which
-  belongs the element for which the URI is being dereferenced.</p>
+  and the <span>active document</span> of that browsing context has
+  the same <span>origin</span> as the URI, the dereference context
+  must be the <span>browsing context</span> being navigated.</p>
+
+  <p>When a browsing context is <span
+  title="navigate">navigated</span> to a <code>javascript:</code> URI,
+  and the <span>active document</span> of that browsing context has a
+  <em>different</em> <span>origin</span> than the URI, the dereference
+  context must be an empty object.</p>
+
+  <p>Otherwise, the dereference context must the <span>browsing
+  context</span> of the <code>Document</code> to which belongs the
+  element for which the URI is being dereferenced, or to which the
+  style sheet for which the URI is being dereferenced applies,
+  whichever is appropriate.</p>
 
   <p>URIs using the <code title="">javascript:</code> protocol should
   be evaluated when the resource for that URI is needed, unless
@@ -24703,11 +24743,11 @@ interface <dfn>StorageItem</dfn> {
   normalised requested domain would be
   "xn--sgrd-poac.example.com".</p>
 
-  <p>Next, the <span title="script's domain">script's own
-  domain</span> is processed to find if it is allowed to access the
-  requested domain.</p>
+  <p>Next, the domain part of the tuple forming the calling script's
+  <span>origin</span> is processed to find if it is allowed to access
+  the requested domain.</p>
 
-  <p>If the script's domain name in not known, e.g. if only the
+  <p>If the script's origin has no domain part, e.g. if only the
   server's IP address is known, and the <span>normalised requested
   domain</span> is not the empty string, then the user agent must
   raise a <span>security exception</span>.</p>
@@ -24719,13 +24759,14 @@ interface <dfn>StorageItem</dfn> {
   in such a situation is also empty and so permission to access that
   storage area will always be given.</p>
 
-  <p>If the script's domain contains no dots (U+002E) then the string
-  "<code>.localdomain</code>" must be appended to the script's
-  domain.</p>
+  <p>If the domain part of the script's origin contains no dots
+  (U+002E) then the string "<code>.localdomain</code>" must be
+  appended to the script's domain.</p>
 
-  <p>Then, the script's domain must be turned into an array, being
-  split, converted to ASCII, and lowercased as described for the <var
-  title="">domain</var> argument <a href="#splitDomain">above</a>.</p>
+  <p>Then, the domain part of the script's origin must be turned into
+  an array, being split, converted to ASCII, and lowercased as
+  described for the <var title="">domain</var> argument <a
+  href="#splitDomain">above</a>.</p>
 
   <p>Of the two arrays, the longest one must then be shortened to the
   length of the shorter one, by dropping items from the start of the
@@ -24734,11 +24775,11 @@ interface <dfn>StorageItem</dfn> {
   <div class="example">
 
    <p>If the <var title="">domain</var> argument is "www.example.com"
-   and the script's domain is "example.com" then the first array will be
-   a three item array ("www", "example", "com"), and the second will
-   be a two item array ("example", "com"). The first array is
-   therefore shortened, dropping the leading parts, making both into
-   the same array ("example", "com").</p>
+   and the script origin's domain part is "example.com" then the first
+   array will be a three item array ("www", "example", "com"), and the
+   second will be a two item array ("example", "com"). The first array
+   is therefore shortened, dropping the leading parts, making both
+   into the same array ("example", "com").</p>
 
   </div>
 
@@ -28292,17 +28333,18 @@ Target: #image1
   <p>When this constructor is invoked, the following steps must be
   followed.</p>
 
-  <p>First, if the <span>script's domain</span> is not a host name
-  (e.g. it is an IP address) then the UA must raise a <span>security
-  exception</span>. <span class="issue">We currently don't allow
-  connections to be set up back to an originating IP address, but we
-  could, if the subdomain is the empty string.</span></p>
+  <p>First, if the domain part of the script's <span>origin</span> is
+  not a host name (e.g. it is an IP address) then the UA must raise a
+  <span>security exception</span>. <span class="issue">We currently
+  don't allow connections to be set up back to an originating IP
+  address, but we could, if the subdomain is the empty
+  string.</span></p>
 
   <p>Then, if the <var title="">subdomain</var> argument is null or
-  the empty string, the target host is the <span>script's
-  domain</span>. Otherwise, the <var title="">subdomain</var> argument
-  is prepended to the <span>script's domain</span> with a dot
-  separating the two strings, and that is the target host.</p>
+  the empty string, the target host is the domain part of the script's
+  <span>origin</span>. Otherwise, the <var title="">subdomain</var>
+  argument is prepended to the domain part of the script's origin with
+  a dot separating the two strings, and that is the target host.</p>
 
   <p>If either:</p>
   <ul>
