@@ -1901,12 +1901,14 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
    </li>
 
-   <li><p>Otherwise, if the document has an <span>active
-   parser</span><!--XXX xref-->, then stop that parser, and throw away
-   any pending content in the input stream. <span
-   class="big-issue">what about if it doesn't, because it's either
-   like a text/plain, or Atom, or PDF, or XHTML, or image document, or
-   something?</span></p></li><!-- XXX see also innerHTML in HTML -->
+   <li><p class="big-issue">onbeforeunload, onunload</p></li>
+
+   <li><p>If the document has an <span>active parser</span><!--XXX
+   xref-->, then stop that parser, and throw away any pending content
+   in the input stream. <span class="big-issue">what about if it
+   doesn't, because it's either like a text/plain, or Atom, or PDF, or
+   XHTML, or image document, or something?</span></p></li><!-- XXX see
+   also innerHTML in HTML -->
 
    <li><p>Remove all child nodes of the document.</p></li>
 
@@ -1929,17 +1931,33 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
    <span>tokenisation</span> stage's <span>content model flag</span>
    to <em>PLAINTEXT</em>.</p></li>
 
-   <li><p>If <var title="">replace</var> is false, then: remove all
-   the entries in the <span>browsing context</span>'s <span>session
-   history</span> after the <span>current entry</span> in its
-   <code>Document</code>'s <code>History</code> object, add a new
-   entry whose address is the same as the <span>current entry</span>'s
-   at the end of the list, and then advance to that page as if the
-   <code title="dom-history-forward">history.forward()</code> method
-   had been invoked.</p></li>
+   <li>
 
-   <li><p>Finally, set the <span>insertion point</span> to point at just
-   before the end of the <span>input stream</span> (which at this
+    <p>If <var title="">replace</var> is false, then:
+
+    <ol>
+
+     <li>Remove all the entries in the <span>browsing context</span>'s
+     <span>session history</span> after the <span>current entry</span>
+     in its <code>Document</code>'s <code>History</code> object</li>
+
+     <li>Remove any earlier entries that share the same
+     <code>Document</code></li>
+
+     <li>Add a new entry just before the last entry that is associated
+     with the text that was parsed by the previous parser associated
+     with the <code>Document</code> object, as well as the state of
+     the document at the start of these steps. (This allows the user
+     to step backwards in the session history to see the page before
+     it was blown away by the <code
+     title="dom-document-open">document.open()</code> call.)</li>
+
+    </ol>
+
+   </li>
+
+   <li><p>Finally, set the <span>insertion point</span> to point at
+   just before the end of the <span>input stream</span> (which at this
    point will be empty).</p></li>
 
   </ol>
@@ -10332,8 +10350,11 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
 
   <p>The <dfn title="attr-iframe-src"><code>src</code></dfn>
   attribute, if present, must be a URI (or IRI) to a page that the
-  nested <span>browsing context</span> is to contain. If the user
-  <span title="navigate">navigates</span> away from this page, the
+  nested <span>browsing context</span> is to contain. When the
+  browsing context is created, if the attribute is present, the user
+  agent must <span>navigate</span> this browsing context to the given
+  URI, with <span>replacement enabled</span>. If the user <span
+  title="navigate">navigates</span> away from this page, the
   <code>iframe</code>'s corresponding <code>Window</code> object will
   reference new <code>Document</code> objects, but the <code
   title="attr-iframe-src">src</code> attribute will not change.</p>
@@ -10342,10 +10363,9 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
   is set, the nested <span>browsing context</span> must be <span
   title="navigate">navigated</span> to the given URI.</p>
 
-  <p>The default value, which must be used if the <code
-  title="attr-iframe-src">src</code> attribute is not set when the
-  element is created, or if the attribute is ever removed, is
-  <code>about:blank</code><!-- XXX xref -->.</p>
+  <p>If the <code title="attr-iframe-src">src</code> attribute is not
+  set when the element is created, the browsing context will remain at
+  the initial <code>about:blank</code> page.</p>
 
   <p>The download of the resource must <span>delay the <code
   title="event-load">load</code> event</span>.</p>
@@ -10702,8 +10722,8 @@ brighter. A &lt;b>rat&lt;/b> scurries past the corner wall.&lt;/p></pre>
         nested <span>browsing context</span>, if it does not already
         have one. The element's nested <span>browsing context</span>
         must then be <span title="navigate">navigated</span> to the
-        given resource. (The <code
-        title="attr-object-data">data</code> attribute of the
+        given resource, with <span>replacement enabled</span>. (The
+        <code title="attr-object-data">data</code> attribute of the
         <code>object</code> element doesn't get updated if the
         browsing context gets further navigated to other
         locations.)</p>
@@ -20213,6 +20233,17 @@ XXX selection ranges -->
   object's <code>DocumentView</code> interface. <a
   href="#refsDOM3VIEWS">[DOM3VIEWS]</a></p>
 
+  <p>When a <span>browsing context</span> is first created, it must be
+  created with a single <code>Document</code> in its session history,
+  whose <span title="the document's address">address</span> is
+  <code>about:blank</code>, which is marked as being an <span
+  title="HTML documents">HTML documents</span>. The
+  <code>Document</code> must have a single child <code>html</code>
+  node, which itself has a single child <code>body</code> node. If the
+  <span>browsing context</span> is created specifically to be
+  immediately navigated, then that initial navigation will have
+  <span>replacement enabled</span>.</p>
+
 
   <h4>Nested browsing contexts</h4>
 
@@ -20276,6 +20307,14 @@ XXX selection ranges -->
   which the current browsing context was created (its <span>opener
   browsing context</span>), if there is one and it is still
   available.</p>
+
+
+  <h4>Secondary browsing contexts</h4>
+
+  <p>User agents may support <dfn title="secondary browsing
+  context">secondary browsing contexts</dfn>, which are <span
+  title="browsing context">browsing contexts</span> that form part of
+  the user agent's interface, apart from the main content area.</p>
 
 
   <h4>Threads</h4>
@@ -20378,7 +20417,9 @@ XXX selection ranges -->
      title="">_blank</code>, then the new auxiliary browsing context's
      name must be the given browsing context name (otherwise, it has
      no name). The chosen browsing context must be this new browsing
-     context.</dd>
+     context. If it is immediately <span
+     title="navigate">navigated</span>, then the navigation will be
+     done with <span>replacement enabled</span>.</dd>
 
      <dt>If the user agent has been configured such that in this
      instance it will reuse the current browsing context</dt>
@@ -20624,7 +20665,10 @@ XXX selection ranges -->
   <span>browsing context</span> to the URI given in <var
   title="">url</var>. If the <var title="">replace</var> is true, then
   <span title="replacement enabled">replacement must be
-  enabled</span>; otherwise, it must not be enabled.</p>
+  enabled</span>; otherwise, it must not be enabled unless the
+  <span>browsing context</span> was just created as part of the
+  <span>the rules for chosing a browsing context given a browsing
+  context name</span>.</p>
 
 
 
@@ -21234,7 +21278,9 @@ user reload must be equivalent to .reload()
   <span>the rules for chosing a browsing context given a browsing
   context name</span>, using the value of the <code
   title="attr-hyperlink-target">target</code> attribute as the
-  browsing context name.</p>
+  browsing context name. If these rules result in the creation of a
+  new <span>browsing context</span>, it must be navigated with
+  <span>replacement enabled</span>.</p>
 
   <p>Otherwise, if the hyperlink element is a <span
   title="rel-sidebar-hyperlink">sidebar hyperlink</span> and the user
@@ -21251,7 +21297,9 @@ user reload must be equivalent to .reload()
   applying <span>the rules for chosing a browsing context given a
   browsing context name</span>, using the value of the <code
   title="attr-base-target">target</code> attribute of the first such
-  <code>base</code> element as the browsing context name.</p>
+  <code>base</code> element as the browsing context name. If these
+  rules result in the creation of a new <span>browsing context</span>,
+  it must be navigated with <span>replacement enabled</span>.</p>
 
   <p>Otherwise, the browsing context that must be navigated is the
   same browsing context as the one which the hyperlink element itself
@@ -21934,8 +21982,8 @@ at the first element with the given ID must be treated as if it was cloned and r
 
   <p>The <code title="rel-sidebar">sidebar</code> keyword indicates
   that the referenced document, if retrieved, is intended to be shown
-  in a secondary browsing context (if possible), instead of in the
-  current browsing context.</p>
+  in a <span>secondary browsing context</span> (if possible), instead
+  of in the current <span>browsing context</span>.</p>
 
   <p>A <span title="hyperlink">hyperlink element</span> with with the
   <code title="rel-sidebar">sidebar</code> keyword specified is a <dfn
