@@ -20435,6 +20435,7 @@ XXX selection ranges -->
   readonly attribute <span>ClientInformation</span> <span title="dom-navigator">navigator</span>; <!-- XXX IE6 also has window.clientInformation pointing to this same object -->
   readonly attribute <span>Storage</span> <span title="dom-sessionStorage">sessionStorage</span>;
   readonly attribute <span>StorageList</span> <span title="dom-globalStorage">globalStorage</span>;
+  <span>ResultSet</span> <span title="dom-executeSql">executeSql</span>(in DOMString sqlStatement, <var title="">arguments...</var>);
 
   // modal user prompts
   void <span title="dom-alert">alert</span>(in DOMString message);
@@ -24421,7 +24422,7 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   of unknown protocols.</p>
 
 
-  <h3 id="storage">Client-side session and persistent storage</h3> <!-- local storage -->
+  <h3 id="storage">Client-side session and persistent storage of name/value pairs</h3>
 
   <h4>Introduction</h4>
 
@@ -25419,6 +25420,193 @@ interface <dfn>StorageItem</dfn> {
   area">public</span>" domains, and apply the restrictions described
   above.</p>
 
+
+
+  <h3 id="sql">Client-side database storage</h3>
+
+  <h4>Introduction</h4>
+
+  <p class="big-issue">...</p>
+
+  <h4>Executing SQL statements</h4>
+
+  <p>Each <span>origin</span> must have an associated database unique
+  to that origin. An author can interact with the database using the
+  <code title="dom-executeSql">executeSql()</code> method.</p>
+
+  <p>When the <dfn title="dom-executeSql"><code>executeSql(<var
+  title="">sqlStatement</var>, <var
+  title="">arguments...</var>)</code></dfn> method is invoked, the
+  user agent must first interpret the first argument to the method
+  (<var title="">sqlStatement</var>) as an SQL statement, replacing
+  any <code title="">?</code> placeholders in the statement with the
+  values given in the subsequent arguments (<var
+  title="">arguments...</var>), and must then evaluate the statement
+  as an SQL statement in the context of the database associated with
+  the <span>origin</span> of the <span>active document</span> of the
+  <span>browsing context</span> of the <code>Window</code> object on
+  which the method was called. <a href="#refsSQL">[SQL]</a></p>
+
+  <p>If the <code title="dom-executeSql">executeSql()</code> method is
+  called with a different number of arguments after the statement than
+  there are placeholder <code title="">?</code> characters in the
+  statement, then the method must raise a <code>SYNTAX_ERR</code>
+  exception.</p>
+
+  <p>Otherwise, the method must return a <code>ResultSet</code> object
+  representing the result of the operation.</p>
+
+  <p>The user agent must act as if the database was hosted in an
+  otherwise completely empty environment with no resources. For
+  example, attempts to read from or write to the filesystem will
+  fail.</p>
+
+  <p>User agents should limit the total amount of space allowed for
+  each origin, but may prompt the user and extend the limit if a
+  database is reaching its quota. User agents should allow users to
+  see how much space each database is using.</p>
+
+  <p>A mostly arbitrary limit of five megabytes per origin is
+  recommended. Implementation feedback is welcome and will be used to
+  update this suggestion in future.</p>
+
+  <p>SQL inherently supports multiple concurrent connections. Authors
+  should make use of SQL's transaction features if multiple scripts
+  are expected to interact with the same database simultaneously (as
+  could happen if the same page was opened in two different <span
+  title="browsing context">browsing contexts</span>).</p>
+
+  <p class="note">A future version of this specification may define
+  the exact SQL subset required in more detail.</p>
+
+
+  <h4>Database query results</h4>
+
+  <p>Calls to the <code title="dom-executeSql">executeSql()</code>
+  method return <code>ResultSet</code> objects.</p>
+
+  <pre class="idl">interface <dfn>ResultSet</dfn> {
+  // cursor
+  readonly attribute boolean <span title="dom-ResultSet-validRow">validRow</span>;
+  void <span title="dom-ResultSet-next">next</span>();
+
+  // current row accessors
+  readonly attribute unsigned int <span title="dom-ResultSet-length">length</span>;
+  DOMString <span title="dom-ResultSet-getName">getName</span>(in unsigned int field);
+  Object <span title="dom-ResultSet-item">item</span>(in unsigned int field);
+  Object <span title="dom-ResultSet-namedItem">namedItem</span>(in DOMString field);
+
+  // general result accessors
+  readonly attribute int <span title="dom-ResultSet-insertId">insertId</span>;
+};</pre>
+
+  <p>A <code>ResultSet</code> object has a cursor which visits the
+  results of a SQL statement, in the order returned. Initially, the
+  cursor must point at the first row returned by the statement, if
+  any. Once a row has been visited, it cannot be visited again (the
+  cursor cannot go backwards).</p>
+
+  <p>The <dfn
+  title="dom-ResultSet-validRow"><code>validRow</code></dfn> attribute
+  must return return true if the <code>ResultSet</code> object's
+  cursor is at a row with data. If the cursor has been moved beyond
+  the last row of the results, or if there were no results for the SQL
+  statement in question, then the method must return false.</p>
+
+  <p>The <dfn title="dom-ResultSet-next"><code>next()</code></dfn>
+  method must advance the cursor to the next row. If there are no more
+  rows it must advance the cursor past the end of the results, so that
+  <code title="dom-ResultSet-validRow">validRow</code> will return
+  false.</p>
+
+
+  <p>Each row of the results consists of a set of fields. Each field
+  has a name and a value. The fields are ordered. The names of the
+  fields, and their order, must be the same for every row in the
+  results.</p>
+
+  <p>The <dfn title="dom-ResultSet-length"><code>length</code></dfn>
+  attribute must return the number of fields in each row. If the
+  <code>ResultSet</code> object has no results rows (i.e. if the SQL
+  statement executed did not return any results) then the attribute
+  must return zero.</p>
+
+  <p>The <dfn title="dom-ResultSet-getName"><code>getName(<var
+  title="">field</var>)</code></dfn> method must return the name of
+  the field with index <var title="">field</var>.</p>
+
+  <p>The <dfn title="dom-ResultSet-item"><code>item(<var
+  title="">field</var>)</code></dfn> method must return the value of
+  the field with index <var title="">field</var>. In the ECMAScript
+  binding, the object's [[Get]] method, when invoked with a numeric
+  argument, must have the same effect as calling the <code
+  title="dom-ResultSet-item">item()</code> method.</p>
+
+  <p>If the <var title="">field</var> argument of either the <code
+  title="dom-ResultSet-getName">getName()</code> or <code
+  title="dom-ResultSet-item">item()</code> methods is ever less than
+  zero or greater than or equal to the number of fields in each row,
+  or if those methods are called when the <code>ResultSet</code>
+  object has no results rows, the methods must instead raise an
+  <code>INDEX_SIZE_ERR</code> exception.</p>
+
+  <p>The <dfn title="dom-ResultSet-namedItem"><code>namedItem(<var
+  title="">field</var>)</code></dfn> method must return the value of
+  the field with the name <var title="">field</var>. If there is no
+  field with that name, the method must instead raise a
+  <code>SYNTAX_ERR</code> exception. In the ECMAScript binding, the
+  object's [[Get]] method, when invoked with a non-numeric argument,
+  must have the same effect as calling the <code
+  title="dom-ResultSet-namedItem">namedItem()</code> method.</p>
+
+
+  <p>The <dfn
+  title="dom-ResultSet-insertId"><code>insertId</code></dfn> attribute
+  must return the row ID of the row that the <code>ResultSet</code>
+  object's SQL statement inserted into the database, if the statement
+  inserted a row. If the statement did not insert a row, then the
+  attribute must instead raise an <code>INVALID_ACCESS_ERR</code>
+  exception.</p>
+
+
+  <h4>Privacy</h4>
+
+  <p>In contrast with the <code
+  title="dom-globalStorage">globalStorage</code> feature, which
+  intentionally allows data to be accessed across multiple domains,
+  protocols, and ports (albeit in a controlled fashion), this database
+  feature is limited to scripts running with the same
+  <span>origin</span> as the database. Thus, it is expected that the
+  privacy implications be equivalent to those already present in
+  allowing scripts to communicate with their originating host.</p>
+
+  <p>User agents are encouraged to treat data stored in databases in
+  the same way as cookies for the purposes of user interfaces, to
+  reduce the risk of using this feature for cookie resurrection.</p>
+
+
+  <h4>Security</h4>
+
+  <h5>User agents</h5>
+
+  <p>User agent implementors are strongly encouraged to audit all
+  their supported SQL statements for security implications. For
+  example, <code title="">LOAD DATA INFILE</code> is likely to pose
+  security risks and there is little reason to support it.</p>
+
+  <p>In general, it is recommended that user agents not support
+  features that control how databases are stored on disk. For example,
+  there is little reason to allow Web authors to control the character
+  encoding used in the disk representation of the data, as all data in
+  ECMAScript is implicitly UTF-16.</p>
+
+
+  <h5>SQL injection</h5>
+
+  <p>Authors are strongly recommended to make use of the <code
+  title="">?</code> placeholder feature of the <code
+  title="dom-executeSql">executeSql()</code> method, and to never
+  construct SQL statements on the fly.</p>
 
 
 
