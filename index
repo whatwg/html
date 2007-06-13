@@ -32306,9 +32306,24 @@ function receiver(e) {
   <p>Void elements can't have any contents (since there's no end tag, no
    content can be put between the start tag and the end tag.)
 
-  <p>CDATA elements can have <a href="#text1" title=syntax-text>text</a>, but
-   the text must not contain the two character sequence "<code>&lt;/</code>"
-   (U+003C LESS-THAN SIGN, U+002F SOLIDUS).
+  <p>CDATA elements can have <a href="#text1" title=syntax-text>text</a>,
+   but:
+
+  <ul>
+   <li>The text must not contain the two character sequence "<code
+    title="">&lt;/</code>" (U+003C LESS-THAN SIGN, U+002F SOLIDUS).
+
+   <li>For every occurrence of the four character sequence "<code
+    title="">&lt;!--</code>" (U+003C LESS-THAN SIGN, U+0021 EXCLAMATION MARK,
+    U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS), there must be a corresponding
+    three-character sequence "<code title="">--&gt;</code>" (U+002D
+    HYPHEN-MINUS, U+002D HYPHEN-MINUS, U+003E GREATER-THAN SIGN) whose U+003E
+    GREATER-THAN SIGN (&gt;) character occurs later in the text than the
+    U+003C LESS-THAN SIGN (&lt;) character of the first sequence. (This means
+    the hyphens from the "<code title="">&lt;!--</code>" part can overlap
+    those in the "<code title="">--&gt;</code>" part, as in "<code
+    title="">&lt!--&gt;</code>".)
+  </ul>
 
   <p>RCDATA elements can have <a href="#text1" title=syntax-text>text</a> and
    <a href="#character0" title=syntax-entities>character entity
@@ -33435,7 +33450,10 @@ function receiver(e) {
    id=content2>content model flag</dfn> that is set after certain tokens are
    emitted. The flag has several states: <em title="">PCDATA</em>, <em
    title="">RCDATA</em>, <em title="">CDATA</em>, and <em
-   title="">PLAINTEXT</em>. Initially it is in the PCDATA state.
+   title="">PLAINTEXT</em>. Initially it must be in the PCDATA state. In the
+   RCDATA and CDATA states, a further <dfn id=escape>escape flag</dfn> is
+   used to control the behaviour of the tokeniser. It is either true or
+   false, and initially must be set to the false state.
 
   <p>The output of the tokenisation step is a series of zero or more of the
    following tokens: DOCTYPE, start tag, end tag, comment, character,
@@ -33477,13 +33495,48 @@ function receiver(e) {
 
      <dd>Otherwise: treat it as per the "anything else" entry below.
 
+     <dt>U+002D HYPHEN-MINUS (-)
+
+     <dd>
+      <p>If the <a href="#content2">content model flag</a> is set to either
+       the RCDATA state or the CDATA state, and the <a href="#escape">escape
+       flag</a> is false, and there are at least three characters before this
+       one in the input stream, and the last four characters in the input
+       stream, including this one, are U+003C LESS-THAN SIGN, U+0021
+       EXCLAMATION MARK, U+002D HYPHEN-MINUS, and U+002D HYPHEN-MINUS
+       ("&lt;!--"), then set the <a href="#escape">escape flag</a> to true.</p>
+
+      <p>In any case, emit the input character as a character token. Stay in
+       the <a href="#data-state">data state</a>.</p>
+
      <dt>U+003C LESS-THAN SIGN (&lt;)
 
-     <dd>When the <a href="#content2">content model flag</a> is set to a
-      state other than the PLAINTEXT state: switch to the <a
-      href="#tag-open">tag open state</a>.
+     <dd>When the <a href="#content2">content model flag</a> is set to the
+      PCDATA state: switch to the <a href="#tag-open">tag open state</a>.
+
+     <dd>When the <a href="#content2">content model flag</a> is set to either
+      the RCDATA state or the CDATA state and the <a href="#escape">escape
+      flag</a> is false: switch to the <a href="#tag-open">tag open
+      state</a>.
 
      <dd>Otherwise: treat it as per the "anything else" entry below.
+
+     <dt>U+003E GREATER-THAN SIGN (&gt;)
+
+     <dd>
+      <p>If the <a href="#content2">content model flag</a> is set to either
+       the RCDATA state or the CDATA state, and the <a href="#escape">escape
+       flag</a> is true, and the last three characters in the input stream
+       including this one are U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS,
+       U+003E GREATER-THAN SIGN ("--&gt;"), set the <a href="#escape">escape
+       flag</a> to false.</p>
+      <!-- no need to check
+      that there are enough characters, since you can only run into
+      this if the flag is true in the first place, which requires four
+      characters. -->
+      
+      <p>In any case, emit the input character as a character token. Stay in
+       the <a href="#data-state">data state</a>.</p>
 
      <dt>EOF
 
@@ -34794,9 +34847,6 @@ function receiver(e) {
 
      <ul>
       <li>Comment parsing is different.
-
-      <li>The following is considered one script block (!):
-       <pre>&lt;script>&lt;!-- document.write('&lt;/script>'); -->&lt;/script></pre>
 
       <li><code title="">&lt;/br></code> and <code title="">&lt;/p></code> do
        magical things.

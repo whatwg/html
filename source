@@ -29831,8 +29831,27 @@ function receiver(e) {
   tag.)</p>
 
   <p>CDATA elements can have <span title="syntax-text">text</span>,
-  but the text must not contain the two character sequence
-  "<code>&lt;/</code>" (U+003C LESS-THAN SIGN, U+002F SOLIDUS).</p>
+  but:</p>
+
+  <ul>
+
+   <li>The text must not contain the two character sequence "<code
+   title="">&lt;/</code>" (U+003C LESS-THAN SIGN, U+002F
+   SOLIDUS).</li>
+
+   <li>For every occurrence of the four character sequence "<code
+   title="">&lt;!--</code>" (U+003C LESS-THAN SIGN, U+0021 EXCLAMATION
+   MARK, U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS), there must be a
+   corresponding three-character sequence "<code
+   title="">--&gt;</code>" (U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS,
+   U+003E GREATER-THAN SIGN) whose U+003E GREATER-THAN SIGN (&gt;)
+   character occurs later in the text than the U+003C LESS-THAN SIGN
+   (&lt;) character of the first sequence. (This means the hyphens
+   from the "<code title="">&lt;!--</code>" part can overlap those in
+   the "<code title="">--&gt;</code>" part, as in "<code
+   title="">&lt!--&gt;</code>".)</li>
+
+  </ul>
 
   <p>RCDATA elements can have <span title="syntax-text">text</span>
   and <span title="syntax-entities">character entity
@@ -31026,7 +31045,11 @@ function receiver(e) {
   model flag</dfn> that is set after certain tokens are emitted. The
   flag has several states: <em title="">PCDATA</em>, <em
   title="">RCDATA</em>, <em title="">CDATA</em>, and <em
-  title="">PLAINTEXT</em>. Initially it is in the PCDATA state.</p>
+  title="">PLAINTEXT</em>. Initially it must be in the PCDATA
+  state. In the RCDATA and CDATA states, a further <dfn>escape
+  flag</dfn> is used to control the behaviour of the tokeniser. It is
+  either true or false, and initially must be set to the false
+  state.</p>
 
   <p>The output of the tokenisation step is a series of zero or more
   of the following tokens: DOCTYPE, start tag, end tag, comment,
@@ -31069,12 +31092,49 @@ function receiver(e) {
      state</span>.</dd>
      <dd>Otherwise: treat it as per the "anything else" entry below.</dd>
 
+     <dt>U+002D HYPHEN-MINUS (-)</dt>
+     <dd>
+
+      <p>If the <span>content model flag</span> is set to either the
+      RCDATA state or the CDATA state, and the <span>escape flag</span>
+      is false, and there are at least three characters before this
+      one in the input stream, and the last four characters in the
+      input stream, including this one, are U+003C LESS-THAN SIGN,
+      U+0021 EXCLAMATION MARK, U+002D HYPHEN-MINUS, and U+002D
+      HYPHEN-MINUS ("&lt;!--"), then set the <span>escape flag</span>
+      to true.</p>
+
+      <p>In any case, emit the input character as a character
+      token. Stay in the <span>data state</span>.</p>
+
+     </dd>
+
      <dt>U+003C LESS-THAN SIGN (&lt;)</dt>
-     <dd>When the <span>content model flag</span> is set to a state
-     other than the PLAINTEXT state: switch to the <span>tag open
-     state</span>.</dd>
+     <dd>When the <span>content model flag</span> is set to the PCDATA
+     state: switch to the <span>tag open state</span>.</dd>
+     <dd>When the <span>content model flag</span> is set to either the
+     RCDATA state or the CDATA state and the <span>escape flag</span>
+     is false: switch to the <span>tag open state</span>.</dd>
      <dd>Otherwise: treat it as per the "anything else" entry
      below.</dd>
+
+     <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
+     <dd>
+
+      <p>If the <span>content model flag</span> is set to either the
+      RCDATA state or the CDATA state, and the <span>escape
+      flag</span> is true, and the last three characters in the input
+      stream including this one are U+002D HYPHEN-MINUS, U+002D
+      HYPHEN-MINUS, U+003E GREATER-THAN SIGN ("--&gt;"), set the
+      <span>escape flag</span> to false.</p> <!-- no need to check
+      that there are enough characters, since you can only run into
+      this if the flag is true in the first place, which requires four
+      characters. -->
+
+      <p>In any case, emit the input character as a character
+      token. Stay in the <span>data state</span>.</p>
+
+     </dd>
 
      <dt>EOF</dt>
      <dd>Emit an end-of-file token.</dd>
@@ -32182,10 +32242,6 @@ function receiver(e) {
      <ul>
 
       <li>Comment parsing is different.</li>
-
-      <li>The following is considered one script block (!):
-       <pre>&lt;script>&lt;!-- document.write('&lt;/script>'); -->&lt;/script></pre>
-      </li>
 
       <li><code title="">&lt;/br></code> and <code title="">&lt;/p></code> do magical
       things.</li>
