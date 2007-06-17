@@ -22,7 +22,7 @@
 
    <h1 id=html-5>HTML 5</h1>
 
-   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 15 June 2007</h2>
+   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 17 June 2007</h2>
 
    <p>You can take part in this work. <a
     href="http://www.whatwg.org/mailing-list">Join the working group's
@@ -2385,6 +2385,7 @@
   readonly attribute DOMString <a href="#referrer" title=dom-document-referrer>referrer</a>;
            attribute DOMString <a href="#cookie0" title=dom-document-cookie>cookie</a>;
   readonly attribute DOMString <a href="#lastmodified" title=dom-document-lastModified>lastModified</a>;
+  readonly attribute DOMString <a href="#compatmode" title=dom-document-compatMode>compatMode</a>;
 
   // <a href="#dom-tree0">DOM tree accessors</a>
            attribute DOMString <a href="#document.title" title=dom-document-title>title</a>;
@@ -2568,6 +2569,30 @@
    header of the document, or from metadata in the filesystem for local
    files. If the last modification date and time are not known, the attribute
    must return the string <code title="">01/01/1970 00:00:00</code>.
+
+  <p>The <dfn id=compatmode
+   title=dom-document-compatMode><code>compatMode</code></dfn> DOM attribute
+   must return the literal string "<code title="">CSS1Compat</code>" unless
+   the document has been set to <dfn id=quirks>quirks mode</dfn> by the <a
+   href="#html-0">HTML parser</a>, in which case it must instead return the
+   literal string "<code title="">BackCompat</code>".
+
+  <div class=big-issue>
+   <p>As far as parsing goes, the quirks I know of are:</p>
+
+   <ul>
+    <li>Comment parsing is different.
+
+    <li><code title="">&lt;/br></code> and <code title="">&lt;/p></code> do
+     magical things.
+
+    <li><code><a href="#p">p</a></code> can contain <code><a
+     href="#table">table</a></code>
+
+    <li>Safari and IE have special parsing rules for &lt;% ... %&gt; (even in
+     standards mode, though clearly this should be quirks-only).
+   </ul>
+  </div>
 
   <h3 id=elements><span class=secno>2.2. </span>Elements</h3>
 
@@ -33535,10 +33560,13 @@ function receiver(e) {
 
   <p>The output of the tokenisation step is a series of zero or more of the
    following tokens: DOCTYPE, start tag, end tag, comment, character,
-   end-of-file. DOCTYPE tokens have names and can be either correct or in
-   error. Start and end tag tokens have a tag name and a list of attributes,
-   each of which has a name and a value. Comment and character tokens have
-   data.
+   end-of-file. DOCTYPE tokens have a name, a public identifier, a system
+   identifier, and a correctness flag. When a DOCTYPE token is created, its
+   name, public identifier, and system identifier must be marked as missing,
+   and the correctness flag must be set to <i>correct</i> (its other state is
+   <i>incorrect</i>). Start and end tag tokens have a tag name and a list of
+   attributes, each of which has a name and a value. Comment and character
+   tokens have data.
 
   <p>When a token is emitted, it must immediately be handled by the <a
    href="#tree-construction0">tree construction</a> stage. The tree
@@ -34319,30 +34347,23 @@ function receiver(e) {
 
      <dd>Stay in the <a href="#before1">before DOCTYPE name state</a>.
 
-     <dt>U+0061 LATIN SMALL LETTER A through to U+007A LATIN SMALL LETTER Z
-
-     <dd>Create a new DOCTYPE token. Set the token's name name to the
-      uppercase version of the current input character (subtract 0x0020 from
-      the character's code point), and mark it as being in error. Switch to
-      the <a href="#doctype1">DOCTYPE name state</a>.
-
      <dt>U+003E GREATER-THAN SIGN (&gt;)
 
-     <dd><a href="#parse">Parse error</a>. Emit a DOCTYPE token whose name is
-      the empty string and that is marked as being in error. Switch to the <a
-      href="#data-state">data state</a>.
+     <dd><a href="#parse">Parse error</a>. Create a new DOCTYPE token. Set
+      its correctness flag to <i>incorrect</i>. Emit the token. Switch to the
+      <a href="#data-state">data state</a>.
 
      <dt>EOF
 
-     <dd><a href="#parse">Parse error</a>. Emit a DOCTYPE token whose name is
-      the empty string and that is marked as being in error. Reconsume the
+     <dd><a href="#parse">Parse error</a>. Create a new DOCTYPE token. Set
+      its correctness flag to <i>incorrect</i>. Emit the token. Reconsume the
       EOF character in the <a href="#data-state">data state</a>.
 
      <dt>Anything else
 
      <dd>Create a new DOCTYPE token. Set the token's name name to the current
-      input character, and mark it as being in error. Switch to the <a
-      href="#doctype1">DOCTYPE name state</a>.
+      input character. Switch to the <a href="#doctype1">DOCTYPE name
+      state</a>.
     </dl>
 
    <dt><dfn id=doctype1>DOCTYPE name state</dfn>
@@ -34369,13 +34390,6 @@ function receiver(e) {
      <dd>Emit the current DOCTYPE token. Switch to the <a
       href="#data-state">data state</a>.
 
-     <dt>U+0061 LATIN SMALL LETTER A through to U+007A LATIN SMALL LETTER Z
-
-     <dd>Append the uppercase version of the current input character
-      (subtract 0x0020 from the character's code point) to the current
-      DOCTYPE token's name. Stay in the <a href="#doctype1">DOCTYPE name
-      state</a>.
-
      <dt>EOF
 
      <dd><a href="#parse">Parse error</a>. Emit the current DOCTYPE token.
@@ -34387,14 +34401,6 @@ function receiver(e) {
      <dd>Append the current input character to the current DOCTYPE token's
       name. Stay in the <a href="#doctype1">DOCTYPE name state</a>.
     </dl>
-
-    <p>Then, if the name of the DOCTYPE token is exactly the four letters
-     "HTML", then mark the token as being correct. Otherwise, mark it as
-     being in error.</p>
-
-    <p class=note>Because lowercase letters in the name are uppercased by the
-     algorithm above, the "HTML" letters are actually case-insensitive
-     relative to the markup.</p>
 
    <dt><dfn id=after0>After DOCTYPE name state</dfn>
 
@@ -34428,9 +34434,309 @@ function receiver(e) {
 
      <dt>Anything else
 
-     <dd><a href="#parse">Parse error</a>. Mark the DOCTYPE token as being in
-      error, if it is not already. Switch to the <a href="#bogus0">bogus
-      DOCTYPE state</a>.
+     <dd>
+      <p>If the next six characters are a
+       <span>case-insensitive</span><!-- XXX xref, ascii only --> match for
+       the word "PUBLIC", then consume those characters and switch to the <a
+       href="#before2">before DOCTYPE public identifier state</a>.</p>
+
+      <p>Otherwise, if the next six characters are a
+       <span>case-insensitive</span><!-- XXX xref, ascii only --> match for
+       the word "SYSTEM", then consume those characters and switch to the <a
+       href="#before3">before DOCTYPE system identifier state</a>.</p>
+
+      <p>Otherwise, this is the <a href="#parse">parse error</a>. Switch to
+       the <a href="#bogus0">bogus DOCTYPE state</a>.</p>
+    </dl>
+
+   <dt><dfn id=before2>Before DOCTYPE public identifier state</dfn>
+
+   <dd>
+    <p>Consume the <a href="#next-input">next input character</a>:</p>
+
+    <dl class=switch>
+     <dt>U+0009 CHARACTER TABULATION
+
+     <dt>U+000A LINE FEED (LF)
+
+     <dt>U+000B LINE TABULATION
+
+     <dt>U+000C FORM FEED (FF)</dt>
+     <!--<dt>U+000D CARRIAGE RETURN (CR)</dt>-->
+
+     <dt>U+0020 SPACE
+
+     <dd>Stay in the <a href="#before2">before DOCTYPE public identifier
+      state</a>.
+
+     <dt>U+0022 QUOTATION MARK (&quot;)
+
+     <dd>Set the DOCTYPE token's public identifier to the empty string, then
+      switch to the <a href="#doctype2">DOCTYPE public identifier
+      (double-quoted) state</a>.
+
+     <dt>U+0027 APOSTROPHE (')
+
+     <dd>Set the DOCTYPE token's public identifier to the empty string, then
+      switch to the <a href="#doctype3">DOCTYPE public identifier
+      (single-quoted) state</a>.
+
+     <dt>U+003E GREATER-THAN SIGN (&gt;)
+
+     <dd><a href="#parse">Parse error</a>. Set the DOCTYPE token's
+      correctness flag to <i>incorrect</i>. Emit that DOCTYPE token. Switch
+      to the <a href="#data-state">data state</a>.
+
+     <dt>EOF
+
+     <dd><a href="#parse">Parse error</a>. Set the DOCTYPE token's
+      correctness flag to <i>incorrect</i>. Emit that DOCTYPE token.
+      Reconsume the EOF character in the <a href="#data-state">data
+      state</a>.
+
+     <dt>Anything else
+
+     <dd><a href="#parse">Parse error</a>. Switch to the <a
+      href="#bogus0">bogus DOCTYPE state</a>.
+    </dl>
+
+   <dt><dfn id=doctype2>DOCTYPE public identifier (double-quoted) state</dfn>
+
+   <dd>
+    <p>Consume the <a href="#next-input">next input character</a>:</p>
+
+    <dl class=switch>
+     <dt>U+0022 QUOTATION MARK (&quot;)
+
+     <dd>Switch to the <a href="#after1">after DOCTYPE public identifier
+      state</a>.
+
+     <dt>EOF
+
+     <dd><a href="#parse">Parse error</a>. Set the DOCTYPE token's
+      correctness flag to <i>incorrect</i>. Emit that DOCTYPE token.
+      Reconsume the EOF character in the <a href="#data-state">data
+      state</a>.
+
+     <dt>Anything else
+
+     <dd>Append the current input character to the current DOCTYPE token's
+      public identifier. Stay in the <a href="#doctype2">DOCTYPE public
+      identifier (double-quoted) state</a>.
+    </dl>
+
+   <dt><dfn id=doctype3>DOCTYPE public identifier (single-quoted) state</dfn>
+
+   <dd>
+    <p>Consume the <a href="#next-input">next input character</a>:</p>
+
+    <dl class=switch>
+     <dt>U+0027 APOSTROPHE (')
+
+     <dd>Switch to the <a href="#after1">after DOCTYPE public identifier
+      state</a>.
+
+     <dt>EOF
+
+     <dd><a href="#parse">Parse error</a>. Set the DOCTYPE token's
+      correctness flag to <i>incorrect</i>. Emit that DOCTYPE token.
+      Reconsume the EOF character in the <a href="#data-state">data
+      state</a>.
+
+     <dt>Anything else
+
+     <dd>Append the current input character to the current DOCTYPE token's
+      public identifier. Stay in the <a href="#doctype3">DOCTYPE public
+      identifier (single-quoted) state</a>.
+    </dl>
+
+   <dt><dfn id=after1>After DOCTYPE public identifier state</dfn>
+
+   <dd>
+    <p>Consume the <a href="#next-input">next input character</a>:</p>
+
+    <dl class=switch>
+     <dt>U+0009 CHARACTER TABULATION
+
+     <dt>U+000A LINE FEED (LF)
+
+     <dt>U+000B LINE TABULATION
+
+     <dt>U+000C FORM FEED (FF)</dt>
+     <!--<dt>U+000D CARRIAGE RETURN (CR)</dt>-->
+
+     <dt>U+0020 SPACE
+
+     <dd>Stay in the <a href="#after1">after DOCTYPE public identifier
+      state</a>.
+
+     <dt>U+0022 QUOTATION MARK (&quot;)
+
+     <dd>Set the DOCTYPE token's system identifier to the empty string, then
+      switch to the <a href="#doctype4">DOCTYPE system identifier
+      (double-quoted) state</a>.
+
+     <dt>U+0027 APOSTROPHE (')
+
+     <dd>Set the DOCTYPE token's system identifier to the empty string, then
+      switch to the <a href="#doctype5">DOCTYPE system identifier
+      (single-quoted) state</a>.
+
+     <dt>U+003E GREATER-THAN SIGN (&gt;)
+
+     <dd>Emit the current DOCTYPE token. Switch to the <a
+      href="#data-state">data state</a>.
+
+     <dt>EOF
+
+     <dd><a href="#parse">Parse error</a>. Set the DOCTYPE token's
+      correctness flag to <i>incorrect</i>. Emit that DOCTYPE token.
+      Reconsume the EOF character in the <a href="#data-state">data
+      state</a>.
+
+     <dt>Anything else
+
+     <dd><a href="#parse">Parse error</a>. Switch to the <a
+      href="#bogus0">bogus DOCTYPE state</a>.
+    </dl>
+
+   <dt><dfn id=before3>Before DOCTYPE system identifier state</dfn>
+
+   <dd>
+    <p>Consume the <a href="#next-input">next input character</a>:</p>
+
+    <dl class=switch>
+     <dt>U+0009 CHARACTER TABULATION
+
+     <dt>U+000A LINE FEED (LF)
+
+     <dt>U+000B LINE TABULATION
+
+     <dt>U+000C FORM FEED (FF)</dt>
+     <!--<dt>U+000D CARRIAGE RETURN (CR)</dt>-->
+
+     <dt>U+0020 SPACE
+
+     <dd>Stay in the <a href="#before3">before DOCTYPE system identifier
+      state</a>.
+
+     <dt>U+0022 QUOTATION MARK (&quot;)
+
+     <dd>Set the DOCTYPE token's system identifier to the empty string, then
+      switch to the <a href="#doctype4">DOCTYPE system identifier
+      (double-quoted) state</a>.
+
+     <dt>U+0027 APOSTROPHE (')
+
+     <dd>Set the DOCTYPE token's system identifier to the empty string, then
+      switch to the <a href="#doctype5">DOCTYPE system identifier
+      (single-quoted) state</a>.
+
+     <dt>U+003E GREATER-THAN SIGN (&gt;)
+
+     <dd><a href="#parse">Parse error</a>. Set the DOCTYPE token's
+      correctness flag to <i>incorrect</i>. Emit that DOCTYPE token. Switch
+      to the <a href="#data-state">data state</a>.
+
+     <dt>EOF
+
+     <dd><a href="#parse">Parse error</a>. Set the DOCTYPE token's
+      correctness flag to <i>incorrect</i>. Emit that DOCTYPE token.
+      Reconsume the EOF character in the <a href="#data-state">data
+      state</a>.
+
+     <dt>Anything else
+
+     <dd><a href="#parse">Parse error</a>. Switch to the <a
+      href="#bogus0">bogus DOCTYPE state</a>.
+    </dl>
+
+   <dt><dfn id=doctype4>DOCTYPE system identifier (double-quoted) state</dfn>
+
+   <dd>
+    <p>Consume the <a href="#next-input">next input character</a>:</p>
+
+    <dl class=switch>
+     <dt>U+0022 QUOTATION MARK (&quot;)
+
+     <dd>Switch to the <a href="#after2">after DOCTYPE system identifier
+      state</a>.
+
+     <dt>EOF
+
+     <dd><a href="#parse">Parse error</a>. Set the DOCTYPE token's
+      correctness flag to <i>incorrect</i>. Emit that DOCTYPE token.
+      Reconsume the EOF character in the <a href="#data-state">data
+      state</a>.
+
+     <dt>Anything else
+
+     <dd>Append the current input character to the current DOCTYPE token's
+      system identifier. Stay in the <a href="#doctype4">DOCTYPE system
+      identifier (double-quoted) state</a>.
+    </dl>
+
+   <dt><dfn id=doctype5>DOCTYPE system identifier (single-quoted) state</dfn>
+
+   <dd>
+    <p>Consume the <a href="#next-input">next input character</a>:</p>
+
+    <dl class=switch>
+     <dt>U+0027 APOSTROPHE (')
+
+     <dd>Switch to the <a href="#after2">after DOCTYPE system identifier
+      state</a>.
+
+     <dt>EOF
+
+     <dd><a href="#parse">Parse error</a>. Set the DOCTYPE token's
+      correctness flag to <i>incorrect</i>. Emit that DOCTYPE token.
+      Reconsume the EOF character in the <a href="#data-state">data
+      state</a>.
+
+     <dt>Anything else
+
+     <dd>Append the current input character to the current DOCTYPE token's
+      system identifier. Stay in the <a href="#doctype5">DOCTYPE system
+      identifier (single-quoted) state</a>.
+    </dl>
+
+   <dt><dfn id=after2>After DOCTYPE system identifier state</dfn>
+
+   <dd>
+    <p>Consume the <a href="#next-input">next input character</a>:</p>
+
+    <dl class=switch>
+     <dt>U+0009 CHARACTER TABULATION
+
+     <dt>U+000A LINE FEED (LF)
+
+     <dt>U+000B LINE TABULATION
+
+     <dt>U+000C FORM FEED (FF)</dt>
+     <!--<dt>U+000D CARRIAGE RETURN (CR)</dt>-->
+
+     <dt>U+0020 SPACE
+
+     <dd>Stay in the <a href="#after2">after DOCTYPE system identifier
+      state</a>.
+
+     <dt>U+003E GREATER-THAN SIGN (&gt;)
+
+     <dd>Emit the current DOCTYPE token. Switch to the <a
+      href="#data-state">data state</a>.
+
+     <dt>EOF
+
+     <dd><a href="#parse">Parse error</a>. Set the DOCTYPE token's
+      correctness flag to <i>incorrect</i>. Emit that DOCTYPE token.
+      Reconsume the EOF character in the <a href="#data-state">data
+      state</a>.
+
+     <dt>Anything else
+
+     <dd><a href="#parse">Parse error</a>. Switch to the <a
+      href="#bogus0">bogus DOCTYPE state</a>.
     </dl>
 
    <dt><dfn id=bogus0>Bogus DOCTYPE state</dfn>
@@ -34441,12 +34747,13 @@ function receiver(e) {
     <dl class=switch>
      <dt>U+003E GREATER-THAN SIGN (&gt;)
 
-     <dd>Emit the current DOCTYPE token. Switch to the <a
-      href="#data-state">data state</a>.
+     <dd>Set the DOCTYPE token's correctness flag to <i>incorrect</i>. Emit
+      that DOCTYPE token. Switch to the <a href="#data-state">data state</a>.
 
      <dt>EOF
 
-     <dd><a href="#parse">Parse error</a>. Emit the current DOCTYPE token.
+     <dd><a href="#parse">Parse error</a>. Set the DOCTYPE token's
+      correctness flag to <i>incorrect</i>. Emit that DOCTYPE token.
       Reconsume the EOF character in the <a href="#data-state">data
       state</a>.
 
@@ -34862,9 +35169,623 @@ function receiver(e) {
    from the <a href="#tokenisation0">tokenisation</a> stage as follows:
 
   <dl class=switch>
-   <dt>A DOCTYPE token that is marked as being in error
+   <dt>A character token that <em>is</em> one of one of U+0009 CHARACTER
+    TABULATION, U+000A LINE FEED (LF), U+000B LINE TABULATION, U+000C FORM
+    FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+
+   <dd>
+    <p><a href="#append" title="append a character">Append that character</a>
+     to the <code>Document</code> node.</p>
 
    <dt>A comment token
+
+   <dd>
+    <p>Append a <code>Comment</code> node to the <code>Document</code> object
+     with the <code title="">data</code> attribute set to the data given in
+     the comment token.</p>
+
+   <dt>A DOCTYPE token
+
+   <dd>
+    <p>If the DOCTYPE token's <code title="">name</code> does not
+     case-insensitively match the string "<code title="">HTML</code>", or if
+     the token's public identifier is not missing, or if the token's system
+     identifier is not missing, then there is a <a href="#parse">parse
+     error</a>. Conformance checkers may, instead of reporting this error,
+     switch to a conformance checking mode for another language (e.g. based
+     on the DOCTYPE token a conformance checker could recognise that the
+     document is an HTML4-era document, and defer to an HTML4 conformance
+     checker.)</p>
+
+    <p>Append a <code>DocumentType</code> node to the <code>Document</code>
+     node, with the <code title="">name</code> attribute set to the name
+     given in the DOCTYPE token; the <code title="">publicId</code> attribute
+     set to the public identifier given in the DOCTYPE token, or the empty
+     string if the public identifier was not set; the <code
+     title="">systemId</code> attribute set to the system identifier given in
+     the DOCTYPE token, or the empty string if the system identifier was not
+     set; and the other attributes specific to <code>DocumentType</code>
+     objects set to null and empty lists as appropriate. Associate the
+     <code>DocumentType</code> node with the <code>Document</code> object so
+     that it is returned as the value of the <code title="">doctype</code>
+     attribute of the <code>Document</code> object.</p>
+
+    <p>Then, if the correctness flag is set to <i>incorrect</i>, or if the
+     name, system identifier, and public identifier of the DOCTYPE token
+     together match one of the rows of the following table, then set the
+     document to <a href="#quirks">quirks mode</a>.</p>
+
+    <table>
+     <thead>
+      <tr>
+       <th> Name
+
+       <th> Public Identifier
+
+       <th> System Identifier
+
+       <th>
+
+     <tbody>
+      <tr>
+       <td> Anything other than "<code title="">HTML</code>"
+
+       <td> Anything
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">+//Silmaril//dtd html Pro v0r11
+        19970101//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//AdvaSoft Ltd//DTD HTML 3.0 asWedit +
+        extensions//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//AS//DTD HTML 3.0 asWedit +
+        extensions//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML 2.0 Level 1//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML 2.0 Level 2//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML 2.0 Strict Level 1//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML 2.0 Strict Level 2//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML 2.0 Strict//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML 2.0//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML 2.1E//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML 3.0//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML 3.0//EN//</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML 3.2 Final//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML 3.2//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML 3//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Level 0//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Level 0//EN//2.0</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Level 1//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Level 1//EN//2.0</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Level 2//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Level 2//EN//2.0</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Level 3//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Level 3//EN//3.0</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Strict Level 0//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Strict Level 0//EN//2.0</code>"
+        
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Strict Level 1//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Strict Level 1//EN//2.0</code>"
+        
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Strict Level 2//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Strict Level 2//EN//2.0</code>"
+        
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Strict Level 3//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Strict Level 3//EN//3.0</code>"
+        
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Strict//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Strict//EN//2.0</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML Strict//EN//3.0</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML//EN//2.0</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//IETF//DTD HTML//EN//3.0</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//Metrius//DTD Metrius
+        Presentational//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//Microsoft//DTD Internet Explorer 2.0 HTML
+        Strict//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//Microsoft//DTD Internet Explorer 2.0
+        HTML//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//Microsoft//DTD Internet Explorer 2.0
+        Tables//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//Microsoft//DTD Internet Explorer 3.0 HTML
+        Strict//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//Microsoft//DTD Internet Explorer 3.0
+        HTML//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//Microsoft//DTD Internet Explorer 3.0
+        Tables//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//Netscape Comm. Corp.//DTD HTML//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//Netscape Comm. Corp.//DTD Strict
+        HTML//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//O'Reilly and Associates//DTD HTML
+        2.0//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//O'Reilly and Associates//DTD HTML Extended
+        1.0//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//Spyglass//DTD HTML 2.0 Extended//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//SQ//DTD HTML 2.0 HoTMetaL +
+        extensions//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//Sun Microsystems Corp.//DTD HotJava
+        HTML//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//Sun Microsystems Corp.//DTD HotJava Strict
+        HTML//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//W3C//DTD HTML 3 1995-03-24//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//W3C//DTD HTML 3.2 Draft//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//W3C//DTD HTML 3.2 Final//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//W3C//DTD HTML 3.2//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//W3C//DTD HTML 3.2S Draft//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//W3C//DTD HTML 4.0 Frameset//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//W3C//DTD HTML 4.0 Transitional//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//W3C//DTD HTML 4.01 Frameset//EN</code>"
+
+       <td> Missing
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//W3C//DTD HTML 4.01 Transitional//EN</code>"
+
+       <td> Missing
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//W3C//DTD HTML Experimental
+        19960712//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//W3C//DTD HTML Experimental 970421//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//W3C//DTD W3 HTML//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//W3O//DTD W3 HTML 3.0//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//W3O//DTD W3 HTML 3.0//EN//</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//W3O//DTD W3 HTML Strict 3.0//EN//</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//WebTechs//DTD Mozilla HTML 2.0//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-//WebTechs//DTD Mozilla HTML//EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">-/W3C/DTD HTML 4.0 Transitional/EN</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> "<code title="">HTML</code>"
+
+       <td> Anything
+
+      <tr>
+       <td> "<code title="">HTML</code>"
+
+       <td> Anything
+
+       <td> "<code
+        title="">http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd</code>"
+        
+    </table>
+    <!-- ALMOST STANDARDS
+      <tr>
+       <td> "<code title="">HTML</code>"
+       <td> "<code title="">-//W3C//DTD HTML 4.01 Frameset//EN</CODE>"
+       <td> Not missing
+      <tr>
+       <td> "<code title="">HTML</code>"
+       <td> "<code title="">-//W3C//DTD HTML 4.01 Transitional//EN</CODE>"
+       <td> Not missing
+      <tr>
+       <td> "<code title="">HTML</code>"
+       <td> "<code title="">-//W3C//DTD XHTML 1.0 Frameset//EN</CODE>"
+       <td> Anything
+      <tr>
+       <td> "<code title="">HTML</code>"
+       <td> "<code title="">-//W3C//DTD XHTML 1.0 Transitional//EN</CODE>"
+       <td> Anything
+-->
+    
+    <p>The name, system identifier, and public identifier strings must be
+     compared to the values given in the table above in a
+     case-insensitive<!-- ASCII --> manner.</p>
+
+    <p>Then, switch to <a href="#the-root1">the root element phase</a> of the
+     tree construction stage.</p>
 
    <dt>A start tag token
 
@@ -34877,67 +35798,10 @@ function receiver(e) {
    <dt>An end-of-file token
 
    <dd>
-    <p>This specification does not define how to handle this case. In
-     particular, user agents may ignore the entirety of this specification
-     altogether for such documents, and instead invoke special parse modes
-     with a greater emphasis on backwards compatibility.</p>
-
-    <div class=note>
-     <p>Browsers in particular have generally used DOCTYPE-based sniffing to
-      invoke an "alternative conformance mode" known as <em>quirks mode</em>
-      on certain documents. In this mode, emphasis is put on legacy
-      compatibility rather than on standards compliance. This specification
-      takes no position on this behaviour; documents without DOCTYPEs or with
-      DOCTYPEs that do not conform to the syntax allowed by this
-      specification are considered to be out of scope of this specification.</p>
-    </div>
-
-    <div class=big-issue>
-     <p>As far as parsing goes, the quirks I know of are:</p>
-
-     <ul>
-      <li>Comment parsing is different.
-
-      <li><code title="">&lt;/br></code> and <code title="">&lt;/p></code> do
-       magical things.
-
-      <li><code><a href="#p">p</a></code> can contain <code><a
-       href="#table">table</a></code>
-
-      <li>Safari and IE have special parsing rules for &lt;% ... %&gt; (even
-       in standards mode, though clearly this should be quirks-only).
-     </ul>
-
-     <p>Maybe we should just adopt all those and be done with it. One parsing
-      mode to rule them all. Or legitimise/codify the quirks mode parsing in
-      some way.</p>
-
-     <p>Would be interesting to do a search to see how many pages hit each of
-      the above.</p>
-     <!-- biased by page rank? --></div>
-
-   <dt>A DOCTYPE token marked as being correct
-
-   <dd>
-    <p>Append a <code>DocumentType</code> node to the <code>Document</code>
-     node, with the <code title="">name</code> attribute set to the name
-     given in the DOCTYPE token (which will be "HTML"), and the other
-     attributes specific to <code>DocumentType</code> objects set to null,
-     empty lists, or the empty string as appropriate.</p>
+    <p>Set the document to <a href="#quirks">quirks mode</a>.</p>
 
     <p>Then, switch to <a href="#the-root1">the root element phase</a> of the
      tree construction stage.</p>
-    <!-- XXX should set doctype on the Document object, too, unless
-    spec is defined to already point to it if you append -->
-    
-
-   <dt>A character token that <em>is</em> one of one of U+0009 CHARACTER
-    TABULATION, U+000A LINE FEED (LF), U+000B LINE TABULATION, U+000C FORM
-    FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
-
-   <dd>
-    <p><a href="#append" title="append a character">Append that character</a>
-     to the <code>Document</code> node.</p>
   </dl>
 
   <h5 id=the-root0><span class=secno>8.2.4.2. </span><dfn id=the-root1>The
@@ -35331,9 +36195,9 @@ function receiver(e) {
   <h6 id=the-insertion><span class=secno>8.2.4.3.6. </span>The insertion mode</h6>
 
   <p>Initially the <dfn id=insertion0>insertion mode</dfn> is "<a
-   href="#before2" title="insertion mode: before head">before head</a>". It
+   href="#before4" title="insertion mode: before head">before head</a>". It
    can change to "<a href="#in-head" title="insertion mode: in head">in
-   head</a>", "<a href="#after1" title="insertion mode: after head">after
+   head</a>", "<a href="#after3" title="insertion mode: after head">after
    head</a>", "<a href="#in-body" title="insertion mode: in body">in
    body</a>", "<a href="#in-table" title="insertion mode: in table">in
    table</a>", "<a href="#in-caption" title="insertion mode: in caption">in
@@ -35342,9 +36206,9 @@ function receiver(e) {
    in table body">in table body</a>", "<a href="#in-row" title="insertion
    mode: in row">in row</a>", "<a href="#in-cell" title="insertion mode: in
    cell">in cell</a>", "<a href="#in-select" title="insertion mode: in
-   select">in select</a>", "<a href="#after2" title="insertion mode: after
+   select">in select</a>", "<a href="#after4" title="insertion mode: after
    body">after body</a>", "<a href="#in-frameset" title="insertion mode: in
-   frameset">in frameset</a>", and "<a href="#after3" title="insertion mode:
+   frameset">in frameset</a>", and "<a href="#after5" title="insertion mode:
    after frameset">after frameset</a>" during the course of the parsing, as
    described below. It affects how certain tokens are processed.
 
@@ -35434,9 +36298,9 @@ function receiver(e) {
     href="#html">html</a></code> element, then: if the <a
     href="#head-element"><code title="">head</code> element pointer</a> is
     null, switch the <a href="#insertion0">insertion mode</a> to "<a
-    href="#before2" title="insertion mode: before head">before head</a>",
+    href="#before4" title="insertion mode: before head">before head</a>",
     otherwise, switch the <a href="#insertion0">insertion mode</a> to "<a
-    href="#after1" title="insertion mode: after head">after head</a>". In
+    href="#after3" title="insertion mode: after head">after head</a>". In
     either case, abort these steps. (<a
     href="#innerhtml1"><code>innerHTML</code> case</a>)</li>
    <!-- XXX can the head element pointer ever be
@@ -35550,7 +36414,7 @@ simplified explanation instead:
     <p>Depends on the <a href="#insertion0">insertion mode</a>:</p>
 
     <dl class=switch>
-     <dt>If the <a href="#insertion0">insertion mode</a> is "<dfn id=before2
+     <dt>If the <a href="#insertion0">insertion mode</a> is "<dfn id=before4
       title="insertion mode: before head">before head</dfn>"
 
      <dd>
@@ -35623,7 +36487,7 @@ simplified explanation instead:
 
         <p class=note>This will result in an empty <code><a
          href="#head">head</a></code> element being generated, with the
-         current token being reprocessed in the "<a href="#after1"
+         current token being reprocessed in the "<a href="#after3"
          title="insertion mode: after head">after head</a>" <a
          href="#insertion0">insertion mode</a>.</p>
       </dl>
@@ -35884,7 +36748,7 @@ simplified explanation instead:
         back to "in head" -->
         
         <p>Change the <a href="#insertion0">insertion mode</a> to "<a
-         href="#after1" title="insertion mode: after head">after head</a>".</p>
+         href="#after3" title="insertion mode: after head">after head</a>".</p>
 
        <dt>An end tag with the tag name "html"
 
@@ -35906,7 +36770,7 @@ simplified explanation instead:
          with the tag name "head" had been seen.</p>
 
         <p>Otherwise, change the <a href="#insertion0">insertion mode</a> to
-         "<a href="#after1" title="insertion mode: after head">after
+         "<a href="#after3" title="insertion mode: after head">after
          head</a>".</p>
 
         <p>Then, reprocess the current token.</p>
@@ -35917,7 +36781,7 @@ simplified explanation instead:
          instead get put into the head. Do we want to copy that?</p>
       </dl>
 
-     <dt>If the <a href="#insertion0">insertion mode</a> is "<dfn id=after1
+     <dt>If the <a href="#insertion0">insertion mode</a> is "<dfn id=after3
       title="insertion mode: after head">after head</dfn>"
 
      <dd>
@@ -36050,7 +36914,7 @@ simplified explanation instead:
          href="#parse">parse error</a>.</p>
 
         <p>Change the <a href="#insertion0">insertion mode</a> to "<a
-         href="#after2" title="insertion mode: after body">after body</a>".</p>
+         href="#after4" title="insertion mode: after body">after body</a>".</p>
 
        <dt>An end tag with the tag name "html"
 
@@ -37609,7 +38473,7 @@ Put the following into the MathML namespace if parsed:
       </dl>
 
      <dt id=parsing-main-afterbody>If the <a href="#insertion0">insertion
-      mode</a> is "<dfn id=after2 title="insertion mode: after body">after
+      mode</a> is "<dfn id=after4 title="insertion mode: after body">after
       body</dfn>"
 
      <dd>
@@ -37703,7 +38567,7 @@ Put the following into the MathML namespace if parsed:
          href="#innerhtml1"><code>innerHTML</code> case</a>), and the <a
          href="#current4">current node</a> is no longer a
          <code>frameset</code> element, then change the <a
-         href="#insertion0">insertion mode</a> to "<a href="#after3"
+         href="#insertion0">insertion mode</a> to "<a href="#after5"
          title="insertion mode: after frameset">after frameset</a>".</p>
 
        <dt>A start tag with the tag name "frame"
@@ -37727,7 +38591,7 @@ Put the following into the MathML namespace if parsed:
       </dl>
 
      <dt id=parsing-main-afterframeset>If the <a href="#insertion0">insertion
-      mode</a> is "<dfn id=after3 title="insertion mode: after
+      mode</a> is "<dfn id=after5 title="insertion mode: after
       frameset">after frameset</dfn>"
 
      <dd>
