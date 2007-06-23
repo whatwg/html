@@ -6263,33 +6263,31 @@ class="main"> or <div class="content">. Why do we also need a body?
 
   <ul>
 
-   <li>When <a href="#syntax">serialised</a>, the <code
-   title="attr-meta-charset">charset</code> attribute and its value
-   must be contained completely in the first 512 bytes of the
-   file.</li>
-
-   <li>The attribute value must be serialised without the use of
-   character entity references of any kind.</li>
+   <li>The character encoding name given must be the name of the
+   character encoding used to serialise the file.</li>
 
    <li>The value must be a valid character encoding name. <a
    href="#refsIANACHARSET">[IANACHARSET]</a> <!-- XXX
    http://www.iana.org/assignments/character-sets --></li>
 
-   <li>The character encoding name given must be the name of the
-   character encoding used to serialise the file.</li>
+   <li>The attribute value must be serialised without the use of
+   character entity references of any kind.</li>
 
-   <li>The character encoding used must be a superset of US-ASCII
-   (specifically, ANSI_X3.4-1968) for bytes in the range 0x09 - 0x0D,
-   0x20, 0x21, 0x22, 0x26, 0x27, 0x2C - 0x3F, 0x41 - 0x5A, and 0x61 -
-   0x7A.</li> <!-- XXX #refs RFC1345 ? --> <!-- is that list ok? do
-   any character sets we want to support do things outside that range?
-   -->
+   <li>
 
   </ul>
 
-  <p>If the encoding is one of UTF-8, UTF-16BE, UTF-16LE, UTF-32BE, or
-  UTF-32LE, then authors can use a BOM at the start of the file to
-  indicate the character encoding.</p> <!-- UTF-EBCDIC, too! -->
+  <p>If the document does not start with a BOM, and if its encoding is
+  not explicitly given by <span title="Content-Type">Content-Type
+  metadata</span>, the character encoding used must be a superset of
+  US-ASCII (specifically, ANSI_X3.4-1968) for bytes in the range 0x09
+  - 0x0D, 0x20, 0x21, 0x22, 0x26, 0x27, 0x2C - 0x3F, 0x41 - 0x5A, and
+  0x61 - 0x7A. <!-- XXX #refs RFC1345 ? --> <!-- is that list ok? do
+  any character sets we want to support do things outside that range?
+  --> Authors should not use UTF-32. Authors must not use the CESU-8,
+  UTF-7, BOCU-1 and SCSU encodings. <a href="#refsCESU8">[CESU8]</a>
+  <a href="#refsUTF7">[UTF7]</a> <a href="#refsBOCU1">[BOCU1]</a> <a
+  href="#refsSCSU">[SCSU]</a></p>
 
   <p>In XHTML, the XML declaration should be used for inline character
   encoding information, if necessary.</p>
@@ -23472,6 +23470,66 @@ at the first element with the given ID must be treated as if it was cloned and r
   is no type information.</p>
 
 
+  <p>The <dfn>algorithm for extracting an encoding from a
+  Content-Type</dfn>, given a string <var title="">s</var>, is as
+  follows. It either returns a encoding or nothing.</p>
+
+  <ol>
+
+   <li><p>Skip characters in <var title="">s</var> up to and including
+   the first U+003B SEMICOLON (<code title="">;</code>)
+   character.</p></li>
+
+   <li><p>Skip any U+0009, U+000A, U+000B, U+000C, U+000D, or U+0020
+   characters (i.e. spaces) that immediately follow the
+   semicolon.</p></li>
+
+   <li><p>If the next six characters are not 'charset', return
+   nothing.</p></li>
+
+   <li><p>Skip any U+0009, U+000A, U+000B, U+000C, U+000D, or U+0020
+   characters that immediately follow the word 'charset' (there might
+   not be any).</p></li>
+
+   <li><p>If the next character is not a U+003D EQUALS SIGN ('='),
+   return nothing.</p></li>
+
+   <li><p>Skip any U+0009, U+000A, U+000B, U+000C, U+000D, or U+0020
+   characters that immediately follow the word equals sign (there
+   might not be any).</p></li>
+
+   <li><p>Process the next character as follows:</p>
+
+    <dl class="switch">
+
+     <dt>If it is a U+0022 QUOTATION MARK ('"') and there is a later
+     U+0022 QUOTATION MARK ('"') in <var title="">s</var></dt>
+
+     <dd><p>Return string between the two quotation marks.</dd>
+
+     <dt>If it is a U+0027 APOSTROPHE ("'") and there is a later
+     U+0027 APOSTROPHE ("'") in  <var title="">s</var></dt>
+
+     <dd><p>Return the string between the two apostrophes.</dd>
+
+     <dt>If it is an unmatched U+0022 QUOTATION MARK ('"')</dt>
+     <dt>If it is an unmatched U+0027 APOSTROPHE ("'")</dt>
+
+     <dd><p>Return nothing.</dd>
+
+     <dt>Otherwise</dt>
+
+     <dd><p>Return the string from this character to the first U+0009,
+     U+000A, U+000B, U+000C, U+000D, or U+0020 character or the end of
+     <var title="">s</var>, whichever comes first.</dd>
+
+    </dl>
+
+   </li>
+
+  </ol>
+
+
 
 
   <h3>User prompts</h3>
@@ -30431,27 +30489,66 @@ function receiver(e) {
   particular <em>character encoding</em>, which the user agent must
   use to decode the bytes into characters.</p>
 
-  <p id="documentEncoding">For HTML, user agents must use the
-  following algorithm in determining the character encoding of a
-  document:</p>
+  <p class="note">For XML documents, the algorithm user agents must
+  use to determine the character encoding is given by the XML
+  specification. This section does not apply to XML documents. <a
+  href="#refsXML">[XML]</a></p>
+
+
+  <h5>Determining the character encoding</h5>
+
+  <p>In some cases, it might be impractical to unambiguously determine
+  the encoding before parsing the document. Because of this, this
+  specification provides for a two-pass mechanism with an optional
+  pre-scan. Implementations are allowed, as described below, to apply
+  a simplified parsing algorithm to whatever bytes they have available
+  before beginning to parse the document. Then, the real parser is
+  started, using a tentative encoding derived from this pre-parse and
+  other out-of-band metadata. If, while the document is being loaded,
+  the user agent discovers an encoding declaration that conflicts with
+  this information, then the parser can get reinvoked to perform a
+  parse of the document with the real encoding.</p>
+
+  <p id="documentEncoding">User agents must use the following
+  algorithm (the <dfn>encoding sniffing algorithm</dfn>) to determine
+  the character encoding to use when decoding a document in the first
+  pass. This algorithm takes as input any out-of-band metadata
+  available to the user agent (e.g. the <span
+  title="Content-Type">Content-Type metadata</span> of the document)
+  and all the bytes available so far, and returns an encoding and a
+  <dfn title="concept-encoding-confidence">confidence</dfn>. The
+  confidence is either <i>tentative</i> or <i>certain</i>. The
+  encoding used, and whether the confidence in that encoding is
+  <i>tentative</i> or <i>confident</i>, is <a
+  href="#meta-charset-during-parse">used during the parsing</a> to
+  determine whether to <span>change the encoding</span>.</p>
 
   <ol>
 
-   <li><p>If the transport layer specifies an encoding, use that, and
-   abort these steps.</p></li>
+   <li><p>If the transport layer specifies an encoding, return that
+   encoding with the <span
+   title="concept-encoding-confidence">confidence</span>
+   <i>certain</i>, and abort these steps.</p></li>
 
-   <li><p>The user agent may wait for 512 or more bytes of the
-   resource to be available.</p></li>
-
-   <li><p>Let <var title="">n</var> be the smaller of either 512 or
-   the number of bytes already available.</p></li>
+   <li><p>The user agent may wait for more bytes of the resource to be
+   available, either in this step or at any later step in this
+   algorithm. For instance, a user agent might wait 500ms or 512
+   bytes, whichever came first. In general preparsing the source to
+   find the encoding improves performance, as it reduces the need to
+   throw away the data structures used when parsing upon finding the
+   encoding information. However, if the user agent delays too long to
+   obtain data to determine the encoding, then the cost of the delay
+   could outweigh any performance improvements from the
+   preparse.</p></li>
 
    <li><p>For each of the rows in the following table, starting with
-   the first one and going down, if <var title="">n</var> is equal to
-   or greater than the number of bytes in the first column, and the
+   the first one and going down, if there are as many or more bytes
+   available than the number of bytes in the first column, and the
    first bytes of the file match the bytes given in the first column,
-   then use the encoding given in the cell in the second column of
-   that row, and abort these steps:</p>
+   then return the encoding given in the cell in the second column of
+   that row, with the <span
+   title="concept-encoding-confidence">confidence</span>
+   <i>certain</i>, and abort these steps:</p>
 
     <table>
      <thead>
@@ -30459,12 +30556,14 @@ function receiver(e) {
        <th>Bytes in Hexadecimal
        <th>Description
      <tbody>
+<!-- nobody uses this
       <tr>
        <td>00 00 FE FF
        <td>UTF-32BE BOM
       <tr>
        <td>FF FE 00 00
        <td>UTF-32LE BOM
+-->
       <tr>
        <td>FE FF
        <td>UTF-16BE BOM
@@ -30482,21 +30581,21 @@ function receiver(e) {
     </table>
 
    <li><p>Otherwise, the user agent will have to search for explicit
-   character encoding information in the file itself. This must
+   character encoding information in the file itself. This should
    proceed as follows:
 
     <p>Let <var title="">position</var> be a pointer to a byte in the
     input stream, initially pointing at the first byte. If at any
-    point during these steps the <var title="">position</var> pointer
-    points beyond the <var title="">n</var>th byte of the input
-    stream, then skip to the next step of the overall character
-    encoding detection algorithm (the step which mentions frequency
-    analysis below).</p>
+    point during these substeps the user agent either runs out of
+    bytes or decides that scanning further bytes would not be
+    efficient, then skip to the next step of the overall character
+    encoding detection algorithm. User agents may decide that scanning
+    <em>any</em> bytes is not efficient, in which case these substeps
+    are entirely skipped.</p>
 
     <p>Now, repeat the following "two" steps until the algorithm
-    aborts (either because <var title="">position</var> reaches beyond
-    the <var title="">n</var>th byte, or because a character encoding
-    is found):</p>
+    aborts (either because user agent aborts, as described above, or
+    because a character encoding is found):</p>
 
     <ol>
 
@@ -30510,10 +30609,8 @@ function receiver(e) {
         <p>Advance the <var title="">position</var> pointer so that it
         points at the first 0x3E byte which is preceeded by two 0x2D
         bytes (i.e. at the end of an ASCII '-->' sequence) and comes
-        after the 0x3C byte that was found. (The two 0x2D bytes
-        can be the same as the those in the '&lt;!--' sequence.) If
-        no such byte is found before the <var title="">n</var>th byte,
-        abort this "two step" algorithm.</p>
+        after the 0x3C byte that was found. (The two 0x2D bytes can be
+        the same as the those in the '&lt;!--' sequence.)</p>
 
        </dd>
 
@@ -30524,19 +30621,13 @@ function receiver(e) {
 
          <li><p>Advance the <var title="">position</var> pointer so
          that it points at the next 0x09, 0x0A, 0x0B, 0x0C, 0x0D, or
-         0x20 byte (the one in sequence of characters matched above),
-         if there is one before the <var title="">n</var>th byte. If
-         there isn't, abort the "two step" algorithm.</p></li>
+         0x20 byte (the one in sequence of characters matched
+         above).</p></li>
 
          <li><p><span title="concept-get-attributes-when-sniffing">Get
          an attribute</span> and its value. If no attribute was
          sniffed, then skip this inner set of steps, and jump to the
-         second step in the overall "two step" algorithm.</p>
-
-         <p class="note">As required above, if the <var
-         title="">position</var> pointer points beyond the <var
-         title="">n</var>th byte after the "get an attribute" step,
-         the "two step" algorithm will abort.</p></li>
+         second step in the overall "two step" algorithm.</p></li>
 
          <li><p>Examine the attribute's name:</p>
 
@@ -30545,8 +30636,11 @@ function receiver(e) {
            <dt>If it is 'charset'</dt>
 
            <dd><p>If the attribute's value is a supported character
-           encoding, then use the given encoding, and abort all these
-           steps. Otherwise, do nothing with this attribute.</p></dd>
+           encoding, then return the given encoding, with <span
+           title="concept-encoding-confidence">confidence</span>
+           <i>tentative</i>, and abort all these steps. Otherwise, do
+           nothing with this attribute, and continue looking for other
+           attributes.</p></dd>
 
            <dt>If it is 'content'</dt>
 
@@ -30556,72 +30650,15 @@ function receiver(e) {
 
             <ol>
 
-             <li><p>Skip characters in the attribute's value up to and
-             including the first U+003B SEMICOLON (<code
-             title="">;</code>) character.</p></li>
+             <li>Apply the <span>algorithm for extracting an encoding
+             from a Content-Type</span>, giving the attribute's value
+             as the string to parse.</li>
 
-             <li><p>Skip any U+0009, U+000A, U+000B, U+000C, U+000D,
-             or U+0020 characters (i.e. spaces) that immediately
-             follow the semicolon.</p></li>
-
-             <li><p>If the next six characters are not 'charset',
-             abort this very inner set of steps (parsing the
-             attribute's value), and continue looking for other
-             attributes.</p></li>
-
-             <li><p>Skip any U+0009, U+000A, U+000B, U+000C, U+000D,
-             or U+0020 characters that immediately follow the word
-             'charset' (there might not be any).</p></li>
-
-             <li><p>If the next character is not a U+003D EQUALS SIGN
-             ('='), abort this very inner set of steps (parsing the
-             attribute's value), and continue looking for other
-             attributes.</p></li>
-
-             <li><p>Skip any U+0009, U+000A, U+000B, U+000C, U+000D,
-             or U+0020 characters that immediately follow the word
-             equals sign (there might not be any).</p></li>
-
-             <li><p>Process the next character as follows:</p>
-
-              <dl class="switch">
-
-               <dt>If it is a U+0022 QUOTATION MARK ('"') and there is
-               a later U+0022 QUOTATION MARK ('"') in the attribute's
-               value</dt>
-
-               <dd><p>Let <var title="">tentative encoding</var> be
-               the string between the two quotation marks.</dd>
-
-               <dt>If it is a U+0027 APOSTROPHE ("'") and there is a
-               later U+0027 APOSTROPHE ("'") in the attribute's
-               value</dt>
-
-               <dd><p>Let <var title="">tentative encoding</var> be
-               the string between the two apostrophes.</dd>
-
-               <dt>If it is an unmatched U+0022 QUOTATION MARK ('"')</dt>
-
-               <dt>If it is an unmatched U+0027 APOSTROPHE ("'")</dt>
-
-               <dd><p>There is no <var title="">tentative
-               encoding</var>.</dd>
-
-               <dt>Otherwise</dt>
-
-               <dd><p>Let <var title="">tentative encoding</var> be
-               the string from this character to the first U+0009,
-               U+000A, U+000B, U+000C, U+000D, or U+0020 character or
-               the end of the attribute's value, whichever comes
-               first.</dd>
-
-              </dl>
-
-             </li>
-
-             <li>If there is a <var title="">tentative encoding</var>
-             and it is the name of a supported character encoding,
-             then use that encoding; abort all these steps.</li>
+             <li>If an encoding was returned, and it is the name of a
+             supported character encoding, then return that encoding,
+             with the <span
+             title="concept-encoding-confidence">confidence</span>
+             <i>tentative</i>, and abort all these steps.</li>
 
              <li>Otherwise, skip this 'content' attribute and continue
              on with any other attributes.</li>
@@ -30652,9 +30689,8 @@ function receiver(e) {
          <li><p>Advance the <var title="">position</var> pointer so
          that it points at the next 0x09 (ASCII TAB), 0x0A (ASCII LF),
          0x0B (ASCII VT), 0x0C (ASCII FF), 0x0D (ASCII CR), 0x20
-         (ASCII space), 0x3E (ASCII '>'), 0x3C (ASCII '<') byte, if
-         there is one before the <var title="">n</var>th byte. If
-         there isn't, abort the "two step" algorithm.</p></li>
+         (ASCII space), 0x3E (ASCII '>'), 0x3C (ASCII '<')
+         byte.</p></li>
 
          <li><p>If the pointer points to a 0x3C (ASCII '<') byte, then
          return to the first step in the overall "two step"
@@ -30677,9 +30713,7 @@ function receiver(e) {
 
         <p>Advance the <var title="">position</var> pointer so that it
         points at the first 0x3E byte (ASCII '>') that comes after the
-        0x3C byte that was found. If no such byte is found before the
-        <var title="">n</var>th byte, abort this "two step"
-        algorithm.</p>
+        0x3C byte that was found.</p>
 
        </dd>
 
@@ -30897,37 +30931,57 @@ function receiver(e) {
 
     </ol>
 
+    <p>For the sake of interoperability, user agents should not use a
+    pre-scan algorithm that returns different results than the one
+    described above. (But, if you do, please at least let us know, so
+    that we can improve this algorithm and benefit everyone...)</p>
+
    </li>
 
-   <li><p>The user agent may attempt to autodetect the character encoding
-   from applying frequency analysis or other algorithms to the data
-   stream. If autodetection succeeds in determining a character
-   encoding, then use that; abort these steps. <a
+   <li><p>If the user agent has information on the likely encoding for
+   this page, e.g. based on the encoding of the page when it was last
+   visited, then return that encoding, with the <span
+   title="concept-encoding-confidence">confidence</span>
+   <i>tentative</i>, and abort these steps.</p></li>
+
+   <li><p>The user agent may attempt to autodetect the character
+   encoding from applying frequency analysis or other algorithms to
+   the data stream. If autodetection succeeds in determining a
+   character encoding, then return that encoding, with the <span
+   title="concept-encoding-confidence">confidence</span>
+   <i>tentative</i>, and abort these steps. <a
    href="#refsUNIVCHARDET">[UNIVCHARDET]</a></p></li> <!--
    http://www.mozilla.org/projects/intl/UniversalCharsetDetection.html
    -->
 
-   <li><p>Otherwise, use an implementation-defined or user-specified
-   default character encoding. Due to its use in legacy content,
-   <code title="">windows-1252</code> is recommended as a default in
+   <li><p>Otherwise, return an implementation-defined or
+   user-specified default character encoding, with the <span
+   title="concept-encoding-confidence">confidence</span>
+   <i>tentative</i>. Due to its use in legacy content, <code
+   title="">windows-1252</code> is recommended as a default in
    predominantly Western demographics. In non-legacy environments, the
-   more comprehensive <code title="">UTF-8</code> encoding is recommended
-   instead. Since these encodings can in many cases be distinguished
-   by inspection, a user agent may heuristically decide which to use
-   as a default.</p></li>
+   more comprehensive <code title="">UTF-8</code> encoding is
+   recommended instead. Since these encodings can in many cases be
+   distinguished by inspection, a user agent may heuristically decide
+   which to use as a default.</p></li>
 
   </ol>
 
-  <p class="note">For XML documents, the algorithm user agents must
-  use to determine the character encoding is given by the XML
-  specification. This section does not apply to XML documents. <a
-  href="#refsXML">[XML]</a></p>
+
+  <h5>Preprocessing the input stream</h5>
+
+  <p>Given an encoding, the bytes in the input stream must be
+  converted to Unicode characters for the tokeniser, as described by
+  the rules for that encoding.</p>
 
   <p>When a user agent would otherwise use the ISO-8859-1 encoding, it
   must instead use the Windows-1252 encoding. User agents must not
   support the CESU-8, UTF-7, BOCU-1 and SCSU encodings. <a
   href="#refsCESU8">[CESU8]</a> <a href="#refsUTF7">[UTF7]</a> <a
   href="#refsBOCU1">[BOCU1]</a> <a href="#refsSCSU">[SCSU]</a></p>
+
+  <p>Support for UTF-32 is not recommended. This encoding is rarely
+  used, and frequently misimplemented.</p>
 
   <p>Bytes or sequences of bytes in the original byte stream that
   could not be converted to Unicode characters must be converted to
@@ -30970,6 +31024,55 @@ function receiver(e) {
   title="dom-document-close">document.close()</code> method) is
   consumed. Otherwise, the "EOF" character is not a real character in
   the stream, but rather the lack of any further characters.</p>
+
+
+  <h5>Changing the encoding while parsing</h5>
+
+  <p>When the parser requires the user agent to <dfn>change the
+  encoding</dfn>, it must follow the following steps. This might
+  happen if the <span>encoding sniffing algorithm</span> described
+  above failed to find an encoding, or if it found an encoding that
+  was not the actual encoding of the file.</p>
+
+  <ol>
+
+   <li>If the new encoding is UTF-16, change it to UTF-8.</li>
+
+   <li>If the new encoding is identical or equivalent to the encoding
+   that is already being used to interpret the input stream, then set
+   the <span title="concept-encoding-confidence">confidence</span> to
+   <i>confident</i> and abort these steps. This happens when the
+   encoding information found in the file matches what the
+   <span>encoding sniffing algorithm</span> determined to be the
+   encoding, and in the second pass through the parser if the first
+   pass found that the encoding sniffing algorithm described in the
+   earlier section failed to find the right encoding.</p>
+
+   <li>If all the bytes up to the last byte converted by the current
+   decoder have the same Unicode interpretations in both the current
+   encoding and the new encoding, and if the user agent supports
+   changing the converter on the fly, then the user agent may change
+   to the new converter for the encoding on the fly. Set the encoding
+   to the new encoding, set the <span
+   title="concept-encoding-confidence">confidence</span> to
+   <i>confident</i>, and abort these steps.</li>
+
+   <li>Otherwise, <span>navigate</span> to the document again, with
+   <span>replacement enabled</span>, but this time skip the
+   <span>encoding sniffing algorithm</span> and instead just set the
+   encoding to the new encoding and the <span
+   title="concept-encoding-confidence">confidence</span> to
+   <i>confident</i>. Whenever possible, this should be done without
+   actually contacting the network layer (the bytes should be
+   re-parsed from memory), even if, e.g., the document is marked as
+   not being cacheable.</li>
+
+  </ol>
+
+  <p class="note">While the invocation of this algorithm is not a
+  parse error, it is <a href="#charset">still indicative of
+  non-conforming content</a>.</p>
+
 
 
   <h4><dfn>Tokenisation</dfn></h4>
@@ -33390,10 +33493,35 @@ simplified explanation instead:
         the data given in the comment token.</p>
        </dd>
 
-       <dt>A start tag whose tag name is one of: "base", "link", "meta"</dt>
+       <dt>A start tag whose tag name is one of: "base", "link"</dt>
        <dd>
         <p><span title="insert an html element">Insert an HTML
         element</span> for the token.</p>
+       </dd>
+
+       <dt>A start tag whose tag name is "meta"</dt>
+       <dd>
+        <p><span title="insert an html element">Insert an HTML
+        element</span> for the token.</p>
+
+        <p>If the element has a <code
+        title="attr-meta-charset">charset</code> attribute, and its
+        value is a supported encoding, and the <span
+        title="concept-encoding-confidence">confidence</span> is
+        currently <i>tentative</i>, then <span>change the
+        encoding</span> to the encoding given by the value of the
+        <code title="attr-meta-charset">charset</code> attribute.</p>
+
+        <p>Otherwise, if the element has a <code
+        title="attr-meta-charset">content</code> attribute, and
+        applying the <span>algorithm to extract an encoding from a
+        Content-Type</span> to its value returns a supported encoding
+        <var title="">encoding</var>, and the <span
+        title="concept-encoding-confidence">confidence</span> is
+        currently <i>tentative</i>, then <span>change the
+        encoding</span> to the encoding <var
+        title="">encoding</var>.</p>
+
        </dd>
 
        <dt>A start tag whose tag name is "title"</dt>
