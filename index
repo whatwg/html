@@ -22,7 +22,7 @@
 
    <h1 id=html-5>HTML 5</h1>
 
-   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 8 August 2007</h2>
+   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 9 August 2007</h2>
 
    <p>You can take part in this work. <a
     href="http://www.whatwg.org/mailing-list">Join the working group's
@@ -2456,8 +2456,6 @@
   boolean <a href="#execCommand" title=dom-document-execCommand>execCommand</a>(in DOMString commandId, in boolean doShowUI, in DOMString value);
   <a href="#selection1">Selection</a> <a href="#getselection0" title=dom-document-getSelection>getSelection</a>();
 
-  // <a href="#cross-document">Cross-document messaging</a>
-  void <a href="#postmessage" title=dom-document-postMessage>postMessage</a>(in DOMString message);
 <!-- XXX we're not done here.
      XXX see e.g. http://lxr.mozilla.org/seamonkey/source/dom/public/idl/html/nsIDOMNSHTMLDocument.idl 
      XXX see e.g. http://trac.webkit.org/projects/webkit/browser/trunk/WebCore/dom/Document.cpp 
@@ -2476,16 +2474,7 @@
    whenever any of the members of an <code><a
    href="#htmldocument">HTMLDocument</a></code> object are accessed by
    scripts whose <a href="#origin0">origin</a> is not the same as the
-   <code>Document</code>'s origin, with the following exceptions:
-
-  <ul>
-   <li>The <code title=dom-document-postMessage><a
-    href="#postmessage">postMessage()</a></code> method must be allowed to be
-    called from any script.
-  </ul>
-
-  <p class=big-issue>We may want to just put postMessage on Window instead of
-   Document, as that reduces the XSS risk.
+   <code>Document</code>'s origin.
 
   <h4 id=resource><span class=secno>2.1.2. </span><dfn id=resource0>Resource
    metadata management</dfn></h4>
@@ -23016,6 +23005,9 @@ XXX selection ranges -->
   <a href="#window">Window</a> <a href="#open2" title=dom-open>open</a>(in DOMString url, in DOMString target, in DOMString features);
   <a href="#window">Window</a> <a href="#open2" title=dom-open>open</a>(in DOMString url, in DOMString target, in DOMString features, in DOMString replace);
 
+  // <a href="#cross-document">cross-document messaging</a>
+  void <a href="#postmessage" title=dom-window-postMessage>postMessage</a>(in DOMString message);
+
   // <a href="#event3">event handler DOM attributes</a>
            attribute <span>EventListener</span> <a href="#onabort" title=handler-onabort>onabort</a>;
            attribute <span>EventListener</span> <a href="#onbeforeunload" title=handler-onbeforeunload>onbeforeunload</a>;
@@ -23090,6 +23082,9 @@ XXX selection ranges -->
   <ul>
    <li>The <code title=dom-location><a href="#location1">location</a></code>
     object
+
+   <li>The <code title=dom-window-postMessage><a
+    href="#postmessage">postMessage()</a></code> method
   </ul>
 
   <p>User agents must not allow scripts to override the <code
@@ -30727,9 +30722,9 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
   readonly attribute DOMString <a href="#data4" title=dom-MessageEvent-data>data</a>;
   readonly attribute DOMString <a href="#domain2" title=dom-MessageEvent-domain>domain</a>;
   readonly attribute DOMString <a href="#uri" title=dom-MessageEvent-uri>uri</a>;
-  readonly attribute Document <a href="#source1" title=dom-MessageEvent-source>source</a>;
-  void <a href="#initmessageevent" title=dom-MessageEvent-initMessageEvent>initMessageEvent</a>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString domainArg, in DOMString uriArg, in Document documentArg);
-  void <a href="#initmessageeventns" title=dom-MessageEvent-initMessageEventNS>initMessageEventNS</a>(in DOMString namespaceURI, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString domainArg, in DOMString uriArg, in Document documentArg);
+  readonly attribute <a href="#window">Window</a> <a href="#source1" title=dom-MessageEvent-source>source</a>;
+  void <a href="#initmessageevent" title=dom-MessageEvent-initMessageEvent>initMessageEvent</a>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString domainArg, in DOMString uriArg, in Window sourceArg);
+  void <a href="#initmessageeventns" title=dom-MessageEvent-initMessageEventNS>initMessageEventNS</a>(in DOMString namespaceURI, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString domainArg, in DOMString uriArg, in Window sourceArg);
 };</pre>
 
   <p>The <dfn id=initmessageevent
@@ -30755,7 +30750,7 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
   <p>The <dfn id=source1
    title=dom-MessageEvent-source><code>source</code></dfn> attribute
    represents, in <a href="#cross-document">cross-document messaging</a>, the
-   <code>Document</code> from which the message came.
+   <code><a href="#window">Window</a></code> from which the message came.
 
   <h3 id=server-sent-events><span class=secno>6.2. </span><dfn
    id=server-sent>Server-sent DOM events</dfn></h3>
@@ -32182,21 +32177,19 @@ Target: #image1
    to communicate with each other regardless of their source domain, in a way
    designed to not enable cross-site scripting attacks.
 
-  <p class=big-issue>We may want to just put postMessage on Window instead of
-   Document, as that reduces the XSS risk.
-
   <h4 id=processing1><span class=secno>6.4.1. </span>Processing model</h4>
 
   <p>When a script invokes the <dfn id=postmessage
-   title=dom-document-postMessage><code>postMessage(<var
-   title="">message</var>)</code></dfn> method on a <code>Document</code>
-   object, the user agent must create an event that uses the <code><a
-   href="#messageevent">MessageEvent</a></code> interface, with the event
-   name <code title=event-message><a href="#message">message</a></code>,
-   which bubbles, is cancelable, and has no default action. The <code
-   title=dom-MessageEvent-data><a href="#data4">data</a></code> attribute
-   must be set to the value passed as the <var title="">message</var>
-   argument to the <code title=dom-document-postMessage><a
+   title=dom-window-postMessage><code>postMessage(<var
+   title="">message</var>)</code></dfn> method on a <code><a
+   href="#window">Window</a></code> object, the user agent must create an
+   event that uses the <code><a href="#messageevent">MessageEvent</a></code>
+   interface, with the event name <code title=event-message><a
+   href="#message">message</a></code>, which bubbles, is cancelable, and has
+   no default action. The <code title=dom-MessageEvent-data><a
+   href="#data4">data</a></code> attribute must be set to the value passed as
+   the <var title="">message</var> argument to the <code
+   title=dom-window-postMessage><a
    href="#postmessage">postMessage()</a></code> method, the <code
    title=dom-MessageEvent-domain><a href="#domain2">domain</a></code>
    attribute must be set to the domain of the document that the script that
@@ -32204,14 +32197,13 @@ Target: #image1
    title=dom-MessageEvent-uri><a href="#uri">uri</a></code> attribute must be
    set to the URI of that document, and the <code
    title=dom-MessageEvent-source><a href="#source1">source</a></code>
-   attribute must be set to the <code>Document</code> object representing
-   that document.
+   attribute must be set to the <code><a href="#window">Window</a></code>
+   object of the default view of the browsing context with which that
+   document is associated.
 
   <p>The event must then be dispatched at the <code>Document</code> object
-   itself.</p>
-  <!-- XXX must ensure that postMessage() is accessible on
-  cross-domain Document objects but that the dispatchEvent() method is
-  not. -->
+   that is the <a href="#active">active document</a> of the <code><a
+   href="#window">Window</a></code> object on which the method was invoked.
 
   <p class=warning>Authors should check the <code
    title=dom-MessageEvent-domain><a href="#domain2">domain</a></code>
@@ -32222,13 +32214,13 @@ Target: #image1
   <div class=example>
    <p>For example, if document A contains an <code><a
     href="#object">object</a></code> element that contains document B, and
-    script in document A calls <code title=dom-document-postMessage><a
+    script in document A calls <code title=dom-window-postMessage><a
     href="#postmessage">postMessage()</a></code> on document B, then a
     message event will be fired on that element, marked as originating from
     document A. The script in document A might look like:</p>
 
    <pre>var o = document.getElementsByTagName('object')[0];
-o.<span title="">contentDocument</span>.<a href="#postmessage" title=dom-document-postMessage>postMessage</a>('Hello world');
+o.<span title=dom-object-contentWindow>contentWindow</span>.<a href="#postmessage" title=dom-window-postMessage>postMessage</a>('Hello world');
 </pre>
 
    <p>To register an event handler for incoming events, the script would use
@@ -32251,6 +32243,10 @@ function receiver(e) {
     to by sending a message back to the document which sent the message in
     the first place.</p>
   </div>
+
+  <p class=warning>The integrity of this API is based on the inability for
+   scripts of one origin to post arbitrary events (using <code
+   title="">dispatchEvent()</code> or otherwise) to objects in other origins.
 
   <p class=note>Implementors are urged to take extra care in the
    implementation of this feature. It allows authors to transmit information
