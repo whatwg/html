@@ -699,11 +699,12 @@
   interactive applications.</p>
 
   <p>For readability, the term URI is used to refer to both ASCII URIs
-  and Unicode IRIs, as those terms are defined by <a
-  href="#refsRFC3986">[RFC3986]</a> and <a
-  href="#refsRFC3987">[RFC3987]</a> respectively. On the rare
+  and Unicode IRIs, as those terms are defined by RFC 3986 and RFC
+  3987 respectively, and as modified by RFC 2732. On the rare
   occasions where IRIs are not allowed but ASCII URIs are, this is
-  called out explicitly.</p>
+  called out explicitly. <a href="#refsRFC3986">[RFC3986]</a> <a
+  href="#refsRFC3987">[RFC3987]</a> <a
+  href="#refsRFC2732">[RFC2732]</a></p>
 
   <p>The term <dfn>root element</dfn>, when not qualified to
   explicitly refer to the document's root element, means the furthest
@@ -5540,11 +5541,11 @@ class="main"> or <div class="content">. Why do we also need a body?
   <code>head</code> element</span> and has an <code
   title="att-base-href">href</code> attribute, if there is such an
   element, as the document entity's base URI for the purposes of
-  section 5.1.1 of RFC 2396 ("Establishing a Base URI": "Base URI
-  within Document Content"). This base URI from RFC 2396 is referred
-  to by the algorithm given in XML Base, which <a href="#xmlBase">is a
+  section 5.1.1 of RFC 3986 ("Establishing a Base URI": "Base URI
+  Embedded in Content"). This base URI from RFC 3986 is referred to by
+  the algorithm given in XML Base, which <a href="#xmlBase">is a
   normative part of this specification</a>. <a
-  href="#refsRFC2396">[RFC2396]</a></p>
+  href="#refsRFC3986">[RFC3986]</a></p>
 
   <p>If the base URI given by this attribute is a relative URI, it
   must be resolved relative to the higher-level base URIs (i.e. the
@@ -20871,27 +20872,29 @@ XXX selection ranges -->
   <code>Window</code> object's <span>active document</span>.</p>
 
   <p><code>History</code> objects represent their <span>browsing
-  context</span>'s session history as a flat list of URIs and
-  <span title="state object">state objects</span>. (This does not imply
-  that the UI need be linear. See the <a href="#history-notes">notes
-  below</a>.)
+  context</span>'s session history as a flat list of <span
+  title="session history entry">session history entries</span>. Each
+  <dfn>session history entry</dfn> consists of either a URI or a
+  <span>state object</span>, or both, and may in addition have a
+  title, a <code>Document</code> object, form data, a scroll position,
+  and other information associated with it.</p>
 
-  <p>Typically, the history list will consist of only URIs. However, a
-  page can <span title="dom-history-pushState">add</span> <dfn
-  title="state object">state objects</dfn> between its entry in the
+  <p class="note">This does not imply that the user interface need be
+  linear. See the <a href="#history-notes">notes below</a>.<?p>
+
+  <p>URIs without assaciated <span title="state object">state
+  objects</span> are added to the session history as the user (or
+  script) navigates from page to page.</p>
+
+  <p>A <dfn>state object</dfn> is an object representing a user
+  interface state.</p>
+
+  <p>Pages can <span title="dom-history-pushState">add</span> <span
+  title="state object">state objects</span> between their entry in the
   session history and the next ("forward") entry. These are then <span
   title="event-popstate">returned to the script</span> when the user
   (or script) goes back in the history, thus enabling authors to use
   the "navigation" metaphor even in one-page applications.</p>
-
-  <p>Entries that consist of <span title="state object">state
-  objects</span> share the same <code>Document</code> as the entry for
-  the URI itself. Contiguous entries that differ just by fragment
-  identifier must also share the same <code>Document</code>.</p>
-
-  <p class="note">All entries that share the same
-  <code>Document</code> (and that are therefore merely different
-  states of one particular document) are contiguous by definition.</p>
 
   <p>At any point, one of the entries in the session history is the
   <dfn>current entry</dfn>. This is the entry representing the
@@ -20901,6 +20904,17 @@ XXX selection ranges -->
   <code>Document</code>. However, it can also be one of the entries
   for <span title="state object">state objects</span> added to the
   history by that document.</p>
+
+  <p>Entries that consist of <span title="state object">state
+  objects</span> share the same <code>Document</code> as the entry for
+  the page that was active when they were added.</p>
+
+  <p>Contiguous entries that differ just by fragment identifier also
+  share the same <code>Document</code>.</p>
+
+  <p class="note">All entries that share the same
+  <code>Document</code> (and that are therefore merely different
+  states of one particular document) are contiguous by definition.</p>
 
   <p>User agents may <dfn>discard</dfn> the DOMs of entries other than
   the <span>current entry</span> that are not referenced from any
@@ -20918,18 +20932,19 @@ XXX selection ranges -->
   <code>Document</code> object with it must share the new object as
   well.</p>
 
+  <p>When state object entries are added, a URI can be provided. This
+  URI is used to replace the state object entry if the
+  <code>Document</code> is evicted.</p>
+
   <p>When a user agent discards the DOM from an entry in the session
-  history, it must also discard all the entries from the first state
-  object entry for that <code>Document</code> object up to and
-  including the last entry for that <code>Document</code> object
-  (including any non-state-object entries in that range, such as
-  entries where the user navigated using fragment identifiers). These
-  entries are not recreated if the user or script navigates back to
-  the page. If there are no state object entries for that
-  <code>Document</code> object then no entries are removed.</p>
-
-
-
+  history, it must also discard all the entries that share that
+  <code>Document</code> but do not have an associated URI
+  (i.e. entries that only have a <span>state object</span>). Entries
+  that shared that <code>Document</code> object but had a state object
+  and have a different URI must then have their <em>state objects</em>
+  removed. Removed entries are not recreated if the user or script
+  navigates back to the page. If there are no state object entries for
+  that <code>Document</code> object then no entries are removed.</p>
 
 
   <h4>The <code>History</code> interface</h4>
@@ -20940,7 +20955,8 @@ XXX selection ranges -->
   void <span title="dom-history-go-0">go</span>();
   void <span title="dom-history-back">back</span>();
   void <span title="dom-history-forward">forward</span>();
-  void <span title="dom-history-pushState">pushState</span>(in DOMObject data);
+  void <span title="dom-history-pushState">pushState</span>(in DOMObject data, in DOMString title);
+  void <span title="dom-history-pushState">pushState</span>(in DOMObject data, in DOMString title, in DOMString url);
   void <span title="dom-history-clearState">clearState</span>();
 };</pre>
 
@@ -20999,7 +21015,8 @@ XXX selection ranges -->
    with the entry closest to the current entry, and ending with the
    one closest to the specified entry. For each entry, if the entry is
    a state object, the user agent must <span>activate the state
-   object</span>.</p></li>
+   object</span>.</p></li> <!-- XXX if the document isn't the active
+   document, then what happens to the activation events? -->
 
    <li><p>If the <span>specified entry</span> has a different
    <code>Document</code> object than the <span>current entry</span>
@@ -21116,11 +21133,30 @@ XXX selection ranges -->
   </table>
  
   <p>The <dfn title="dom-history-pushState"><code>pushState(<var
-  title="">data</var>)</code></dfn> method adds a state object to the
+  title="">data</var>, <var title="">title</var>, <var
+  title="">url</var>)</code></dfn> method adds a state object to the
   history.</p>
 
-  <p>When this method is invoked, the user agent must first remove
-  from the <span>session history</span> any entries for that
+  <p>When this method is invoked, the user agent must first check the
+  third argument. If a third argument is specified, then the user
+  agent must verify that the third argument is a valid URI or IRI (as
+  defined by RFC 3986 and 3987, and as modified by RFC 2732), and if
+  so, that the URI or IRI is either identical to the document's URI,
+  or that it differs from the document's URI only in the
+  &lt;query&gt;, &lt;abs_path&gt;, and/or &lt;fragment&gt; parts, as
+  applicable (the &lt;query&gt; and &lt;abs_path&gt; parts can only be
+  the same if the document's URI uses a hierarchical
+  &lt;scheme&gt;). If the verification fails (either because the
+  argument is syntactically incorrect, or differs in a way not
+  described as acceptable in the previous sentence) then the user
+  agent must raise a <span>security exception</span>. <a
+  href="#refsRFC3986">[RFC3986]</a> <a
+  href="#refsRFC3987">[RFC3987]</a> <a
+  href="#refsRFC2732">[RFC2732]</a></p>
+
+  <p>If the third argument passes its verification step, or if the
+  third argument was omitted, then the user agent must remove from the
+  <span>session history</span> any entries for that
   <code>Document</code> from the entry after the <span>current
   entry</span> up to the last entry in the session history that
   references the same <code>Document</code> object, if any. If the
@@ -21131,18 +21167,16 @@ XXX selection ranges -->
 
   <p>Then, the user agent must add a state object entry to the session
   history, after the <span>current entry</span>, with the specified
-  <var title="">data</var> as the state object.</p>
+  <var title="">data</var> as the state object, the given <var
+  title="">title</var> as the title, and, if the third argument is
+  present, the given <var title="">url</var> as the URI of the
+  entry.</p>
 
   <p>Finally, the user agent must update the <span>current
   entry</span> to be the this newly added entry.</p>
 
-  <p class="big-issue">There has been a suggestion that pushState()
-  should take a URI and a string; the URI to allow for the page to be
-  bookmarked, and the string to allow the UA to give the page a
-  meaningful title in the history state, if it shows history
-  state.</p> <!-- XXX could have four variants of pushState to allow
-  with/without URI and with/without title. Or maybe URI only makes
-  sense if there is a title. -->
+  <p class="note">The <var title="">title</var> is purely
+  advisory. User agents might use the title in the user interface.</p>
 
   <p>User agents may limit the number of state objects added to the
   session history per page. If a page hits the UA-defined limit, user
@@ -22539,8 +22573,10 @@ at the first element with the given ID must be treated as if it was cloned and r
   value of <var title="">output</var>.</p>
 
   <p>The rules for parsing and constructing URIs are described in RFC
-  2396 as modified by RFC 2732. <a href="#refsRFC2396">[RFC2396]</a>
-  <a href="#refsRFC2732">[RFC2732]</a></p>
+  3986 and RFC 3987, as modified by RFC 2732. <a
+  href="#refsRFC3986">[RFC3986]</a> <a
+  href="#refsRFC3987">[RFC3987]</a> <a
+  href="#refsRFC2732">[RFC2732]</a></p>
 
   <table>
    <thead>      
@@ -23734,7 +23770,8 @@ at the first element with the given ID must be treated as if it was cloned and r
   server-based naming authority is the tuple consisting of the
   &lt;scheme&gt;, &lt;host&gt;, and &lt;port&gt; parts of the
   <code>Document</code>'s full URI. <a
-  href="#refsRFC2396">[RFC2396]</a> <a
+  href="#refsRFC3986">[RFC3986]</a> <a
+  href="#refsRFC3987">[RFC3987]</a> <a
   href="#refsRFC2732">[RFC2732]</a></p>
 
   <p>The origin of a <code>Document</code> or image that was generated
