@@ -22,7 +22,7 @@
 
    <h1 id=html-5>HTML 5</h1>
 
-   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 16 August 2007</h2>
+   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 21 August 2007</h2>
 
    <p>You can take part in this work. <a
     href="http://www.whatwg.org/mailing-list">Join the working group's
@@ -26058,10 +26058,18 @@ at the first element with the given ID must be treated as if it was cloned and r
      the resource (in lowercase<!-- XXX ASCII case folding -->, ignoring any
      parameters). If there is no such type, jump to the <em
      title="content-type sniffing: unknown type"><a
-     href="#content-type5">unknown type</a></em> step below.</p>
+     href="#content-type5">unknown type</a></em> step below.
 
-    <p class=big-issue>...or if the type has no slash or is */*? Probably we
-     should also sniff in that case.
+   <li>
+    <p>If <var title="">official type</var> is "unknown/unknown" or
+     "application/unknown", jump to the <em title="content-type sniffing:
+     unknown type"><a href="#content-type5">unknown type</a></em> step below.</p>
+    <!-- In a study looking at many billions of pages whose first five
+   characters were "<HTML", "unknown/unknown" was used to label
+   documents about once for every 5000 pages labelled "text/html", and
+   "application/unknown" was used about once for every 35000 pages
+   labelled "text/html". -->
+    
 
    <li>
     <p>If <var title="">official type</var> ends in "+xml", or if it is
@@ -26186,24 +26194,95 @@ at the first element with the given ID must be treated as if it was cloned and r
    <li>
     <p>For each row in the table below:</p>
 
-    <ol>
-     <li>Let <var title="">pattern length</var> be the length of the pattern
-      (number of bytes described by the cell in the second column of the
-      row).
+    <dl class=switch>
+     <dt>If the row has no bytes with a trailing asterisk:
 
-     <li>If <var title="">pattern length</var> is smaller than <var
-      title="">stream length</var> then skip this row.
+     <dd>
+      <ol>
+       <li>Let <var title="">pattern length</var> be the length of the
+        pattern (number of bytes described by the cell in the second column
+        of the row).
 
-     <li>Apply the "and" operator to the first <var title="">pattern
-      length</var> bytes of the resource and the given mask (the bytes in the
-      cell of first column of that row), and let the result be the <var
-      title="">data</var>.
+       <li>If <var title="">pattern length</var> is smaller than <var
+        title="">stream length</var> then skip this row.
 
-     <li>If the bytes of the <var title="">data</var> matches the given
-      pattern bytes exactly, then the sniffed type of the resource is the
-      type given in the cell of the third column in that row; abort these
-      steps.
-    </ol>
+       <li>Apply the "and" operator to the first <var title="">pattern
+        length</var> bytes of the resource and the given mask (the bytes in
+        the cell of first column of that row), and let the result be the <var
+        title="">data</var>.
+
+       <li>If the bytes of the <var title="">data</var> matches the given
+        pattern bytes exactly, then the sniffed type of the resource is the
+        type given in the cell of the third column in that row; abort these
+        steps.
+      </ol>
+
+     <dt>If the row has an asterisk after one of the bytes:
+
+     <dd>
+    </dl>
+
+   <li>
+    <p>Let <var title="">index<sub>pattern</sub></var> be an index into the
+     mask and pattern byte strings of the row.
+
+   <li>
+    <p>Let <var title="">index<sub>stream</sub></var> be an index into the
+     byte stream being examined.
+
+   <li>
+    <p><em>Loop</em>: If <var title="">index<sub>stream</sub></var> points
+     beyond the end of the byte stream, then this row doesn't match, skip
+     this row.
+
+   <li>
+    <p><em>Byte</em>: Examine the <var
+     title="">index<sub>stream</sub></var>th byte of the byte stream as
+     follows:</p>
+
+    <dl class=switch>
+     <dt>If the <var title="">index<sub>stream</sub></var>th byte of the
+      pattern does not have an asterisk after:
+
+     <dd>
+      <p>If the "and" operator, applied to the <var
+       title="">index<sub>stream</sub></var>th byte of the stream and the
+       <var title="">index<sub>pattern</sub></var>th byte of the mask, yield
+       a value different that the <var
+       title="">index<sub>pattern</sub></var>th byte of the pattern, then
+       skip this row.</p>
+
+      <p>Otherwise, increment <var title="">index<sub>pattern</sub></var> to
+       the next byte in the mask and pattern and <var
+       title="">index<sub>stream</sub></var> to the next byte in the byte
+       stream.</p>
+
+     <dt>Otherwies, if the <var title="">index<sub>stream</sub></var>th byte
+      of the pattern <em>does</em> have an asterisk after it:
+
+     <dd>
+      <p>If the "and" operator, applied to the <var
+       title="">index<sub>stream</sub></var>th byte of the stream and the
+       <var title="">index<sub>pattern</sub></var>th byte of the mask, yield
+       a value different that the <var
+       title="">index<sub>pattern</sub></var>th byte of the pattern, then
+       increment only the <var title="">index<sub>pattern</sub></var> to the
+       next byte in the mask and pattern and jump to top of the <em>byte</em>
+       step in this algorithm.</p>
+
+      <p>Otherwise, increment only the <var
+       title="">index<sub>stream</sub></var> to the next byte in the byte
+       stream.</p>
+    </dl>
+
+   <li>
+    <p>If <var title="">index<sub>pattern</sub></var> does not point beyond
+     the end of the mask and pattern byte strings, then return to the
+     <em>loop</em> step in this algorithm.
+
+   <li>
+    <p>Otherwise, the sniffed type of the resource is the type given in the
+     cell of the third column in that row; abort these steps.
 
    <li>
     <p>As a last-ditch effort, jump to the <a href="#content-type4"
@@ -26230,6 +26309,7 @@ at the first element with the given ID must be treated as if it was cloned and r
      <td>FF FF DF DF DF DF DF DF DF FF DF DF DF DF
 
      <td>3C 21 44 4F 43 54 59 50 45 20 48 54 4D 4C <!-- "<!DOCTYPE HTML" -->
+      <!-- common in static data -->
 
      <td>text/html
 
@@ -26237,24 +26317,38 @@ at the first element with the given ID must be treated as if it was cloned and r
       compatible encodings, case-insensitively.
 
     <tr>
-     <td>FF DF DF DF DF
+     <td>FF* FF DF DF DF DF
 
-     <td>3C 48 54 4D 4C <!-- "<HTML" -->
+     <td>20* 3C 48 54 4D 4C <!-- "<HTML" --> <!-- common in static data -->
 
      <td>text/html
 
      <td>The string "<code title="">&lt;HTML</code>" in US-ASCII or
-      compatible encodings, case-insensitively.
+      compatible encodings, case-insensitively, possibly with leading spaces.
+      
 
     <tr>
-     <td>FF DF DF DF DF DF DF
+     <td>FF* FF DF DF DF DF
 
-     <td>3C 53 43 52 49 50 54 <!-- "<SCRIPT" -->
+     <td>20* 3C 48 45 41 44 <!-- "<HEAD" --> <!-- common in static data -->
+
+     <td>text/html
+
+     <td>The string "<code title="">&lt;HEAD</code>" in US-ASCII or
+      compatible encodings, case-insensitively, possibly with leading spaces.
+      
+
+    <tr>
+     <td>FF* FF DF DF DF DF DF DF
+
+     <td>20* 3C 53 43 52 49 50 54 <!-- "<SCRIPT" -->
+      <!-- common in dynamic data -->
 
      <td>text/html
 
      <td>The string "<code title="">&lt;SCRIPT</code>" in US-ASCII or
-      compatible encodings, case-insensitively.
+      compatible encodings, case-insensitively, possibly with leading spaces.
+      
 
     <tr>
      <td>FF FF FF FF FF
@@ -26575,7 +26669,10 @@ at the first element with the given ID must be treated as if it was cloned and r
 
   <p>For HTTP resources, only the Content-Type HTTP header contributes any
    data; the explicit type of the resource is then the value of that header,
-   interpreted as described by the HTTP specifications. <a
+   interpreted as described by the HTTP specifications. If the Content-Type
+   HTTP header is present but it cannot be interpreted as described by the
+   HTTP specifications (e.g. because its value doesn't contain a U+002F
+   SOLIDUS ('/') character), then the resource has no type information. <a
    href="#refsHTTP">[HTTP]</a>
 
   <p>For resources fetched from the filesystem, user agents should use
