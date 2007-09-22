@@ -29875,8 +29875,15 @@ interface <dfn id=storageitem>StorageItem</dfn> {
    only support a subset of all strings as database names by mapping database
    names (e.g. using a hashing algorithm) to the supported set of names.
 
+  <p>The version that the database was opened with is the <dfn id=expected
+   title=concept-database-expected-version>expected version</dfn> of this
+   <code><a href="#database0">Database</a></code> object. It can be the empty
+   string, in which case there is no expected version &mdash; any version is
+   fine.
+
   <pre class=idl>interface <dfn id=database0>Database</dfn> {
-  void <span title=dom-database-executeSql>executeSql</span>(in DOMString sqlStatement, <var title="">arguments...</var>, in <a href="#sqlcallback">SQLCallback</a> callback);
+           attribute DOMString <a href="#version" title=dom-database-version>version</a>;
+  void <a href="#executesql" title=dom-database-executeSql>executeSql</a>(in DOMString sqlStatement, <var title="">arguments...</var>, in <a href="#sqlcallback">SQLCallback</a> callback);
   void <a href="#closetransaction" title=dom-database-closeTransaction>closeTransaction</a>(); // only needed as part of error recovery
 };
 
@@ -29884,13 +29891,29 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
   void <span title=dom-sqlcallback-handleEvent>handleEvent</span>(in <a href="#resultset">ResultSet</a> resultSet);
 };</pre>
 
+  <p>The <dfn id=version
+   title=dom-database-version><code>version</code></dfn> attribute represents
+   the actual version of the database (as opposed to the <span>expected
+   version</span>).
+
+  <p>On getting, the attribute must return the current version of the
+   database.
+
+  <p>On setting, the attribute must wait for all transactions that are trying
+   to commit to finish commiting, and then must change the current version of
+   the database and the <span>expected version</span> of the <code><a
+   href="#database0">Database</a></code> object on which the attribute was
+   called to the new value.
+
   <h4 id=executing><span class=secno>4.12.3. </span>Executing SQL statements</h4>
 
   <p>Once a <code><a href="#database0">Database</a></code> object has been
    obtained, an author can interact with the database using the <code
-   title=dom-executeSql><a href="#executesql">executeSql()</a></code> method.
+   title=dom-database-executeSql><a
+   href="#executesql">executeSql()</a></code> method.
 
-  <p>When the <dfn id=executesql title=dom-executeSql><code>executeSql(<var
+  <p>When the <dfn id=executesql
+   title=dom-database-executeSql><code>executeSql(<var
    title="">sqlStatement</var>, <var title="">arguments...</var>, <var
    title="">callback</var>)</code></dfn> method is invoked, the user agent
    must run the following algorithm:
@@ -29931,6 +29954,10 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
      statements that were added to that transaction before it have themselves
      successfully executed. <a href="#refsSQL">[SQL]</a></p>
 
+    <p>If the <code><a href="#database0">Database</a></code> object has an
+     <span>expected version</span> that is neither the empty string nor the
+     actual version of the database, the statement must fail.</p>
+
    <li>
     <p>Once the statement has executed, let <var title="">result</var> be a
      new <code><a href="#resultset">ResultSet</a></code> object that
@@ -29956,21 +29983,29 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
     <p>If the callback raised an exception and <var
      title="">transaction</var> is not marked as "bad", then <var
      title="">transaction</var> must be rolled back and marked as "bad".
+
+   <li>
+    <p>If <var title="">transaction</var> is not marked as "bad" and has no
+     pending statements in it, then the transaction it represents must be
+     commited.
   </ol>
 
   <p>The <dfn id=closetransaction
    title=dom-database-closeTransaction><code>closeTransaction()</code></dfn>
    method may be called while in a callback called by the <code
-   title=dom-database-executeSql>executeSql()</code> method. When the method
-   is invoked, it must clear any active thread-global transaction, such that
-   the next invocation of <code
-   title=dom-database-executeSql>executeSql()</code>, even if it is called
-   from within an <code title=dom-database-executeSql>executeSql()</code>
-   callback, will create a new transaction.
+   title=dom-database-executeSql><a
+   href="#executesql">executeSql()</a></code> method. When the method is
+   invoked, it must clear any active thread-global transaction, such that the
+   next invocation of <code title=dom-database-executeSql><a
+   href="#executesql">executeSql()</a></code>, even if it is called from
+   within an <code title=dom-database-executeSql><a
+   href="#executesql">executeSql()</a></code> callback, will create a new
+   transaction.
 
   <p class=note>This is needed if the previous statement in the current
    transaction failed, as otherwise the <code
-   title=dom-database-executeSql>executeSql()</code> method would raise an
+   title=dom-database-executeSql><a
+   href="#executesql">executeSql()</a></code> method would raise an
    exception.
 
   <p>The user agent must act as if the database was hosted in an otherwise
@@ -29997,7 +30032,7 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
 
   <h4 id=database><span class=secno>4.12.4. </span>Database query results</h4>
 
-  <p>Calls to the <code title=dom-executeSql><a
+  <p>Calls to the <code title=dom-database-executeSql><a
    href="#executesql">executeSql()</a></code> method return <code><a
    href="#resultset">ResultSet</a></code> objects.
 
@@ -30107,7 +30142,13 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
     <tr>
      <td>1
 
-     <td>The statement failed.
+     <td>The statement failed for reasons not covered by any other code.
+
+    <tr>
+     <td>2
+
+     <td>The statement failed because the <span>expected version</span> of
+      the database didn't match the actual database version.
   </table>
 
   <p class=big-issue>We should define a more thorough list of codes.
@@ -30163,7 +30204,8 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
   <h5 id=sql-injection><span class=secno>4.12.6.2. </span>SQL injection</h5>
 
   <p>Authors are strongly recommended to make use of the <code
-   title="">?</code> placeholder feature of the <code title=dom-executeSql><a
+   title="">?</code> placeholder feature of the <code
+   title=dom-database-executeSql><a
    href="#executesql">executeSql()</a></code> method, and to never construct
    SQL statements on the fly.
 

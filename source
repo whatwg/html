@@ -27329,7 +27329,14 @@ interface <dfn>StorageItem</dfn> {
   names by mapping database names (e.g. using a hashing algorithm) to
   the supported set of names.</p>
 
+  <p>The version that the database was opened with is the <dfn
+  title="concept-database-expected-version">expected version</dfn> of
+  this <code>Database</code> object. It can be the empty string, in
+  which case there is no expected version &mdash; any version is
+  fine.</p>
+
   <pre class="idl">interface <dfn>Database</dfn> {
+           attribute DOMString <span title="dom-database-version">version</span>;
   void <span title="dom-database-executeSql">executeSql</span>(in DOMString sqlStatement, <var title="">arguments...</var>, in <span>SQLCallback</span> callback);
   void <span title="dom-database-closeTransaction">closeTransaction</span>(); // only needed as part of error recovery
 };
@@ -27338,14 +27345,29 @@ interface <dfn>SQLCallback</dfn> {
   void <span title="dom-sqlcallback-handleEvent">handleEvent</span>(in <span>ResultSet</span> resultSet);
 };</pre>
 
+  <p>The <dfn title="dom-database-version"><code>version</code></dfn>
+  attribute represents the actual version of the database (as opposed
+  to the <span>expected version</span>).</p>
+
+  <p>On getting, the attribute must return the current version of the
+  database.</p>
+
+  <p>On setting, the attribute must wait for all transactions that are
+  trying to commit to finish commiting, and then must change the
+  current version of the database and the <span>expected
+  version</span> of the <code>Database</code> object on which the
+  attribute was called to the new value.</p>
+
+
 
   <h4>Executing SQL statements</h4>
 
   <p>Once a <code>Database</code> object has been obtained, an author
   can interact with the database using the <code
-  title="dom-executeSql">executeSql()</code> method.</p>
+  title="dom-database-executeSql">executeSql()</code> method.</p>
 
-  <p>When the <dfn title="dom-executeSql"><code>executeSql(<var
+  <p>When the <dfn
+  title="dom-database-executeSql"><code>executeSql(<var
   title="">sqlStatement</var>, <var title="">arguments...</var>, <var
   title="">callback</var>)</code></dfn> method is invoked, the user
   agent must run the following algorithm:</p>
@@ -27383,10 +27405,19 @@ interface <dfn>SQLCallback</dfn> {
    <li><p>The method must then return, but these steps must
    continue.</p></li>
 
-   <li><p>The user agent must then add the specified SQL statement to
-   <var title="">transaction</var>, and must execute it as soon as all
-   the statements that were added to that transaction before it have
-   themselves successfully executed. <a href="#refsSQL">[SQL]</a></p>
+   <li>
+
+    <p>The user agent must then add the specified SQL statement to
+    <var title="">transaction</var>, and must execute it as soon as
+    all the statements that were added to that transaction before it
+    have themselves successfully executed. <a
+    href="#refsSQL">[SQL]</a></p>
+
+    <p>If the <code>Database</code> object has an <span>expected
+    version</span> that is neither the empty string nor the actual
+    version of the database, the statement must fail.</p>
+
+   </li>
 
    <li><p>Once the statement has executed, let <var
    title="">result</var> be a new <code>ResultSet</code> object that
@@ -27409,6 +27440,10 @@ interface <dfn>SQLCallback</dfn> {
    title="">transaction</var> is not marked as "bad", then <var
    title="">transaction</var> must be rolled back and marked as
    "bad".</p></li>
+
+   <li><p>If <var title="">transaction</var> is not marked as "bad"
+   and has no pending statements in it, then the transaction it
+   represents must be commited.</p></li>
 
   </ol>
 
@@ -27455,8 +27490,9 @@ interface <dfn>SQLCallback</dfn> {
 
   <h4>Database query results</h4>
 
-  <p>Calls to the <code title="dom-executeSql">executeSql()</code>
-  method return <code>ResultSet</code> objects.</p>
+  <p>Calls to the <code
+  title="dom-database-executeSql">executeSql()</code> method return
+  <code>ResultSet</code> objects.</p>
 
   <pre class="idl">interface <dfn>ResultSet</dfn> {
   // cursor
@@ -27556,14 +27592,23 @@ interface <dfn>SQLCallback</dfn> {
      <th>Code
      <th>Situation
    <tbody>
+
     <tr>
      <td>0
      <td>The statement was successful, any data available will be
      returned by the other methods and attributes of the
      <code>ResultSet</code> object.
+
     <tr>
      <td>1
-     <td>The statement failed.
+     <td>The statement failed for reasons not covered by any other code.
+
+    <tr>
+     <td>2
+     <td>The statement failed because the <span>expected
+     version</span> of the database didn't match the actual database
+     version.
+
   </table>
 
   <p class="big-issue">We should define a more thorough list of
@@ -27624,8 +27669,8 @@ interface <dfn>SQLCallback</dfn> {
 
   <p>Authors are strongly recommended to make use of the <code
   title="">?</code> placeholder feature of the <code
-  title="dom-executeSql">executeSql()</code> method, and to never
-  construct SQL statements on the fly.</p>
+  title="dom-database-executeSql">executeSql()</code> method, and to
+  never construct SQL statements on the fly.</p>
 
 
 
