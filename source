@@ -27330,48 +27330,104 @@ interface <dfn>StorageItem</dfn> {
   the supported set of names.</p>
 
   <pre class="idl">interface <dfn>Database</dfn> {
-  <span>ResultSet</span> <span title="dom-executeSql">executeSql</span>(in DOMString sqlStatement, <var title="">arguments...</var>);
+  void <span title="dom-database-executeSql">executeSql</span>(in DOMString sqlStatement, <var title="">arguments...</var>, in <span>SQLCallback</span> callback);
+  void <span title="dom-database-closeTransaction">closeTransaction</span>(); // only needed as part of error recovery
+};
+
+interface <dfn>SQLCallback</dfn> {
+  void <span title="dom-sqlcallback-handleEvent">handleEvent</span>(in <span>ResultSet</span> resultSet);
 };</pre>
 
 
   <h4>Executing SQL statements</h4>
 
-  <p class="big-issue">There are two major missing features here: One:
-  a way to be secure against DNS spoofing (a database created over an
-  SSL connection covered by one cert should not be made accessible to
-  content connecting with another cert or with no cert). Two: there's
-  no session-specific API, so if you have two windows open at once,
-  you can't interact with the site doing two separate sessions unless
-  the site goes out of its way to track sessions itself, detecting
-  when new tabs are opened, etc. sessionStorage[] handles it, why
-  doesn't this? Also, we need to be more explicit about disk usage
-  concerns, quota, etc. Some of the security notes from
-  globalStorage[] should maybe come down here.</p>
-
-  <p>Each <span>origin</span> must have an associated database unique
-  to that origin. An author can interact with the database using the
-  <code title="dom-executeSql">executeSql()</code> method.</p>
+  <p>Once a <code>Database</code> object has been obtained, an author
+  can interact with the database using the <code
+  title="dom-executeSql">executeSql()</code> method.</p>
 
   <p>When the <dfn title="dom-executeSql"><code>executeSql(<var
-  title="">sqlStatement</var>, <var
-  title="">arguments...</var>)</code></dfn> method is invoked, the
-  user agent must first interpret the first argument to the method
-  (<var title="">sqlStatement</var>) as an SQL statement, replacing
-  any <code title="">?</code> placeholders in the statement with the
-  values given in the subsequent arguments (<var
-  title="">arguments...</var>), and must then evaluate the statement
-  as an SQL statement in the context of the database of the
-  <code>Database</code> object on which the method was called. <a
-  href="#refsSQL">[SQL]</a></p>
+  title="">sqlStatement</var>, <var title="">arguments...</var>, <var
+  title="">callback</var>)</code></dfn> method is invoked, the user
+  agent must run the following algorithm:</p>
 
-  <p>If the <code title="dom-executeSql">executeSql()</code> method is
-  called with a different number of arguments after the statement than
-  there are placeholder <code title="">?</code> characters in the
-  statement, then the method must raise a <code>SYNTAX_ERR</code>
-  exception.</p>
+  <ol>
 
-  <p>Otherwise, the method must return a <code>ResultSet</code> object
-  representing the result of the operation.</p>
+   <li>
+
+    <p>The first argument to the method (<var
+    title="">sqlStatement</var>) must be interpreted as an SQL
+    statement, replacing any <code title="">?</code> placeholders in
+    the statement with the values given in the subsequent arguments
+    (<var title="">arguments...</var>).</p>
+
+    <p>If the syntax of <var title="">sqlStatement</var> is not valid,
+    then the the method must raise a <code>SYNTAX_ERR</code> exception
+    and abort these steps.</p>
+
+    <p>If the number of <var title="">arguments...</var> is not equal
+    to the number of <code title="">?</code> placeholders in the
+    statement, then the method must raise a <code>SYNTAX_ERR<!-- XXX
+    is that the best exception? --></code> exception and abort these
+    steps.</p>
+
+   </li>
+
+   <li><p>If there is an active thread-global transaction, then let
+   <var title="">transaction</var> be that transaction. Otherwise, let
+   begin a new transaction and let <var title="">transaction</var> be
+   that transaction.</p></li>
+
+   <li><p>If <var title="">transaction</var> has been marked as "bad",
+   then raise an <code>INVALID_STATE_ERR</code> exception.</p></li>
+
+   <li><p>The method must then return, but these steps must
+   continue.</p></li>
+
+   <li><p>The user agent must then add the specified SQL statement to
+   <var title="">transaction</var>, and must execute it as soon as all
+   the statements that were added to that transaction before it have
+   themselves successfully executed. <a href="#refsSQL">[SQL]</a></p>
+
+   <li><p>Once the statement has executed, let <var
+   title="">result</var> be a new <code>ResultSet</code> object that
+   represents the result of this statement's execution.</p></li>
+
+   <li><p>If the statement execution fails for some reason, <var
+   title="">transaction</var> must be rolled back and marked as
+   "bad".</p></li>
+
+   <li><p>The <var title="">transaction</var> must be set as the
+   active thread-global transaction.</p></li>
+
+   <li><p>The <var title="">callback</var> must be invoked with <var
+   title="">result</var> as the argument.</p></li>
+
+   <li><p>The active thread-global transaction must be removed again
+   (if it is still active).</p></li>
+
+   <li><p>If the callback raised an exception and <var
+   title="">transaction</var> is not marked as "bad", then <var
+   title="">transaction</var> must be rolled back and marked as
+   "bad".</p></li>
+
+  </ol>
+
+  <p>The <dfn
+  title="dom-database-closeTransaction"><code>closeTransaction()</code></dfn>
+  method may be called while in a callback called by the <code
+  title="dom-database-executeSql">executeSql()</code> method. When the
+  method is invoked, it must clear any active thread-global
+  transaction, such that the next invocation of <code
+  title="dom-database-executeSql">executeSql()</code>, even if it is
+  called from within an <code
+  title="dom-database-executeSql">executeSql()</code> callback, will
+  create a new transaction.</p>
+
+  <p class="note">This is needed if the previous statement in the
+  current transaction failed, as otherwise the <code
+  title="dom-database-executeSql">executeSql()</code> method would
+  raise an exception.</p>
+
 
   <p>The user agent must act as if the database was hosted in an
   otherwise completely empty environment with no resources. For
@@ -27415,6 +27471,8 @@ interface <dfn>StorageItem</dfn> {
 
   // general result accessors
   readonly attribute int <span title="dom-ResultSet-insertId">insertId</span>;
+  readonly attribute unsigned int <span title="dom-ResultSet-errorCode">errorCode</span>;
+  readonly attribute DOMString <span title="dom-ResultSet-error">error</span>;
 };</pre>
 
   <p>A <code>ResultSet</code> object has a cursor which visits the
@@ -27485,6 +27543,49 @@ interface <dfn>StorageItem</dfn> {
   the last row must be the one returned. If the statement did not
   insert a row, then the attribute must instead raise an
   <code>INVALID_ACCESS_ERR</code> exception.</p>
+
+
+  <p>The <dfn
+  title="dom-ResultSet-errorCode"><code>errorCode</code></dfn> DOM
+  attribute must return the most appropriate code from the following
+  table:</p>
+
+  <table>
+   <thead>
+    <tr>
+     <th>Code
+     <th>Situation
+   <tbody>
+    <tr>
+     <td>0
+     <td>The statement was successful, any data available will be
+     returned by the other methods and attributes of the
+     <code>ResultSet</code> object.
+    <tr>
+     <td>1
+     <td>The statement failed.
+  </table>
+
+  <p class="big-issue">We should define a more thorough list of
+  codes. Implementation feedback is requested to determine what codes
+  are needed.</p>
+
+  <p>The <dfn title="dom-ResultSet-error"><code>error</code></dfn> DOM
+  attribute must return an error message, localised to the user's
+  language, describing the error encountered by the last statement. If
+  there was no error, the attribute's value must be the empty
+  string.</p>
+
+  <p>If the statement failed, then <code
+  title="dom-ResultSet-validRow">validRow</code>, <code
+  title="dom-ResultSet-next">next()</code>, <code
+  title="dom-ResultSet-length">length</code>, <code
+  title="dom-ResultSet-getName">getName()</code>, <code
+  title="dom-ResultSet-item">item()</code>, <code
+  title="dom-ResultSet-namedItem">namedItem()</code> and <code
+  title="dom-ResultSet-insertId">insertId</code> must all raise <code
+  title="">INVALID_STATE_ERR</code> exceptions on getting, setting, or
+  calling (as appropriate).</p>
 
 
   <h4>Privacy</h4>
