@@ -27342,7 +27342,7 @@ interface <dfn>StorageItem</dfn> {
 };
 
 interface <dfn>SQLCallback</dfn> {
-  void <span title="dom-sqlcallback-handleEvent">handleEvent</span>(in <span>ResultSet</span> resultSet);
+  void <span title="dom-sqlcallback-handleEvent">handleEvent</span>(in <span>SQLResultSet</span> resultSet);
 };</pre>
 
   <p>The <dfn title="dom-database-version"><code>version</code></dfn>
@@ -27433,8 +27433,8 @@ interface <dfn>SQLCallback</dfn> {
    </li>
 
    <li><p>Once the statement has executed, let <var
-   title="">result</var> be a new <code>ResultSet</code> object that
-   represents the result of this statement's execution.</p></li>
+   title="">result</var> be a new <code>SQLResultSet</code> object
+   that represents the result of this statement's execution.</p></li>
 
    <li><p>If the statement execution fails for some reason, <var
    title="">transaction</var> must be rolled back and marked as
@@ -27503,99 +27503,44 @@ interface <dfn>SQLCallback</dfn> {
 
   <h4>Database query results</h4>
 
-  <p>Calls to the <code
-  title="dom-database-executeSql">executeSql()</code> method return
-  <code>ResultSet</code> objects.</p>
+  <p>The <code title="dom-database-executeSql">executeSql()</code>
+  method invokes its callback with a single argument, an
+  <code>SQLResultSet</code> object.</p>
 
-  <pre class="idl">interface <dfn>ResultSet</dfn> {
-  // cursor
-  readonly attribute boolean <span title="dom-ResultSet-validRow">validRow</span>;
-  void <span title="dom-ResultSet-next">next</span>();
-
-  // current row accessors
-  readonly attribute unsigned int <span title="dom-ResultSet-length">length</span>;
-  DOMString <span title="dom-ResultSet-getName">getName</span>(in unsigned int field);
-  Object <span title="dom-ResultSet-item">item</span>(in unsigned int field);
-  Object <span title="dom-ResultSet-namedItem">namedItem</span>(in DOMString field);
-
-  // general result accessors
-  readonly attribute int <span title="dom-ResultSet-insertId">insertId</span>;
-  readonly attribute unsigned int <span title="dom-ResultSet-errorCode">errorCode</span>;
-  readonly attribute DOMString <span title="dom-ResultSet-error">error</span>;
+  <pre class="idl">interface <dfn>SQLResultSet</dfn> {
+  readonly attribute Array <span title="dom-SQLResultSet-rows">rows</span>;
+  readonly attribute int <span title="dom-SQLResultSet-insertId">insertId</span>;
+  readonly attribute int <span title="dom-SQLResultSet-rowsAffected">rowsAffected</span>;
+  readonly attribute unsigned int <span title="dom-SQLResultSet-errorCode">errorCode</span>;
+  readonly attribute DOMString <span title="dom-SQLResultSet-error">error</span>;
 };</pre>
 
-  <p>A <code>ResultSet</code> object has a cursor which visits the
-  results of a SQL statement, in the order returned. Initially, the
-  cursor must point at the first row returned by the statement, if
-  any. Once a row has been visited, it cannot be visited again (the
-  cursor cannot go backwards).</p>
+  <p>The <dfn title="dom-SQLResultSet-rows"><code>rows</code></dfn>
+  attribute must return a native array of objects, one per row
+  returned, in the order returned by the database. Each object
+  returned must have one property per column, enumerating in the order
+  that these columns were returned by the database. Each property must
+  have the name of the column as it was returned by the database. If
+  the SQL statement failed, then <code
+  title="dom-SQLResultSet-rows">rows</code> must return null.</p>
 
   <p>The <dfn
-  title="dom-ResultSet-validRow"><code>validRow</code></dfn> attribute
-  must return return true if the <code>ResultSet</code> object's
-  cursor is at a row with data. If the cursor has been moved beyond
-  the last row of the results, or if there were no results for the SQL
-  statement in question, then the method must return false.</p>
-
-  <p>The <dfn title="dom-ResultSet-next"><code>next()</code></dfn>
-  method must advance the cursor to the next row. If there are no more
-  rows it must advance the cursor past the end of the results, so that
-  <code title="dom-ResultSet-validRow">validRow</code> will return
-  false.</p>
-
-
-  <p>Each row of the results consists of a set of fields. Each field
-  has a name and a value. The fields are ordered. The names of the
-  fields, and their order, must be the same for every row in the
-  results.</p>
-
-  <p>The <dfn title="dom-ResultSet-length"><code>length</code></dfn>
-  attribute must return the number of fields in each row. If the
-  <code>ResultSet</code> object has no results rows (i.e. if the SQL
-  statement executed did not return any results) then the attribute
-  must return zero.</p>
-
-  <p>The <dfn title="dom-ResultSet-getName"><code>getName(<var
-  title="">field</var>)</code></dfn> method must return the name of
-  the field with index <var title="">field</var>.</p>
-
-  <p>The <dfn title="dom-ResultSet-item"><code>item(<var
-  title="">field</var>)</code></dfn> method must return the value of
-  the field with index <var title="">field</var>. In the ECMAScript
-  binding, the object's [[Get]] method, when invoked with a numeric
-  argument, must have the same effect as calling the <code
-  title="dom-ResultSet-item">item()</code> method.</p>
-
-  <p>If the <var title="">field</var> argument of either the <code
-  title="dom-ResultSet-getName">getName()</code> or <code
-  title="dom-ResultSet-item">item()</code> methods is ever less than
-  zero or greater than or equal to the number of fields in each row,
-  or if those methods are called when the <code>ResultSet</code>
-  object has no results rows, the methods must instead raise an
-  <code>INDEX_SIZE_ERR</code> exception.</p>
-
-  <p>The <dfn title="dom-ResultSet-namedItem"><code>namedItem(<var
-  title="">field</var>)</code></dfn> method must return the value of
-  the field with the name <var title="">field</var>. If there is no
-  field with that name, the method must instead raise a
-  <code>SYNTAX_ERR</code> exception. In the ECMAScript binding, the
-  object's [[Get]] method, when invoked with a non-numeric argument,
-  must have the same effect as calling the <code
-  title="dom-ResultSet-namedItem">namedItem()</code> method.</p>
-
+  title="dom-SQLResultSet-insertId"><code>insertId</code></dfn>
+  attribute must return the row ID of the row that the
+  <code>SQLResultSet</code> object's SQL statement inserted into the
+  database, if the statement inserted a row. If the statement inserted
+  multiple rows, the ID of the last row must be the one returned. If
+  the statement did not insert a row, then the attribute must instead
+  raise an <code>INVALID_ACCESS_ERR</code> exception.</p>
 
   <p>The <dfn
-  title="dom-ResultSet-insertId"><code>insertId</code></dfn> attribute
-  must return the row ID of the row that the <code>ResultSet</code>
-  object's SQL statement inserted into the database, if the statement
-  inserted a row. If the statement inserted multiple rows, the ID of
-  the last row must be the one returned. If the statement did not
-  insert a row, then the attribute must instead raise an
-  <code>INVALID_ACCESS_ERR</code> exception.</p>
-
+  title="dom-SQLResultSet-rowsAffected"><code>rowsAffected</code></dfn>
+  attribute must return the number of rows that were affected by the
+  SQL statement. If the statement failed, or did not affected any
+  rows, then the attribute must return zero.</p>
 
   <p>The <dfn
-  title="dom-ResultSet-errorCode"><code>errorCode</code></dfn> DOM
+  title="dom-ResultSetSQL-errorCode"><code>errorCode</code></dfn> DOM
   attribute must return the most appropriate code from the following
   table:</p>
 
@@ -27610,7 +27555,7 @@ interface <dfn>SQLCallback</dfn> {
      <td>0
      <td>The statement was successful, any data available will be
      returned by the other methods and attributes of the
-     <code>ResultSet</code> object.
+     <code>SQLResultSet</code> object.
 
     <tr>
      <td>1
@@ -27633,22 +27578,11 @@ interface <dfn>SQLCallback</dfn> {
   codes. Implementation feedback is requested to determine what codes
   are needed.</p>
 
-  <p>The <dfn title="dom-ResultSet-error"><code>error</code></dfn> DOM
-  attribute must return an error message, localised to the user's
+  <p>The <dfn title="dom-SQLResultSet-error"><code>error</code></dfn>
+  DOM attribute must return an error message, localised to the user's
   language, describing the error encountered by the last statement. If
   there was no error, the attribute's value must be the empty
   string.</p>
-
-  <p>If the statement failed, then <code
-  title="dom-ResultSet-validRow">validRow</code>, <code
-  title="dom-ResultSet-next">next()</code>, <code
-  title="dom-ResultSet-length">length</code>, <code
-  title="dom-ResultSet-getName">getName()</code>, <code
-  title="dom-ResultSet-item">item()</code>, <code
-  title="dom-ResultSet-namedItem">namedItem()</code> and <code
-  title="dom-ResultSet-insertId">insertId</code> must all raise <code
-  title="">INVALID_STATE_ERR</code> exceptions on getting, setting, or
-  calling (as appropriate).</p>
 
 
   <h4>Privacy</h4>
@@ -38923,13 +38857,13 @@ interface <dfn>TimeoutHandler</dfn> {
 
   <h2 class="no-num">Acknowledgements</h2>
 
-  <p>Thanks to Aankhen, Aaron Leventhal, Adrian Sutton, Agust&iacute;n
-  Fern&aacute;ndez, Alexey Feldgendler, Andrew Gove, Andrew Sidwell,
-  Anne van Kesteren, Anthony Hickson, Asbj&oslash;rn Ulsberg, Ben
-  Godfrey, Ben Meadowcroft, Benjamin Hawkes-Lewis, Bert Bos, Bjoern
-  Hoehrmann, Boris Zbarsky, Brad Fults, Brad Neuberg, Brendan Eich,
-  Brett Wilson, Carlos Perell&oacute; Mar&iacute;n, Chao Cai,
-  &#xc724;&#xc11d;&#xcc2c; (Channy Yun), Charl van
+  <p>Thanks to Aankhen, Aaron Boodman, Aaron Leventhal, Adrian Sutton,
+  Agust&iacute;n Fern&aacute;ndez, Alexey Feldgendler, Andrew Gove,
+  Andrew Sidwell, Anne van Kesteren, Anthony Hickson, Asbj&oslash;rn
+  Ulsberg, Ben Godfrey, Ben Meadowcroft, Benjamin Hawkes-Lewis, Bert
+  Bos, Bjoern Hoehrmann, Boris Zbarsky, Brad Fults, Brad Neuberg,
+  Brendan Eich, Brett Wilson, Carlos Perell&oacute; Mar&iacute;n, Chao
+  Cai, &#xc724;&#xc11d;&#xcc2c; (Channy Yun), Charl van
   Niekerk<!--status.whatwg.org maintainer-->, Charles Iliya Krempeaux,
   Charles McCathieNevile, Christian Biesinger, Christian Johansen,
   Chriswa, Daniel Peng, Daniel Sp&aring;ng, Darin Alder, Darin Fisher,
