@@ -22215,6 +22215,1174 @@ never reset. This is nice and consistent.)
 
 
 
+  <h3 id="scripting">Scripting</h3>
+
+  <h4>Running executable code</h4>
+
+  <p>Various mechanisms can cause author-provided executable code to
+  run in the context of a document. These mechanisms include, but are
+  probably not limited to:</p>
+
+  <ul>
+
+   <li>Processing of <code>script</code> elements.</li>
+
+   <li>Processing of inline <code title="javascript
+   protocol">javascript:</code> URIs (e.g. the <code
+   title="attr-img-src">src</code> attribute of <code>img</code>
+   elements, or an <code title="">@import</code> rule in a CSS
+   <code>style</code> element block).</li>
+
+   <li>Event handlers, whether registered through the DOM using <code
+   title="">addEventListener()</code>, by explicit <span>event handler
+   content attributes</span>, by <span>event handler DOM
+   attributes</span>, or otherwise.</li>
+
+   <li>Processing of technologies like XBL or SVG that have their own
+   scripting features.</li>
+
+  </ul>
+
+  <p>User agents may provide a mechanism to enable or disable the
+  execution of author-provided code. When the user agent is configured
+  such that author-provided code does not execute, or if the user
+  agent is implemented so as to never execute author-provided code, it
+  is said that <dfn>scripting is disabled</dfn>. When author-provided
+  code <em>does</em> execute, <dfn>scripting is enabled</dfn>. A user
+  agent with scripting disabled is a <span title="User agents with no
+  scripting support">user agent with no scripting support</span> for
+  the purposes of conformance.</p>
+
+
+  <h4>Origin</h4>
+  <!-- Hallowed are the Ori -->
+
+  <!--
+    https://bugzilla.mozilla.org/show_bug.cgi?id=346659
+    https://bugzilla.mozilla.org/show_bug.cgi?id=344495
+  -->
+
+  <p>Access to certain APIs is granted or denied to scripts based on
+  the <dfn>origin</dfn> of the script and the API being accessed.</p>
+
+  <dl>
+
+   <dt>If a script is in a <code>script</code> element</dt>
+
+   <dd>The origin of the script is the origin of the
+   <code>Document</code> to which the <code>script</code> element
+   belongs.</dd>
+
+
+   <dt>If a script is a function or other code reference created by
+   another script</dt>
+
+   <dd>The origin of the script is the origin of the script that
+   created it.</dd>
+
+
+   <dt>If a script is a <span title="javascript protocol"><code
+   title="">javascript:</code> URI</span> in an attribute</dt>
+
+   <dd>The origin is the origin of the <code>Document</code> of the
+   element on which the attribute is found.</dd>
+
+
+   <dt>If a script is a <span title="javascript protocol"><code
+   title="">javascript:</code> URI</span> in a style sheet</dt>
+
+   <dd>The origin is the origin of the <code>Document</code> to which
+   the style sheet applies.</dd>
+
+
+   <dt>If a script is a <span title="javascript protocol"><code
+   title="">javascript:</code> URI</span> to which a <span>browsing
+   context</span> is being <span title="navigate">navigated</span>,
+   the URI having been provided by the user (e.g. by using a
+   <i>bookmarklet</i>)</dt>
+
+   <dd>The origin is the origin of the <code>Document</code> of the
+   <span>browsing context</span>'s <span>active document</span>.</dd>
+
+
+   <dt>If a script is a <span title="javascript protocol"><code
+   title="">javascript:</code> URI</span> to which a <span>browsing
+   context</span> is being <span title="navigate">navigated</span>,
+   the URI having been declared in markup</dt>
+
+   <dd>The origin is the origin of the <code>Document</code> of the
+   element (e.g. an <code>a</code> or <code>area</code> element) that
+   declared the URI.</dd>
+
+
+   <dt>If a script is a <span title="javascript protocol"><code
+   title="">javascript:</code> URI</span> to which a <span>browsing
+   context</span> is being <span title="navigate">navigated</span>,
+   the URI having been provided by script</dt>
+
+   <dd>The origin is the origin of the script that provided the
+   URI.</dd>
+
+   <!-- ... -->
+
+  </dl>
+
+  <p>The origin of scripts thus comes down to finding the origin of
+  <code>Document</code> objects.</p>
+
+  <p>The origin of a <code>Document</code> or image that was served
+  over the network and whose address uses a URI scheme with a
+  server-based naming authority is the tuple consisting of the
+  &lt;scheme&gt;, &lt;host&gt;, and &lt;port&gt; parts of the
+  <code>Document</code>'s full URI. <a
+  href="#refsRFC3986">[RFC3986]</a> <a
+  href="#refsRFC3987">[RFC3987]</a> <a
+  href="#refsRFC2732">[RFC2732]</a></p>
+
+  <p>The origin of a <code>Document</code> or image that was generated
+  from a <code>data:</code> URI found in another <code>Document</code>
+  or in a script is the origin of the that <code>Document</code> or
+  script.</p>
+
+  <p>The origin of a <code>Document</code> or image that was generated
+  from a <code>data:</code> URI from another source is a globally
+  unique identifier assigned when the document is created.</p>
+
+  <p>The origin of a <code>Document</code> or image that was generated
+  from a <span title="javascript protocol"><code>javascript:</code>
+  URI</span> is the same as the origin of that
+  <code>javascript:</code> URI.</p>
+
+  <p><dfn>The string representing the script's domain in IDNA
+  format</dfn> is obtained as follows: take the domain part of the
+  script's <span>origin</span> tuple and apply the IDNA ToASCII
+  algorithm and then the IDNA ToUnicode algorithm to each component of
+  the domain name (with both the AllowUnassigned and UseSTD3ASCIIRules
+  flags set both times). <a href="#refsRFC3490">[RFC3490]</a></p>
+
+  <p>If ToASCII fails to convert one of the components of the string,
+  e.g. because it is too long or because it contains invalid
+  characters, or if the origin of the script has no domain part, then
+  the string representing the script's domain in IDNA format cannot be
+  obtained. (ToUnicode is defined to never fail.)</p>
+
+  <p class="big-issue">It's been suggested that we should put IP
+  addresses into the origin tuple, to mitigate DNS rebinding
+  attacks. However that would kill multi-homed systems like
+  GMail. Should we do something like have a DNS record say whether or
+  not to include the IP in the origin for a host?</p>
+
+
+  <h4>Security exceptions</h4>
+
+  <p class="big-issue">Define <dfn>security exception</dfn>.</p>
+
+
+  <h4 id="javascript-protocol"><dfn title="javascript protocol">The <code title="">javascript:</code> protocol</dfn></h4>
+
+  <p>A URI using the <code title="">javascript:</code> protocol must,
+  if evaluated, be evaluated using the in-context evaluation operation
+  defined for <code title="">javascript:</code> URIs. <a
+  href="#refsJSURI">[JSURI]</a></p>
+
+<!--
+JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.txt and
+       http://www.websitedev.de/ietf/draft-hoehrmann-javascript-scheme-00.txt should be as stable as it gets,
+       http://ietfreport.isoc.org/idref/draft-hoehrmann-javascript-scheme/ for the latest version
+-->
+
+  <p>When a browsing context is <span
+  title="navigate">navigated</span> to a <code>javascript:</code> URI,
+  and the <span>active document</span> of that browsing context has
+  the same <span>origin</span> as the URI, the dereference context
+  must be the <span>browsing context</span> being navigated.</p>
+
+  <p>When a browsing context is <span
+  title="navigate">navigated</span> to a <code>javascript:</code> URI,
+  and the <span>active document</span> of that browsing context has a
+  <em>different</em> <span>origin</span> than the URI, the dereference
+  context must be an empty object.</p>
+
+  <p>Otherwise, the dereference context must the <span>browsing
+  context</span> of the <code>Document</code> to which belongs the
+  element for which the URI is being dereferenced, or to which the
+  style sheet for which the URI is being dereferenced applies,
+  whichever is appropriate.</p>
+
+  <p>URIs using the <code title="">javascript:</code> protocol should
+  be evaluated when the resource for that URI is needed, unless
+  <span>scripting is disabled</span> or the <code>Document</code>
+  corresponding to the dereference context (as defined above), if any,
+  has <code title="dom-document-designMode">designMode</code>
+  enabled.</p>
+
+  <p>If the dereference by-product is void (there is no return value),
+  then the URI must be treated in a manner equivalent to an HTTP
+  resource with an HTTP 204 No Content response.</p>
+
+  <p>Otherwise, the URI must be treated in a manner equivalent to an
+  HTTP resource with a 200 OK response whose <span
+  title="Content-Type">Content-Type metadata</span> is <code
+  title="">text/html</code> and whose response body is the dereference
+  by-product, converted to a string value.</p>
+
+  <p class="note">Certain contexts, in particular <code>img</code>
+  elements, ignore the <span title="Content-Type">Content-Type
+  metadata</span>.</p>
+
+  <div class="example">
+
+   <p>So for example a <code title="">javascript:</code> URI for a
+   <code title="attr-img-src">src</code> attribute of an
+   <code>img</code> element would be evaluated in the context of the
+   page as soon as the attribute is set; it would then be sniffed to
+   determine the image type and decoded as an image.</p>
+
+   <p>A <code title="">javascript:</code> URI in an <code
+   title="attr-a-href">href</code> attribute of an <code>a</code>
+   element would only be evaluated when the link was <span
+   title="following hyperlinks">followed</span>.</p>
+
+   <p>The <code title="attr-iframe-src">src</code> attribute of an
+   <code>iframe</code> element would be evaluated in the context of
+   the <code>iframe</code>'s own <span>browsing context</span>; once
+   evaluated, its return value (if it was not void) would replace that
+   <span>browsing context</span>'s document, thus changing the
+   variables visible in that <span>browsing context</span>.</p>
+
+  </div>
+
+
+
+  <h4>Events</h4>
+
+  <p class="big-issue">We need to define how to handle events that are
+  to be fired on a Document that is no longer the active document of
+  its browsing context, and for Documents that have no browsing
+  context. Do the events fire? Do the handlers in that document not
+  fire? Do we just define scripting to be disabled when the document
+  isn't active, with events still running as is? See also the
+  <code>script</code> element section, which says scripts don't run
+  when the document isn't active.</p>
+
+  <h5 id="event-handler-attributes">Event handler attributes</h5>
+
+  <p><span>HTML elements</span> can have <dfn>event handler
+  attributes</dfn> specified. These act as bubbling event listeners
+  for the element on which they are specified.</p>
+
+  <p>Each event handler attribute has two parts, an <span title="event
+  handler content attributes">event handler content attribute</span>
+  and an <span title="event handler DOM attributes">event handler DOM
+  attribute</span>. Event handler attributes must initially be set to
+  null. When their value changes (through the changing of their event
+  handler content attribute or their event handler DOM attribute),
+  they will either be null, or have an <code>EventListener</code>
+  object assigned to them.</p>
+
+  <p>Objects other than <code>Element</code> objects, in particular
+  <code>Window</code>, only have <span title="event handler DOM
+  attributes">event handler DOM attribute</span> (since they have no
+  content attributes).</p>
+
+  <p><dfn>Event handler content attributes</dfn>, when specified, must
+  contain valid ECMAScript code matching the ECMAScript <code
+  title="">FunctionBody</code> production. <a
+  href="#refsECMA262">[ECMA262]</a></p>
+
+  <p>When an event handler content attribute is set, its new value
+  must be interpreted as the body of an anonymous function with a
+  single argument called <code>event</code>, with the new function's
+  scope chain being linked from the activation object of the handler,
+  to the element, to the element's <code>form</code> element if it is
+  a form control, to the <code>Document</code> object, to the
+  <span>browsing context</span> of that <code>Document</code>. The
+  function's <code>this</code> parameter must be the
+  <code>Element</code> object representing the element. The resulting
+  function must then be set as the value of the corresponding event
+  handler attribute, and the new value must be set as the value of the
+  content attribute. If the given function body fails to compile, then
+  the corresponding event handler attribute must be set to null
+  instead (the content attribute must still be updated to the new
+  value, though).</p>
+
+  <p class="note">See ECMA262 Edition 3, sections 10.1.6 and 10.2.3,
+  for more details on activation objects. <a
+  href="#refsECMA262">[ECMA262]</a></p>
+
+  <p class="issue">How do we allow non-JS event handlers?</p>
+
+  <p><dfn>Event handler DOM attributes</dfn>, on setting, must set the
+  corresponding event handler attribute to their new value, and on
+  getting, must return whatever the current value of the corresponding
+  event handler attribute is (possibly null).</p>
+
+  <p>The following are the event handler attributes that must be
+  supported by all <span>HTML elements</span>, as both content
+  attributes and DOM attributes, and on <code>Window</code> objects,
+  as DOM attributes:</p>
+
+  <dl>
+
+   <dt><dfn title="handler-onabort"><code>onabort</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever an <code
+   title="event-abort">abort</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+<!--
+   <dt><dfn title="handler-onbeforecopy"><code>onbeforecopy</code></dfn></dt> --><!-- widely used --><!--
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-beforecopy">beforecopy</code> event is targeted at or bubbles
+   through the element.</p></dd>
+-->
+
+   <dt><dfn title="handler-onbeforeunload"><code>onbeforeunload</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-beforeunload">beforeunload</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onblur"><code>onblur</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-blur">blur</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onchange"><code>onchange</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-change">change</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onclick"><code>onclick</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-click">click</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-oncontextmenu"><code>oncontextmenu</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-contextmenu">contextmenu</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+<!--
+   <dt><dfn title="handler-oncopy"><code>oncopy</code></dfn></dt> --><!-- widely used --><!--
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-copy">copy</code> event is targeted at or bubbles
+   through the element.</p></dd>
+-->
+
+   <dt><dfn title="handler-ondblclick"><code>ondblclick</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-dblclick">dblclick</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-ondrag"><code>ondrag</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-drag">drag</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-ondragend"><code>ondragend</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-dragend">dragend</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-ondragenter"><code>ondragenter</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-dragenter">dragenter</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-ondragleave"><code>ondragleave</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-dragleave">dragleave</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-ondragover"><code>ondragover</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-dragover">dragover</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-ondragstart"><code>ondragstart</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-dragstart">dragstart</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-ondrop"><code>ondrop</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-drop">drop</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onerror"><code>onerror</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever an <code
+   title="event-error">error</code> event is targeted at or bubbles
+   through the element.</p>
+
+   <p class="note">The <code title="handler-onerror">onerror</code>
+   handler is also used for <a href="#runtime-script-errors">reporting
+   script errors</a>.</p></dd>
+
+   <dt><dfn title="handler-onfocus"><code>onfocus</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-focus">focus</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onkeydown"><code>onkeydown</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-keydown">keydown</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onkeypress"><code>onkeypress</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-keypress">keypress</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onkeyup"><code>onkeyup</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-keyup">keyup</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onload"><code>onload</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-load">load</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onmessage"><code>onmessage</code></dfn></dt> <!-- introduced for <event-source> -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-message">message</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onmousedown"><code>onmousedown</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-mousedown">mousedown</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onmousemove"><code>onmousemove</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-mousemove">mousemove</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onmouseout"><code>onmouseout</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-mouseout">mouseout</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onmouseover"><code>onmouseover</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-mouseover">mouseover</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onmouseup"><code>onmouseup</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-mouseup">mouseup</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onmousewheel"><code>onmousewheel</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-mousewheel">mousewheel</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+<!--
+   <dt><dfn title="handler-onpaste"><code>onpaste</code></dfn></dt> --><!-- widely used --><!--
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-paste">paste</code> event is targeted at or bubbles
+   through the element.</p></dd>
+-->
+
+   <dt><dfn title="handler-onresize"><code>onresize</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-resize">resize</code> event is targeted at or bubbles
+   through the element.</p></dd> <!-- XXX should define when it fires -->
+
+   <dt><dfn title="handler-onscroll"><code>onscroll</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-scroll">scroll</code> event is targeted at or bubbles
+   through the element.</p></dd> <!-- XXX should define when it fires -->
+
+   <dt><dfn title="handler-onselect"><code>onselect</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-select">select</code> event is targeted at or bubbles
+   through the element.</p></dd> <!-- XXX should define when it fires -->
+
+<!--XXX
+   <dt><dfn title="handler-onselectstart"><code>onselectstart</code></dfn></dt> --><!-- widely used --><!--
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-selectstart">selectstart</code> event is targeted at or bubbles
+   through the element.</p></dd>
+--> <!-- XXX should define when it fires -->
+
+   <dt><dfn title="handler-onsubmit"><code>onsubmit</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-submit">submit</code> event is targeted at or bubbles
+   through the element.</p></dd>
+
+   <dt><dfn title="handler-onunload"><code>onunload</code></dfn></dt> <!-- widely used -->
+
+   <dd><p>Must be invoked whenever an <code
+   title="event-unload">unload</code> event is targeted at or bubbles
+   through the element.</p></dd> <!-- XXX need to fire this -->
+
+  </dl>
+
+  <p>When an event handler attribute is invoked, its argument must be
+  set to the <code>Event</code> object of the event in question. If
+  the function returns the exact boolean value false, the event's
+  <code>preventDefault()</code> method must then invoked. Exception:
+  for historical reasons, for the HTML <code>mouseover</code> event,
+  the <code>preventDefault()</code> method must be called when the
+  function returns true instead.</p>
+
+  <!-- IE actually uncancels the event if the function returns true -->
+
+
+  <p>When <span>scripting is disabled</span>, event handler attributes
+  must do nothing.</p>
+
+  <p>When <span>scripting is enabled</span>, all event handler
+  attributes on an element, whether set to null or to a function, must
+  be registered as event listeners on the element, as if the <code
+  title="dom-EventTarget-addEventListenerNS">addEventListenerNS()</code>
+  method on the <code>Element</code> object's <code>EventTarget</code>
+  interface had been invoked when the element was created, with the
+  event type (<code title="dom-event-type">type</code> argument) equal
+  to the type described for the event handler attribute in the list
+  above, the namespace (<code
+  title="dom-event-namespaceURI">namespaceURI</code> argument) set to
+  null, the listener set to be a target and bubbling phase listener
+  (<code title="dom-event-useCapture">useCapture</code> argument set
+  to false), the event group set to the default group (<code
+  title="dom-event-evtGroup">evtGroup</code> argument set to null),
+  and the event listener itself (<code
+  title="dom-event-listener">listener</code> argument) set to do
+  nothing while the event handler attribute is null, and set to invoke
+  the function associated with the event handler attribute
+  otherwise.</p>
+
+
+  <h5>Event firing</h5>
+
+  <p class="big-issue">maybe this should be moved higher up
+  (terminology? conformance? DOM?) Also, the whole terminology thing
+  should be changed so that we don't define any specific events here,
+  we only define 'simple event', 'progress event', 'mouse event', 'key
+  event', and the like, and have the actual dispatch use those generic
+  terms when firing events.</p>
+
+  <p>Certain operations and methods are defined as firing events on
+  elements. For example, the <code title="dom-click">click()</code>
+  method on the <code>HTMLElement</code> interface is defined as
+  firing a <code title="event-click">click</code> event on the
+  element.  <a href="#refsDOM3EVENTS">[DOM3EVENTS]</a></p>
+
+  <p><dfn title="fire a click event">Firing a <code
+  title="event-click">click</code> event</dfn> means that a <a
+  href="http://www.w3.org/TR/DOM-Level-3-Events/events.html#event-click"><code>click</code></a>
+  event with no
+  namespace, which bubbles and is cancelable, and which uses the
+  <code>MouseEvent</code> interface, must be dispatched at the given
+  element. The event object must have its <code
+  title="">screenX</code>, <code title="">screenY</code>, <code
+  title="">clientX</code>, <code title="">clientY</code>, and <code
+  title="">button</code> attributes set to 0, its <code
+  title="">ctrlKey</code>, <code title="">shiftKey</code>, <code
+  title="">altKey</code>, and <code title="">metaKey</code> attributes
+  set according to the current state of the key input device, if any
+  (false for any keys that are not available), its <code
+  title="">detail</code> attribute set to 1, and its <code
+  title="">relatedTarget</code> attribute set to null. The <code
+  title="">getModifierState()</code> method on the object must return
+  values appropriately describing the state of the key input device at
+  the time the event is created.</p>
+
+  <p><dfn title="fire a change event">Firing a <code
+  title="event-change">change</code> event</dfn> means that a <a
+  href="http://www.w3.org/TR/DOM-Level-3-Events/events.html#event-change"><code>change</code></a>
+  event with no namespace, which bubbles but is not cancelable, and
+  which uses the <code>Event</code> interface, must be dispatched at
+  the given element. The event object must have its <code
+  title="">detail</code> attribute set to 0.</p>
+
+  <p><dfn title="fire a contextmenu event">Firing a <code
+  title="event-contextmenu">contextmenu</code> event</dfn> means that
+  a <code title="event-contextmenu">contextmenu</code> event with no
+  namespace, which bubbles and is cancelable, and which uses the
+  <code>Event</code> interface, must be dispatched at the given
+  element. The event object must have its <code title="">detail</code>
+  attribute set to 0.</p>
+
+  <p><dfn title="fire a simple event">Firing a simple event called
+  <var title="">e</var></dfn> means that an event with the name <var
+  title="">e</var>, with no namespace, which does not bubble but is
+  cancelable, and which uses the <code>Event</code> interface, must be
+  dispatched at the given element.</p>
+
+  <p><dfn title="fire a show event">Firing a <code
+  title="event-show">show</code> event</dfn> means <span title="fire a
+  simple event">firing a simple event called <code
+  title="event-show">show</code></span>. <span title="issue">Actually
+  this should fire an event that has modifier information (shift/ctrl
+  etc).</span></p>
+
+  <p><dfn title="fire a load event">Firing a <code
+  title="event-load">load</code> event</dfn> means <span title="fire a
+  simple event">firing a simple event called <code
+  title="event-load">load</code></span>. <!--<dfn title="fire a
+  DOMContentLoaded event">Firing a <code
+  title="event-DOMContentLoaded">DOMContentLoaded</code> event</dfn>
+  means <span title="fire a simple event">firing a simple event called
+  <code
+  title="event-DOMContentLoaded">DOMContentLoaded</code></span>.-->
+  <dfn title="fire an error event">Firing an <code
+  title="event-error">error</code> event</dfn> means <span title="fire
+  a simple event">firing a simple event called <code
+  title="event-error">error</code></span>.</p>
+
+  <!-- XXX need to define the dispatching of DOMActivate -->
+
+  <p class="big-issue"><dfn title="fire a progress event">Firing a
+  progress event called <var title="">e</var></dfn> means something
+  that hasn't yet been defined, in the <a
+  href="#refsPROGRESS">[PROGRESS]</a> spec.</p>
+
+  <p>The default action of these event is to do nothing unless
+  otherwise stated.</p>
+
+  <p class="big-issue">If you dispatch a custom "click" event at an
+  element that would normally have default actions, should they get
+  triggered? If so, we need to go through the entire spec and make
+  sure that any default actions are defined in terms of <em>any</em>
+  event of the right type on that element, not those that are
+  dispatched in expected ways.</p>
+
+
+  <h5>Events and the <code>Window</code> object</h5>
+
+  <p>When an event is dispatched at a DOM node in a
+  <code>Document</code> in a <span>browsing context</span>, if the
+  event is not a <code title="event-load">load</code> event, the user
+  agent must also dispatch the event to the <code>Window</code>, as
+  follows:</p>
+
+  <ol>
+
+   <li>In the capture phase, the event must be dispatched to the
+   <code>Window</code> object before being dispatched to any of the
+   nodes.</li>
+
+   <li>In the bubble phase, the event must be dispatched to the
+   <code>Window</code> object at the end of the phase, unless bubbling
+   has been prevented.</li>
+
+  </ol>
+
+
+
+  <h5 id="runtime-script-errors">Runtime script errors</h5>
+
+  <p><em>This section only applies to user agents that support
+  scripting in general and ECMAScript in particular.</em></p>
+
+  <p>Whenever a runtime script error occurs in one of the scripts
+  associated with the document, the value of the <code
+  title="handler-onerror">onerror</code> <span>event handler DOM
+  attribute</span> of the <code>Window</code> object must be
+  processed, as follows:</p>
+
+  <dl class="switch">
+
+   <dt>If the value is a function</dt>
+
+   <dd>
+
+    <p>The function referenced by the <code
+    title="handler-onerror">onerror</code> attribute must be invoked
+    with three arguments, before notifying the user of the error.</p>
+
+    <p>The three arguments passed to the function are all
+    <code>DOMString</code>s; the first must give the message that the
+    UA is considering reporting, the second must give the URI to the
+    resource in which the error occured, and the third must give the
+    line number in that resource on which the error occured.</p>
+
+    <p>If the function returns false, then the error should not be
+    reported to the user. Otherwise, if the function returns another
+    value (or does not return at all), the error should be reported to
+    the user.</p>
+
+    <p>Any exceptions thrown or errors caused by this function must be
+    reported to the user immediately after the error that the function
+    was called for, without calling the function again.</p>
+
+   </dd>
+
+   <dt>If the value is <code>null</code></dt>
+
+   <dd>
+
+    <p>The error should not reported to the user.</p>
+
+   </dd>
+
+   <dt>If the value is anything else</dt>
+
+   <dd>
+
+    <p>The error should be reported to the user.</p>
+
+   </dd>
+
+  </dl>
+
+  <p>The initial value of <code title="handler-onerror">onerror</code>
+  must be <code>undefined</code>.</p>
+
+
+
+  <h3>User prompts</h3>
+
+  <p>The <dfn title="dom-alert"><code>alert(<var
+  title="">message</var>)</code></dfn> method, when invoked, must show
+  the given <var title="">message</var> to the user. The user agent
+  may make the method wait for the user to acknowledge the message
+  before returning; if so, the user agent must <span>pause</span>
+  while the method is waiting.</p>
+
+  <p>The <dfn title="dom-confirm"><code>confirm(<var
+  title="">message</var>)</code></dfn> method, when invoked, must show
+  the given <var title="">message</var> to the user, and ask the user
+  to respond with a positive or negative response. The user agent must
+  then <span>pause</span> as the the method waits for the user's
+  response. If the user response positively, the method must return
+  true, and if the user response negatively, the method must return
+  false.</p>
+
+  <p>The <dfn title="dom-prompt"><code>prompt(<var
+  title="">message</var>, <var title="">default</var>)</code></dfn>
+  method, when invoked, must show the given <var
+  title="">message</var> to the user, and ask the user to either
+  respond with a string value or abort. The user agent must then
+  <span>pause</span> as the the method waits for the user's
+  response. The second argument is optional. If the second argument
+  (<var title="">default</var>) is present, then the response must be
+  defaulted to the value given by <var title="">default</var>. If the
+  user aborts, then the method must return null; otherwise, the method
+  must return the string that the user responded with.</p>
+
+  <p>The <dfn title="dom-print"><code>print()</code></dfn> method,
+  when invoked, should offer the user the opportunity to <span>obtain
+  a physical form</span> of the document. The user agent may make the
+  method wait for the user to either accept or decline before
+  returning; if so, the user agent must <span>pause</span> while the
+  method is waiting.  (This does not, of course, preclude the user
+  agent from <em>always</em> offering the user with the opportunity to
+  convert the document to whatever media the user might want.)</p>
+
+
+
+  <h3>Browser state</h3>
+
+  <p>The <dfn title="dom-navigator"><code>navigator</code></dfn>
+  attribute of the <code>Window</code> interface must return an
+  instance of the <code>ClientInformation</code> interface, which
+  represents the identity and state of the user agent (the client),
+  and allows Web pages to register themselves as potential protocol
+  and content handlers:</p>
+
+  <pre class="idl">interface <dfn>ClientInformation</dfn> {
+  readonly attribute boolean <span title="dom-navigator-onLine">onLine</span>;
+  void <span title="dom-navigator-registerProtocolHandler">registerProtocolHandler</span>(in DOMString protocol, in DOMString uri, in DOMString title);
+  void <span title="dom-navigator-registerContentHandler">registerContentHandler</span>(in DOMString mimeType, in DOMString uri, in DOMString title);
+<!-- XXX there are other attributes! -->};</pre>
+<!-- also, see window.external.AddSearchProvider() and similar DOM APIs from IE -->
+
+  <h4 id="offline">Offline Web applications</h4>
+
+  <p>The <dfn
+  title="dom-navigator-onLine"><code>navigator.onLine</code></dfn>
+  attribute must return false if the user agent will not contact the
+  network when the user follows links or when a script requests a
+  remote page (or knows that such an attempt would fail), and must
+  return true otherwise.</p>
+
+  <p>The <dfn title="event-offline"><code>offline</code></dfn> event
+  must be fired when the value of the <code
+  title="dom-navigator-onLine">navigator.onLine</code> attribute of
+  the <code>Window</code> changes from true to false.</p>
+
+  <p>The <dfn title="event-online"><code>online</code></dfn> event
+  must be fired when the value of the <code
+  title="dom-navigator-onLine">navigator.onLine</code> attribute of
+  the <code>Window</code> changes from false to true.</p>
+
+  <p>These events are in no namespace, do bubble, are not cancelable,
+  have no default action, and use the normal <code>Event</code>
+  interface. They must be fired on <span>the body element</span>. (As
+  the events bubble, they will reach the <code>Window</code>
+  object.)</p>
+
+  <!-- XXX ononline onoffline need to be defined -->
+
+  <h4 id="custom-handlers">Custom protocol and content handlers</h4>
+
+  <p>The <dfn
+  title="dom-navigator-registerProtocolHandler"><code>registerProtocolHandler()</code></dfn>
+  method allows Web sites to register themselves as possible handlers
+  for particular protocols. For example, an online fax service could
+  register itself as a handler of the <code>fax:</code> protocol (<a
+  href="#refsRFC2806">[RFC2806]</a>), so that if the user clicks on
+  such a link, he is given the opportunity to use that Web
+  site. Analogously, the <dfn
+  title="dom-navigator-registerContentHandler"><code>registerContentHandler()</code></dfn>
+  method allows Web sites to register themselves as possible handlers
+  for content in a particular MIME type. For example, the same online
+  fax service could register itself as a handler for
+  <code>image/g3fax</code> files (<a
+  href="#refsRFC1494">[RFC1494]</a>), so that if the user has no
+  native application capable of handling G3 Facsimile byte streams,
+  his Web browser can instead suggest he use that site to view the
+  image.</p>
+
+  <p>User agents may, within the constraints described in this
+  section, do whatever they like when the methods are called. A UA
+  could, for instance, prompt the user and offer the user the
+  opportunity to add the site to a shortlist of handlers, or make the
+  handlers his default, or cancel the request. UAs could provide such
+  a UI through modal UI or through a non-modal transient notification
+  interface. UAs could also simply silently collect the information,
+  providing it only when relevant to the user.</p>
+
+  <p>There is <a href="#sample-handler-impl">an example of how these
+  methods could be presented to the user</a> below.</p>
+
+  <p>The arguments to the methods have the following meanings:</p>
+
+  <dl>
+
+   <dt><var title="">protocol</var> (<code title="dom-navigator-registerProtocolHandler">registerProtocolHandler()</code> only)</dt>
+
+   <dd>
+
+    <p>A scheme, such as <code>ftp</code> or <code>fax</code>. The
+    scheme must be treated case-insensitively by user agents for the
+    purposes of comparing with the scheme part of URIs that they
+    consider against the list of registered handlers.</p>
+
+    <p>The <var title="">protocol</var> value, if it contains a colon (as in
+    "<code>ftp:</code>"), will never match anything, since schemes
+    don't contain colons.</p>
+
+   </dd>
+
+   <dt><var title="">mimeType</var> (<code title="dom-navigator-registerContentHandler">registerContentHandler()</code> only)</dt>
+
+   <dd>
+
+    <p>A MIME type, such as <code>model/vrml</code> or
+    <code>text/richtext</code>. The MIME type must be treated
+    case-insensitively by user agents for the purposes of comparing
+    with MIME types of documents that they consider against the list
+    of registered handlers.</p>
+
+    <p>User agents must compare the given values only to the MIME
+    type/subtype parts of content types, not to the complete type
+    including parameters. Thus, if <var title="">mimeType</var> values
+    passed to this method include characters such as commas or
+    whitespace, or include MIME parameters, then the handler being
+    registered will never be used.</p>
+
+   </dd>
+
+   <dt><var title="">uri</var></dt>
+
+   <dd>
+
+    <p>The URI of the page that will handle the requests. When the
+    user agent uses this URI, it must replace the first occurrence of
+    the exact literal string "<code>%s</code>" with an escaped version
+    of the URI of the content in question (as defined below), and then
+    fetch the resulting URI using the GET method (or equivalent for
+    non-HTTP URIs).</p>
+
+    <p>To get the escaped version of the URI, first, the domain part
+    of the URI (if any) must be converted to its punycode
+    representation, and then, every character in the URI that is not
+    in the ranges given in the next paragraph must be replaced by its
+    UTF-8 byte representation, each byte being represented by a U+0025
+    (%) character and two digits in the range U+0030 (0) to U+0039 (9)
+    and U+0041 (A) to U+0046 (F) giving the hexadecimal representation
+    of the byte.</p>
+
+    <p>The ranges of characters that must not be escaped are: U+002D
+    (-), U+002E (.), U+0030 (0) to U+0039 (9), U+0041 (A) to U+005A
+    (Z), U+005F (_), U+0061 (a) to U+007A (z), and U+007E (~).</p>
+
+    <!-- XXX move that to a common algorithms section if any other
+    part of the spec needs it -->
+
+    <div class="example">
+
+     <p>If the user had visited a site that made the following call:</p>
+
+     <pre>navigator.registerContentHandler('application/x-soup', 'http://example.com/soup?url=%s', 'SoupWeb&trade;')</pre>
+
+     <p>...and then clicked on a link such as:</p>
+
+     <pre>&lt;a href="http://www.example.net/chickenk&#xEF;wi.soup">Download our Chicken Kiwi soup!&lt;/a></pre>
+
+     <p>...then, assuming this <code>chickenk&#xEF;wi.soup</code> file
+     was served with the MIME type <code>application/x-soup</code>,
+     the UA might navigate to the following URI:</p>
+
+     <pre>http://example.com/soup?url=http%3A%2F%2Fwww.example.net%2Fchickenk%C3%AFwi.soup</pre>
+
+     <p>This site could then fetch the <code>chickenk&#xEF;wi.soup</code>
+     file and do whatever it is that it does with soup (synthesise it
+     and ship it to the user, or whatever).</p>
+
+    </div>
+
+   </dd>
+
+   <dt><var title="">title</var></dt>
+
+   <dd>
+
+    <p>A descriptive title of the handler, which the UA might use to
+    remind the user what the site in question is.</p>
+
+   </dd>
+
+  </dl>
+
+  <p>User agents should raise <span title="security
+  exception">security exceptions</span> if the methods are called with
+  <var title="">protocol</var> or <var title="">mimeType</var> values
+  that the UA deems to be "privileged". For example, a site attempting
+  to register a handler for <code>http</code> URIs or
+  <code>text/html</code> content in a Web browser would likely cause
+  an exception to be raised.</p>
+
+  <p>User agents must raise a <code>SYNTAX_ERR</code> exception if the
+  <var title="">uri</var> argument passed to one of these methods does
+  not contain the exact literal string "<code>%s</code>".</p>
+
+  <p>User agents must not raise any other exceptions (other than
+  binding-specific exceptions, such as for an incorrect number of
+  arguments in an ECMAScript implementation).</p>
+
+  <p>This section does not define how the pages registered by these
+  methods are used, beyond the requirements on how to process the
+  <var title="">uri</var> value (see above). To some extent, the <span
+  title="navigating across documents">processing model for navigating
+  across documents</span> defines some cases where these methods are
+  relevant, but in general UAs may use this information wherever they
+  would otherwise consider handing content to native plugins or helper
+  applications.</p>
+
+  <p>UAs must not use registered content handlers to handle content
+  that was returned as part of a non-GET transaction (or rather, as
+  part of any non-idempotent transaction), as the remote site would
+  not be able to fetch the same data.</p>
+
+
+  <h5>Security and privacy</h5>
+
+  <p>These mechanisms can introduce a number of concerns, in
+  particular privacy concerns.</p>
+
+  <p><strong>Hijacking all Web usage.</strong> User agents should not
+  allow protocols that are key to its normal operation, such as
+  <code>http</code> or <code>https</code>, to be rerouted through
+  third-party sites. This would allow a user's activities to be
+  trivially tracked, and would allow user information, even in secure
+  connections, to be collected.</p>
+
+  <p><strong>Hijacking defaults.</strong> It is strongly recommended
+  that user agents do not automatically change any defaults, as this
+  could lead the user to send data to remote hosts that the user is
+  not expecting. New handlers registering themselves should never
+  automatically cause those sites to be used.</p>
+
+  <p><strong>Registration spamming.</strong> User agents should
+  consider the possibility that a site will attempt to register a
+  large number of handlers, possibly from multiple domains (e.g. by
+  redirecting through a series of pages each on a different domain,
+  and each registering a handler for <code>video/mpeg</code> &mdash;
+  analogous practices abusing other Web browser features have been
+  used by pornography Web sites for many years). User agents should
+  gracefully handle such hostile attempts, protecting the user.</p>
+
+  <p><strong>Misleading titles.</strong> User agents should not rely
+  wholy on the <var title="">title</var> argument to the methods when
+  presenting the registered handlers to the user, since sites could
+  easily lie. For example, a site <code>hostile.example.net</code>
+  could claim that it was registering the "Cuddly Bear Happy Content
+  Handler". User agents should therefore use the handler's domain in
+  any UI along with any title.</p>
+
+  <p><strong>Hostile handler metadata.</strong> User agents should
+  protect against typical attacks against strings embedded in their
+  interface, for example ensuring that markup or escape characters in
+  such strings are not executed, that null bytes are properly handled,
+  that over-long strings do not cause crashes or buffer overruns, and
+  so forth.</p>
+
+  <p><strong>Leaking Intranet URIs.</strong> The mechanism described
+  in this section can result in secret Intranet URIs being leaked, in
+  the following manner:</p>
+
+  <ol>
+
+   <li>The user registers a third-party content handler as the default
+   handler for a content type.</li>
+
+   <li>The user then browses his corporate Intranet site and accesses
+   a document that uses that content type.</li>
+
+   <li>The user agent contacts the third party and hands the third
+   party the URI to the Intranet content.</li>
+
+  </ol>
+
+  <p>No actual confidential file data is leaked in this manner, but
+  the URIs themselves could contain confidential information. For
+  example, the URI could be
+  <code>https://www.corp.example.com/upcoming-aquisitions/samples.egf</code>,
+  which might tell the third party that Example Corporation is
+  intending to merge with Samples LLC. Implementors might wish to
+  consider allowing administrators to disable this feature for certain
+  subdomains, content types, or protocols.</p>
+
+  <p><strong>Leaking secure URIs.</strong> User agents should not send
+  HTTPS URIs to third-party sites registered as content handlers, in
+  the same way that user agents do not send <code>Referer</code>
+  headers from secure sites to third-party sites.</p>
+
+  <p><strong>Leaking credentials.</strong> User agents must never send
+  username or password information in the URIs that are escaped and
+  included sent to the handler sites. User agents may even avoid
+  attempting to pass to Web-based handlers the URIs of resources
+  that are known to require authentication to access, as such sites
+  would be unable to access the resources in question without
+  prompting the user for credentials themselves (a practice that would
+  require the user to know whether to trust the third-party handler, a
+  decision many users are unable to make or even understand).</p>
+
+
+  <h5 id="sample-handler-impl">Sample user interface</h5>
+
+  <p><em>This section is non-normative.</em></p>
+
+  <p>A simple implementation of this feature for a desktop Web browser
+  might work as follows.</p>
+
+  <p>The <code
+  title="dom-navigator-registerProtocolHandler">registerProtocolHandler()</code>
+  method could display a modal dialog box:</p>
+
+  <pre>||[ Protocol Handler Registration ]|||||||||||||||||||||||||||
+|                                                            |
+| This Web page:                                             |
+|                                                            |
+|    Kittens at work                                         |
+|    http://kittens.example.org/                             |
+|                                                            |
+| ...would like permission to handle the protocol "x-meow:"  |
+| using the following Web-based application:                 |
+|                                                            |
+|    Kittens-at-work displayer                               |
+|    http://kittens.example.org/?show=%s                     |
+|                                                            |
+| Do you trust the administrators of the "kittens.example.   |
+| org" domain?                                               |
+|                                                            |
+|              ( Trust kittens.example.org )  (( Cancel ))   |
+|____________________________________________________________|</pre>
+
+  <p>...where "Kittens at work" is the title of the page that invoked
+  the method, "http://kittens.example.org/" is the URI of that page,
+  "x-meow" is the string that was passed to the <code
+  title="dom-navigator-registerProtocolHandler">registerProtocolHandler()</code>
+  method as its first argument (<var title="">protocol</var>),
+  "http://kittens.example.org/?show=%s" was the second argument (<var
+  title="">uri</var>), and "Kittens-at-work displayer" was the third
+  argument (<var title="">title</var>).</p>
+
+  <p>If the user clicks the Cancel button, then nothing further
+  happens. If the user clicks the "Trust" button, then the handler is
+  remembered.</p>
+
+  <p>When the user then attempts to fetch a URI that uses the
+  "x-meow:" scheme, then it might display a dialog as follows:</p>
+
+  <pre>||[ Unknown Protocol ]||||||||||||||||||||||||||||||||||||||||
+|                                                            |
+| You have attempted to access:                              |
+|                                                            |
+|    x-meow:S2l0dGVucyBhcmUgdGhlIGN1dGVzdCE%3D               |
+|                                                            |
+| How would you like FerretBrowser to handle this resource?  |
+|                                                            |
+|  (o) Contact the FerretBrowser plugin registry to see if   |
+|      there is an official way to handle this resource.     |
+|                                                            |
+|  ( ) Pass this URI to a local application:                 |
+|      [ /no application selected/             ] ( Choose )  |
+|                                                            |
+|  ( ) Pass this URI to the "Kittens-at-work displayer"      |
+|      application at "kittens.example.org".                 |
+|                                                            |
+|  [ ] Always do this for resources using the "x-meow"       |
+|      protocol in future.                                   |
+|                                                            |
+|                                     ( Ok )  (( Cancel ))   |
+|____________________________________________________________|</pre>
+
+  <p>...where the third option is the one that was primed by the site
+  registering itself earlier.</p>
+
+  <p>If the user does select that option, then the browser, in
+  accordance with the requirements described in the previous two
+  sections, will redirect the user to
+  "http://kittens.example.org/?show=x-meow%3AS2l0dGVucyBhcmUgdGhlIGN1dGVzdCE%253D".</p>
+
+  <p>The <code
+  title="dom-navigator-registerContentHandler">registerContentHandler()</code>
+  method would work equivalently, but for unknown MIME types instead
+  of unknown protocols.</p>
+
+
+
   <h3 id="history">Session history and navigation</h3>
 
   <h4>The session history of browsing contexts</h4>
@@ -23868,1173 +25036,6 @@ user reload must be equivalent to .reload()
 
 
 
-
-
-  <h3 id="scripting">Scripting</h3>
-
-  <h4>Running executable code</h4>
-
-  <p>Various mechanisms can cause author-provided executable code to
-  run in the context of a document. These mechanisms include, but are
-  probably not limited to:</p>
-
-  <ul>
-
-   <li>Processing of <code>script</code> elements.</li>
-
-   <li>Processing of inline <code title="javascript
-   protocol">javascript:</code> URIs (e.g. the <code
-   title="attr-img-src">src</code> attribute of <code>img</code>
-   elements, or an <code title="">@import</code> rule in a CSS
-   <code>style</code> element block).</li>
-
-   <li>Event handlers, whether registered through the DOM using <code
-   title="">addEventListener()</code>, by explicit <span>event handler
-   content attributes</span>, by <span>event handler DOM
-   attributes</span>, or otherwise.</li>
-
-   <li>Processing of technologies like XBL or SVG that have their own
-   scripting features.</li>
-
-  </ul>
-
-  <p>User agents may provide a mechanism to enable or disable the
-  execution of author-provided code. When the user agent is configured
-  such that author-provided code does not execute, or if the user
-  agent is implemented so as to never execute author-provided code, it
-  is said that <dfn>scripting is disabled</dfn>. When author-provided
-  code <em>does</em> execute, <dfn>scripting is enabled</dfn>. A user
-  agent with scripting disabled is a <span title="User agents with no
-  scripting support">user agent with no scripting support</span> for
-  the purposes of conformance.</p>
-
-
-  <h4>Origin</h4>
-  <!-- Hallowed are the Ori -->
-
-  <!--
-    https://bugzilla.mozilla.org/show_bug.cgi?id=346659
-    https://bugzilla.mozilla.org/show_bug.cgi?id=344495
-  -->
-
-  <p>Access to certain APIs is granted or denied to scripts based on
-  the <dfn>origin</dfn> of the script and the API being accessed.</p>
-
-  <dl>
-
-   <dt>If a script is in a <code>script</code> element</dt>
-
-   <dd>The origin of the script is the origin of the
-   <code>Document</code> to which the <code>script</code> element
-   belongs.</dd>
-
-
-   <dt>If a script is a function or other code reference created by
-   another script</dt>
-
-   <dd>The origin of the script is the origin of the script that
-   created it.</dd>
-
-
-   <dt>If a script is a <span title="javascript protocol"><code
-   title="">javascript:</code> URI</span> in an attribute</dt>
-
-   <dd>The origin is the origin of the <code>Document</code> of the
-   element on which the attribute is found.</dd>
-
-
-   <dt>If a script is a <span title="javascript protocol"><code
-   title="">javascript:</code> URI</span> in a style sheet</dt>
-
-   <dd>The origin is the origin of the <code>Document</code> to which
-   the style sheet applies.</dd>
-
-
-   <dt>If a script is a <span title="javascript protocol"><code
-   title="">javascript:</code> URI</span> to which a <span>browsing
-   context</span> is being <span title="navigate">navigated</span>,
-   the URI having been provided by the user (e.g. by using a
-   <i>bookmarklet</i>)</dt>
-
-   <dd>The origin is the origin of the <code>Document</code> of the
-   <span>browsing context</span>'s <span>active document</span>.</dd>
-
-
-   <dt>If a script is a <span title="javascript protocol"><code
-   title="">javascript:</code> URI</span> to which a <span>browsing
-   context</span> is being <span title="navigate">navigated</span>,
-   the URI having been declared in markup</dt>
-
-   <dd>The origin is the origin of the <code>Document</code> of the
-   element (e.g. an <code>a</code> or <code>area</code> element) that
-   declared the URI.</dd>
-
-
-   <dt>If a script is a <span title="javascript protocol"><code
-   title="">javascript:</code> URI</span> to which a <span>browsing
-   context</span> is being <span title="navigate">navigated</span>,
-   the URI having been provided by script</dt>
-
-   <dd>The origin is the origin of the script that provided the
-   URI.</dd>
-
-   <!-- ... -->
-
-  </dl>
-
-  <p>The origin of scripts thus comes down to finding the origin of
-  <code>Document</code> objects.</p>
-
-  <p>The origin of a <code>Document</code> or image that was served
-  over the network and whose address uses a URI scheme with a
-  server-based naming authority is the tuple consisting of the
-  &lt;scheme&gt;, &lt;host&gt;, and &lt;port&gt; parts of the
-  <code>Document</code>'s full URI. <a
-  href="#refsRFC3986">[RFC3986]</a> <a
-  href="#refsRFC3987">[RFC3987]</a> <a
-  href="#refsRFC2732">[RFC2732]</a></p>
-
-  <p>The origin of a <code>Document</code> or image that was generated
-  from a <code>data:</code> URI found in another <code>Document</code>
-  or in a script is the origin of the that <code>Document</code> or
-  script.</p>
-
-  <p>The origin of a <code>Document</code> or image that was generated
-  from a <code>data:</code> URI from another source is a globally
-  unique identifier assigned when the document is created.</p>
-
-  <p>The origin of a <code>Document</code> or image that was generated
-  from a <span title="javascript protocol"><code>javascript:</code>
-  URI</span> is the same as the origin of that
-  <code>javascript:</code> URI.</p>
-
-  <p><dfn>The string representing the script's domain in IDNA
-  format</dfn> is obtained as follows: take the domain part of the
-  script's <span>origin</span> tuple and apply the IDNA ToASCII
-  algorithm and then the IDNA ToUnicode algorithm to each component of
-  the domain name (with both the AllowUnassigned and UseSTD3ASCIIRules
-  flags set both times). <a href="#refsRFC3490">[RFC3490]</a></p>
-
-  <p>If ToASCII fails to convert one of the components of the string,
-  e.g. because it is too long or because it contains invalid
-  characters, or if the origin of the script has no domain part, then
-  the string representing the script's domain in IDNA format cannot be
-  obtained. (ToUnicode is defined to never fail.)</p>
-
-  <p class="big-issue">It's been suggested that we should put IP
-  addresses into the origin tuple, to mitigate DNS rebinding
-  attacks. However that would kill multi-homed systems like
-  GMail. Should we do something like have a DNS record say whether or
-  not to include the IP in the origin for a host?</p>
-
-
-  <h4>Security exceptions</h4>
-
-  <p class="big-issue">Define <dfn>security exception</dfn>.</p>
-
-
-  <h4 id="javascript-protocol"><dfn title="javascript protocol">The <code title="">javascript:</code> protocol</dfn></h4>
-
-  <p>A URI using the <code title="">javascript:</code> protocol must,
-  if evaluated, be evaluated using the in-context evaluation operation
-  defined for <code title="">javascript:</code> URIs. <a
-  href="#refsJSURI">[JSURI]</a></p>
-
-<!--
-JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.txt and
-       http://www.websitedev.de/ietf/draft-hoehrmann-javascript-scheme-00.txt should be as stable as it gets,
-       http://ietfreport.isoc.org/idref/draft-hoehrmann-javascript-scheme/ for the latest version
--->
-
-  <p>When a browsing context is <span
-  title="navigate">navigated</span> to a <code>javascript:</code> URI,
-  and the <span>active document</span> of that browsing context has
-  the same <span>origin</span> as the URI, the dereference context
-  must be the <span>browsing context</span> being navigated.</p>
-
-  <p>When a browsing context is <span
-  title="navigate">navigated</span> to a <code>javascript:</code> URI,
-  and the <span>active document</span> of that browsing context has a
-  <em>different</em> <span>origin</span> than the URI, the dereference
-  context must be an empty object.</p>
-
-  <p>Otherwise, the dereference context must the <span>browsing
-  context</span> of the <code>Document</code> to which belongs the
-  element for which the URI is being dereferenced, or to which the
-  style sheet for which the URI is being dereferenced applies,
-  whichever is appropriate.</p>
-
-  <p>URIs using the <code title="">javascript:</code> protocol should
-  be evaluated when the resource for that URI is needed, unless
-  <span>scripting is disabled</span> or the <code>Document</code>
-  corresponding to the dereference context (as defined above), if any,
-  has <code title="dom-document-designMode">designMode</code>
-  enabled.</p>
-
-  <p>If the dereference by-product is void (there is no return value),
-  then the URI must be treated in a manner equivalent to an HTTP
-  resource with an HTTP 204 No Content response.</p>
-
-  <p>Otherwise, the URI must be treated in a manner equivalent to an
-  HTTP resource with a 200 OK response whose <span
-  title="Content-Type">Content-Type metadata</span> is <code
-  title="">text/html</code> and whose response body is the dereference
-  by-product, converted to a string value.</p>
-
-  <p class="note">Certain contexts, in particular <code>img</code>
-  elements, ignore the <span title="Content-Type">Content-Type
-  metadata</span>.</p>
-
-  <div class="example">
-
-   <p>So for example a <code title="">javascript:</code> URI for a
-   <code title="attr-img-src">src</code> attribute of an
-   <code>img</code> element would be evaluated in the context of the
-   page as soon as the attribute is set; it would then be sniffed to
-   determine the image type and decoded as an image.</p>
-
-   <p>A <code title="">javascript:</code> URI in an <code
-   title="attr-a-href">href</code> attribute of an <code>a</code>
-   element would only be evaluated when the link was <span
-   title="following hyperlinks">followed</span>.</p>
-
-   <p>The <code title="attr-iframe-src">src</code> attribute of an
-   <code>iframe</code> element would be evaluated in the context of
-   the <code>iframe</code>'s own <span>browsing context</span>; once
-   evaluated, its return value (if it was not void) would replace that
-   <span>browsing context</span>'s document, thus changing the
-   variables visible in that <span>browsing context</span>.</p>
-
-  </div>
-
-
-
-  <h4>Events</h4>
-
-  <p class="big-issue">We need to define how to handle events that are
-  to be fired on a Document that is no longer the active document of
-  its browsing context, and for Documents that have no browsing
-  context. Do the events fire? Do the handlers in that document not
-  fire? Do we just define scripting to be disabled when the document
-  isn't active, with events still running as is? See also the
-  <code>script</code> element section, which says scripts don't run
-  when the document isn't active.</p>
-
-  <h5 id="event-handler-attributes">Event handler attributes</h5>
-
-  <p><span>HTML elements</span> can have <dfn>event handler
-  attributes</dfn> specified. These act as bubbling event listeners
-  for the element on which they are specified.</p>
-
-  <p>Each event handler attribute has two parts, an <span title="event
-  handler content attributes">event handler content attribute</span>
-  and an <span title="event handler DOM attributes">event handler DOM
-  attribute</span>. Event handler attributes must initially be set to
-  null. When their value changes (through the changing of their event
-  handler content attribute or their event handler DOM attribute),
-  they will either be null, or have an <code>EventListener</code>
-  object assigned to them.</p>
-
-  <p>Objects other than <code>Element</code> objects, in particular
-  <code>Window</code>, only have <span title="event handler DOM
-  attributes">event handler DOM attribute</span> (since they have no
-  content attributes).</p>
-
-  <p><dfn>Event handler content attributes</dfn>, when specified, must
-  contain valid ECMAScript code matching the ECMAScript <code
-  title="">FunctionBody</code> production. <a
-  href="#refsECMA262">[ECMA262]</a></p>
-
-  <p>When an event handler content attribute is set, its new value
-  must be interpreted as the body of an anonymous function with a
-  single argument called <code>event</code>, with the new function's
-  scope chain being linked from the activation object of the handler,
-  to the element, to the element's <code>form</code> element if it is
-  a form control, to the <code>Document</code> object, to the
-  <span>browsing context</span> of that <code>Document</code>. The
-  function's <code>this</code> parameter must be the
-  <code>Element</code> object representing the element. The resulting
-  function must then be set as the value of the corresponding event
-  handler attribute, and the new value must be set as the value of the
-  content attribute. If the given function body fails to compile, then
-  the corresponding event handler attribute must be set to null
-  instead (the content attribute must still be updated to the new
-  value, though).</p>
-
-  <p class="note">See ECMA262 Edition 3, sections 10.1.6 and 10.2.3,
-  for more details on activation objects. <a
-  href="#refsECMA262">[ECMA262]</a></p>
-
-  <p class="issue">How do we allow non-JS event handlers?</p>
-
-  <p><dfn>Event handler DOM attributes</dfn>, on setting, must set the
-  corresponding event handler attribute to their new value, and on
-  getting, must return whatever the current value of the corresponding
-  event handler attribute is (possibly null).</p>
-
-  <p>The following are the event handler attributes that must be
-  supported by all <span>HTML elements</span>, as both content
-  attributes and DOM attributes, and on <code>Window</code> objects,
-  as DOM attributes:</p>
-
-  <dl>
-
-   <dt><dfn title="handler-onabort"><code>onabort</code></dfn></dt>
-
-   <dd><p>Must be invoked whenever an <code
-   title="event-abort">abort</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-<!--
-   <dt><dfn title="handler-onbeforecopy"><code>onbeforecopy</code></dfn></dt> --><!-- widely used --><!--
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-beforecopy">beforecopy</code> event is targeted at or bubbles
-   through the element.</p></dd>
--->
-
-   <dt><dfn title="handler-onbeforeunload"><code>onbeforeunload</code></dfn></dt>
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-beforeunload">beforeunload</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onblur"><code>onblur</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-blur">blur</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onchange"><code>onchange</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-change">change</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onclick"><code>onclick</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-click">click</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-oncontextmenu"><code>oncontextmenu</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-contextmenu">contextmenu</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-<!--
-   <dt><dfn title="handler-oncopy"><code>oncopy</code></dfn></dt> --><!-- widely used --><!--
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-copy">copy</code> event is targeted at or bubbles
-   through the element.</p></dd>
--->
-
-   <dt><dfn title="handler-ondblclick"><code>ondblclick</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-dblclick">dblclick</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-ondrag"><code>ondrag</code></dfn></dt>
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-drag">drag</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-ondragend"><code>ondragend</code></dfn></dt>
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-dragend">dragend</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-ondragenter"><code>ondragenter</code></dfn></dt>
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-dragenter">dragenter</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-ondragleave"><code>ondragleave</code></dfn></dt>
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-dragleave">dragleave</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-ondragover"><code>ondragover</code></dfn></dt>
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-dragover">dragover</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-ondragstart"><code>ondragstart</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-dragstart">dragstart</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-ondrop"><code>ondrop</code></dfn></dt>
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-drop">drop</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onerror"><code>onerror</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever an <code
-   title="event-error">error</code> event is targeted at or bubbles
-   through the element.</p>
-
-   <p class="note">The <code title="handler-onerror">onerror</code>
-   handler is also used for <a href="#runtime-script-errors">reporting
-   script errors</a>.</p></dd>
-
-   <dt><dfn title="handler-onfocus"><code>onfocus</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-focus">focus</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onkeydown"><code>onkeydown</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-keydown">keydown</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onkeypress"><code>onkeypress</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-keypress">keypress</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onkeyup"><code>onkeyup</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-keyup">keyup</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onload"><code>onload</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-load">load</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onmessage"><code>onmessage</code></dfn></dt> <!-- introduced for <event-source> -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-message">message</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onmousedown"><code>onmousedown</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-mousedown">mousedown</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onmousemove"><code>onmousemove</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-mousemove">mousemove</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onmouseout"><code>onmouseout</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-mouseout">mouseout</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onmouseover"><code>onmouseover</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-mouseover">mouseover</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onmouseup"><code>onmouseup</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-mouseup">mouseup</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onmousewheel"><code>onmousewheel</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-mousewheel">mousewheel</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-<!--
-   <dt><dfn title="handler-onpaste"><code>onpaste</code></dfn></dt> --><!-- widely used --><!--
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-paste">paste</code> event is targeted at or bubbles
-   through the element.</p></dd>
--->
-
-   <dt><dfn title="handler-onresize"><code>onresize</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-resize">resize</code> event is targeted at or bubbles
-   through the element.</p></dd> <!-- XXX should define when it fires -->
-
-   <dt><dfn title="handler-onscroll"><code>onscroll</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-scroll">scroll</code> event is targeted at or bubbles
-   through the element.</p></dd> <!-- XXX should define when it fires -->
-
-   <dt><dfn title="handler-onselect"><code>onselect</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-select">select</code> event is targeted at or bubbles
-   through the element.</p></dd> <!-- XXX should define when it fires -->
-
-<!--XXX
-   <dt><dfn title="handler-onselectstart"><code>onselectstart</code></dfn></dt> --><!-- widely used --><!--
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-selectstart">selectstart</code> event is targeted at or bubbles
-   through the element.</p></dd>
---> <!-- XXX should define when it fires -->
-
-   <dt><dfn title="handler-onsubmit"><code>onsubmit</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-submit">submit</code> event is targeted at or bubbles
-   through the element.</p></dd>
-
-   <dt><dfn title="handler-onunload"><code>onunload</code></dfn></dt> <!-- widely used -->
-
-   <dd><p>Must be invoked whenever an <code
-   title="event-unload">unload</code> event is targeted at or bubbles
-   through the element.</p></dd> <!-- XXX need to fire this -->
-
-  </dl>
-
-  <p>When an event handler attribute is invoked, its argument must be
-  set to the <code>Event</code> object of the event in question. If
-  the function returns the exact boolean value false, the event's
-  <code>preventDefault()</code> method must then invoked. Exception:
-  for historical reasons, for the HTML <code>mouseover</code> event,
-  the <code>preventDefault()</code> method must be called when the
-  function returns true instead.</p>
-
-  <!-- IE actually uncancels the event if the function returns true -->
-
-
-  <p>When <span>scripting is disabled</span>, event handler attributes
-  must do nothing.</p>
-
-  <p>When <span>scripting is enabled</span>, all event handler
-  attributes on an element, whether set to null or to a function, must
-  be registered as event listeners on the element, as if the <code
-  title="dom-EventTarget-addEventListenerNS">addEventListenerNS()</code>
-  method on the <code>Element</code> object's <code>EventTarget</code>
-  interface had been invoked when the element was created, with the
-  event type (<code title="dom-event-type">type</code> argument) equal
-  to the type described for the event handler attribute in the list
-  above, the namespace (<code
-  title="dom-event-namespaceURI">namespaceURI</code> argument) set to
-  null, the listener set to be a target and bubbling phase listener
-  (<code title="dom-event-useCapture">useCapture</code> argument set
-  to false), the event group set to the default group (<code
-  title="dom-event-evtGroup">evtGroup</code> argument set to null),
-  and the event listener itself (<code
-  title="dom-event-listener">listener</code> argument) set to do
-  nothing while the event handler attribute is null, and set to invoke
-  the function associated with the event handler attribute
-  otherwise.</p>
-
-
-  <h5>Event firing</h5>
-
-  <p class="big-issue">maybe this should be moved higher up
-  (terminology? conformance? DOM?) Also, the whole terminology thing
-  should be changed so that we don't define any specific events here,
-  we only define 'simple event', 'progress event', 'mouse event', 'key
-  event', and the like, and have the actual dispatch use those generic
-  terms when firing events.</p>
-
-  <p>Certain operations and methods are defined as firing events on
-  elements. For example, the <code title="dom-click">click()</code>
-  method on the <code>HTMLElement</code> interface is defined as
-  firing a <code title="event-click">click</code> event on the
-  element.  <a href="#refsDOM3EVENTS">[DOM3EVENTS]</a></p>
-
-  <p><dfn title="fire a click event">Firing a <code
-  title="event-click">click</code> event</dfn> means that a <a
-  href="http://www.w3.org/TR/DOM-Level-3-Events/events.html#event-click"><code>click</code></a>
-  event with no
-  namespace, which bubbles and is cancelable, and which uses the
-  <code>MouseEvent</code> interface, must be dispatched at the given
-  element. The event object must have its <code
-  title="">screenX</code>, <code title="">screenY</code>, <code
-  title="">clientX</code>, <code title="">clientY</code>, and <code
-  title="">button</code> attributes set to 0, its <code
-  title="">ctrlKey</code>, <code title="">shiftKey</code>, <code
-  title="">altKey</code>, and <code title="">metaKey</code> attributes
-  set according to the current state of the key input device, if any
-  (false for any keys that are not available), its <code
-  title="">detail</code> attribute set to 1, and its <code
-  title="">relatedTarget</code> attribute set to null. The <code
-  title="">getModifierState()</code> method on the object must return
-  values appropriately describing the state of the key input device at
-  the time the event is created.</p>
-
-  <p><dfn title="fire a change event">Firing a <code
-  title="event-change">change</code> event</dfn> means that a <a
-  href="http://www.w3.org/TR/DOM-Level-3-Events/events.html#event-change"><code>change</code></a>
-  event with no namespace, which bubbles but is not cancelable, and
-  which uses the <code>Event</code> interface, must be dispatched at
-  the given element. The event object must have its <code
-  title="">detail</code> attribute set to 0.</p>
-
-  <p><dfn title="fire a contextmenu event">Firing a <code
-  title="event-contextmenu">contextmenu</code> event</dfn> means that
-  a <code title="event-contextmenu">contextmenu</code> event with no
-  namespace, which bubbles and is cancelable, and which uses the
-  <code>Event</code> interface, must be dispatched at the given
-  element. The event object must have its <code title="">detail</code>
-  attribute set to 0.</p>
-
-  <p><dfn title="fire a simple event">Firing a simple event called
-  <var title="">e</var></dfn> means that an event with the name <var
-  title="">e</var>, with no namespace, which does not bubble but is
-  cancelable, and which uses the <code>Event</code> interface, must be
-  dispatched at the given element.</p>
-
-  <p><dfn title="fire a show event">Firing a <code
-  title="event-show">show</code> event</dfn> means <span title="fire a
-  simple event">firing a simple event called <code
-  title="event-show">show</code></span>. <span title="issue">Actually
-  this should fire an event that has modifier information (shift/ctrl
-  etc).</span></p>
-
-  <p><dfn title="fire a load event">Firing a <code
-  title="event-load">load</code> event</dfn> means <span title="fire a
-  simple event">firing a simple event called <code
-  title="event-load">load</code></span>. <!--<dfn title="fire a
-  DOMContentLoaded event">Firing a <code
-  title="event-DOMContentLoaded">DOMContentLoaded</code> event</dfn>
-  means <span title="fire a simple event">firing a simple event called
-  <code
-  title="event-DOMContentLoaded">DOMContentLoaded</code></span>.-->
-  <dfn title="fire an error event">Firing an <code
-  title="event-error">error</code> event</dfn> means <span title="fire
-  a simple event">firing a simple event called <code
-  title="event-error">error</code></span>.</p>
-
-  <!-- XXX need to define the dispatching of DOMActivate -->
-
-  <p class="big-issue"><dfn title="fire a progress event">Firing a
-  progress event called <var title="">e</var></dfn> means something
-  that hasn't yet been defined, in the <a
-  href="#refsPROGRESS">[PROGRESS]</a> spec.</p>
-
-  <p>The default action of these event is to do nothing unless
-  otherwise stated.</p>
-
-  <p class="big-issue">If you dispatch a custom "click" event at an
-  element that would normally have default actions, should they get
-  triggered? If so, we need to go through the entire spec and make
-  sure that any default actions are defined in terms of <em>any</em>
-  event of the right type on that element, not those that are
-  dispatched in expected ways.</p>
-
-
-  <h5>Events and the <code>Window</code> object</h5>
-
-  <p>When an event is dispatched at a DOM node in a
-  <code>Document</code> in a <span>browsing context</span>, if the
-  event is not a <code title="event-load">load</code> event, the user
-  agent must also dispatch the event to the <code>Window</code>, as
-  follows:</p>
-
-  <ol>
-
-   <li>In the capture phase, the event must be dispatched to the
-   <code>Window</code> object before being dispatched to any of the
-   nodes.</li>
-
-   <li>In the bubble phase, the event must be dispatched to the
-   <code>Window</code> object at the end of the phase, unless bubbling
-   has been prevented.</li>
-
-  </ol>
-
-
-
-  <h5 id="runtime-script-errors">Runtime script errors</h5>
-
-  <p><em>This section only applies to user agents that support
-  scripting in general and ECMAScript in particular.</em></p>
-
-  <p>Whenever a runtime script error occurs in one of the scripts
-  associated with the document, the value of the <code
-  title="handler-onerror">onerror</code> <span>event handler DOM
-  attribute</span> of the <code>Window</code> object must be
-  processed, as follows:</p>
-
-  <dl class="switch">
-
-   <dt>If the value is a function</dt>
-
-   <dd>
-
-    <p>The function referenced by the <code
-    title="handler-onerror">onerror</code> attribute must be invoked
-    with three arguments, before notifying the user of the error.</p>
-
-    <p>The three arguments passed to the function are all
-    <code>DOMString</code>s; the first must give the message that the
-    UA is considering reporting, the second must give the URI to the
-    resource in which the error occured, and the third must give the
-    line number in that resource on which the error occured.</p>
-
-    <p>If the function returns false, then the error should not be
-    reported to the user. Otherwise, if the function returns another
-    value (or does not return at all), the error should be reported to
-    the user.</p>
-
-    <p>Any exceptions thrown or errors caused by this function must be
-    reported to the user immediately after the error that the function
-    was called for, without calling the function again.</p>
-
-   </dd>
-
-   <dt>If the value is <code>null</code></dt>
-
-   <dd>
-
-    <p>The error should not reported to the user.</p>
-
-   </dd>
-
-   <dt>If the value is anything else</dt>
-
-   <dd>
-
-    <p>The error should be reported to the user.</p>
-
-   </dd>
-
-  </dl>
-
-  <p>The initial value of <code title="handler-onerror">onerror</code>
-  must be <code>undefined</code>.</p>
-
-
-
-  <h3>User prompts</h3>
-
-  <p>The <dfn title="dom-alert"><code>alert(<var
-  title="">message</var>)</code></dfn> method, when invoked, must show
-  the given <var title="">message</var> to the user. The user agent
-  may make the method wait for the user to acknowledge the message
-  before returning; if so, the user agent must <span>pause</span>
-  while the method is waiting.</p>
-
-  <p>The <dfn title="dom-confirm"><code>confirm(<var
-  title="">message</var>)</code></dfn> method, when invoked, must show
-  the given <var title="">message</var> to the user, and ask the user
-  to respond with a positive or negative response. The user agent must
-  then <span>pause</span> as the the method waits for the user's
-  response. If the user response positively, the method must return
-  true, and if the user response negatively, the method must return
-  false.</p>
-
-  <p>The <dfn title="dom-prompt"><code>prompt(<var
-  title="">message</var>, <var title="">default</var>)</code></dfn>
-  method, when invoked, must show the given <var
-  title="">message</var> to the user, and ask the user to either
-  respond with a string value or abort. The user agent must then
-  <span>pause</span> as the the method waits for the user's
-  response. The second argument is optional. If the second argument
-  (<var title="">default</var>) is present, then the response must be
-  defaulted to the value given by <var title="">default</var>. If the
-  user aborts, then the method must return null; otherwise, the method
-  must return the string that the user responded with.</p>
-
-  <p>The <dfn title="dom-print"><code>print()</code></dfn> method,
-  when invoked, should offer the user the opportunity to <span>obtain
-  a physical form</span> of the document. The user agent may make the
-  method wait for the user to either accept or decline before
-  returning; if so, the user agent must <span>pause</span> while the
-  method is waiting.  (This does not, of course, preclude the user
-  agent from <em>always</em> offering the user with the opportunity to
-  convert the document to whatever media the user might want.)</p>
-
-
-
-  <h3>Browser state</h3>
-
-  <p>The <dfn title="dom-navigator"><code>navigator</code></dfn>
-  attribute of the <code>Window</code> interface must return an
-  instance of the <code>ClientInformation</code> interface, which
-  represents the identity and state of the user agent (the client),
-  and allows Web pages to register themselves as potential protocol
-  and content handlers:</p>
-
-  <pre class="idl">interface <dfn>ClientInformation</dfn> {
-  readonly attribute boolean <span title="dom-navigator-onLine">onLine</span>;
-  void <span title="dom-navigator-registerProtocolHandler">registerProtocolHandler</span>(in DOMString protocol, in DOMString uri, in DOMString title);
-  void <span title="dom-navigator-registerContentHandler">registerContentHandler</span>(in DOMString mimeType, in DOMString uri, in DOMString title);
-<!-- XXX there are other attributes! -->};</pre>
-<!-- also, see window.external.AddSearchProvider() and similar DOM APIs from IE -->
-
-  <h4 id="offline">Offline Web applications</h4>
-
-  <p>The <dfn
-  title="dom-navigator-onLine"><code>navigator.onLine</code></dfn>
-  attribute must return false if the user agent will not contact the
-  network when the user follows links or when a script requests a
-  remote page (or knows that such an attempt would fail), and must
-  return true otherwise.</p>
-
-  <p>The <dfn title="event-offline"><code>offline</code></dfn> event
-  must be fired when the value of the <code
-  title="dom-navigator-onLine">navigator.onLine</code> attribute of
-  the <code>Window</code> changes from true to false.</p>
-
-  <p>The <dfn title="event-online"><code>online</code></dfn> event
-  must be fired when the value of the <code
-  title="dom-navigator-onLine">navigator.onLine</code> attribute of
-  the <code>Window</code> changes from false to true.</p>
-
-  <p>These events are in no namespace, do bubble, are not cancelable,
-  have no default action, and use the normal <code>Event</code>
-  interface. They must be fired on <span>the body element</span>. (As
-  the events bubble, they will reach the <code>Window</code>
-  object.)</p>
-
-  <!-- XXX ononline onoffline need to be defined -->
-
-  <h4 id="custom-handlers">Custom protocol and content handlers</h4>
-
-  <p>The <dfn
-  title="dom-navigator-registerProtocolHandler"><code>registerProtocolHandler()</code></dfn>
-  method allows Web sites to register themselves as possible handlers
-  for particular protocols. For example, an online fax service could
-  register itself as a handler of the <code>fax:</code> protocol (<a
-  href="#refsRFC2806">[RFC2806]</a>), so that if the user clicks on
-  such a link, he is given the opportunity to use that Web
-  site. Analogously, the <dfn
-  title="dom-navigator-registerContentHandler"><code>registerContentHandler()</code></dfn>
-  method allows Web sites to register themselves as possible handlers
-  for content in a particular MIME type. For example, the same online
-  fax service could register itself as a handler for
-  <code>image/g3fax</code> files (<a
-  href="#refsRFC1494">[RFC1494]</a>), so that if the user has no
-  native application capable of handling G3 Facsimile byte streams,
-  his Web browser can instead suggest he use that site to view the
-  image.</p>
-
-  <p>User agents may, within the constraints described in this
-  section, do whatever they like when the methods are called. A UA
-  could, for instance, prompt the user and offer the user the
-  opportunity to add the site to a shortlist of handlers, or make the
-  handlers his default, or cancel the request. UAs could provide such
-  a UI through modal UI or through a non-modal transient notification
-  interface. UAs could also simply silently collect the information,
-  providing it only when relevant to the user.</p>
-
-  <p>There is <a href="#sample-handler-impl">an example of how these
-  methods could be presented to the user</a> below.</p>
-
-  <p>The arguments to the methods have the following meanings:</p>
-
-  <dl>
-
-   <dt><var title="">protocol</var> (<code title="dom-navigator-registerProtocolHandler">registerProtocolHandler()</code> only)</dt>
-
-   <dd>
-
-    <p>A scheme, such as <code>ftp</code> or <code>fax</code>. The
-    scheme must be treated case-insensitively by user agents for the
-    purposes of comparing with the scheme part of URIs that they
-    consider against the list of registered handlers.</p>
-
-    <p>The <var title="">protocol</var> value, if it contains a colon (as in
-    "<code>ftp:</code>"), will never match anything, since schemes
-    don't contain colons.</p>
-
-   </dd>
-
-   <dt><var title="">mimeType</var> (<code title="dom-navigator-registerContentHandler">registerContentHandler()</code> only)</dt>
-
-   <dd>
-
-    <p>A MIME type, such as <code>model/vrml</code> or
-    <code>text/richtext</code>. The MIME type must be treated
-    case-insensitively by user agents for the purposes of comparing
-    with MIME types of documents that they consider against the list
-    of registered handlers.</p>
-
-    <p>User agents must compare the given values only to the MIME
-    type/subtype parts of content types, not to the complete type
-    including parameters. Thus, if <var title="">mimeType</var> values
-    passed to this method include characters such as commas or
-    whitespace, or include MIME parameters, then the handler being
-    registered will never be used.</p>
-
-   </dd>
-
-   <dt><var title="">uri</var></dt>
-
-   <dd>
-
-    <p>The URI of the page that will handle the requests. When the
-    user agent uses this URI, it must replace the first occurrence of
-    the exact literal string "<code>%s</code>" with an escaped version
-    of the URI of the content in question (as defined below), and then
-    fetch the resulting URI using the GET method (or equivalent for
-    non-HTTP URIs).</p>
-
-    <p>To get the escaped version of the URI, first, the domain part
-    of the URI (if any) must be converted to its punycode
-    representation, and then, every character in the URI that is not
-    in the ranges given in the next paragraph must be replaced by its
-    UTF-8 byte representation, each byte being represented by a U+0025
-    (%) character and two digits in the range U+0030 (0) to U+0039 (9)
-    and U+0041 (A) to U+0046 (F) giving the hexadecimal representation
-    of the byte.</p>
-
-    <p>The ranges of characters that must not be escaped are: U+002D
-    (-), U+002E (.), U+0030 (0) to U+0039 (9), U+0041 (A) to U+005A
-    (Z), U+005F (_), U+0061 (a) to U+007A (z), and U+007E (~).</p>
-
-    <!-- XXX move that to a common algorithms section if any other
-    part of the spec needs it -->
-
-    <div class="example">
-
-     <p>If the user had visited a site that made the following call:</p>
-
-     <pre>navigator.registerContentHandler('application/x-soup', 'http://example.com/soup?url=%s', 'SoupWeb&trade;')</pre>
-
-     <p>...and then clicked on a link such as:</p>
-
-     <pre>&lt;a href="http://www.example.net/chickenk&#xEF;wi.soup">Download our Chicken Kiwi soup!&lt;/a></pre>
-
-     <p>...then, assuming this <code>chickenk&#xEF;wi.soup</code> file
-     was served with the MIME type <code>application/x-soup</code>,
-     the UA might navigate to the following URI:</p>
-
-     <pre>http://example.com/soup?url=http%3A%2F%2Fwww.example.net%2Fchickenk%C3%AFwi.soup</pre>
-
-     <p>This site could then fetch the <code>chickenk&#xEF;wi.soup</code>
-     file and do whatever it is that it does with soup (synthesise it
-     and ship it to the user, or whatever).</p>
-
-    </div>
-
-   </dd>
-
-   <dt><var title="">title</var></dt>
-
-   <dd>
-
-    <p>A descriptive title of the handler, which the UA might use to
-    remind the user what the site in question is.</p>
-
-   </dd>
-
-  </dl>
-
-  <p>User agents should raise <span title="security
-  exception">security exceptions</span> if the methods are called with
-  <var title="">protocol</var> or <var title="">mimeType</var> values
-  that the UA deems to be "privileged". For example, a site attempting
-  to register a handler for <code>http</code> URIs or
-  <code>text/html</code> content in a Web browser would likely cause
-  an exception to be raised.</p>
-
-  <p>User agents must raise a <code>SYNTAX_ERR</code> exception if the
-  <var title="">uri</var> argument passed to one of these methods does
-  not contain the exact literal string "<code>%s</code>".</p>
-
-  <p>User agents must not raise any other exceptions (other than
-  binding-specific exceptions, such as for an incorrect number of
-  arguments in an ECMAScript implementation).</p>
-
-  <p>This section does not define how the pages registered by these
-  methods are used, beyond the requirements on how to process the
-  <var title="">uri</var> value (see above). To some extent, the <span
-  title="navigating across documents">processing model for navigating
-  across documents</span> defines some cases where these methods are
-  relevant, but in general UAs may use this information wherever they
-  would otherwise consider handing content to native plugins or helper
-  applications.</p>
-
-  <p>UAs must not use registered content handlers to handle content
-  that was returned as part of a non-GET transaction (or rather, as
-  part of any non-idempotent transaction), as the remote site would
-  not be able to fetch the same data.</p>
-
-
-  <h5>Security and privacy</h5>
-
-  <p>These mechanisms can introduce a number of concerns, in
-  particular privacy concerns.</p>
-
-  <p><strong>Hijacking all Web usage.</strong> User agents should not
-  allow protocols that are key to its normal operation, such as
-  <code>http</code> or <code>https</code>, to be rerouted through
-  third-party sites. This would allow a user's activities to be
-  trivially tracked, and would allow user information, even in secure
-  connections, to be collected.</p>
-
-  <p><strong>Hijacking defaults.</strong> It is strongly recommended
-  that user agents do not automatically change any defaults, as this
-  could lead the user to send data to remote hosts that the user is
-  not expecting. New handlers registering themselves should never
-  automatically cause those sites to be used.</p>
-
-  <p><strong>Registration spamming.</strong> User agents should
-  consider the possibility that a site will attempt to register a
-  large number of handlers, possibly from multiple domains (e.g. by
-  redirecting through a series of pages each on a different domain,
-  and each registering a handler for <code>video/mpeg</code> &mdash;
-  analogous practices abusing other Web browser features have been
-  used by pornography Web sites for many years). User agents should
-  gracefully handle such hostile attempts, protecting the user.</p>
-
-  <p><strong>Misleading titles.</strong> User agents should not rely
-  wholy on the <var title="">title</var> argument to the methods when
-  presenting the registered handlers to the user, since sites could
-  easily lie. For example, a site <code>hostile.example.net</code>
-  could claim that it was registering the "Cuddly Bear Happy Content
-  Handler". User agents should therefore use the handler's domain in
-  any UI along with any title.</p>
-
-  <p><strong>Hostile handler metadata.</strong> User agents should
-  protect against typical attacks against strings embedded in their
-  interface, for example ensuring that markup or escape characters in
-  such strings are not executed, that null bytes are properly handled,
-  that over-long strings do not cause crashes or buffer overruns, and
-  so forth.</p>
-
-  <p><strong>Leaking Intranet URIs.</strong> The mechanism described
-  in this section can result in secret Intranet URIs being leaked, in
-  the following manner:</p>
-
-  <ol>
-
-   <li>The user registers a third-party content handler as the default
-   handler for a content type.</li>
-
-   <li>The user then browses his corporate Intranet site and accesses
-   a document that uses that content type.</li>
-
-   <li>The user agent contacts the third party and hands the third
-   party the URI to the Intranet content.</li>
-
-  </ol>
-
-  <p>No actual confidential file data is leaked in this manner, but
-  the URIs themselves could contain confidential information. For
-  example, the URI could be
-  <code>https://www.corp.example.com/upcoming-aquisitions/samples.egf</code>,
-  which might tell the third party that Example Corporation is
-  intending to merge with Samples LLC. Implementors might wish to
-  consider allowing administrators to disable this feature for certain
-  subdomains, content types, or protocols.</p>
-
-  <p><strong>Leaking secure URIs.</strong> User agents should not send
-  HTTPS URIs to third-party sites registered as content handlers, in
-  the same way that user agents do not send <code>Referer</code>
-  headers from secure sites to third-party sites.</p>
-
-  <p><strong>Leaking credentials.</strong> User agents must never send
-  username or password information in the URIs that are escaped and
-  included sent to the handler sites. User agents may even avoid
-  attempting to pass to Web-based handlers the URIs of resources
-  that are known to require authentication to access, as such sites
-  would be unable to access the resources in question without
-  prompting the user for credentials themselves (a practice that would
-  require the user to know whether to trust the third-party handler, a
-  decision many users are unable to make or even understand).</p>
-
-
-  <h5 id="sample-handler-impl">Sample user interface</h5>
-
-  <p><em>This section is non-normative.</em></p>
-
-  <p>A simple implementation of this feature for a desktop Web browser
-  might work as follows.</p>
-
-  <p>The <code
-  title="dom-navigator-registerProtocolHandler">registerProtocolHandler()</code>
-  method could display a modal dialog box:</p>
-
-  <pre>||[ Protocol Handler Registration ]|||||||||||||||||||||||||||
-|                                                            |
-| This Web page:                                             |
-|                                                            |
-|    Kittens at work                                         |
-|    http://kittens.example.org/                             |
-|                                                            |
-| ...would like permission to handle the protocol "x-meow:"  |
-| using the following Web-based application:                 |
-|                                                            |
-|    Kittens-at-work displayer                               |
-|    http://kittens.example.org/?show=%s                     |
-|                                                            |
-| Do you trust the administrators of the "kittens.example.   |
-| org" domain?                                               |
-|                                                            |
-|              ( Trust kittens.example.org )  (( Cancel ))   |
-|____________________________________________________________|</pre>
-
-  <p>...where "Kittens at work" is the title of the page that invoked
-  the method, "http://kittens.example.org/" is the URI of that page,
-  "x-meow" is the string that was passed to the <code
-  title="dom-navigator-registerProtocolHandler">registerProtocolHandler()</code>
-  method as its first argument (<var title="">protocol</var>),
-  "http://kittens.example.org/?show=%s" was the second argument (<var
-  title="">uri</var>), and "Kittens-at-work displayer" was the third
-  argument (<var title="">title</var>).</p>
-
-  <p>If the user clicks the Cancel button, then nothing further
-  happens. If the user clicks the "Trust" button, then the handler is
-  remembered.</p>
-
-  <p>When the user then attempts to fetch a URI that uses the
-  "x-meow:" scheme, then it might display a dialog as follows:</p>
-
-  <pre>||[ Unknown Protocol ]||||||||||||||||||||||||||||||||||||||||
-|                                                            |
-| You have attempted to access:                              |
-|                                                            |
-|    x-meow:S2l0dGVucyBhcmUgdGhlIGN1dGVzdCE%3D               |
-|                                                            |
-| How would you like FerretBrowser to handle this resource?  |
-|                                                            |
-|  (o) Contact the FerretBrowser plugin registry to see if   |
-|      there is an official way to handle this resource.     |
-|                                                            |
-|  ( ) Pass this URI to a local application:                 |
-|      [ /no application selected/             ] ( Choose )  |
-|                                                            |
-|  ( ) Pass this URI to the "Kittens-at-work displayer"      |
-|      application at "kittens.example.org".                 |
-|                                                            |
-|  [ ] Always do this for resources using the "x-meow"       |
-|      protocol in future.                                   |
-|                                                            |
-|                                     ( Ok )  (( Cancel ))   |
-|____________________________________________________________|</pre>
-
-  <p>...where the third option is the one that was primed by the site
-  registering itself earlier.</p>
-
-  <p>If the user does select that option, then the browser, in
-  accordance with the requirements described in the previous two
-  sections, will redirect the user to
-  "http://kittens.example.org/?show=x-meow%3AS2l0dGVucyBhcmUgdGhlIGN1dGVzdCE%253D".</p>
-
-  <p>The <code
-  title="dom-navigator-registerContentHandler">registerContentHandler()</code>
-  method would work equivalently, but for unknown MIME types instead
-  of unknown protocols.</p>
 
 
   <h3 id="storage">Client-side session and persistent storage of name/value pairs</h3>
