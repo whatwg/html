@@ -221,6 +221,12 @@
   specification. <a href="#refsRFC2119">[RFC2119]</a></p>
   <!-- XXX but they should be marked up -->
 
+  <p>Requirements phrased in the imperative as part of algorithms
+  (such as "strip any leading space characters" or "return false and
+  abort these steps") are to be interpreted with the meaning of the
+  key word ("must", "should", "may", etc) used in introducing the
+  algorithm.</p>
+
   <p>This specification describes the conformance criteria for user
   agents (relevant to implementors) and documents (relevant to
   authors and authoring tool implementors).</p>
@@ -705,11 +711,10 @@
 
   <p>For readability, the term URI is used to refer to both ASCII URIs
   and Unicode IRIs, as those terms are defined by RFC 3986 and RFC
-  3987 respectively, and as modified by RFC 2732. On the rare
-  occasions where IRIs are not allowed but ASCII URIs are, this is
-  called out explicitly. <a href="#refsRFC3986">[RFC3986]</a> <a
-  href="#refsRFC3987">[RFC3987]</a> <a
-  href="#refsRFC2732">[RFC2732]</a></p>
+  3987 respectively. On the rare occasions where IRIs are not allowed
+  but ASCII URIs are, this is called out explicitly. <a
+  href="#refsRFC3986">[RFC3986]</a> <a
+  href="#refsRFC3987">[RFC3987]</a></p>
 
   <p>The term <dfn>root element</dfn>, when not qualified to
   explicitly refer to the document's root element, means the furthest
@@ -1007,13 +1012,15 @@
   <p>If the <code>Document</code> object's <span title="the document's
   address">address</span><!-- XXX xref --> is hierarchical and uses a
   server-based naming authority, then its <dfn title="document's
-  domain">domain</dfn> is the &lt;hostname&gt; part of that
+  domain">domain</dfn> is the &lt;host&gt;/&lt;ihost&gt; part of that
   address. Otherwise, it has no domain.</p>
 
   <p class="note">The <code title="dom-document-domain">domain</code>
   attribute is used to enable pages on different hosts of a domain to
   access each others' DOMs<span class="big-issue">, though this is not
   yet defined by this specification</span>.</p><!-- XXX xref -->
+
+  <p class="big-issue">we should handle IP addresses here</p>
 
   <!--XXX
     http://lxr.mozilla.org/seamonkey/source/content/html/document/src/nsHTMLDocument.cpp
@@ -22265,6 +22272,8 @@ never reset. This is nice and consistent.)
   <p>Access to certain APIs is granted or denied to scripts based on
   the <dfn>origin</dfn> of the script and the API being accessed.</p>
 
+  <p>The origin of a script depends on the context of that script:</p>
+
   <dl>
 
    <dt>If a script is in a <code>script</code> element</dt>
@@ -22333,15 +22342,14 @@ never reset. This is nice and consistent.)
   <p>The origin of a <code>Document</code> or image that was served
   over the network and whose address uses a URI scheme with a
   server-based naming authority is the tuple consisting of the
-  &lt;scheme&gt;, &lt;host&gt;, and &lt;port&gt; parts of the
-  <code>Document</code>'s full URI. <a
+  &lt;scheme&gt;, &lt;host&gt;/&lt;ihost&gt;, and &lt;port&gt; parts
+  of the <code>Document</code>'s full URI. <a
   href="#refsRFC3986">[RFC3986]</a> <a
-  href="#refsRFC3987">[RFC3987]</a> <a
-  href="#refsRFC2732">[RFC2732]</a></p>
+  href="#refsRFC3987">[RFC3987]</a></p>
 
   <p>The origin of a <code>Document</code> or image that was generated
   from a <code>data:</code> URI found in another <code>Document</code>
-  or in a script is the origin of the that <code>Document</code> or
+  or in a script is the origin of the <code>Document</code> or
   script.</p>
 
   <p>The origin of a <code>Document</code> or image that was generated
@@ -22371,6 +22379,100 @@ never reset. This is nice and consistent.)
   attacks. However that would kill multi-homed systems like
   GMail. Should we do something like have a DNS record say whether or
   not to include the IP in the origin for a host?</p>
+
+
+  <h4>Unscripted same-origin checks</h4>
+
+  <p>When two URIs are to be compared to determine if they have the
+  <dfn>same scheme/host/port</dfn>, it means that the following
+  algorithm must be invoked, where <var title="">uri<sub
+  title="">1</sub></var> and <var title="">uri<sub
+  title="">2</sub></var> are the two URIs.</p>
+
+  <ol>
+
+   <li>
+
+    <p>First, both <var title="">uri<sub title="">1</sub></var> and
+    <var title="">uri<sub title="">2</sub></var> must be normalized to
+    obtain the two tuples (<var title="">scheme<sub
+    title="">1</sub></var>, <var title="">host<sub
+    title="">1</sub></var>, <var title="">port<sub
+    title="">1</sub></var>) and (<var title="">scheme<sub
+    title="">2</sub></var>, <var title="">host<sub
+    title="">2</sub></var>, <var title="">port<sub
+    title="">2</sub></var>), by applying the following subalgorithm to
+    each URI:</p>
+
+    <ol>
+
+     <li><p>Let <var title="">uri</var> be the URI being normalized.</p></li>
+
+     <li><p>Parse <var title="">uri</var> according to the rules
+     described in RFC 3986 and RFC 3987. <a
+     href="#refsRFC3986">[RFC3986]</a> <a
+     href="#refsRFC3987">[RFC3987]</a></p></li>
+
+     <li><p>If <var title="">uri</var> does not use a server-based
+     naming authority, then fail the overall algorithm &mdash; the two
+     URIs do not have the same scheme/host/port.</p></li>
+
+     <li><p>Let <var title="">scheme</var> be the &lt;scheme&gt;
+     component of the URI. If the UA doesn't support the given
+     protocol, then fail the overall algorithm &mdash; the two URIs do
+     not have the same scheme/host/port<!-- (this should not be
+     possible, since this algorithm is only invoked with URIs that
+     have been actually fetched) -->.</p></li>
+
+     <li><p>Let <var title="">host</var> be the
+     &lt;host&gt;/&lt;ihost&gt; component of the URI.</p></li>
+
+     <li>
+
+      <p>Apply the IDNA ToASCII algorithm to <var title="">host</var>,
+      with both the AllowUnassigned and UseSTD3ASCIIRules flags
+      set. Let <var title="">host</var> be the result of the ToASCII
+      algorithm.</p>
+
+      <p>If ToASCII fails to convert one of the components of the
+      string, e.g. because it is too long or because it contains
+      invalid characters, then fail the overall algorithm &mdash; the
+      two URIs do not have the same scheme/host/port. <a
+      href="#refsRFC3490">[RFC3490]</a></p>
+
+     </li>
+
+     <li><p>If no port is explicitly listed, then let <var
+     title="">port</var> be the default port for the protocol given by
+     <var title="">scheme</var>. Otherwise, let <var
+     title="">port</var> be the &lt;port&gt; component of the
+     URI.</p></li>
+
+     <li><p>Return the tuple (<var title="">scheme</var>, <var
+     title="">host</var>, <var title="">port</var>).</p></li>
+
+    </ol>
+
+   </li>
+
+   <li><p>If <var title="">scheme<sub title="">1</sub></var> is not
+   case-insensitively<!-- XXX ascii case matching --> identical to
+   <var title="">scheme<sub title="">2</sub></var>, or if <var
+   title="">host<sub title="">1</sub></var> is not
+   case-insensitively<!-- XXX ascii case matching --> identical to
+   <var title="">host<sub title="">2</sub></var>, or if <var
+   title="">port<sub title="">1</sub></var> is not identical to <var
+   title="">port<sub title="">2</sub></var>, then fail the overall
+   algorithm &mdash; the two URIs do not have the same
+   scheme/host/port.</p></li>
+
+   <li><p>Otherwise, the two URIs do have the same
+   scheme/host/port.</p></li>
+
+  </ol>
+
+  
+
 
 
   <h4>Security exceptions</h4>
@@ -22523,6 +22625,7 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   as DOM attributes:</p>
 
   <dl>
+   <!-- XXX should change 'the element' below to 'the object' or something -->
 
    <dt><dfn title="handler-onabort"><code>onabort</code></dfn></dt>
 
@@ -23025,33 +23128,6 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
 <!-- XXX there are other attributes! -->};</pre>
 <!-- also, see window.external.AddSearchProvider() and similar DOM APIs from IE -->
 
-  <h4 id="offline">Offline Web applications</h4>
-
-  <p>The <dfn
-  title="dom-navigator-onLine"><code>navigator.onLine</code></dfn>
-  attribute must return false if the user agent will not contact the
-  network when the user follows links or when a script requests a
-  remote page (or knows that such an attempt would fail), and must
-  return true otherwise.</p>
-
-  <p>The <dfn title="event-offline"><code>offline</code></dfn> event
-  must be fired when the value of the <code
-  title="dom-navigator-onLine">navigator.onLine</code> attribute of
-  the <code>Window</code> changes from true to false.</p>
-
-  <p>The <dfn title="event-online"><code>online</code></dfn> event
-  must be fired when the value of the <code
-  title="dom-navigator-onLine">navigator.onLine</code> attribute of
-  the <code>Window</code> changes from false to true.</p>
-
-  <p>These events are in no namespace, do bubble, are not cancelable,
-  have no default action, and use the normal <code>Event</code>
-  interface. They must be fired on <span>the body element</span>. (As
-  the events bubble, they will reach the <code>Window</code>
-  object.)</p>
-
-  <!-- XXX ononline onoffline need to be defined -->
-
   <h4 id="custom-handlers">Custom protocol and content handlers</h4>
 
   <p>The <dfn
@@ -23201,10 +23277,10 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   arguments in an ECMAScript implementation).</p>
 
   <p>This section does not define how the pages registered by these
-  methods are used, beyond the requirements on how to process the
-  <var title="">uri</var> value (see above). To some extent, the <span
-  title="navigating across documents">processing model for navigating
-  across documents</span> defines some cases where these methods are
+  methods are used, beyond the requirements on how to process the <var
+  title="">uri</var> value (see above). To some extent, the <span
+  title="navigate">processing model for navigating across
+  documents</span> defines some cases where these methods are
   relevant, but in general UAs may use this information wherever they
   would otherwise consider handing content to native plugins or helper
   applications.</p>
@@ -23383,6 +23459,1372 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
 
 
 
+
+  <h3 id="offline">Offline Web applications</h3>
+
+  <h4>Introduction</h4>
+
+  <p class="big-issue">...</p>
+
+
+  <h4 id="appcache">Application caches</h4>
+
+  <p>An <dfn>application cache</dfn> is a collection of resources. An
+  application cache is identified by the URI of a resource
+  manifest which is used to populate the cache.</p>
+
+  <p>Application caches are versioned, and there can be different
+  instances of caches for the same manifest URI, each having a
+  different version.</p>
+
+  <p>Each group of application caches for the same manifest URI have a
+  common <dfn title="concept-appcache-status">update status</dfn>,
+  which is one of the following: <i>idle</i>, <i>checking</i>,
+  <i>downloading</i>, <i>update ready</i>.</p>
+
+  <p id="#appcache-history-1">A <span>browsing context</span> can be
+  associated with an application cache. A <span>child browsing
+  context</span> is always associated with the same browsing context
+  as its <span>parent browsing context</span>, if any. A
+  <span>top-level browsing context</span> is associated with the
+  application cache appropriate for its <span>active
+  document</span>. (A browsing context's associated cache thus can <a
+  href="#appcache-history-2">change</a> during <span title="traverse
+  the history">session history traversal</span>.)</p>
+
+  <p>A <code>Document</code> initially has no appropriate cache, but
+  steps <a href="#parser-appcache">in the parser</a> and in the <span
+  title="navigate">navigation</span> sections cause <span
+  title="concept-appcache-init-with-attribute">cache selection</span>
+  to occur early in the page load process.</p>
+
+  <p>An application cache consists of:</p>
+
+  <ul>
+
+   <li>
+
+    <p>One of more resources (including their out-of-band metadata,
+    such as HTTP headers, if any), identified by URIs, each falling
+    into one (or more) of the following categories:</p>
+
+    <dl>
+ 
+     <dt><dfn title="concept-appcache-implicit">Implicit entries</dfn>
+
+     <dd>Resources that were added to the cache because a
+     <span>top-level browsing context</span> was <span
+     title="navigate">navigated</span> to that document and the
+     document indicated that this was its cache, using the <code
+     title="attr-html-application">application</code> attribute.
+
+ 
+     <dt><dfn title="concept-appcache-manifest">The manifest</dfn>
+
+     <dd>The resource corresponding to the URI that was given in an
+     implicit entry's <code>html</code> element's <code
+     title="attr-html-application">application</code> attribute. The
+     manifest is downloaded and processed during the <span>application
+     cache update process</span>. All the <span
+     title="concept-appcache-implicit">implicit entries</span> have
+     the <span>same scheme/host/port</span> as the manifest.
+
+ 
+     <dt><dfn title="concept-appcache-explicit">Explicit entries</dfn>
+
+     <dd>Resources that were listed in the cache's <span
+     title="concept-appcache-manifest">manifest</span>. Explicit
+     entries can also be marked as <dfn
+     title="concept-appcache-foreign">foreign</dfn>, which means that they
+     have an <code title="attr-html-application">application</code>
+     attribute but that it doesn't point at this cache's <span
+     title="concept-appcache-manifest">manifest</span>.
+
+ 
+     <dt><dfn title="concept-appcache-fallback">Fallback entries</dfn>
+
+     <dd>Resources that were listed in the cache's <span
+     title="concept-appcache-manifest">manifest</span> as fallback
+     entries.
+
+ 
+     <dt><dfn title="concept-appcache-oppcache">Opportunistically cached entries</dfn>
+
+     <dd>Resources whose URIs <span
+     title="concept-appcache-matches-oppcache">matched</span> an <span
+     title="concept-appcache-oppcache-ns">opportunistic caching
+     namespace</span> when they were fetched, and were therefore
+     cached in the application cache.
+
+ 
+     <dt><dfn title="concept-appcache-dynamic">Dynamic entries</dfn>
+
+     <dd>Resources that were added to the cache by the <code
+     title="dom-appcache-add">add()</code> method.
+
+    </dl>
+
+   <li>Zero or more <dfn
+   title="concept-appcache-oppcache-ns">opportunistic caching
+   namespaces</dfn>: URIs, used as <span
+   title="concept-appcache-matches-oppcache">prefix match
+   patterns</span>, each of which is mapped to a <span
+   title="concept-appcache-fallback">fallback entry</span>. Each
+   namespace URI prefix, when parsed as a URI, has the <span>same
+   scheme/host/port</span> as <span
+   title="concept-appcache-manifest">the manifest</span>.</li>
+
+   <li>Zero or more URIs that form the <dfn
+   title="concept-appcache-onlinewhitelist">online whitelist</dfn>.
+
+  </ul>
+
+  <p>Multiple application caches can contain the same resource,
+  e.g. if their manifests all reference that resource. If the user
+  agent is to <dfn title="concept-appcache-selection">select an
+  application cache</dfn> from a list of caches that contain a
+  resource, that the user agent must use the application cache that
+  the user most likely wants to see the resource from, taking into
+  account the following:</p>
+
+  <ul>
+
+   <li>which application cache was most recently updated,
+
+   <li>which application cache was being used to display the
+   resource from which the user decided to look at the new resource,
+   and
+
+   <li>which application cache the user prefers.</li>
+
+  </ul>
+
+
+  <h4 id="manifests">The cache manifest syntax</h4>
+
+  <h5>Writing cache manifests</h5>
+
+  <p>Manifests must be served using the <code
+  title="">text/cache-manifest</code> MIME type. All resources served
+  using the <code title="">text/cache-manifest</code> MIME type must
+  follow the syntax of application cache manifests, as described in
+  this section.</p>
+
+  <p>An application cache manifest is a text file, whose text is
+  encoded using UTF-8. Data in application cache manifests is
+  line-based. Newlines must be represented by U+000A LINE FEED (LF)
+  characters, U+000D CARRIAGE RETURN (CR) characters, or U+000D
+  CARRIAGE RETURN (CR) U+000A LINE FEED (LF) pairs.</p>
+
+  <p class="note">This is a willful double violation of RFC2046.</p>
+
+  <p>The first line of an application cache manifest must consist of
+  the string "CACHE", a single U+0020 SPACE character, the string
+  "MANIFEST", and zero or more U+0020 SPACE and U+0009 CHARACTER
+  TABULATION (tab) characters. If any other text is found on the first
+  line, the user agent will ignore the entire file. The first line may
+  optionally be preceded by a U+FEFF BYTE ORDER MARK (BOM)
+  character.</p>
+
+  <p>Subsequent lines, if any, must all be one of the following:</p>
+
+  <dl>
+   <dt>A blank line
+   <dd>
+    <p>Blank lines must consist of zero or more U+0020 SPACE and
+    U+0009 CHARACTER TABULATION (tab) characters only.</p>
+
+   <dt>A comment
+   <dd>
+    <p>Comment lines must consist of zero or more U+0020 SPACE and
+    U+0009 CHARACTER TABULATION (tab) characters, followed by a single
+    U+0023 NUMBER SIGN (#) character, followed by zero or more
+    characters other than U+000A LINE FEED (LF) and U+000D CARRIAGE
+    RETURN (CR) characters.</p>
+
+    <p class="note">Comments must be on a line on their own. If they
+    were to be included on a line with a URI, the "#" would be
+    mistaken for part of a fragment identifier.</p>
+
+   <dt>A section header
+   <dd>
+    <p>Section headers change the current section. There are three
+    possible section headers:
+
+    <dl>
+
+     <dt><code>CACHE:</code>
+     <dd>Switches to the explicit section.
+
+     <dt><code>FALLBACK:</code>
+     <dd>Switches to the fallback section.
+
+     <dt><code>NETWORK:</code>
+     <dd>Switches to the online whitelist section.
+
+    </dl>
+
+    <p>Section header lines must consist of zero or more U+0020 SPACE
+    and U+0009 CHARACTER TABULATION (tab) characters, followed by one
+    of the names above (including the U+003A COLON (:) character)
+    followed by zero or more U+0020 SPACE and U+0009 CHARACTER
+    TABULATION (tab) characters.</p>
+
+    <p>Ironically, by default, the current section is the explicit
+    section.</p>
+
+   <dt>Data for the current section
+   <dd>
+    <p>The format that data lines must take depends on the current
+    section.</p>
+
+    <p>When the current section is the explicit section or the online
+    whitelist section, data lines must consist of zero or more U+0020
+    SPACE and U+0009 CHARACTER TABULATION (tab) characters, a valid
+    URI reference or IRI reference, and then zero or more U+0020 SPACE
+    and U+0009 CHARACTER TABULATION (tab) characters. <a
+    href="#refsRFC3986">[RFC3986]</a> <a
+    href="#refsRFC3987">[RFC3987]</a></p>
+
+    <p>When the current section is the fallback section, data lines
+    must consist of zero or more U+0020 SPACE and U+0009 CHARACTER
+    TABULATION (tab) characters, a valid URI reference or IRI
+    reference, one or more U+0020 SPACE and U+0009 CHARACTER
+    TABULATION (tab) characters, another valid URI reference or IRI
+    reference, and then zero or more U+0020 SPACE and U+0009 CHARACTER
+    TABULATION (tab) characters. <a href="#refsRFC3986">[RFC3986]</a>
+    <a href="#refsRFC3987">[RFC3987]</a></p>
+
+  </dl>
+
+  <p>Manifests may contain sections more than once. Sections may be
+  empty.</p>
+
+  <p>Manifests must specify all the URIs that are to be cached. URIs
+  that are to be fallback pages associated with <span
+  title="concept-appcache-oppcache-ns">opportunistic caching
+  namespaces</span>, and those namespaces themselves, must be given in
+  fallback sections, with the namespace being the first URI of the
+  data line, and the corresponding fallback page being the second
+  URI. All the other pages to be cached must be listed in explicit
+  sections.</p>
+
+  <p>Relative URIs must be given relative to the manifest's own
+  URI.</p>
+
+  <p>URIs in manifests must not have fragment identifiers.</p>
+
+  <p><span title="concept-appcache-oppcache-ns">Opportunistic caching
+  namespaces</span> must have the <span>same scheme/host/port</span>
+  as the manifest itself.</p>
+
+  <p>An opportunistic caching namespace must not be listed more than
+  once.</p>
+
+  <p>URIs that the user agent is to put into the <span
+  title="concept-appcache-onlinewhitelist">online whitelist</span>
+  must all be specified in online whitelist sections. (This is needed
+  for any URI that the page is intending to use to communicate back to
+  the server.)</p>
+
+  <p>URIs in the online whitelist section must not also be listed in
+  explicit section, and must not be listed as fallback entries in the
+  fallback section. (URIs in the online whitelist section may match
+  opportunistic caching namespaces, however.)</p>
+
+
+  <h5>Parsing cache manifests</h5>
+
+  <p>When a user agent is to <dfn>parse a manifest</dfn>, it means
+  that the user agent must run the following steps:</p>
+
+  <ol>
+   
+   <li><p>The user agent must decode the bytestream corresponding with
+   the manifest to be parsed, treating it as UTF-8. Bytes or sequences
+   of bytes that are not valid UTF-8 sequences must be interpreted as
+   a U+FFFD REPLACEMENT CHARACTER. All U+0000 NULL characters must be
+   replaced by U+FFFD REPLACEMENT CHARACTERs.</p></li>
+
+   <li><p>Let <var title="">explicit URIs</var> be an initially empty
+   list of <span title="concept-appcache-explicit">explicit
+   entries</span>.</p></li>
+
+   <li><p>Let <var title="">fallback URIs</var> be an initially empty
+   mapping of <span title="concept-appcache-oppcache-ns">opportunistic
+   caching namespaces</span> to <span
+   title="concept-appcache-fallback">fallback entries</span>.</p></li>
+
+   <li><p>Let <var title="">online whitelist URIs</var> be an
+   initially empty list of URIs for a <span
+   title="concept-appcache-onlinewhitelist">online
+   whitelist</span>.</p></li>
+
+   <li><p>Let <var title="">input</var> be the decoded text of the
+   manifest's bytestream.</p></li>
+
+   <li><p>Let <var title="">position</var> be a pointer into <var
+   title="">input</var>, initially pointing at the first
+   character.</p></li>
+
+   <li><p>If <var title="">position</var> is pointing at a U+FEFF BYTE
+   ORDER MARK (BOM) character, then advance <var
+   title="">position</var> to the next character.</p></li>
+
+   <li><p>If the characters starting from <var title="">position</var>
+   are "CACHE", followed by a U+0020 SPACE character, followed by
+   "MANIFEST", then advance <var title="">position</var> to the next
+   character after those. Otherwise, this isn't a cache manifest;
+   abort this algorithm with a failure while checking for the magic
+   signature.</p></li>
+
+   <li><p>If <var title="">position</var> is not past the end of <var
+   title="">input</var> and the character at <var
+   title="">position</var> is neither a U+000A LINE FEED (LF)
+   characters nor a U+000D CARRIAGE RETURN (CR) character, then this
+   isn't a cache manifest; abort this algorithm with a failure while
+   checking for the magic signature.</p></li>
+
+   <li><p>This is a cache manifest. The algorithm cannot fail beyond
+   this point (though bogus lines can get ignored).</p></li>
+
+   <li><p>Let <var title="">mode</var> be "explicit".</p></li>
+
+   <li><p><em>Start of line</em>: If <var title="">position</var> is
+   past the end of <var title="">input</var>, then jump to the last
+   step. Otherwise, <span>collect a sequence of characters</span> that
+   are U+000A LINE FEED (LF), U+000D CARRIAGE RETURN (CR), U+0020
+   SPACE, or U+0009 CHARACTER TABULATION (tab) characters.</p></li>
+
+   <li><p>Now, <span>collect a sequence of characters</span> that are
+   <em>not</em> U+000A LINE FEED (LF) or U+000D CARRIAGE RETURN (CR)
+   characters, and let the result be <var
+   title="">line</var>.</p></li>
+
+   <li><p>If the first character in <var title="">line</var> is a
+   U+0023 NUMBER SIGN (#) character, then jump back to the step
+   labelled "start of line".</p></li>
+
+   <li><p>Drop any trailing U+0020 SPACE, or U+0009 CHARACTER
+   TABULATION (tab) characters at the end of <var
+   title="">line</var>.</p></li>
+
+   <li><p>If <var title="">line</var> equals "CACHE:" (the word
+   "CACHE" followed by a U+003A COLON (:) character), then set <var
+   title="">mode</var> to "explicit" and jump back to the step
+   labelled "start of line".</p></li>
+
+   <li><p>If <var title="">line</var> equals "FALLBACK:" (the word
+   "FALLBACK" followed by a U+003A COLON (:) character), then set <var
+   title="">mode</var> to "fallback" and jump back to the step
+   labelled "start of line".</p></li>
+
+   <li><p>If <var title="">line</var> equals "NETWORK:" (the word
+   "NETWORK" followed by a U+003A COLON (:) character), then set <var
+   title="">mode</var> to "online whitelist" and jump back to the step
+   labelled "start of line".</p></li>
+
+   <li>
+
+    <p>This is either a data line or it is syntactically incorrect.</p>
+
+    <dl class="switch">
+
+     <dt>If <var title="">mode</var> is "explicit"</dt>
+
+     <dd>
+
+      <p>If <var title="">line</var> is not a syntactically valid URI
+      reference or IRI reference, then jump back to the step labelled
+      "start of line".</p>
+
+      <p>Otherwise, resolve the URI reference or IRI reference to an
+      absolute URI or IRI, drop any fragment identifier, and add this
+      URI to the <var title="">explicit URIs</var>.</p>
+
+     </dd>
+
+     <dt>If <var title="">mode</var> is "fallback"</dt>
+
+     <dd>
+
+      <p>If <var title="">line</var> does not contain at least one
+      U+0020 SPACE or U+0009 CHARACTER TABULATION (tab) character,
+      then jump back to the step labelled "start of line".</p>
+
+      <p>Otherwise, let everything before the first U+0020 SPACE or
+      U+0009 CHARACTER TABULATION (tab) character in <var
+      title="">line</var> be <var title="">part one</var>, and let
+      everything after the first U+0020 SPACE or U+0009 CHARACTER
+      TABULATION (tab) character in <var title="">line</var> be <var
+      title="">part two</var>.</p>
+
+      <p>Strip any leading U+0020 SPACE or U+0009 CHARACTER TABULATION
+      (tab) characters in <var title="">part two</var>.</p>
+
+      <p>If <var title="">part one</var> and <var title="">part
+      two</var> are not both syntactically valid URI or IRI
+      references, then jump back to the step labelled "start of
+      line".</p>
+
+      <p>Resolve the URI or IRI references in <var title="">part
+      one</var> and <var title="">part two</var> to absolute URIs or
+      IRIs.</p>
+
+      <p>If the absolute URI or IRI corresponding to <var
+      title="">part one</var> is already in the <var title="">fallback
+      URIs</var> mapping as an <span
+      title="concept-appcache-oppcache-ns">opportunistic caching
+      namespaces</span>, then jump back to the step labelled "start of
+      line".</p>
+
+      <p>If the absolute URI or IRI corresponding to <var
+      title="">part one</var> does not have the <span>same
+      scheme/host/port</span> as the manifest's URI, then jump back to
+      the step labelled "start of line".</p> <!-- SECURITY -->
+
+      <p>Otherwise, add the absolute URI or IRI corresponding to <var
+      title="">part one</var> to the <var title="">fallback URIs</var>
+      mapping as an <span
+      title="concept-appcache-oppcache-ns">opportunistic caching
+      namespaces</span>, mapped to the absolute URI corresponding to
+      <var title="">part two</var> as the <span
+      title="concept-appcache-fallback">fallback entry</span>.</p>
+
+     </dd>
+
+     <dt>If <var title="">mode</var> is "online whitelist"</dt>
+
+     <dd>
+
+      <p>If <var title="">line</var> is not a syntactically valid URI
+      reference or IRI reference, then jump back to the step labelled
+      "start of line".</p>
+
+      <p>Otherwise, resolve the URI reference or IRI reference to an
+      absolute URI or IRI, drop any fragment identifier, and add this
+      URI to the <var title="">online whitelist URIs</var>.</p>
+
+     </dd>
+
+    </dl>
+
+   </li>
+
+   <li><p>Jump back to the step labelled "start of line". (That step
+   jumps to the next, and last, step when the end of the file is
+   reached.)</p></li>
+
+   <li><p>Return the <var title="">explicit URIs</var> list, the <var
+   title="">fallback URIs</var> mapping, and the <var title="">online
+   URIs</var>.</p></li>
+
+  </ol>
+
+  <p>Relative URI references and IRI references resolved to absolute
+  URIs or IRIs in the above algorithm must use the manifest's URI as
+  the Base URI from the Retrieval URI for the purposes reference
+  resolution as defined by RFC 3986. <a
+  href="#refsRFC3986">[RFC3986]</a></p>
+
+
+  <h4>Updating an application cache</h4>
+
+  <p>When the user agent is required (by other parts of this
+  specification) to start the <dfn>application cache update
+  process</dfn>, the user agent must run the following steps:</p>
+
+  <p class="big-issue">the event stuff needs to be more consistent --
+  something about showing every step of the ui or no steps or
+  something; and we need to deal with showing ui for browsing contexts
+  that open when an update is already in progress, and we may need to
+  give applications control over the ui the first time they cache
+  themselves (right now the original cache is done without
+  notifications to the browsing contexts)</p>
+
+  <ol>
+
+   <li><p>Let <var title="">manifest URI</var> be the URI of the <span
+   title="concept-appcache-manifest">manifest</span> of the cache to
+   be updated.</p></li>
+
+   <li><p>Let <var title="">cache group</var> be the group of <span
+   title="application cache">application caches</span> identified by
+   <var title="">manifest URI</var>.</p></li>
+
+   <li><p>Let <var title="">cache</var> be the most recently updated
+   <span>application cache</span> identified by <var title="">manifest
+   URI</var> (that is, the newest version found in <var title="">cache
+   group</var>).</p></li>
+
+   <li><p>If the <span title="concept-appcache-status">status</span>
+   of the <var title="">cache group</var> is either <i>checking</i> or
+   <i>downloading</i>, then abort these steps, as an update is already
+   in progress for them. Otherwise, set the <span title="concept-appcache-status">status</span> of this group of
+   caches to <i>checking</i>. This entire step must be performed as
+   one atomic operation so as to avoid race conditions.</p></li>
+
+   <li>
+
+    <p>If there is already a resource with the URI of <var
+    title="">manifest URI</var> in <var title="">cache</var>, and
+    that resource is categorised as a <span
+    title="concept-appcache-manifest">manifest</span>, then this is an
+    <dfn title="concept-appcache-upgrade">upgrade
+    attempt</dfn>. Otherwise, this is a <dfn
+    title="concept-appcache-cache">cache attempt</dfn>.</p>
+
+    <p class="note">If this is a <span
+    title="concept-appcache-cache">cache attempt</span>, then <var
+    title="">cache</var> is forcibly the only application cache in
+    <var title="">cache group</var>, and it hasn't ever been populated
+    from its manifest (i.e. this update is an attempt to download the
+    application for the first time). It also can't have any browsing
+    contexts associated with it.</p>
+
+   </li>
+
+   <li>
+
+    <p><span>Fire a simple event</span> called <code
+    title="event-checking">checking</code> at the
+    <code>ApplicationCache</code> singleton of each <span>top-level
+    browsing context</span> that is associated with a cache in <var
+    title="">cache group</var>. The default action of this event
+    should be the display of some sort of user interface indicating to
+    the user that the user agent is checking for the availability of
+    updates.</p>
+
+   </li>
+
+   <li>
+
+    <p>Fetch the resource from <var title="">manifest URI</var>, and
+    let <var title="">manifest</var> be that resource.</p>
+
+    <p>If the resource is labelled with the MIME type <code
+    title="">text/cache-manifest</code>, parse <var
+    title="">manifest</var> according to the <span title="parse a
+    manifest">rules for parsing manifests</span>, obtaining a list of
+    <span title="concept-appcache-explicit">explicit entries</span>,
+    <span title="concept-appcache-fallback">fallback entries</span>
+    and the <span title="concept-appcache-oppcache-ns">opportunistic
+    caching namespaces</span> that map to them, and entries for the
+    <span title="concept-appcache-onlinewhitelist">online
+    whitelist</span>.</p>
+
+   </li>
+
+   <li>
+
+    <p>If the previous step fails (e.g. the server returns a 4xx or
+    5xx response or equivalent, or there is a DNS error, or the
+    connection times out, or the parser for manifests fails when
+    checking the magic signature), or if the resource is labelled with
+    a MIME type other than <code title="">text/cache-manifest</code>,
+    then run these substeps:</p>
+
+    <ol>
+
+     <li><p><span>Fire a simple event</span> called <code
+     title="event-error">error</code> at the
+     <code>ApplicationCache</code> singleton of each <span>top-level
+     browsing context</span> that is associated with a cache in <var
+     title="">cache group</var>. The default action of this event
+     should be the display of some sort of user interface indicating
+     to the user that the user agent failed to save the application
+     for offline use.</p></li>
+
+     <li><p>If this is a <span title="concept-appcache-cache">cache
+     attempt</span>, then discard <var title="">cache</var> and abort
+     the update process, optionally alerting the user to the
+     failure.</p></li>
+
+     <li><p>Otherwise, jump to the last step in the overall set of
+     steps of the update process.</p></li>
+
+    </ol>
+
+   </li>
+
+   <li><p>If this is an <span title="concept-appcache-upgrade">upgrade
+   attempt</span> and the newly downloaded <var
+   title="">manifest</var> is byte-for-byte identical to the manifest
+   found in <var title="">cache</var>, or if the server reported it as
+   "304 Not Modified" or equivalent, then <span>fire a simple
+   event</span> called <code title="event-noupdate">noupdate</code> at
+   the <code>ApplicationCache</code> singleton of each <span>top-level
+   browsing context</span> that is associated with a cache in <var
+   title="">cache group</var>. The default action of this event should
+   be the display of some sort of user interface indicating to the
+   user that the application is up to date. Then, jump to the last
+   step of the update process.</p></li>
+
+   <li><p>Set the <span title="concept-appcache-status">status</span> of <var title="">cache group</var> to
+   <i>downloading</i>.</p></li>
+
+   <li><p><span>Fire a simple event</span> called <code
+   title="event-downloading">downloading</code> at the
+   <code>ApplicationCache</code> singleton of each <span>top-level
+   browsing context</span> that is associated with a cache in <var
+   title="">cache group</var>. The default action of this event should
+   be the display of some sort of user interface indicating to the
+   user that a new version is being downloaded.</p></li>
+
+   <li><p>If this is an <span title="concept-appcache-upgrade">upgrade
+   attempt</span>, then let <var title="">new cache</var> be a newly
+   created <span>application cache</span> identified by <span
+   title="">manifest URI</span>, being a new version in <var
+   title="">cache group</var>. Otherwise, let <var title="">new
+   cache</var> and <var title="">cache</var> be the same version of
+   the application cache.</p></li>
+
+   <li><p>Let <var title="">file list</var> be an empty list of
+   URIs with flags.</p></li>
+
+   <li><p>Add all the URIs in the list of <span
+   title="concept-appcache-explicit">explicit entries</span> obtained
+   by parsing <var title="">manifest</var> to <var title="">file
+   list</var>, each flagged with "explicit entry".</p></li>
+
+   <li><p>Add all the URIs in the list of <span
+   title="concept-appcache-fallback">fallback entries</span> obtained
+   by parsing <var title="">manifest</var> to <var title="">file
+   list</var>, each flagged with "fallback entry".</p></li>
+
+   <li><p>If this is an <span title="concept-appcache-upgrade">upgrade
+   attempt</span>, then add all the URIs of <span
+   title="concept-appcache-oppcache">opportunistically cached
+   entries</span> in <var title="">cache</var> that <span
+   title="concept-appcache-matches-oppcache">match</span> the <span
+   title="concept-appcache-oppcache-ns">opportunistic caching
+   namespaces</span> obtained by parsing <var title="">manifest</var>
+   to <var title="">file list</var>, each flagged with "opportunistic
+   entry".</p></li>
+
+   <li><p>If this is an <span title="concept-appcache-upgrade">upgrade
+   attempt</span>, then add all the URIs of <span
+   title="concept-appcache-dynamic">dynamic entries</dfn> in <var
+   title="">cache</var> to <var title="">file list</var>, each flagged
+   with "dynamic entry".</p></li>
+
+   <li><p>If any URI is in <var title="">file list</var> more than
+   once, then merge the entries into one entry for that URI, that
+   entry having all the flags that the original entries had.</p></li>
+
+   <li>
+
+    <p>For each URI in <var title="">file list</var>, run the
+    following steps:</p>
+
+    <ol>
+
+     <li><p><span>Fire a simple event</span> called <code
+     title="event-progress">progress</code> at the
+     <code>ApplicationCache</code> singleton of each <span>top-level
+     browsing context</span> that is associated with a cache in <var
+     title="">cache group</var>. The default action of this event
+     should be the display of some sort of user interface indicating
+     to the user that a file is being downloaded in preparation for
+     updating the application.</p></li> <!-- XXX need to include
+     progress information -->
+
+     <li><p>Fetch the resource. If this is an <span
+     title="concept-appcache-upgrade">upgrade attempt</span>, then use
+     <var title="">cache</var> as an HTTP cache, and honour HTTP
+     caching semantics (such as expiration, ETags, and so forth) with
+     respect to that cache. User agents may also have other caches in
+     place.</p></li>
+
+     <li>
+
+      <p>If the previous steps fails (e.g. the server returns a 4xx or
+      5xx response or equivalent, or there is a DNS error, or the
+      connection times out), then run these substeps:</p>
+
+      <ol>
+
+       <li><p><span>Fire a simple event</span> called <code
+       title="event-error">error</code> at the
+       <code>ApplicationCache</code> singleton of each <span>top-level
+       browsing context</span> that is associated with a cache in <var
+       title="">cache group</var>. The default action of this event
+       should be the display of some sort of user interface indicating
+       to the user that the user agent failed to save the application
+       for offline use.</p></li>
+
+       <li><p>If this is a <span title="concept-appcache-cache">cache
+       attempt</span>, then discard <var title="">cache</var> and
+       abort the update process, optionally alerting the user to the
+       failure.</p></li>
+
+       <li><p>Otherwise, jump to the last step in the overall set of
+       steps of the update process.</p></li>
+
+      </ol>
+
+     </li>
+
+     <li><p>Otherwise, the fetching succeeded. Store the resource in
+     the <var title="">new cache</var>.</p></li>
+
+     <li><p>If the URI being processed was flagged as an "explicit
+     entry" in <var title="">file list</var>, then categorise the
+     entry as an <span title="concept-appcache-explicit">explicit
+     entry</span>.</p></li>
+
+     <li><p>If the URI being processed was flagged as a "fallback
+     entry" in <var title="">file list</var>, then categorise the
+     entry as a <span title="concept-appcache-fallback">fallback
+     entry</span>.</p></li>
+
+     <li><p>If the URI being processed was flagged as a "opportunistic
+     entry" in <var title="">file list</var>, then categorise the
+     entry as an <span
+     title="concept-appcache-oppcache">opportunistically cached
+     entry</span>.</p></li>
+
+     <li><p>If the URI being processed was flagged as an "dynamic
+     entry" in <var title="">file list</var>, then categorise the
+     entry as a <span title="concept-appcache-dynamic">dynamic
+     entry</span>.</p></li>
+
+    </ol>
+
+   </li>
+
+   <li><p>Store <var title="">manifest</var> in <var title="">new
+   cache</var>, if it's not there already, and categorise this entry
+   (whether newly added or not) as <span
+   title="concept-appcache-manifest">the manifest</span>.</p></li>
+
+   <li><p>Store the list of <span
+   title="concept-appcache-oppcache-ns">opportunistic caching
+   namespaces</span>, and the URIs of the <span
+   title="concept-appcache-fallback">fallback entries</span> that they
+   map to, in the new cache.</p></li>
+
+   <li><p>Store the URIs that form the new <span
+   title="concept-appcache-onlinewhitelist">online whitelist</span> in
+   the new cache.</p></li>
+
+   <li>
+
+    <p>If this is a <span title="concept-appcache-cache">cache
+    attempt</span>, then:</p>
+
+    <p>Set the <span title="concept-appcache-status">status</span> of <var title="">cache group</var> to
+    <i>idle</i>.</p>
+
+    <p>Associate any <code>Document</code> objects that were <a
+    href="#flagAsCandidateForCache">flagged as candidates</a> for this
+    manifest URI's caches with <var title="">cache</var>.</p>
+
+    <p><span>Fire a simple event</span> called <code
+    title="event-cached">cached</code> at the
+    <code>ApplicationCache</code> singleton of each <span>top-level
+    browsing context</span> that is associated with a cache in <var
+    title="">cache group</var>. The default action of this event
+    should be the display of some sort of user interface indicating to
+    the user that the application has been cached and that they can
+    now use it offline.</p>
+
+   </li>
+
+   <li>
+
+    <p>Otherwise, this is an <span
+    title="concept-appcache-upgrade">upgrade attempt</span>:</p>
+
+    <p>Set the <span title="concept-appcache-status">status</span> of <var title="">cache group</var> to <i>update
+    ready</i>.</p>
+
+    <p><span>Fire a simple event</span> called <code
+    title="event-updateready">updateready</code> at the
+    <code>ApplicationCache</code> singleton of each <span>top-level
+    browsing context</span> that is associated with a cache in <var
+    title="">cache group</var>. The default action of this event
+    should be the display of some sort of user interface indicating to
+    the user that a new version is available and that they can
+    activate it by reloading the page.</p>
+
+   </li>
+
+   <li><p>Abort these steps. The following step is jumped to by
+   various parts of the algorithm above when they have to cancel the
+   update.</p></li>
+
+   <li><p>Let the <span title="concept-appcache-status">status</span>
+   of the group of caches to which <var title="">cache</var> belongs
+   be <i>idle</i>. If appropriate, remove any user interface
+   indicating that an update for this cache is in progress.</p></li>
+
+  </ol>
+
+
+  <h4>Processing model</h4>
+
+  <p>The processing model of application caches for offline support in
+  Web applications is part of the <span
+  title="navigate">navigation</span> model, but references the
+  algorithms defined in this section.</p>
+
+  <p>A URI <dfn title="concept-appcache-matches-oppcache">matches an
+  opportunistic caching namespace</dfn> if there exists an
+  <span>application cache</span> whose <span
+  title="concept-appcache-manifest">manifest</span>'s URI has the
+  <span>same scheme/host/port</span> as the URI in question, and if
+  that application cache has an <span
+  title="concept-appcache-oppcache-ns">opportunistic caching
+  namespace</span> with a &lt;path&gt; component that exactly matches
+  the start of the &lt;path&gt; component of the URI being
+  examined. If multiple opportunistic caching namespaces match the
+  same URI, the one with the longest &lt;path&gt; component is the one
+  that matches. A URI looking for an opportunistic caching namespace
+  can match more than one application cache at a time, but only
+  matches one namespace in each cache.</p>
+
+  <div class="example">
+
+   <p>If a manifest <code
+   title="">http://example.com/app1/manifest</code> declares that
+   <code title="">http://example.com/resources/images</code> should be
+   opportunistically cached, and the user navigates to <code
+   title="">http://example.com/resources/images/cat.png</code>, then
+   the user agent will decide that the application cache identified by
+   <code title="">http://example.com/app1/manifest</code> contains a
+   namespace with a match for that URI.</p>
+
+  </div>
+
+  <p>When the <dfn
+  title="concept-appcache-init-with-attribute">application cache
+  selection algorithm</dfn> algorithm is invoked with a manifest URI,
+  the user agent must run the first applicable set of steps from the
+  following list:</p>
+
+  <dl class="switch">
+
+   <dt>If the resource is not being loaded as part of navigation of a
+   <span>top-level browsing context</span></dt>
+
+   <dd>
+
+    <p>As an optimisation, if the resource was loaded from an
+    <span>application cache</span>, and the manifest URI of that cache
+    doesn't match the manifest URI with which the algorithm was
+    invoked, then the user agent should mark the entry in that
+    application cache corresponding to the resource that was just
+    loaded as being <span
+    title="concept-appcache-foreign">foreign</span>.</p>
+
+    <p>Other than that, nothing special happens with respect to
+    application caches.</p>
+
+   </dd>
+
+   <!-- otherwise, we're talking top-level browsing contexts only: -->
+
+   <dt>If the resource being loaded was loaded from an application
+   cache and the URI of that application cache's manifest is the
+   same as the manifest URI with which the algorithm was invoked</dt>
+   <dd>
+    <p>Associate the <code>Document</code> with the cache from which
+    it was loaded. Invoke the <span>application cache update
+    process</span>.</p>
+   </dd>
+
+
+   <dt>If the resource being loaded was loaded from an application
+   cache and the URI of that application cache's manifest is
+   <em>not</em> the same as the manifest URI with which the algorithm
+   was invoked</dt>
+
+   <dd>
+
+    <p>Mark the entry for this resource in the application cache from
+    which it was loaded as <span
+    title="concept-appcache-foreign">foreign</span>.</p>
+
+    <p>Restart the current navigation from the top of the <span
+    title="navigate">navigation algorithm</span>, undoing any changes
+    that were made as part of the initial load (changes can be avoided
+    by ensuring that the step to <span>update the session history with
+    the new page</span> is only ever completed <em>after</em> the
+    application cache selection algorithm is run, though this is not
+    required).</p>
+
+    <p class="note">The navigation will not result in the same
+    resource being loaded, because "foreign" entries are never picked
+    during navigation.</p>
+
+    <p>User agents may notify the user of the inconsistency between
+    the cache manifest and the resource's own metadata, to aid in
+    application development.</p>
+
+   </dd>
+
+
+   <dt>If the resource being loaded was not loaded from an application
+   cache, but it was loaded using HTTP GET or equivalent</dt>
+   <dd>
+
+    <ol>
+
+     <li><p>If the manifest URI does not have the <span>same
+     scheme/host/port</span> as the resource's own URI, then invoke
+     the <span title="concept-appcache-init-no-attribute">application
+     cache selection algorithm</span> again, but without a manifest,
+     and abort these steps.</p></li>
+
+     <li><p>If there is already an <span>application cache</span>
+     identified by this manifest URI, and that <span>application
+     cache</span> contains a resource with the URI of the manifest,
+     and that resource is categorised as a <span
+     title="concept-appcache-manifest">manifest</span>, then: store
+     the resource in the matching cache with the most up to date
+     version, categorised as an <span
+     title="concept-appcache-implicit">implicit entry</span>,
+     associate the <code>Document</code> with that cache, invoke the
+     <span>application cache update process</span>, and abort these
+     steps.</p></li>
+
+     <li id="flagAsCandidateForCache"><p>Flag the resource's
+     <code>Document</code> as a candidate for this manifest URI's
+     caches.</p></li>
+
+     <li><p>If there is already an <span>application cache</span>
+     identified by this manifest URI, then that <span>application
+     cache</span> does not yet contain a resource with the URI of the
+     manifest, or it does but that resource is not yet categorised as
+     a <span title="concept-appcache-manifest">manifest</span>: store
+     the resource in that cache, categorised as an <span
+     title="concept-appcache-implicit">implicit entry</span>
+     (replacing the file's previous contents if it was already in the
+     cache, but not removing any other categories it might have), and
+     abort these steps.</p></li>
+
+     <li><p>Otherwise, there is no matching <span>application
+     cache</span>: create a new application cache identified by this
+     manifest URI, store the resource in that cache, categorised as an
+     <span title="concept-appcache-implicit">implicit entry</span>,
+     and then invoke the <span>application cache update
+     process</span>.</p></li>
+
+    </ol>
+
+   </dd>
+
+
+   <dt>Otherwise</dt>
+   <dd>
+    <p>Invoke the <span
+    title="concept-appcache-init-no-attribute">application cache
+    selection algorithm</span> again, but without a manifest.</p>
+   </dd>
+
+  </dl>
+
+  <p>When the <dfn
+  title="concept-appcache-init-no-attribute">application cache
+  selection algorithm</dfn> is invoked <em>without</em> a manifest,
+  then: if the resource is being loaded as part of navigation of a
+  <span>top-level browsing context</span>, and the resource was
+  fetched from a particular <span>application cache</span>, then the
+  user agent must associate the <code>Document</code> with that
+  application cache and invoke the <span>application cache update
+  process</span> for that cache; otherwise, nothing special happens
+  with respect to application caches.</p>
+
+
+  <h5>Changes to the networking model</h5>
+
+  <p>When a browsing context is associated with an <span>application
+  cache</span>, any and all resource loads must go through the
+  following steps instead of immediately invoking the mechanisms
+  appropriate to that resource's scheme:</p>
+
+  <ol>
+
+   <li><p>If the resource is not to be fetched using the HTTP GET
+   mechanism or equivalent, then fetch the resource normally and abort
+   these steps.</p></li>
+
+   <li><p>If the resource's URI, ignoring its fragment identifier if
+   any, is listed in the <span>application cache</span>'s <span
+   title="concept-appcache-onlinewhitelist">online whitelist</span>,
+   then fetch the resource normally and abort these steps.</p></li>
+
+   <li><p>If the resource's URI is <span
+   title="concept-appcache-implicit">an implicit entry</span>, <span
+   title="concept-appcache-manifest">the manifest</span>, <span
+   title="concept-appcache-explicit">an explicit entry</span>, <span
+   title="concept-appcache-fallback">a fallback entry</span>, <span
+   title="concept-appcache-oppcache">an opportunistically cached
+   entry</span>, or a <span title="concept-appcache-dynamic">dynamic
+   entry</span> in the <span>application cache</span>, then fetch the
+   resource from the cache and abort these steps.</p></li>
+
+   <li>
+
+    <p>If the resource's URI has the <span>same
+    scheme/host/port</span> as the manifest's URI, and the start of
+    the resource's URI's &lt;path&gt; component is exactly matched by
+    the &lt;path&gt; component of an <span
+    title="concept-appcache-oppcache-ns">opportunistic caching
+    namespace</span> in the <span>application cache</span>, then:
+
+    <p>Fetch the resource normally. If this results 4xx or 5xx status
+    codes or equivalent, or if there were network errors, then instead
+    fetch, from the cache, the resource of the <span
+    title="concept-appcache-fallback">fallback entry</span>
+    corresponding to the namespace with the longest matching
+    &lt;path&gt; component. Abort these steps.</p>
+
+   </li>
+
+   <li><p>Fail the resource load.</p></li>
+
+  </ol>
+
+  <p class="note">The above algorithm ensures that resources that are
+  not present in the manifest will always fail to load (at least,
+  after the cache has been primed the first time), making the testing
+  of offline applications simpler.</p>
+
+
+  <h4>Application cache API</h4>
+
+  <pre class="idl">interface <dfn>ApplicationCache</dfn> {
+
+  // <span title="concept-appcache-status">update status</span>
+  const unsigned short <span title="dom-appcache-UNCACHED">UNCACHED</span> = 0;
+  const unsigned short <span title="dom-appcache-IDLE">IDLE</span> = 1;
+  const unsigned short <span title="dom-appcache-CHECKING">CHECKING</span> = 2;
+  const unsigned short <span title="dom-appcache-DOWNLOADING">DOWNLOADING</span> = 3;
+  const unsigned short <span title="dom-appcache-UPDATEREADY">UPDATEREADY</span> = 4;
+  readonly attribute unsigned short <span title="dom-appcache-status">status</span>;
+
+  // updates
+  void <span title="dom-appcache-update">update</span>();
+  void <span title="dom-appcache-swapCache">swapCache</span>();
+
+  // dynamic entries
+  readonly attribute unsigned long <span title="dom-appcache-length">length</span>;
+  DOMString <span title="dom-appcache-item">item</span>(in unsigned long index);
+  void <span title="dom-appcache-add">add</span>(in DOMString uri);
+  void <span title="dom-appcache-remove">remove</span>(in DOMString uri);
+
+  // events
+           attribute <span>EventListener</span> <span title="handler-appcache-onchecking">onchecking</span>;
+           attribute <span>EventListener</span> <span title="handler-appcache-onerror">onerror</span>;
+           attribute <span>EventListener</span> <span title="handler-appcache-onnoupdate">onnoupdate</span>;
+           attribute <span>EventListener</span> <span title="handler-appcache-ondownloading">ondownloading</span>;
+           attribute <span>EventListener</span> <span title="handler-appcache-onprogress">onprogress</span>;
+           attribute <span>EventListener</span> <span title="handler-appcache-onupdateready">onupdateready</span>;
+           attribute <span>EventListener</span> <span title="handler-appcache-oncached">oncached</span>;
+
+};</pre>
+
+  <p>Objects implementing the <code>ApplicationCache</code> interface
+  must also implement the <code>EventTarget</code> interface.</p>
+
+  <p>There is a one-to-one mapping from <code>Document</code> objects
+  to <code>ApplicationCache</code> objects. The <dfn
+  title="dom-applicationCache"><code>applicationCache</code></dfn>
+  attribute on <code>Window</code> objects must return the
+  <code>ApplicationCache</code> object associated with the
+  <span>active document</span> of the <code>Window</code>'s
+  <span>browsing context</span>.</p>
+
+  <p>An <code>ApplicationCache</code> object might be associated with
+  an <span>application cache</span>. When the <code>Document</code>
+  object that the <code>ApplicationCache</code> object maps to is
+  associated with an application cache, then that is the application
+  cache with which the <code>ApplicationCache</code> object is
+  associated. Otherwise, the <code>ApplicationCache</code> object is
+  associated with the application cache that the <code>Document</code>
+  object's <span>browsing context</span> is associated with, if
+  any.</p>
+
+  <p>The <dfn title="dom-appcache-status"><code>status</code></dfn>
+  attribute, on getting, must return the current state of the
+  <span>application cache</span> <code>ApplicationCache</code> object
+  is associated with, if any. This must be the appropriate value from
+  the following list:</p>
+
+  <dl>
+
+   <dt><dfn title="dom-appcache-UNCACHED"><code>UNCACHED</code></dfn>
+   (numeric value 0)</dt>
+
+   <dd><p>The <code>ApplicationCache</code> object is not associated
+   with an <span>application cache</span> at this time.</p></dd>
+
+   <dt><dfn title="dom-appcache-IDLE"><code>IDLE</code></dfn>
+   (numeric value 1)</dt>
+
+   <dd><p>The <code>ApplicationCache</code> object is associated with
+   an <span>application cache</span> whose group is in the <i>idle</i>
+   <span title="concept-appcache-states">update
+   status</span>.</p></dd>
+
+   <dt><dfn title="dom-appcache-CHECKING"><code>CHECKING</code></dfn>
+   (numeric value 2)</dt>
+
+   <dd><p>The <code>ApplicationCache</code> object is associated with
+   an <span>application cache</span> whose group is in the
+   <i>checking</i> <span title="concept-appcache-states">update
+   status</span>.</p></dd>
+
+   <dt><dfn title="dom-appcache-DOWNLOADING"><code>DOWNLOADING</code></dfn>
+   (numeric value 3)</dt>
+
+   <dd><p>The <code>ApplicationCache</code> object is associated with
+   an <span>application cache</span> whose group is in the
+   <i>downloading</i> <span title="concept-appcache-states">update
+   status</span>.</p></dd>
+
+   <dt><dfn title="dom-appcache-UPDATEREADY"><code>UPDATEREADY</code></dfn>
+   (numeric value 4)</dt>
+
+   <dd><p>The <code>ApplicationCache</code> object is associated with
+   an <span>application cache</span> whose group is in the <i>update
+   ready</i> <span title="concept-appcache-states">update
+   status</span>.</p></dd>
+
+  </dl>
+
+  <p>The <dfn title="dom-appcache-length"><code>length</code></dfn>
+  attribute must return the number of entries in the <span>application
+  cache</span> with which the <code>ApplicationCache</code> object is
+  associated, if any, and zero the object is not associated with any
+  application cache.</p>
+
+  <p>The <span title="concept-appcache-dynamic">dynamic entries</span>
+  in the <span>application cache</span> are ordered in the same order
+  as they were added to the cache by the <code
+  title="dom-appcache-add">add()</code> method, with the oldest entry
+  being the zeroth entry, and the most recently added entry having the
+  index <span><code
+  title="dom-appcache-length">length</code>-1</span>.</p>
+
+  <p>The <dfn title="dom-appcache-item"><code>item(<var
+  title="">index</var>)</code></dfn> method must return the <span
+  title="concept-appcache-dynamic">dynamic entries</span> with index
+  <var title="">index</var> from the <span>application cache</span>,
+  if one is associated with the <code>ApplicationCache</code>
+  object. If the object is not associated with any application cache,
+  or if the <var title="">index</var> argument is lower than zero or
+  greater than <span><code
+  title="dom-appcache-length">length</code>-1</span>, the method must
+  instead raise an <code>INDEX_SIZE_ERR</code> exception.</p>
+
+  <p>The <dfn title="dom-appcache-add"><code>add(<var
+  title="">uri</var>)</code></dfn> method must run the following
+  steps:</p>
+
+  <ol>
+
+   <li><p>If the <code>ApplicationCache</code> object is not
+   associated with any application cache, then raise an
+   <code>INVALID_STATE_ERR</code> exception and abort these
+   steps.</p></li>
+
+   <li><p>If there is already a resource in in the <span>application
+   cache</span> with which the <code>ApplicationCache</code> object is
+   associated that has the address <var title="">uri</var>, then
+   ensure that entry is categorised as a <span
+   title="concept-appcache-dynamic">dynamic entry</span> and return
+   and abort these steps.</p></li>
+
+   <li><p>Return, but do not abort these steps.</p></li>
+
+   <li><p>Fetch the resource referenced by <var
+   title="">uri</var>.</p></li>
+
+   <li><p>If this results 4xx or 5xx status codes or equivalent, or if
+   there were network errors, then abort these steps.</p></li>
+
+   <li>
+
+    <p>Wait for there to be no running scripts, or at least no running
+    scripts that can reach an <code>ApplicationCache</code> object
+    associated with the <span>application cache</span> with which this
+    <code>ApplicationCache</code> object is associated.</p>
+
+    <p>Add the fetched resource to the <span>application cache</span>
+    and categorise it as a <span
+    title="concept-appcache-dynamic">dynamic entry</span> before
+    letting any such scripts resume.</p>
+  
+   </li>
+
+  </ol>
+
+  <p class="big-issue">We can make the add() API more usable
+  (i.e. make it possible to detect progress and distinguish success
+  from errors without polling and timeouts) if we have the method
+  return an object that is a target of Progress Events, much like the
+  <a
+  href="http://dev.w3.org/cvsweb/~checkout~/2006/webapi/XMLHttpRequest-2/Overview.html?content-type=text/html;%20charset=utf-8#xmlhttprequesteventtarget-interface">XMLHttpRequestEventTarget</a>
+  interface. This would also make this far more complex to spec and
+  implement.</p>
+
+  <p>The <dfn title="dom-appcache-remove"><code>remove(<var
+  title="">uri</var>)</code></dfn> method must remove the <span
+  title="concept-appcache-dynamic">dynamic entry</span> categorisation
+  of any entry with the address <var title="">uri</var> in the
+  <span>application cache</span> with which the
+  <code>ApplicationCache</code> object is associated. If this removes
+  the last categorisation of an entry in that cache, then the entry
+  must be removed entirely (such that if it is re-added, it will be
+  loaded from the network again). If the <code>ApplicationCache</code>
+  object is not associated with any application cache, then the method
+  must raise an <code>INVALID_STATE_ERR</code> exception instead.</p>
+
+  <p>If the <dfn
+  title="dom-appcache-update"><code>update()</code></dfn> method is
+  invoked, the user agent must invoke the <span>application cache
+  update process</span>, in the background, for the <span>application
+  cache</span> with which the <code>ApplicationCache</code> object is
+  associated. If there is no such application cache, then the method
+  must raise an <code>INVALID_STATE_ERR</code> exception instead.</p>
+
+  <p>If the <dfn
+  title="dom-appcache-swapCache"><code>swapCache()</code></dfn> method
+  is invoked, the user agent must run the following steps:
+
+  <ol>
+
+   <li><p>Let <var title="">document</var> be the
+    <code>Document</code> with which the <code>ApplicationCache</code>
+    object is associated.</p></li>
+
+   <li>
+
+    <p>Check that <var title="">document</var> is associated with an
+    <span>application cache</span>. If it is not, then raise an
+    <code>INVALID_STATE_ERR</code> exception and abort these
+    steps.</p>
+
+    <p class="note">This is not the same thing as the
+    <code>ApplicationCache</code> object being itself associated with
+    an <span>application cache</span>! In particular, this can only
+    happen if <var title="">document</var> is in a <span>top-level
+    browsing context</span>.</p>
+
+   </li>
+
+   <li><p>Let <var title="">cache</var> be the <span>application
+   cache</span> with which the <code>ApplicationCache</code> object is
+   associated. (By definition, this is the same as the one that was
+   found in the previous step.)</p></li>
+
+   <li><p>Check that there is an application cache in the same group
+   as <var title="">cache</var> which has an entry categorised as a
+   <span title="concept-appcache-manifest">manifest</span> that has is
+   newer than <var title="">cache</var>. If there is not, then raise
+   an <code>INVALID_STATE_ERR</code> exception and abort these
+   steps.</p></li>
+
+   <li><p>Let <var title="">new cache</var> be the newest
+   <span>application cache</span> in the same group as <var
+   title="">cache</var> which has an entry categorised as a <span
+   title="concept-appcache-manifest">manifest</span>.</p></li>
+
+   <li><p>Unassociate <var title="">document</var> from <var
+   title="">cache</var> and instead associate it with <var
+   title="">new cache</var>.</p></li>
+
+  </ol>
+
+  <p>The following are the <span>event handler DOM attributes</span>
+  that must be supported by objects implementing the
+  <code>ApplicationCache</code> interface:</p>
+
+  <dl>
+
+   <dt><dfn title="handler-appcache-onchecking"><code>onchecking</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever an <code
+   title="event-checking">checking</code> event is targeted at or
+   bubbles through the <code>ApplicationCache</code> object.</p></dd>
+
+
+   <dt><dfn title="handler-appcache-onerror"><code>onerror</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever an <code
+   title="event-error">error</code> event is targeted at or bubbles
+   through the <code>ApplicationCache</code> object.</p></dd>
+
+
+   <dt><dfn title="handler-appcache-onnoupdate"><code>onnoupdate</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever an <code
+   title="event-noupdate">noupdate</code> event is targeted at or
+   bubbles through the <code>ApplicationCache</code> object.</p></dd>
+
+
+   <dt><dfn title="handler-appcache-ondownloading"><code>ondownloading</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever an <code
+   title="event-downloading">downloading</code> event is targeted at
+   or bubbles through the <code>ApplicationCache</code>
+   object.</p></dd>
+
+
+   <dt><dfn title="handler-appcache-onprogress"><code>onprogress</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever an <code
+   title="event-progress">progress</code> event is targeted at or
+   bubbles through the <code>ApplicationCache</code> object.</p></dd>
+
+
+   <dt><dfn title="handler-appcache-onupdateready"><code>onupdateready</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever an <code
+   title="event-updateready">updateready</code> event is targeted at
+   or bubbles through the <code>ApplicationCache</code>
+   object.</p></dd>
+
+
+   <dt><dfn title="handler-appcache-oncached"><code>oncached</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-cached">cached</code> event is targeted at or bubbles
+   through the <code>ApplicationCache</code> object.</p></dd>
+
+  </dl>
+
+
+  <h4>Browser state</h4>
+
+  <p>The <dfn
+  title="dom-navigator-onLine"><code>navigator.onLine</code></dfn>
+  attribute must return false if the user agent will not contact the
+  network when the user follows links or when a script requests a
+  remote page (or knows that such an attempt would fail), and must
+  return true otherwise.</p>
+
+  <p>When the value that would be returned by the <code
+  title="dom-navigator-onLine">navigator.onLine</code> attribute of
+  the <code>Window</code> changes from true to false, the user agent
+  must <span>fire a simple event</span> called <dfn
+  title="event-offline"><code>offline</code></dfn> at <span>the body
+  element</span>.</p>
+
+  <p>On the other hand, when the value that would be returned by the
+  <code title="dom-navigator-onLine">navigator.onLine</code> attribute
+  of the <code>Window</code> changes from false to true, the user
+  agent must <span>fire a simple event</span> called <dfn
+  title="event-online"><code>online</code></dfn> at <span>the body
+  element</span>.</p>
+
+  <!-- XXX ononline onoffline need to be defined -->
+
+
+
   <h3 id="history">Session history and navigation</h3>
 
   <h4>The session history of browsing contexts</h4>
@@ -23520,8 +24962,9 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   whose index equals the index of the <span>current entry</span> plus
   <var title="">delta</var>.</p>
 
-  <p>When a user agent is required to <dfn>traverse the history</dfn>
-  to a specified entry, the user agent must act as follows:</p>
+  <p>When a user agent is required to <dfn>traverse the
+  history</dfn><!-- (traversal) --> to a specified entry, the user
+  agent must act as follows:</p>
 
   <ol>
 
@@ -23588,9 +25031,13 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
 
      </li>
 
-     <li>The user agent must make the <span>specified entry</span>'s
-     <code>Document</code> object the <span>active document</span> of
-     the <span>browsing context</span>.</li>
+     <li id="appcache-history-2">The user agent must make the
+     <span>specified entry</span>'s <code>Document</code> object the
+     <span>active document</span> of the <span>browsing
+     context</span>. (If it is a <span>top-level browsing
+     context</span>, this might <a
+     href="#appcache-history-1">change</span> which <span>application
+     cache</span> it is associated with.)</li>
 
      <li>If the <span>specified entry</span> has a <span>browsing
      context name</span> stored with it, then the following
@@ -23682,19 +25129,17 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   <p>When this method is invoked, the user agent must first check the
   third argument. If a third argument is specified, then the user
   agent must verify that the third argument is a valid URI or IRI (as
-  defined by RFC 3986 and 3987, and as modified by RFC 2732), and if
-  so, that, after resolving it to an absolute URI, it is either
-  identical to the document's URI, or that it differs from the
-  document's URI only in the &lt;query&gt;, &lt;abs_path&gt;, and/or
-  &lt;fragment&gt; parts, as applicable (the &lt;query&gt; and
-  &lt;abs_path&gt; parts can only be the same if the document's URI
-  uses a hierarchical &lt;scheme&gt;). If the verification fails
-  (either because the argument is syntactically incorrect, or differs
-  in a way not described as acceptable in the previous sentence) then
-  the user agent must raise a <span>security exception</span>. <a
-  href="#refsRFC3986">[RFC3986]</a> <a
-  href="#refsRFC3987">[RFC3987]</a> <a
-  href="#refsRFC2732">[RFC2732]</a></p>
+  defined by RFC 3986 and 3987), and if so, that, after resolving it
+  to an absolute URI, it is either identical to the document's URI, or
+  that it differs from the document's URI only in the &lt;query&gt;,
+  &lt;abs_path&gt;, and/or &lt;fragment&gt; parts, as applicable (the
+  &lt;query&gt; and &lt;abs_path&gt; parts can only be the same if the
+  document's URI uses a hierarchical &lt;scheme&gt;). If the
+  verification fails (either because the argument is syntactically
+  incorrect, or differs in a way not described as acceptable in the
+  previous sentence) then the user agent must raise a <span>security
+  exception</span>. <a href="#refsRFC3986">[RFC3986]</a> <a
+  href="#refsRFC3987">[RFC3987]</a></p>
 
   <p>If the third argument passes its verification step, or if the
   third argument was omitted, then the user agent must remove from the
@@ -23980,25 +25425,99 @@ user reload must be equivalent to .reload()
    scheme is not one of the supported protocols, or an inline prompt
    to allow the user to select <span
    title="dom-navigator-registerProtocolHandler">a registered
-   handler</span> for the given scheme, then <span title="display a
-   user agent page inline">display the inline content</span> and abort
-   these steps.</p></li>
+   handler</span> for the given scheme, then <span
+   title="navigate-ua-inline">display the inline content</span> and
+   abort these steps.</p></li>
 
    <li><p>If the new resource is to be handled using a mechanism that
    does not affect the browsing context, then abort these steps and
    proceed with that mechanism instead.</p></li>
 
-   <li><p>Start fetching the specified resource, as appropriate
-   (e.g. performing an HTTP GET or POST operation, or reading the file
-   from disk, or executing script in the case of a <span
-   title="javascript protocol"><code title="">javascript:</code>
-   URI</span>). If this results in a redirect, return to step 2 with
-   the new resource.</p></li>
+   <li>
+
+    <p>If the new resource is to be fetched using HTTP GET or
+    equivalent, and if the browsing context being navigated is a
+    <span>top-level browsing context</span>, then check if there are
+    any <span title="application cache">application caches</span> that
+    have a <span title="concept-appcache-manifest">manifest</span>
+    with the <span>same scheme/host/port</span> as the URI in
+    question, and that have this URI as one of their entries
+    (excluding entries marked as <span
+    title="concept-appcache-foreign">manifest</span>), and that
+    already contain their manifest, categorised as a <span
+    title="concept-appcache-manifest">manifest</span>. If so, then the
+    user agent must then fetch the resource from the <span
+    title="concept-appcache-selection">most appropriate application
+    cache</span> of those that match.</p>
+
+    <p>Otherwise, start fetching the specified resource in the
+    appropriate manner (e.g. performing an HTTP GET or POST operation,
+    or reading the file from disk, or executing script in the case of
+    a <span title="javascript protocol"><code
+    title="">javascript:</code> URI</span>). If this results in a
+    redirect, return to step 2 with the new resource.</p>
+
+    <p class="example">For example, imagine an HTML page with an
+    associated application cache displaying an image and a form, where
+    the image is also used by several other application caches. If the
+    user right-clicks on the image and chooses "View Image", then the
+    user agent could decide to show the image from any of those
+    caches, but it is likely that the most useful cache for the user
+    would be the one that was used for the aforementioned HTML
+    page. On the other hand, if the user submits the form, and the
+    form does a POST submission, then the user agent will not use an
+    application cache at all; the submission will be made to the
+    network.</p>
+
+   </li>
 
    <li><p>Wait for one or more bytes to be available or for the user
    agent to establish that the resource in question is empty. During
    this time, the user agent may allow the user to cancel this
    navigation attempt or start other navigation attempts.</p></li>
+
+   <li>
+
+    <p>If the resource was not fetched from an <span>application
+    cache</span>, and was to be fetched using HTTP GET or equivalent,
+    and its URI <span
+    title="concept-appcache-matches-oppcache">matches the
+    opportunistic caching namespace</span> of one or more application
+    caches, then:</p>
+
+    <dl class="switch">
+
+     <dt>If the file was successfully downloaded</dt>
+
+     <dd>The user agent must cache the resource in all those
+     application caches, categorised as <span
+     title="concept-appcache-oppcache">opportunistically cached
+     entries</span>.</dd>
+
+
+     <dt>If the server returned a 4xx or 5xx status code or
+     equivalent, or there were network errors</dt>
+
+     <dd>If the browsing context being navigated is a <span>top-level
+     browsing context</span>, then the user agent must discard the
+     failed load and instead use the <span
+     title="concept-appcache-fallback">fallback resource</span>
+     specified for the opportunistic caching namespace in question. If
+     multiple application caches match, the user agent must use the
+     fallback of the <span title="concept-appcache-selection">most
+     appropriate application cache</span> of those that match. For the
+     purposes of session history (and features that depend on session
+     history, e.g. bookmarking) the user agent must use the URI of the
+     resource that was requested (the one that matched the
+     opportunistic caching namespace), not the fallback
+     resource. However, the user agent may indicate to the user that
+     the original page load failed, that the page used was a fallback
+     resource, and what the URI of the fallback resource actually
+     is.</dd>
+
+    </dl>
+
+   </li>
 
    <li><p>If the document's out-of-band metadata (e.g. HTTP headers),
    not counting any <span title="Content-Type">type information</span>
@@ -24069,9 +25588,9 @@ user reload must be equivalent to .reload()
    the content, an error message because the specified type is not
    supported, or an inline prompt to allow the user to select <span
    title="dom-navigator-registerContentHandler">a registered
-   handler</span> for the given type, then <span title="display a user
-   agent page inline">display the inline content</span> and abort
-   these steps.</p></li>
+   handler</span> for the given type, then <span
+   title="navigate-ua-inline">display the inline content</span> and
+   abort these steps.</p></li>
 
    <li><p>Otherwise, the document's <var title="">type</var> is such
    that the resource will not affect the browsing context,
@@ -24163,10 +25682,11 @@ user reload must be equivalent to .reload()
   document as the <span>input stream</span> for that parser.</p>
 
   <p class="note">The <span>input stream</span> converts bytes into
-  characters for use in the <span>tokeniser</span>. This process
-  relies, in part, on character encoding information found in the real
-  <span title="Content-Type">Content-Type metadata</span> of the
-  resource; the "sniffed type" is not used for this purpose.</p>
+  characters for use in the <span>tokeniser</span><!-- XXX xref
+  -->. This process relies, in part, on character encoding information
+  found in the real <span title="Content-Type">Content-Type
+  metadata</span> of the resource; the "sniffed type" is not used for
+  this purpose.</p>
 
   <!-- next two paragraphs are nearly identical to the navigate-text
   section, keep them in sync -->
@@ -24178,6 +25698,13 @@ user reload must be equivalent to .reload()
   <p>After creating the <code>Document</code> object, but potentially
   before the page has finished parsing, the user agent must
   <span>update the session history with the new page</span>.</p>
+
+  <p class="note"><span
+  title="concept-appcache-init-with-attribute">Application cache
+  selection</span> happens <a href="#parser-appcache">in the HTML
+  parser</a>.</p>
+
+
 
 
   <h4 id="read-xml"><dfn title="navigate-xml">Page load processing model for XML files</dfn></h4>
@@ -24195,6 +25722,29 @@ user reload must be equivalent to .reload()
   are the ones that must be used when determining the character
   encoding according to the rules given in the above
   specifications.</p>
+
+  <p>If the root element, as parsed according to the XML
+  specifications cited above, is found to be an <code>html</code>
+  element with an attribute <code
+  title="attr-html-application">application</code>, then, as soon as
+  the element is inserted into the DOM, the user agent must run the
+  <span title="concept-appcache-init-with-attribute">application cache
+  selection algorithm</span> with the value of that attribute as the
+  manifest URI. Otherwise, as soon as the root element is inserted
+  into the DOM, the user agent must run the <span
+  title="concept-appcache-init-no-attribute">application cache
+  selection algorithm</span> with no manifest.</p>
+
+  <p class="note">Because the processing of the <code
+  title="attr-html-application">application</code> attribute happens
+  only once the root element is parsed, any URIs referenced by
+  processing instructions before the root element (such as <code
+  title="">&lt;?xml-styleesheet?></code> and <code
+  title="">&lt;?xbl?></code> PIs) will be fetched from the network and
+  cannot be cached.</p> <!-- XXX any ideas for avoiding this, that
+  aren't a PI themselves? We can't delay the processing, since the
+  whole point of the <?xbl?> PI is to have the XBL sheet loaded before
+  the root element... -->
 
   <p>User agents may examine the namespace of the root
   <code>Element</code> node of this <code>Document</code> object to
@@ -24232,8 +25782,13 @@ user reload must be equivalent to .reload()
   subsequent versions thereof. <a href="#refsRFC2046">[RFC2046]</a> <a
   href="#refsRFC2046">[RFC2646]</a></p>
 
+  <p>Upon creation of the <code>Document</code> object, the user agent
+  must run the <span
+  title="concept-appcache-init-no-attribute">application cache
+  selection algorithm</span> with no manifest.</p>
+
   <!-- next two paragraphs are nearly identical to the navigate-html
-  section and similar to the "non-DOM-inline-content" section, and the
+  section and similar to the "navigate-ua-inline" section, and the
   next three are similar to the navigate-image and navigate-plugin
   sections; keep them all in sync -->
 
@@ -24269,6 +25824,11 @@ user reload must be equivalent to .reload()
   <p>Then, the user agent must act as if it had <span title="stop
   parsing">stopped parsing</span>.</p>
 
+  <p>Upon creation of the <code>Document</code> object, the user agent
+  must run the <span
+  title="concept-appcache-init-no-attribute">application cache
+  selection algorithm</span> with no manifest.</p>
+
   <p>After creating the <code>Document</code> object, but potentially
   before the page has finished fully loading, the user agent must
   <span>update the session history with the new page</span>.</p>
@@ -24298,6 +25858,11 @@ user reload must be equivalent to .reload()
   <p>Then, the user agent must act as if it had <span title="stop
   parsing">stopped parsing</span>.</p>
 
+  <p>Upon creation of the <code>Document</code> object, the user agent
+  must run the <span
+  title="concept-appcache-init-no-attribute">application cache
+  selection algorithm</span> with no manifest.</p>
+
   <p>After creating the <code>Document</code> object, but potentially
   before the page has finished fully loading, the user agent must
   <span>update the session history with the new page</span>.</p>
@@ -24308,22 +25873,27 @@ user reload must be equivalent to .reload()
   the document a <code>title</code>.</p>
 
 
-  <h4 id="non-DOM-inline-content">Page load processing model for inline content that doesn't have a DOM</h4>
+  <h4 id="read-ua-inline"><dfn title="navigate-ua-inline">Page load processing model for inline content that doesn't have a DOM</dfn></h4>
 
-  <p>When the user agent is to <dfn>display a user agent page
-  inline</dfn> in a <span>browsing context</span>, the user agent
-  should create a <code>Document</code> object, mark it as being an
-  <span title="HTML documents">HTML document</span>, and then either
-  associate that <code>Document</code> with a custom rendering that is
-  not rendered using the normal <code>Document</code> rendering rules,
-  or mutate that <code>Document</code> until it represents the content
-  the user agent wants to render.</p>
+  <p>When the user agent is to display a user agent page inline in a
+  <span>browsing context</span>, the user agent should create a
+  <code>Document</code> object, mark it as being an <span title="HTML
+  documents">HTML document</span>, and then either associate that
+  <code>Document</code> with a custom rendering that is not rendered
+  using the normal <code>Document</code> rendering rules, or mutate
+  that <code>Document</code> until it represents the content the user
+  agent wants to render.</p>
 
   <!-- next two paragraphs are similar to the navigate-text section,
   keep them in sync -->
 
   <p>Once the page has been set up, the user agent must act as if it
   had <span title="stop parsing">stopped parsing</span>.</p>
+
+  <p>Upon creation of the <code>Document</code> object, the user agent
+  must run the <span
+  title="concept-appcache-init-no-attribute">application cache
+  selection algorithm</span> with no manifest.</p>
 
   <p>After creating the <code>Document</code> object, but potentially
   before the page has been completely set up, the user agent must
@@ -25190,9 +26760,10 @@ interface <dfn>Storage</dfn> {
 
   <p>The <dfn title="dom-Storage-key"><code>key(<var
   title="">n</var>)</code></dfn> method must return the name of the
-  <var title="">n</var>th <span>accessible</span> key in the list. The
-  order of keys is user-agent defined, but must be consistent within
-  an object between changes to the number of keys. (Thus, <span
+  <var title="">n</var>th <span title="accessible
+  keys">accessible</span> key in the list. The order of keys is
+  user-agent defined, but must be consistent within an object between
+  changes to the number of keys. (Thus, <span
   title="dom-Storage-setItem">adding</span> or <span
   title="dom-Storage-removeItem">removing</span> a key may change the
   order of the keys, but merely changing the value of an existing key
@@ -25208,12 +26779,13 @@ interface <dfn>Storage</dfn> {
   <code>StorageItem</code> object representing the key/value pair with
   the given <var title="">key</var>. If the given <var
   title="">key</var> does not exist in the list associated with the
-  object, or is not <span>accessible</span>, then this method must
-  return null. Subsequent calls to this method with the same key from
-  scripts running in the same <span>security context</span> must
-  return the same instance of the <code>StorageItem</code>
-  interface. (Such instances must not be shared across security
-  contexts, though.)</p> <!-- XXX define security context -->
+  object, or is not <span title="accessible keys">accessible</span>,
+  then this method must return null. Subsequent calls to this method
+  with the same key from scripts running in the same <span>security
+  context</span> must return the same instance of the
+  <code>StorageItem</code> interface. (Such instances must not be
+  shared across security contexts, though.)</p> <!-- XXX define
+  security context -->
 
   <p>The <dfn title="dom-Storage-setItem"><code>setItem(<var
   title="">key</var>, <var title="">value</var>)</code></dfn> method
@@ -25233,12 +26805,13 @@ interface <dfn>Storage</dfn> {
 
   <p>If the given <var title="">key</var> <em>does</em> exist in the
   list, then, if the key/value pair with the given <var
-  title="">key</var> is <span>accessible</span>, it must have its
-  value updated so that any current or future <code>StorageItem</code>
-  objects referring to this key/value pair will return the value given
-  in the <var title="">value</var> argument. If it is <em>not</em>
-  <span>accessible</span>, the method must raise a <span>security
-  exception</span>.</p>
+  title="">key</var> is <span title="accessible
+  keys">accessible</span>, it must have its value updated so that any
+  current or future <code>StorageItem</code> objects referring to this
+  key/value pair will return the value given in the <var
+  title="">value</var> argument. If it is <em>not</em> <span
+  title="accessible keys">accessible</span>, the method must raise a
+  <span>security exception</span>.</p>
 
   <p>When the <code title="dom-Storage-setItem">setItem()</code>
   method is successfully invoked (i.e. when it doesn't raise an
@@ -25253,11 +26826,11 @@ interface <dfn>Storage</dfn> {
   <p>The <dfn title="dom-Storage-removeItem"><code>removeItem(<var
   title="">key</var>)</code></dfn> method must cause the key/value
   pair with the given <var title="">key</var> to be removed from the
-  list associated with the object, if it exists and is
-  <span>accessible</span>. If no item with that key exists, the method
-  must do nothing. If an item with that key exists but is not
-  <span>accessible</span>, the method must raise a <span>security
-  exception</span>.</p>
+  list associated with the object, if it exists and is <span
+  title="accessible keys">accessible</span>. If no item with that key
+  exists, the method must do nothing. If an item with that key exists
+  but is not <span title="accessible keys">accessible</span>, the
+  method must raise a <span>security exception</span>.</p>
 
   <p>The <code title="dom-Storage-setItem">setItem()</code> and <code
   title="dom-Storage-removeItem">removeItem()</code> methods must be
@@ -25266,13 +26839,13 @@ interface <dfn>Storage</dfn> {
   changed at all.</p>
 
   <p>In the ECMAScript DOM binding, enumerating a <code>Storage</code>
-  object must enumerate through the currently stored and
-  <span>accessible</span> keys in the list the object is associated
-  with. (It must not enumerate the values or the actual members of the
-  interface). In the ECMAScript DOM binding, <code>Storage</code>
-  objects must support dereferencing such that getting a property that
-  is not a member of the object (i.e. is neither a member of the
-  <code>Storage</code> interface nor of <code
+  object must enumerate through the currently stored and <span
+  title="accessible keys">accessible</span> keys in the list the
+  object is associated with. (It must not enumerate the values or the
+  actual members of the interface). In the ECMAScript DOM binding,
+  <code>Storage</code> objects must support dereferencing such that
+  getting a property that is not a member of the object (i.e. is
+  neither a member of the <code>Storage</code> interface nor of <code
   title="dom-Object">Object</code>) must invoke the <code
   title="dom-Storage-getItem">getItem()</code> method with the
   property's name as the argument, and setting such a property must
@@ -27558,10 +29131,9 @@ at the first element with the given ID must be treated as if it was cloned and r
   value of <var title="">output</var>.</p>
 
   <p>The rules for parsing and constructing URIs are described in RFC
-  3986 and RFC 3987, as modified by RFC 2732. <a
+  3986 and RFC 3987. <a
   href="#refsRFC3986">[RFC3986]</a> <a
-  href="#refsRFC3987">[RFC3987]</a> <a
-  href="#refsRFC2732">[RFC2732]</a></p>
+  href="#refsRFC3987">[RFC3987]</a></p>
 
   <table>
    <thead>      
@@ -27584,7 +29156,7 @@ at the first element with the given ID must be treated as if it was cloned and r
      <td>The new value is not the empty string
     <tr>
      <td><dfn title="dom-uda-host"><code>host</code></dfn>
-     <td>&lt;hostport&gt;
+     <td><span>&lt;hostport&gt;</span>
      <td><span title="concept-uda-input">input</span> is hierarchical and uses a server-based naming authority
      <td>&mdash;
      <td>&mdash;
@@ -27592,7 +29164,7 @@ at the first element with the given ID must be treated as if it was cloned and r
      <td>&mdash;
     <tr>
      <td><dfn title="dom-uda-hostname"><code>hostname</code></dfn>
-     <td>&lt;host&gt;
+     <td>&lt;host&gt;/&lt;ihost&gt;
      <td><span title="concept-uda-input">input</span> is hierarchical and uses a server-based naming authority
      <td>&mdash;
      <td>&mdash;
@@ -27632,6 +29204,11 @@ at the first element with the given ID must be treated as if it was cloned and r
      <td>&mdash;
   </table>
 
+  <p>The <dfn>&lt;hostport&gt;</dfn> component is defined as being the
+  &lt;host&gt;/&lt;ihost&gt; component, followed by a colon and the
+  &lt;port&gt; component, but with the colon and &lt;port&gt;
+  component omitted if the given port matches the default port for the
+  protocol given by the &lt;scheme&gt; component.</p>
 
 <!--
   http://www.hixie.ch/tests/adhoc/dom/level0/location/components/
@@ -34585,6 +36162,15 @@ function receiver(e) {
    <dt>An end tag token</dt>
    <dt>An end-of-file token</dt>
    <dd>
+
+    <p id="parser-appcache">If the token is a start tag token with the
+    tag name "html", and it has an attribute "application", then run
+    the <span title="concept-appcache-init-with-attribute">application
+    cache selection algorithm</span> with the value of that attribute
+    as the manifest URI. Otherwise, run the <span
+    title="concept-appcache-init-no-attribute">application cache
+    selection algorithm</span> with no manifest.</p>
+
     <p>Create an <code>HTMLElement</code> node with the tag name
     <code>html</code>, in the <span>HTML namespace</span>. Append it
     to the <code>Document</code> object. Switch to <span>the main
