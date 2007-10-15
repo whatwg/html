@@ -22,7 +22,7 @@
 
    <h1 id=html-5>HTML 5</h1>
 
-   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 13 October 2007</h2>
+   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 15 October 2007</h2>
 
    <p>You can take part in this work. <a
     href="http://www.whatwg.org/mailing-list">Join the working group's
@@ -30247,7 +30247,7 @@ interface <dfn id=storageitem>StorageItem</dfn> {
   bool <a href="#changeversion" title=dom-database-changeVersion>changeVersion</a>(in DOMString oldVersion, in DOMString newVersion);
   void <a href="#executesql" title=dom-database-executeSql>executeSql</a>(in DOMString sqlStatement, <var title="">arguments...</var>, in <a href="#sqlcallback">SQLCallback</a> callback);<!--
   void <span title="dom-database-executeSql">executeSql</span>(in Array sqlStatements, in <span>SQLCallback</span> callback); // XXX add this in v2 -->
-  void <a href="#closetransaction" title=dom-database-closeTransaction>closeTransaction</a>(); // only needed as part of error recovery
+  void <a href="#closetransaction" title=dom-database-closeTransaction>closeTransaction</a>();
 };
 
 interface <dfn id=sqlcallback>SQLCallback</dfn> {
@@ -30290,7 +30290,10 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
    title=dom-database-executeSql><code>executeSql(<var
    title="">sqlStatement</var>, <var title="">arguments...</var>, <var
    title="">callback</var>)</code></dfn> method is invoked, the user agent
-   must run the following algorithm:
+   must run the following algorithm. Each <code><a
+   href="#database0">Database</a></code> object has a <dfn id=record>record
+   of the active callback's transaction</dfn>, which is normally null, but
+   gets set while a callback is being invoked during this algorithm.
 
   <ol>
    <li>
@@ -30316,13 +30319,16 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
      exception and abort these steps.</p>
 
    <li>
-    <p>If there is an active thread-global transaction, then let <var
+    <p>If the <a href="#record">record of the active callback's
+     transaction</a> of the <code><a href="#database0">Database</a></code>
+     object on which the method was invoked is not null, then let <var
      title="">transaction</var> be that transaction. Otherwise, let begin a
      new transaction and let <var title="">transaction</var> be that
      transaction.</p>
 
-    <p class=note>There is only an "active thread-global transaction" while a
-     callback for <code title=dom-database-executeSql><a
+    <p class=note>The <a href="#record">record of the active callback's
+     transaction</a> can only be non-null while a callback for <code
+     title=dom-database-executeSql><a
      href="#executesql">executeSql()</a></code> is executing.</p>
     <!-- XXX we want a reading lock until such time as a write
     operation is attempted, at which point we want a writing lock. -->
@@ -30356,16 +30362,17 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
      title="">transaction</var> must be rolled back and marked as "bad".
 
    <li>
-    <p>The <var title="">transaction</var> must be set as the active
-     thread-global transaction.
+    <p>Let the <a href="#record">record of the active callback's
+     transaction</a> be set to <var title="">transaction</var>.
 
    <li>
-    <p>The <var title="">callback</var> must be invoked with <var
-     title="">result</var> as the argument.
+    <p>Once no other scripts are executing in the <a href="#unit-of">unit of
+     related browsing contexts</a>, the <var title="">callback</var> must be
+     invoked with <var title="">result</var> as the argument.
 
    <li>
-    <p>The active thread-global transaction must be removed again (if it is
-     still active).
+    <p>Let the <a href="#record">record of the active callback's
+     transaction</a> be set to null.
 
    <li>
     <p>If the callback raised an exception and <var
@@ -30383,8 +30390,10 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
    method may be called while in a callback called by the <code
    title=dom-database-executeSql><a
    href="#executesql">executeSql()</a></code> method. When the method is
-   invoked, it must clear any active thread-global transaction, such that the
-   next invocation of <code title=dom-database-executeSql><a
+   invoked, it must set the <code><a href="#database0">Database</a></code>
+   object's <a href="#record">record of the active callback's transaction</a>
+   to null, such that the next invocation of <code
+   title=dom-database-executeSql><a
    href="#executesql">executeSql()</a></code>, even if it is called from
    within an <code title=dom-database-executeSql><a
    href="#executesql">executeSql()</a></code> callback, will create a new
@@ -30393,8 +30402,8 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
   <p class=note>This is needed if the previous statement in the current
    transaction failed, as otherwise the <code
    title=dom-database-executeSql><a
-   href="#executesql">executeSql()</a></code> method would raise an
-   exception.
+   href="#executesql">executeSql()</a></code> method would raise an exception
+   upon discovering the "bad" transaction.
 
   <p>The user agent must act as if the database was hosted in an otherwise
    completely empty environment with no resources. For example, attempts to

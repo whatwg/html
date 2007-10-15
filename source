@@ -27839,7 +27839,7 @@ interface <dfn>StorageItem</dfn> {
   bool <span title="dom-database-changeVersion">changeVersion</span>(in DOMString oldVersion, in DOMString newVersion);
   void <span title="dom-database-executeSql">executeSql</span>(in DOMString sqlStatement, <var title="">arguments...</var>, in <span>SQLCallback</span> callback);<!--
   void <span title="dom-database-executeSql">executeSql</span>(in Array sqlStatements, in <span>SQLCallback</span> callback); // XXX add this in v2 -->
-  void <span title="dom-database-closeTransaction">closeTransaction</span>(); // only needed as part of error recovery
+  void <span title="dom-database-closeTransaction">closeTransaction</span>();
 };
 
 interface <dfn>SQLCallback</dfn> {
@@ -27883,7 +27883,11 @@ interface <dfn>SQLCallback</dfn> {
   title="dom-database-executeSql"><code>executeSql(<var
   title="">sqlStatement</var>, <var title="">arguments...</var>, <var
   title="">callback</var>)</code></dfn> method is invoked, the user
-  agent must run the following algorithm:</p>
+  agent must run the following algorithm. Each <code>Database</code>
+  object has a <dfn>record of the active callback's transaction</dfn>,
+  which is normally null, but gets set while a callback is being
+  invoked during this algorithm.</p>
+
 
   <ol>
 
@@ -27915,13 +27919,14 @@ interface <dfn>SQLCallback</dfn> {
 
    <li>
 
-    <p>If there is an active thread-global transaction, then let <var
-    title="">transaction</var> be that transaction. Otherwise, let
-    begin a new transaction and let <var title="">transaction</var> be
-    that transaction.</p>
+    <p>If the <span>record of the active callback's transaction</span>
+    of the <code>Database</code> object on which the method was
+    invoked is not null, then let <var title="">transaction</var> be
+    that transaction. Otherwise, let begin a new transaction and let
+    <var title="">transaction</var> be that transaction.</p>
 
-    <p class="note">There is only an "active thread-global
-    transaction" while a callback for <code
+    <p class="note">The <span>record of the active callback's
+    transaction</span> can only be non-null while a callback for <code
     title="dom-database-executeSql">executeSql()</code> is
     executing.</p>
 
@@ -27959,14 +27964,17 @@ interface <dfn>SQLCallback</dfn> {
    title="">transaction</var> must be rolled back and marked as
    "bad".</p></li>
 
-   <li><p>The <var title="">transaction</var> must be set as the
-   active thread-global transaction.</p></li>
+   <li><p>Let the <span>record of the active callback's
+   transaction</span> be set to <var
+   title="">transaction</var>.</p></li>
 
-   <li><p>The <var title="">callback</var> must be invoked with <var
-   title="">result</var> as the argument.</p></li>
+   <li><p>Once no other scripts are executing in the <span>unit of
+   related browsing contexts</span>, the <var title="">callback</var>
+   must be invoked with <var title="">result</var> as the
+   argument.</p></li>
 
-   <li><p>The active thread-global transaction must be removed again
-   (if it is still active).</p></li>
+   <li><p>Let the <span>record of the active callback's
+   transaction</span> be set to null.</p></li>
 
    <li><p>If the callback raised an exception and <var
    title="">transaction</var> is not marked as "bad", then <var
@@ -27983,8 +27991,9 @@ interface <dfn>SQLCallback</dfn> {
   title="dom-database-closeTransaction"><code>closeTransaction()</code></dfn>
   method may be called while in a callback called by the <code
   title="dom-database-executeSql">executeSql()</code> method. When the
-  method is invoked, it must clear any active thread-global
-  transaction, such that the next invocation of <code
+  method is invoked, it must set the <code>Database</code> object's
+  <span>record of the active callback's transaction</span> to null,
+  such that the next invocation of <code
   title="dom-database-executeSql">executeSql()</code>, even if it is
   called from within an <code
   title="dom-database-executeSql">executeSql()</code> callback, will
@@ -27993,7 +28002,7 @@ interface <dfn>SQLCallback</dfn> {
   <p class="note">This is needed if the previous statement in the
   current transaction failed, as otherwise the <code
   title="dom-database-executeSql">executeSql()</code> method would
-  raise an exception.</p>
+  raise an exception upon discovering the "bad" transaction.</p>
 
 
   <p>The user agent must act as if the database was hosted in an
