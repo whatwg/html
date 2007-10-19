@@ -948,7 +948,7 @@
   <span>HTMLDocument</span> <span title="dom-document-open">open</span>(in DOMString type);
   <span>HTMLDocument</span> <span title="dom-document-open">open</span>(in DOMString type, in DOMString replace);
   <span>Window</span> <span title="dom-document-open">open</span>(in DOMString url, in DOMString name, in DOMString features);
-  <span>Window</span> <span title="dom-document-open">open</span>(in DOMString url, in DOMString name, in DOMString features, in bool replace);
+  <span>Window</span> <span title="dom-document-open">open</span>(in DOMString url, in DOMString name, in DOMString features, in boolean replace);
   void <span title="dom-document-close">close</span>();
   void <span title="dom-document-write">write</span>(in DOMString text);
   void <span title="dom-document-writeln">writeln</span>(in DOMString text);
@@ -11231,9 +11231,11 @@ The island of Shalott.&lt;/p></pre>
   pixels. The <dfn
   title="dom-video-videoHeight"><code>videoHeight</code></dfn> DOM
   attribute must return the native height of the video in CSS
-  pixels. In the absence of resolution information, user agents may
-  assume that one pixel in the video corresponds to one CSS pixel. If
-  no video data is available, then the attributes must return 0.</p>
+  pixels. In the absence of resolution information defining the
+  mapping of pixels in the video to physical dimensions, user agents
+  may assume that one pixel in the video corresponds to one CSS
+  pixel. If no video data is available, then the attributes must
+  return 0.</p>
 
   <p>When no video data is available (the element's <code
   title="dom-media-networkState">networkState</code> attribute is
@@ -11262,9 +11264,9 @@ The island of Shalott.&lt;/p></pre>
   last rendered frame of video.</p>
 
   <p>When a <code>video</code> element is neither <span>actively
-  playing</span> nor <span title="dom-media-paused">paused</span>, the
-  element represents the last frame of the video to have been
-  rendered.</p>
+  playing</span> nor <span title="dom-media-paused">paused</span>
+  (e.g. when seeking or stalled), the element represents the last
+  frame of the video to have been rendered.</p>
 
   <p class="note">Which frame in a video stream corresponds to a
   particular playback position is defined by the video stream's
@@ -11469,7 +11471,7 @@ The island of Shalott.&lt;/p></pre>
   // playback state
            attribute float <span title="dom-media-currentTime">currentTime</span>;
   readonly attribute float <span title="dom-media-duration">duration</span>;
-  readonly attribute unsigned short <span title="dom-media-paused">paused</span>;
+  readonly attribute boolean <span title="dom-media-paused">paused</span>;
            attribute float <span title="dom-media-defaultPlaybackRate">defaultPlaybackRate</span>;
            attribute float <span title="dom-media-playbackRate">playbackRate</span>;
   readonly attribute <span>TimeRanges</span> <span title="dom-media-played">played</span>;
@@ -11488,7 +11490,7 @@ The island of Shalott.&lt;/p></pre>
            attribute unsigned long <span title="dom-media-currentLoop">currentLoop</span>;
 
   // cue points
-  void <span title="dom-media-addCuePoint">addCuePoint</span>(in float time, in <span>VoidCallback</span> callback, in bool pause);
+  void <span title="dom-media-addCuePoint">addCuePoint</span>(in float time, in <span>VoidCallback</span> callback, in boolean pause);
   void <span title="dom-media-removeCuePoint">removeCuePoint</span>(in float time, in <span>VoidCallback</span> callback);
 
   // controls
@@ -11688,6 +11690,11 @@ The island of Shalott.&lt;/p></pre>
 
   </ol>
 
+  <p class="note">A <code>source</code> element with no <code
+  title="attr-source-src">src</code> attribute is assumed to be the
+  last <code>source</code> element &mdash; any <code>source</code>
+  elements after it are ignored (and are invalid).</p>
+
   <p>The <dfn
   title="dom-media-currentSrc"><code>currentSrc</code></dfn> DOM
   attribute must return the empty string if the <span>media
@@ -11781,9 +11788,9 @@ The island of Shalott.&lt;/p></pre>
    <span>media element</span>.</p></li>
 
    <li><p>The <code title="dom-media-error">error</code> attribute
-   must be set to null, and the <span>loaded-first-frame flag</span>
-   and <span>loaded-enough-to-play-through flag</span> must be both
-   set to false.</p></li>
+   must be set to null, the <span>loaded-first-frame flag</span> must
+   be set to false, and the <span>autoplaying flag</span> must be set
+   to true.</p></li>
 
    <li><p>The <code title="dom-media-playbackRate">playbackRate</code>
    attribute must be set to the value of the <code
@@ -12019,7 +12026,11 @@ The island of Shalott.&lt;/p></pre>
        must be switched to the <span
        title="dom-media-EMPTY">EMPTY</span> value and the user agent
        must <span>fire a simple event</span> called <code
-       title="event-emptied">emptied</code> at the element.</li>
+       title="event-emptied">emptied</code> at the element. (If the
+       <code title="dom-media-networkState">networkState</code>
+       attribute has a value greater than <code
+       title="dom-media-LOADING">LOADING</code>, then this doesn't
+       happen; the available data, if any, will be playable.)</li>
 
        <li>These steps must be aborted.</li>
 
@@ -12087,8 +12098,8 @@ The island of Shalott.&lt;/p></pre>
 
      <dt id="handling-first-frame-available">Once enough of the
      <span>media data</span> has been downloaded to enable the user
-     agent to display the first frame of the <span>media
-     resource</span></dt>
+     agent to display the frame at the <span>effective start</span> of
+     the <span>media resource</span></dt>
 
      <dd>
 
@@ -12131,9 +12142,11 @@ The island of Shalott.&lt;/p></pre>
    </li>
 
    <li><p>If the download completes without errors, the <span>begun
-   flag</span> must be set to false and the user agent must <span>fire
-   a progress event</span> called <code title="event-load">load</code>
-   at the element.</p></li>
+   flag</span> must be set to false, the <code
+   title="dom-media-networkState">networkState</code> attribute must
+   be set to <code title="dom-media-LOADED">LOADED</code>, and the
+   user agent must <span>fire a progress event</span> called <code
+   title="event-load">load</code> at the element.</p></li>
 
   </ol>
 
@@ -12201,12 +12214,16 @@ The island of Shalott.&lt;/p></pre>
   title="dom-media-currentTime"><code>currentTime</code></dfn>
   attribute must, on getting, return the <span>current playback
   position</span>, expressed in seconds. On setting, the user agent
-  must <span title="dom-media-seek">seek</span> to the new value.</p>
+  must <span title="dom-media-seek">seek</span> to the new value
+  (which might raise an exception).</p>
 
   <p>The <dfn title="attr-media-start"><code>start</code></dfn>
   content attribute gives the offset into the <span>media
   resource</span> at which playback is to begin. The default value is
-  0.</p>
+  the default start position of the <span>media resource</span>, or 0
+  if not enough <span>media data</span> has been obtained yet to
+  determine the default start position or if the resource doesn't
+  specify a default start position.</p>
 
   <p>The <dfn><var>effective start</var></dfn> is the smaller of the
   <code title="dom-media-start">start</code> DOM attribute and the end
@@ -12222,7 +12239,7 @@ The island of Shalott.&lt;/p></pre>
 
   <p>The <dfn><var>effective loop start</var></dfn> is the smaller of
   the <code title="dom-media-loopStart">loopStart</code> DOM attribute
-  and the end of the <span>media resource</span>.<p></li>
+  and the end of the <span>media resource</span>.<p>
 
   <p>The <dfn title="attr-media-loopend"><code>loopend</code></dfn>
   content attribute gives an offset into the <span>media
@@ -12236,8 +12253,9 @@ The island of Shalott.&lt;/p></pre>
   <p>The <dfn><var>effective loop end</var></dfn> is the greater of
   the <code title="dom-media-start">start</code>, <code
   title="dom-media-loopStart">loopStart</code>, and <code
-  title="dom-media-loopEnd">loopEnd</code> DOM attributes, and the end
-  of the <span>media resource</span>.<p></li>
+  title="dom-media-loopEnd">loopEnd</code> DOM attributes, except if
+  that is greater than the end of the <span>media resource</span>, in
+  which case that's its value.<p>
 
   <p>The <dfn title="attr-media-end"><code>end</code></dfn> content
   attribute gives an offset into the <span>media resource</span> at
@@ -12246,8 +12264,9 @@ The island of Shalott.&lt;/p></pre>
   <p>The <dfn><var>effective end</var></dfn> is the greater of the
   <code title="dom-media-start">start</code>, <code
   title="dom-media-loopStart">loopStart</code>, and <code
-  title="dom-media-loopEnd">end</code> DOM attributes, and the end of
-  the <span>media resource</span>.<p></li>
+  title="dom-media-loopEnd">end</code> DOM attributes, except if that
+  is greater than the end of the <span>media resource</span>, in which
+  case that's its value.<p>
 
   <p>The <code title="attr-media-start">start</code>, <code
   title="attr-media-loopstart">loopstart</code>, <code
@@ -12331,7 +12350,7 @@ The island of Shalott.&lt;/p></pre>
    <var>effective loop end</var>, the user agent must <span
    title="dom-media-seek">seek</span> to the <var>effective loop
    start</var>, and increase <code
-   title="dom-media-loopCount">loopCount</code> by 1.</p></li>
+   title="dom-media-currentLoop">currentLoop</code> by 1.</p></li>
 
    <li><p>If the <code
    title="dom-media-currentLoop">currentLoop</code> is equal to
@@ -12466,6 +12485,23 @@ The island of Shalott.&lt;/p></pre>
 
   </dl>
 
+  <p class="note">It is possible for the ready state of a media
+  element to jump between these states discontinuously. For example,
+  the state of a media element whose <span>leaded-first-frame
+  flag</span> is false can jump straight from <code
+  title="dom-media-DATA_UNAVAILABLE">DATA_UNAVAILABLE</code> to <code
+  title="dom-media-CAN_PLAY_THROUGH">CAN_PLAY_THROUGH</code> without
+  passing through the <code
+  title="dom-media-CAN_SHOW_CURRENT_FRAME">CAN_SHOW_CURRENT_FRAME</code>
+  and <code title="dom-media-CAN_PLAY">CAN_PLAY</code> states, and
+  thus without firing the <code
+  title="event-canshowcurrentframe">canshowcurrentframe</code> and
+  <code title="event-canplay">canplay</code> events. The only state
+  that is guarenteed to be reached is the <code
+  title="dom-media-CAN_SHOW_CURRENT_FRAME">CAN_SHOW_CURRENT_FRAME</code>
+  state, which is reached as part of the <code
+  title="dom-media-load">load()</code> method's processing.</p>
+
   <p>The <dfn
   title="dom-media-readyState"><code>readyState</code></dfn> DOM
   attribute must, on getting, return the value described above that
@@ -12586,7 +12622,7 @@ The island of Shalott.&lt;/p></pre>
   loop end</var>, then the user agent must <span
   title="dom-media-seek">seek</span> to the <var>effective loop
   start</var>, increase <code
-  title="dom-media-loopCount">loopCount</code> by 1, and
+  title="dom-media-currentLoop">currentLoop</code> by 1, and
   <span>fire a simple event</span> called <code
   title="event-timeupdate">timeupdate</code>.</p>
 
@@ -12600,8 +12636,8 @@ The island of Shalott.&lt;/p></pre>
 
    <li><p>The user agent must stop playback.</p></li>
 
-   <li><p>The <code title="dom-media-ended">ended</code> attribute
-   becomes true, as described below.</p></li>
+   <li><p class="note">The <code title="dom-media-ended">ended</code>
+   attribute becomes true.</p></li>
 
    <li><p>The user agent must <span>fire a simple event</span> called
    <code title="event-timeupdate">timeupdate</code> at the
@@ -12657,9 +12693,9 @@ The island of Shalott.&lt;/p></pre>
    <li><p>If the <span>media element</span>'s <code
    title="dom-media-networkState">networkState</code> attribute has
    the value <span title="dom-media-EMPTY">EMPTY</span>, then the user
-   agent must synchronously invoke the <code
-   title="dom-media-load">load()</code> method. If that raises an
-   exception, that exception must be reraised by the <code
+   agent must invoke the <code title="dom-media-load">load()</code>
+   method and wait for it to return. If that raises an exception, that
+   exception must be reraised by the <code
    title="dom-media-play">play()</code> method.</p></li>
 
    <li><p>If the <span title="ended playback">playback has
@@ -12711,9 +12747,9 @@ The island of Shalott.&lt;/p></pre>
    <li><p>If the <span>media element</span>'s <code
    title="dom-media-networkState">networkState</code> attribute has
    the value <span title="dom-media-EMPTY">EMPTY</span>, then the user
-   agent must sychronously invoke the <code
-   title="dom-media-load">load()</code> method. If that raises an
-   exception, that exception must be reraised by the <code
+   agent must invoke the <code title="dom-media-load">load()</code>
+   method and wait for it to return. If that raises an exception, that
+   exception must be reraised by the <code
    title="dom-media-play">pause()</code> method.</p></li>
 
    <li><p>If the <span>media element</span>'s <code
@@ -12824,11 +12860,13 @@ The island of Shalott.&lt;/p></pre>
   title="dom-media-seekable">seeking</code> attribute).</p>
 
   <p class="note">If the user agent can seek to anywhere in the
-  <span>media resource</span>, e.g. because the user agent and the
-  server support HTTP Range requests, then the attribute would return
-  an object with one range, whose start is 0, and whose end is the
-  same as the <code title="dom-media-duration">duration</code>
-  attribute's value.</p>
+  <span>media resource</span>, e.g. because it a simple movie file and
+  the user agent and the server support HTTP Range requests, then the
+  attribute would return an object with one range, whose start is the
+  time of the first frame (typically zero), and whose end is the same
+  as the time of the first frame plus the <code
+  title="dom-media-duration">duration</code> attribute's value (which
+  would equal the time of the last frame).</p>
 
 
 
@@ -13006,6 +13044,10 @@ The island of Shalott.&lt;/p></pre>
   the object, in seconds measured from the start of the timeline that
   the object covers.</p>
 
+  <p>These methods must raise <code>INDEX_SIZE_ERR</code> exceptions
+  if called with an <var title="">index</var> argument greater than or
+  equal to the number of ranges represented by the object.</p>
+
   <p>When a <code>TimeRanges</code> object is said to be a
   <dfn>normalised <code>TimeRanges</code> object</dfn>, the ranges it
   represents must obey the following criteria:</p>
@@ -13128,17 +13170,17 @@ The island of Shalott.&lt;/p></pre>
      <td><dfn title="event-canshowcurrentframe"><code>canshowcurrentframe</code></dfn>
      <td><code>Event</code>
      <td>The user agent cannot render the data after the <span>current playback position</span> because data for the next frame is not immediately available.
-     <td>The <code title="dom-media-readyState">readyState</code> attribute is newly equal to <code title="CAN_SHOW_CURRENT_FRAME">CAN_SHOW_CURRENT_FRAME</code>.
+     <td>The <code title="dom-media-readyState">readyState</code> attribute is newly equal to <code title="dom-media-CAN_SHOW_CURRENT_FRAME">CAN_SHOW_CURRENT_FRAME</code>.
     <tr>
      <td><dfn title="event-canplay"><code>canplay</code></dfn>
      <td><code>Event</code>
      <td>The user agent can resume playback of the <span>media data</span>, but estimates that if playback were to be started now, the <span>media resource</span> could not be rendered at the current playback rate up to its end without having to stop for further buffering of content.
-     <td>The <code title="dom-media-readyState">readyState</code> attribute is newly equal to <code title="CAN_PLAY">CAN_PLAY</code>.
+     <td>The <code title="dom-media-readyState">readyState</code> attribute is newly equal to <code title="dom-media-CAN_PLAY">CAN_PLAY</code>.
     <tr>
      <td><dfn title="event-canplaythrough"><code>canplaythrough</code></dfn>
      <td><code>Event</code>
      <td>The user agent estimates that if playback were to be started now, the <span>media resource</span> could be rendered at the current playback rate all the way to its end without having to stop for further buffering.
-     <td>The <code title="dom-media-readyState">readyState</code> attribute is newly equal to <code title="CAN_PLAY_THROUGH">CAN_PLAY_THROUGH</code>.
+     <td>The <code title="dom-media-readyState">readyState</code> attribute is newly equal to <code title="dom-media-CAN_PLAY_THROUGH">CAN_PLAY_THROUGH</code>.
     <tr>
      <td><dfn title="event-ratehange"><code>ratechange</code></dfn>
      <td><code>Event</code>
@@ -27933,7 +27975,7 @@ interface <dfn>Database</dfn> {
 };
 
 interface <dfn>VersionChangeCallback</dfn> {
-  void <span title="dom-versionchangecallback-handleEvent">handleEvent</span>(in bool versionChanged);
+  void <span title="dom-versionchangecallback-handleEvent">handleEvent</span>(in boolean versionChanged);
 };
 
 interface <dfn>SQLCallback</dfn> {
@@ -40797,11 +40839,11 @@ interface <dfn>TimeoutHandler</dfn> {
   <p>Thanks to Aankhen, Aaron Boodman, Aaron Leventhal, Adam Roben,
   Adrian Sutton, Agust&iacute;n Fern&aacute;ndez, Alexey Feldgendler,
   Andrew Gove, Andrew Sidwell, Anne van Kesteren, Anthony Hickson,
-  Asbj&oslash;rn Ulsberg, Ben Godfrey, Ben Meadowcroft, Benjamin
-  Hawkes-Lewis, Bert Bos, Bjoern Hoehrmann, Boris Zbarsky, Brad Fults,
-  Brad Neuberg, Brady Eidson, Brendan Eich, Brett Wilson, Brian
-  Campbell, Carlos Perell&oacute; Mar&iacute;n, Chao Cai,
-  &#xc724;&#xc11d;&#xcc2c; (Channy Yun), Charl van
+  Antti Koivisto, Asbj&oslash;rn Ulsberg, Ben Godfrey, Ben
+  Meadowcroft, Benjamin Hawkes-Lewis, Bert Bos, Bjoern Hoehrmann,
+  Boris Zbarsky, Brad Fults, Brad Neuberg, Brady Eidson, Brendan Eich,
+  Brett Wilson, Brian Campbell, Carlos Perell&oacute; Mar&iacute;n,
+  Chao Cai, &#xc724;&#xc11d;&#xcc2c; (Channy Yun), Charl van
   Niekerk<!--status.whatwg.org maintainer-->, Charles Iliya Krempeaux,
   Charles McCathieNevile, Christian Biesinger, Christian Johansen,
   Chriswa, Daniel Peng, Daniel Sp&aring;ng, Darin Alder, Darin Fisher,
