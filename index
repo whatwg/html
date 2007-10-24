@@ -22,7 +22,7 @@
 
    <h1 id=html-5>HTML 5</h1>
 
-   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 23 October 2007</h2>
+   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 24 October 2007</h2>
 
    <p>You can take part in this work. <a
     href="http://www.whatwg.org/mailing-list">Join the working group's
@@ -1214,15 +1214,20 @@
        <li><a href="#database"><span class=secno>4.11.4. </span>Database
         query results</a>
 
-       <li><a href="#privacy"><span class=secno>4.11.5. </span>Privacy</a>
+       <li><a href="#errors"><span class=secno>4.11.5. </span>Errors</a>
 
-       <li><a href="#security6"><span class=secno>4.11.6. </span>Security</a>
+       <li><a href="#processing3"><span class=secno>4.11.6. </span>Processing
+        model</a>
+
+       <li><a href="#privacy"><span class=secno>4.11.7. </span>Privacy</a>
+
+       <li><a href="#security6"><span class=secno>4.11.8. </span>Security</a>
         
         <ul class=toc>
-         <li><a href="#user-agents"><span class=secno>4.11.6.1. </span>User
+         <li><a href="#user-agents"><span class=secno>4.11.8.1. </span>User
           agents</a>
 
-         <li><a href="#sql-injection"><span class=secno>4.11.6.2. </span>SQL
+         <li><a href="#sql-injection"><span class=secno>4.11.8.2. </span>SQL
           injection</a>
         </ul>
       </ul>
@@ -1500,7 +1505,7 @@
      <li><a href="#crossDocumentMessages"><span class=secno>6.4.
       </span>Cross-document messaging</a>
       <ul class=toc>
-       <li><a href="#processing3"><span class=secno>6.4.1. </span>Processing
+       <li><a href="#processing4"><span class=secno>6.4.1. </span>Processing
         model</a>
       </ul>
     </ul>
@@ -24575,7 +24580,12 @@ never reset. This is nice and consistent.)
    events fired by the user agent (e.g. in response to user actions or
    network activity) and the execution of any scripts associated with timers
    must be serialised so that for each <a href="#unit-of">unit of related
-   browsing contexts</a> there is only one script being executed at a time.
+   browsing contexts</a> there is only one script being executed at a time.</p>
+  <!-- XXX queue concept should be made generic across the spec.
+   "Once no other scripts are executing in the <span>unit of
+   related browsing contexts</span>, ..."
+ this applies to anything firing events or calling callbacks
+ asynchronously. -->
 
   <h4 id=browsing><span class=secno>4.1.5. </span>Browsing context names</h4>
 
@@ -30396,7 +30406,7 @@ have a variable and unknownable number of literals coming:
 
   <p>Each <i><a href="#origin0">origin</a></i> has an associated set of
    databases. Each database has a name and a current version. There is no way
-   to enumerate the databases available for a domain.
+   to enumerate or delete the databases available for a domain from this API.
 
   <p>The <dfn id=opendatabase
    title=dom-opendatabase><code>openDatabase()</code></dfn> method returns a
@@ -30426,182 +30436,168 @@ have a variable and unknownable number of literals coming:
    only support a subset of all strings as database names by mapping database
    names (e.g. using a hashing algorithm) to the supported set of names.
 
+  <pre
+   class=idl>typedef sequence&lt;Object> <dfn id=objectarray>ObjectArray</dfn>;
+
+interface <dfn id=database0>Database</dfn> {
+  readonly attribute DOMString <a href="#version" title=dom-database-version>version</a>;
+  void <a href="#changeversion" title=dom-database-changeVersion>changeVersion</a>(in DOMString oldVersion, in DOMString newVersion);
+  void <a href="#changeversion" title=dom-database-changeVersion>changeVersion</a>(in DOMString oldVersion, in DOMString newVersion, in <a href="#sqlversionchangecallback">SQLVersionChangeCallback</a> callback);
+  void <a href="#changeversion" title=dom-database-changeVersion>changeVersion</a>(in DOMString oldVersion, in DOMString newVersion, in <a href="#sqlversionchangecallback">SQLVersionChangeCallback</a> callback, in <span>SQLErrorCallback</span> errorCallback);
+  void <a href="#transaction" title=dom-database-transaction>transaction</a>(in <a href="#sqltransactioncallback">SQLTransactionCallback</a> callback);
+  void <a href="#transaction" title=dom-database-transaction>transaction</a>(in <a href="#sqltransactioncallback">SQLTransactionCallback</a> callback, in <span>SQLErrorCallback</span> errorCallback);
+};
+
+interface <dfn id=sqltransactioncallback>SQLTransactionCallback</dfn> {
+  void <span title=dom-sqltransactioncallback-handleEvent>handleEvent</span>(in <a href="#sqltransaction">SQLTransaction</a> transaction);
+};
+
+interface <dfn id=sqlversionchangecallback>SQLVersionChangeCallback</dfn> {
+  void <span title=dom-sqlversionchangecallback-handleEvent>handleEvent</span>(in <a href="#sqltransaction">SQLTransaction</a> transaction);
+};
+
+interface <dfn id=sqltransactionerrorcallback>SQLTransactionErrorCallback</dfn> {
+  boolean <span title=dom-sqltransactionerrorcallback-handleEvent>handleEvent</span>(in <a href="#sqlerror">SQLError</a> error);
+};</pre>
+
+  <p>The <dfn id=transaction
+   title=dom-database-transaction><code>transaction()</code></dfn> method
+   takes one or two arguments. When called, the method must immediately
+   return and then asynchronously run the <a href="#transaction0">transaction
+   steps</a> with the <i>transaction callback</i> being the first argument,
+   the <i>error callback</i> being the second argument, if any, and with no
+   <i>preflight operation</i> or <i>postflight operation</i>.
+
   <p>The version that the database was opened with is the <dfn id=expected
    title=concept-database-expected-version>expected version</dfn> of this
    <code><a href="#database0">Database</a></code> object. It can be the empty
    string, in which case there is no expected version &mdash; any version is
    fine.
 
-  <pre
-   class=idl>typedef sequence&lt;Object> <dfn id=objectarray>ObjectArray</dfn>;
-
-interface <dfn id=database0>Database</dfn> {
-  readonly attribute DOMString <a href="#version" title=dom-database-version>version</a>;
-  void <a href="#changeversion" title=dom-database-changeVersion>changeVersion</a>(in DOMString oldVersion, in DOMString newVersion, in <a href="#versionchangecallback">VersionChangeCallback</a> callback);
-  void <a href="#executesql" title=dom-database-executeSql>executeSql</a>(in DOMString sqlStatement, in <a href="#objectarray">ObjectArray</a> arguments, in <a href="#sqlcallback">SQLCallback</a> callback);
-  void <a href="#closetransaction" title=dom-database-closeTransaction>closeTransaction</a>();
-};
-
-interface <dfn id=versionchangecallback>VersionChangeCallback</dfn> {
-  void <span title=dom-versionchangecallback-handleEvent>handleEvent</span>(in boolean versionChanged);
-};
-
-interface <dfn id=sqlcallback>SQLCallback</dfn> {
-  void <span title=dom-sqlcallback-handleEvent>handleEvent</span>(in <a href="#sqlresultset">SQLResultSet</a> resultSet);
-};</pre>
-
-  <p>The <dfn id=version
-   title=dom-database-version><code>version</code></dfn> attribute represents
-   the actual version of the database (as opposed to the <a href="#expected"
-   title=concept-database-expected-version>expected version</a>).
-
-  <p>On getting, the attribute must return the current version of the
-   database.
+  <p>On getting, the <dfn id=version
+   title=dom-database-version><code>version</code></dfn> attribute must
+   return the current version of the database (as opposed to the <a
+   href="#expected" title=concept-database-expected-version>expected
+   version</a> of the <code><a href="#database0">Database</a></code> object).
 
   <p>The <dfn id=changeversion
-   title=dom-database-changeVersion>changeVersion()</dfn> method allows you
-   to atomically verify the version number and change it. When the method is
-   invoked, it must immediately return, and then the user agent must obtain a
-   full lock of the database (waiting for all open transactions to be
-   closed), and then must verify that the current version of the database
-   matches the first argument to the method. If it does not match, then the
-   user agent must release the lock and invoke the callback argument with the
-   value false as the callback's argument. Otherwise, the current version
-   matches the first argument, and the user agent must change the current
-   version of the database and the <a href="#expected"
-   title=concept-database-expected-version>expected version</a> of the
-   <code><a href="#database0">Database</a></code> object on which the method
-   was invoked to the value of the second argument. Then, the lock must be
-   released. Any <code><a href="#database0">Database</a></code> instances
-   that have an expected version that differs from the new version will start
-   failing at this point. Finally, the method must invoke its callback
-   argument with the value true as the callback's argument.
+   title=dom-database-changeVersion><code>changeVersion()</code></dfn> method
+   allows scripts to atomically verify the version number and change it at
+   the same time as doing a schema update. When the method is invoked, it
+   must immediately return, and then asynchronously run the <a
+   href="#transaction0">transaction steps</a> with the <i>transaction
+   callback</i> being the third argument, the <i>error callback</i> being the
+   fourth argument, if any, the <i>preflight operation</i> being the
+   following:
+
+  <ol>
+   <li>
+    <p>Check that the value of the first argument to the <code
+     title=dom-database-changeVersion><a
+     href="#changeversion">changeVersion()</a></code> method exactly matches
+     the database's actual version. If it does not, then the <i>preflight
+     operation</i> fails.
+  </ol>
+
+  <p>...and the <i>postflight operation</i> being the following:
+
+  <ol>
+   <li>Change the database's actual version to the value of the second
+    argument to the <code title=dom-database-changeVersion><a
+    href="#changeversion">changeVersion()</a></code> method.
+
+   <li>Change the <code><a href="#database0">Database</a></code> object's
+    expected version to the value of the second argument to the <code
+    title=dom-database-changeVersion><a
+    href="#changeversion">changeVersion()</a></code> method.
+  </ol>
 
   <h4 id=executing><span class=secno>4.11.3. </span>Executing SQL statements</h4>
 
-  <p>Once a <code><a href="#database0">Database</a></code> object has been
-   obtained, an author can interact with the database using the <code
-   title=dom-database-executeSql><a
-   href="#executesql">executeSql()</a></code> method.
+  <p>The <code title=dom-database-transaction><a
+   href="#transaction">transaction()</a></code> and <code
+   title=dom-database-changeVersion><a
+   href="#changeversion">changeVersion()</a></code> methods invoke callbacks
+   with <code><a href="#sqltransaction">SQLTransaction</a></code> objects.
+
+  <pre class=idl>interface <dfn id=sqltransaction>SQLTransaction</dfn> {
+  void <span title=dom-sqltransaction-executeSql>executeSql</span>(in DOMString sqlStatement, in <a href="#objectarray">ObjectArray</a> arguments);
+  void <span title=dom-sqltransaction-executeSql>executeSql</span>(in DOMString sqlStatement, in <a href="#objectarray">ObjectArray</a> arguments, in <span>SQLStatementCallback</span> callback);
+  void <span title=dom-sqltransaction-executeSql>executeSql</span>(in DOMString sqlStatement, in <a href="#objectarray">ObjectArray</a> arguments, in <span>SQLStatementCallback</span> callback, in <a href="#sqlstatementerrorcallback">SQLStatementErrorCallback</a> errorCallback);
+};
+
+interface <dfn id=sqlstatmentcallback>SQLStatmentCallback</dfn> {
+  void <span title=dom-sqlstatementcallback-handleEvent>handleEvent</span>(in <a href="#sqltransaction">SQLTransaction</a> transaction, in <a href="#sqlresultset">SQLResultSet</a> resultSet);
+};
+
+interface <dfn id=sqlstatementerrorcallback>SQLStatementErrorCallback</dfn> {
+  boolean <span title=dom-sqlstatementerrorcallback-handleEvent>handleEvent</span>(in <a href="#sqltransaction">SQLTransaction</a> transaction, in <a href="#sqlerror">SQLError</a> error);<span class=issue>Or should these arguments be the other way around? Either way we're inconsistent with _something_. What should we be consistent with?</span>
+};</pre>
 
   <p>When the <dfn id=executesql
    title=dom-database-executeSql><code>executeSql(<var
    title="">sqlStatement</var>, <var title="">arguments</var>, <var
-   title="">callback</var>)</code></dfn> method is invoked, the user agent
-   must run the following algorithm. Each <code><a
-   href="#database0">Database</a></code> object has a <dfn id=record>record
-   of the active callback's transaction</dfn>, which is normally null, but
-   gets set while a callback is being invoked during this algorithm.
+   title="">callback</var>, <var title="">errorCallback</var>)</code></dfn>
+   method is invoked, the user agent must run the following algorithm. (This
+   algorithm is relatively simple and doesn't actually execute any SQL
+   &mdash; the bulk of the work is actually done as part of the <a
+   href="#transaction0">transaction steps</a>.)
 
   <ol>
    <li>
-    <p>The first argument to the method (<var title="">sqlStatement</var>)
-     must be interpreted as an SQL statement, with the exception that <code
-     title="">?</code> characters can be used in place of literals in the
-     statement.</p>
+    <p>If the method was not invoked during the execution of a <code><a
+     href="#sqltransactioncallback">SQLTransactionCallback</a></code>,
+     <code><a
+     href="#sqlversionchangecallback">SQLVersionChangeCallback</a></code>,
+     <code>SQLStatementCallback</code>, or <code><a
+     href="#sqlstatementerrorcallback">SQLStatementErrorCallback</a></code>
+     then raise an <code>INVALID_STATE_ERR</code> exception. (Calls from
+     inside a <code><a
+     href="#sqltransactionerrorcallback">SQLTransactionErrorCallback</a></code>
+     thus raise an exception. The <code><a
+     href="#sqltransactionerrorcallback">SQLTransactionErrorCallback</a></code>
+     handler is only called once a transaction has failed, and no SQL
+     statements can be added to a failed transaction.)
 
-    <p>The <code title="">?</code> placeholders, as the statement is
-     executed, must each take the value of their corresponding argument (from
-     the <var title="">arguments</var> array, in the same order).</p>
+   <li>
+    <p>Parse the first argument to the method (<var
+     title="">sqlStatement</var>) as an SQL statement, with the exception
+     that <code title="">?</code> characters can be used in place of literals
+     in the statement. <a href="#refsSQL">[SQL]</a></p>
 
+   <li>
+    <p>Replace each <code title="">?</code> placeholder with the value of the
+     argument in the <var title="">arguments</var> array with the same
+     position. (So the first <code title="">?</code> placeholder gets
+     replaced by the first value in the <var title="">arguments</var> array,
+     and generally the <var title="">n</var>th <code title="">?</code>
+     placeholder gets replaced by the <var title="">n</var>th value in the
+     <var title="">arguments</var> array.)</p>
+
+    <p>The result is <i>the statement</i>.</p>
+
+   <li>
     <p>If the syntax of <var title="">sqlStatement</var> is not valid (except
      for the use of <code title="">?</code> characters in the place of
      literals), or the statement uses features that are not supported (e.g.
-     due to security reasons), then the the method must raise a
-     <code>SYNTAX_ERR</code> exception and abort these steps.</p>
-
-    <p>If the number of items in the <var title="">arguments</var> array is
-     not equal to the number of <code title="">?</code> placeholders in the
-     statement, then the method must raise a
-     <code>SYNTAX_ERR<!-- XXX is that the best exception? --></code>
-     exception and abort these steps.</p>
+     due to security reasons), or the number of items in the <var
+     title="">arguments</var> array is not equal to the number of <code
+     title="">?</code> placeholders in the statement, or the statement cannot
+     be parsed for some other reason, then mark <i>the statement</i> as
+     bogus.
 
    <li>
-    <p>If the <a href="#record">record of the active callback's
-     transaction</a> of the <code><a href="#database0">Database</a></code>
-     object on which the method was invoked is not null, then let <var
-     title="">transaction</var> be that transaction. Otherwise, let begin a
-     new transaction and let <var title="">transaction</var> be that
-     transaction.</p>
-
-    <p class=note>The <a href="#record">record of the active callback's
-     transaction</a> can only be non-null while a callback for <code
-     title=dom-database-executeSql><a
-     href="#executesql">executeSql()</a></code> is executing.</p>
-    <!-- XXX we want a reading lock until such time as a write
-    operation is attempted, at which point we want a writing lock. -->
-    
-
-   <li>
-    <p>If <var title="">transaction</var> has been marked as "bad", then
-     raise an <code>INVALID_STATE_ERR</code> exception.
-
-   <li>
-    <p>The method must then return, but these steps must continue.
-
-   <li>
-    <p>The user agent must then add the specified SQL statement to <var
-     title="">transaction</var>, and must execute it as soon as all the
-     statements that were added to that transaction before it have themselves
-     successfully executed. <a href="#refsSQL">[SQL]</a></p>
-
     <p>If the <code><a href="#database0">Database</a></code> object has an <a
      href="#expected" title=concept-database-expected-version>expected
      version</a> that is neither the empty string nor the actual version of
-     the database, the statement must fail.</p>
+     the database, then mark <i>the statement</i> as bogus. (<a href="#x1"
+     title=dom-sqlerror-errorcode-2>Error code 2</a>.)
 
    <li>
-    <p>Once the statement has executed, let <var title="">result</var> be a
-     new <code><a href="#sqlresultset">SQLResultSet</a></code> object that
-     represents the result of this statement's execution.
-
-   <li>
-    <p>If the statement execution fails for some reason, <var
-     title="">transaction</var> must be rolled back and marked as "bad".
-
-   <li>
-    <p>Let the <a href="#record">record of the active callback's
-     transaction</a> be set to <var title="">transaction</var>.
-
-   <li>
-    <p>Once no other scripts are executing in the <a href="#unit-of">unit of
-     related browsing contexts</a>, the <var title="">callback</var> must be
-     invoked with <var title="">result</var> as the argument.
-
-   <li>
-    <p>Let the <a href="#record">record of the active callback's
-     transaction</a> be set to null.
-
-   <li>
-    <p>If the callback raised an exception and <var
-     title="">transaction</var> is not marked as "bad", then <var
-     title="">transaction</var> must be rolled back and marked as "bad".
-
-   <li>
-    <p>If <var title="">transaction</var> is not marked as "bad" and has no
-     pending statements in it, then the transaction it represents must be
-     commited.
+    <p>Queue up <i>the statement</i> in the transaction, along with the third
+     argument as the statement's result set callback and the fourth argument
+     (if any) as the error callback.
   </ol>
-
-  <p>The <dfn id=closetransaction
-   title=dom-database-closeTransaction><code>closeTransaction()</code></dfn>
-   method may be called while in a callback called by the <code
-   title=dom-database-executeSql><a
-   href="#executesql">executeSql()</a></code> method. When the method is
-   invoked, it must set the <code><a href="#database0">Database</a></code>
-   object's <a href="#record">record of the active callback's transaction</a>
-   to null, such that the next invocation of <code
-   title=dom-database-executeSql><a
-   href="#executesql">executeSql()</a></code>, even if it is called from
-   within an <code title=dom-database-executeSql><a
-   href="#executesql">executeSql()</a></code> callback, will create a new
-   transaction.
-
-  <p class=note>This is needed if the previous statement in the current
-   transaction failed, as otherwise the <code
-   title=dom-database-executeSql><a
-   href="#executesql">executeSql()</a></code> method would raise an exception
-   upon discovering the "bad" transaction.
 
   <p>The user agent must act as if the database was hosted in an otherwise
    completely empty environment with no resources. For example, attempts to
@@ -30617,28 +30613,23 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
    suggestion in future.
 
   <p>SQL inherently supports multiple concurrent connections. Authors should
-   make use of SQL's transaction features if multiple scripts are expected to
-   interact with the same database simultaneously (as could happen if the
-   same page was opened in two different <a href="#browsing0" title="browsing
-   context">browsing contexts</a>).
+   make appropriate use of the transaction features to handle the case of
+   multiple scripts interacting with the same database simultaneously (as
+   could happen if the same page was opened in two different <a
+   href="#browsing0" title="browsing context">browsing contexts</a>).
 
-  <p class=note>A future version of this specification may define the exact
-   SQL subset required in more detail.
+  <p class=note>A future version of this specification will probably define
+   the exact SQL subset required in more detail.
 
   <h4 id=database><span class=secno>4.11.4. </span>Database query results</h4>
 
-  <p>The <code title=dom-database-executeSql><a
-   href="#executesql">executeSql()</a></code> method invokes its callback
-   with a single argument, an <code><a
-   href="#sqlresultset">SQLResultSet</a></code> object.
+  <p>The <code title=dom-transaction-executeSql>executeSql()</code> method
+   invokes its callback with a <code><a
+   href="#sqlresultset">SQLResultSet</a></code> object as an argument.
 
   <pre class=idl>interface <dfn id=sqlresultset>SQLResultSet</dfn> {
   readonly attribute int <a href="#insertid" title=dom-SQLResultSet-insertId>insertId</a>;
   readonly attribute int <a href="#rowsaffected" title=dom-SQLResultSet-rowsAffected>rowsAffected</a>;
-  readonly attribute unsigned int <a href="#errorcode" title=dom-SQLResultSet-errorCode>errorCode</a>;
-  readonly attribute DOMString <a href="#error2" title=dom-SQLResultSet-error>error</a>;
-
-  // the actual data
   readonly attribute <a href="#sqlresultsetrowlist">SQLResultSetRowList</a> <a href="#rows1" title=dom-SQLResultSet-rows>rows</a>;
 };</pre>
 
@@ -30654,85 +30645,15 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
   <p>The <dfn id=rowsaffected
    title=dom-SQLResultSet-rowsAffected><code>rowsAffected</code></dfn>
    attribute must return the number of rows that were affected by the SQL
-   statement. If the statement failed, or did not affected any rows, then the
-   attribute must return zero. For "SELECT" statements, this returns zero
-   (querying the database doesn't affect any rows).
-
-  <p>The <dfn id=errorcode
-   title=dom-SQLResultSet-errorCode><code>errorCode</code></dfn> DOM
-   attribute must return the most appropriate code from the following table:
-
-  <table>
-   <thead>
-    <tr>
-     <th>Code
-
-     <th>Situation
-
-   <tbody>
-    <tr>
-     <td>0
-
-     <td>The statement was successful, any data available will be returned by
-      the other methods and attributes of the <code><a
-      href="#sqlresultset">SQLResultSet</a></code> object.
-
-    <tr>
-     <td>1
-
-     <td>The statement failed for reasons not covered by any other code.
-
-    <tr>
-     <td>2
-
-     <td>The statement failed because the <a href="#expected"
-      title=concept-database-expected-version>expected version</a> of the
-      database didn't match the actual database version.
-
-    <tr>
-     <td>3
-
-     <td>The statement failed because the data returned from the database was
-      too large. The SQL "LIMIT" modifier might be useful to reduce the size
-      of the result set.
-
-    <tr>
-     <td>4
-
-     <td>The statement failed because there was not enough remaining storage
-      space, or the storage quota was reached and the user declined to give
-      more space to the database.
-
-    <tr>
-     <td>5
-
-     <td>The statement failed because the transaction's first statement was a
-      read-only statement, and a subsequent statement in the same transaction
-      tried to modify the database, but the transaction failed to obtain a
-      write lock before another transaction obtained a write lock and changed
-      a part of the database that the former transaction was dependending
-      upon. <!-- other errors that we might want to define:
-          * database has hit the user quota and the user hasn't
-            increased the available space
-      -->
-      
-  </table>
-
-  <p class=big-issue>We should define a more thorough list of codes.
-   Implementation feedback is requested to determine what codes are needed.
-
-  <p>The <dfn id=error2 title=dom-SQLResultSet-error><code>error</code></dfn>
-   DOM attribute must return an error message, localised to the user's
-   language, describing the error encountered by the last statement. If there
-   was no error, the attribute's value must be the empty string.
+   statement. If the statement did not affected any rows, then the attribute
+   must return zero. For "SELECT" statements, this returns zero (querying the
+   database doesn't affect any rows).
 
   <p>The <dfn id=rows1 title=dom-SQLResultSet-rows><code>rows</code></dfn>
    attribute must return a <code><a
    href="#sqlresultsetrowlist">SQLResultSetRowList</a></code> representing
    the rows returned, in the order returned by the database. If no rows were
-   returned, then the object will be empty. If the SQL statement failed, then
-   <code title=dom-SQLResultSet-rows><a href="#rows1">rows</a></code> must
-   return null.
+   returned, then the object will be empty.
 
   <pre
    class=idl>interface <dfn id=sqlresultsetrowlist>SQLResultSetRowList</dfn> {
@@ -30760,7 +30681,214 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
    have the name of the column and the value of the cell, as they were
    returned by the database.
 
-  <h4 id=privacy><span class=secno>4.11.5. </span>Privacy</h4>
+  <h4 id=errors><span class=secno>4.11.5. </span>Errors</h4>
+
+  <p>Errors in the database API are reported using callbacks that have a
+   <code><a href="#sqlerror">SQLError</a></code> object as one of their
+   arguments.
+
+  <pre class=idl>interface <dfn id=sqlerror>SQLError</dfn> {
+  readonly attribute unsigned int <a href="#errorcode" title=dom-SQLError-errorCode>errorCode</a>;
+  readonly attribute DOMString <a href="#error2" title=dom-SQLError-error>error</a>;
+};</pre>
+
+  <p>The <dfn id=errorcode
+   title=dom-SQLError-errorCode><code>errorCode</code></dfn> DOM attribute
+   must return the most appropriate code from the following table:
+
+  <table>
+   <thead>
+    <tr>
+     <th>Code
+
+     <th>Situation
+
+   <tbody>
+    <tr>
+     <td><dfn id=x title=dom-sqlerror-errorcode-0>0 </dfn>
+
+     <td>The transaction failed for reasons unrelated to the database itself
+      and not covered by any other error code.
+
+    <tr>
+     <td><dfn id=x0 title=dom-sqlerror-errorcode-1>1 </dfn>
+
+     <td>The statement failed for database reasons not covered by any other
+      error code.
+
+    <tr>
+     <td><dfn id=x1 title=dom-sqlerror-errorcode-2>2 </dfn>
+
+     <td>The statement failed because the <a href="#expected"
+      title=concept-database-expected-version>expected version</a> of the
+      database didn't match the actual database version.
+
+    <tr>
+     <td><dfn id=x2 title=dom-sqlerror-errorcode-3>3 </dfn>
+
+     <td>The statement failed because the data returned from the database was
+      too large. The SQL "LIMIT" modifier might be useful to reduce the size
+      of the result set.
+
+    <tr>
+     <td><dfn id=x3 title=dom-sqlerror-errorcode-4>4 </dfn>
+
+     <td>The statement failed because there was not enough remaining storage
+      space, or the storage quota was reached and the user declined to give
+      more space to the database.
+
+    <tr>
+     <td><dfn id=x4 title=dom-sqlerror-errorcode-5>5 </dfn>
+
+     <td>The statement failed because the transaction's first statement was a
+      read-only statement, and a subsequent statement in the same transaction
+      tried to modify the database, but the transaction failed to obtain a
+      write lock before another transaction obtained a write lock and changed
+      a part of the database that the former transaction was dependending
+      upon. <!-- other errors that we might want to define:
+          * database has hit the user quota and the user hasn't
+            increased the available space
+      -->
+      
+  </table>
+
+  <p class=big-issue>We should define a more thorough list of codes.
+   Implementation feedback is requested to determine what codes are needed.
+
+  <p>The <dfn id=error2 title=dom-SQLError-error><code>error</code></dfn> DOM
+   attribute must return an error message, localised to the user's language,
+   describing the error encountered.
+
+  <h4 id=processing3><span class=secno>4.11.6. </span>Processing model</h4>
+
+  <p>The <dfn id=transaction0>transaction steps</dfn> are as follows. These
+   steps must be run asynchronously. These steps are invoked with a
+   <i>transaction callback</i>, optionally an <i>error callback</i>,
+   optionally a <i>preflight operation</i>, and optionally a <i>postflight
+   operation</i>.
+
+  <ol>
+   <li>
+    <p>Open a new SQL transaction to the database, and create a <code><a
+     href="#sqltransaction">SQLTransaction</a></code> object that represents
+     that transaction.
+
+   <li>
+    <p>If an error occured in the opening of the transaction, jump to the
+     last step.
+
+   <li>
+    <p>If a <i>preflight operation</i> was defined for this instance of the
+     transaction steps, run that. If it fails, then jump to the last step.
+     (This is basically a hook for the <code
+     title=dom-database-changeVersion><a
+     href="#changeversion">changeVersion()</a></code> method.)
+
+   <li>
+    <p><!-- XXX queue --> Invoke the <i>transaction callback</i> with the
+     aforementioned <code><a href="#sqltransaction">SQLTransaction</a></code>
+     object as its only argument.
+
+   <li>
+    <p>If the callback couldn't be called (e.g. it was null), or if the
+     callback was invoked and raised an exception, jump to the last step.
+   </li>
+   <!--
+   <li><p>If the callback could be called and returned false, let
+   <i>callback-canceled</i> be true. Otherwise, let it be
+   false.</p></li>
+-->
+
+   <li>
+    <p>While there are any statements queued up in the transaction, perform
+     the following steps for each queued up statement in the transaction,
+     oldest first. Each statement has a statement, a result set callback, and
+     optionally an error callback.</p>
+
+    <ol>
+     <li>
+      <p>If the statement is marked as bogus, jump to the "in case of error"
+       steps below.
+
+     <li>
+      <p>Execute the statement in the context of the transaction. <a
+       href="#refsSQL">[SQL]</a></p>
+
+     <li>
+      <p>If the statement failed, jump to the "in case of error" steps below.
+
+     <li>
+      <p>Create a <code><a href="#sqlresultset">SQLResultSet</a></code>
+       object that represents the result of the statement.
+
+     <li>
+      <p><!-- XXX queue --> Invoke the statement's result set callback with
+       the <code><a href="#sqltransaction">SQLTransaction</a></code> object
+       as its first argument and the new <code><a
+       href="#sqlresultset">SQLResultSet</a></code> object as its second
+       argument.
+
+     <li>
+      <p>If the callback was invoked and raised an exception, jump to the
+       last step in the overall steps.
+
+     <li>
+      <p>Move on to the next statement, if any, or onto the next overall step
+       otherwise.
+    </ol>
+
+    <p>In case of error (or more specifically, if the above substeps say to
+     jump to the "in case of error" steps), run the following substeps:</p>
+
+    <ol>
+     <li>
+      <p>If the statement had an associated error callback, then invoke that
+       error callback with the <code><a
+       href="#sqltransaction">SQLTransaction</a></code> object and a newly
+       constructed <code><a href="#sqlerror">SQLError</a></code> object that
+       represents the error that caused these substeps to be run as the two
+       arguments, respectively.
+
+     <li>
+      <p>If the error callback returns false, then move on to the next
+       statement, if any, or onto the next overall step otherwise.
+
+     <li>
+      <p>Otherwise, the error callback did not return false, or there was no
+       error callback. Jump to the last step in the overall steps.
+    </ol>
+
+   <li>
+    <p>If a <i>postflight operation</i> was defined for his instance of the
+     transaction steps, run that. If it fails, then jump to the last step.
+     <!--The operation, if any, might depend
+   <i>callback-canceled</i>.-->
+     (This is basically a hook for the <code
+     title=dom-database-changeVersion><a
+     href="#changeversion">changeVersion()</a></code> method.)
+
+   <li>
+    <p>Commit the transaction.
+
+   <li>
+    <p>If an error occured in the committing of the transaction, jump to the
+     last step.
+
+   <li>
+    <p>End these steps. The next step is only used when something goes wrong.
+
+   <li>
+    <p>Call the <i>error callback</i> with a newly constructed <code><a
+     href="#sqlerror">SQLError</a></code> object that represents the last
+     error to have occured in this transaction. If the error callback
+     returned false, then try to commit the transaction. If that fails, or if
+     the callback couldn't be called (e.g. the argument was called with only
+     one argument), or if it didn't return false, then rollback the
+     transaction. Any still-pending statements in the transaction are
+     discarded.
+  </ol>
+
+  <h4 id=privacy><span class=secno>4.11.7. </span>Privacy</h4>
 
   <p>In contrast with the <code title=dom-globalStorage><a
    href="#globalstorage">globalStorage</a></code> feature, which
@@ -30775,9 +30903,9 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
    way as cookies for the purposes of user interfaces, to reduce the risk of
    using this feature for cookie resurrection.
 
-  <h4 id=security6><span class=secno>4.11.6. </span>Security</h4>
+  <h4 id=security6><span class=secno>4.11.8. </span>Security</h4>
 
-  <h5 id=user-agents><span class=secno>4.11.6.1. </span>User agents</h5>
+  <h5 id=user-agents><span class=secno>4.11.8.1. </span>User agents</h5>
 
   <p>User agent implementors are strongly encouraged to audit all their
    supported SQL statements for security implications. For example, <code
@@ -30790,7 +30918,7 @@ interface <dfn id=sqlcallback>SQLCallback</dfn> {
    disk representation of the data, as all data in ECMAScript is implicitly
    UTF-16.
 
-  <h5 id=sql-injection><span class=secno>4.11.6.2. </span>SQL injection</h5>
+  <h5 id=sql-injection><span class=secno>4.11.8.2. </span>SQL injection</h5>
 
   <p>Authors are strongly recommended to make use of the <code
    title="">?</code> placeholder feature of the <code
@@ -35891,7 +36019,7 @@ Target: #image1
    to communicate with each other regardless of their source domain, in a way
    designed to not enable cross-site scripting attacks.
 
-  <h4 id=processing3><span class=secno>6.4.1. </span>Processing model</h4>
+  <h4 id=processing4><span class=secno>6.4.1. </span>Processing model</h4>
 
   <p>When a script invokes the <dfn id=postmessage
    title=dom-window-postMessage><code>postMessage(<var
