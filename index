@@ -22,7 +22,7 @@
 
    <h1 id=html-5>HTML 5</h1>
 
-   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 26 October 2007</h2>
+   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 27 October 2007</h2>
 
    <p>You can take part in this work. <a
     href="http://www.whatwg.org/mailing-list">Join the working group's
@@ -638,8 +638,8 @@
          <li><a href="#seeking"><span class=secno>3.14.9.8.
           </span>Seeking</a>
 
-         <li><a href="#cue-points"><span class=secno>3.14.9.9. </span>Cue
-          points</a>
+         <li><a href="#cue-ranges"><span class=secno>3.14.9.9. </span>Cue
+          ranges</a>
 
          <li><a href="#user-interface"><span class=secno>3.14.9.10.
           </span>User interface</a>
@@ -13619,9 +13619,9 @@ The island of Shalott.&lt;/p></pre>
            attribute unsigned long <a href="#playcount0" title=dom-media-playCount>playCount</a>;
            attribute unsigned long <a href="#currentloop" title=dom-media-currentLoop>currentLoop</a>;
 
-  // cue points
-  void <a href="#addcuepoint" title=dom-media-addCuePoint>addCuePoint</a>(in float time, in <a href="#voidcallback">VoidCallback</a> callback, in boolean pause);
-  void <a href="#removecuepoint" title=dom-media-removeCuePoint>removeCuePoint</a>(in float time, in <a href="#voidcallback">VoidCallback</a> callback);
+  // cue ranges
+  void <a href="#addcuerange" title=dom-media-addCueRange>addCueRange</a>(in DOMString className, in float start, in float end, in boolean pauseOnExit, in <a href="#voidcallback">VoidCallback</a> enterCallback, in <a href="#voidcallback">VoidCallback</a> exitCallback);
+  void <span title=dom-media-removeCueRange>removeCueRanges</span>(in DOMString className);
 
   // controls
            attribute boolean <a href="#controls0" title=dom-media-controls>controls</a>;
@@ -13663,9 +13663,6 @@ The island of Shalott.&lt;/p></pre>
       - onchapterlabelupdate, which has a time and a label
     * cue points that trigger at fixed intervals, so that
       e.g. animation can be synced with the video
-    * cue _periods_ rather than _points_, as in:
-       addCuePeriod(time1, time2, enteringCallback, exittingCallback);
-      (suggestion by Billy Wong)
     * general meta data, implemented as getters (don't expose the whole thing)
       - getMetadata(key: string, language: string) => HTMLImageElement or string
       - onmetadatachanged (no context info)
@@ -14324,16 +14321,6 @@ The island of Shalott.&lt;/p></pre>
    id=current>current playback position</dfn>, which must initially be zero.
    The current position is a time.
 
-  <p>When the <a href="#current">current playback position</a> is reset to a
-   specific value (e.g. when the <code title=dom-media-networkState><a
-   href="#networkstate">networkState</a></code> attribute switches to <code
-   title=dom-media-LOADED_METADATA><a
-   href="#loadedmetadata">LOADED_METADATA</a></code>, since at that time the
-   current playback position gets reset to the <a href="#effective">effective
-   start</a>), the current playback position is said to have <a
-   href="#reached" title="current playback position reaches">reached</a> that
-   value.
-
   <p>The <dfn id=currenttime
    title=dom-media-currentTime><code>currentTime</code></dfn> attribute must,
    on getting, return the <a href="#current">current playback position</a>,
@@ -14741,15 +14728,6 @@ The island of Shalott.&lt;/p></pre>
    pitch adjustments to any audio component of the <a href="#media8">media
    resource</a>.
 
-  <p>The <a href="#current">current playback position</a> is said to have
-   <dfn id=reached title="current playback position reaches">reached</dfn> a
-   particular time whenever the current playback position changes
-   discontinuously to a new time, and whenever the <a href="#media5">media
-   element</a> is <a href="#actively">actively playing</a> and the
-   aforementioned monotonic increase of the current playback position causes
-   the current playback position to advance from before that time to exactly
-   that time or to any position after that time.
-
   <p><a href="#media8" title="media resource">Media resources</a> might be
    internally scripted or interactive. Thus, a <a href="#media5">media
    element</a> could play in a non-linear fashion. If this happens, the user
@@ -15044,11 +15022,7 @@ The island of Shalott.&lt;/p></pre>
 
    <li>
     <p>The <a href="#current">current playback position</a> must be set to
-     the given <var title="">new playback position</var>. The current
-     playback position is said to have <a href="#reached" title="current
-     playback position reaches">reached</a> the time of the new position, but
-     it does not reach any of the times in between the old position and the
-     new position in the process.
+     the given <var title="">new playback position</var>.
 
    <li>
     <p>The <code title=dom-media-seeking><a
@@ -15087,41 +15061,101 @@ The island of Shalott.&lt;/p></pre>
    href="#duration">duration</a></code> attribute's value (which would equal
    the time of the last frame).
 
-  <h5 id=cue-points><span class=secno>3.14.9.9. </span>Cue points</h5>
+  <h5 id=cue-ranges><span class=secno>3.14.9.9. </span>Cue ranges</h5>
 
-  <p><a href="#media5" title="media element">Media elements</a> have an
-   ordered list of (<var title="">time</var>, <var title="">callback</var>)
-   tuples called the <dfn id=cue-point>cue point list</dfn>. Each entry in
-   the list also has a boolean <var title="">pause</var> associated with it.
+  <p><a href="#media5" title="media element">Media elements</a> have a set of
+   <dfn id=cue-ranges0 title="cue range">cue ranges</dfn>. Each cue range is
+   made up of the following information:
 
-  <p>The <dfn id=addcuepoint
-   title=dom-media-addCuePoint><code>addCuePoint(<var title="">time</var>,
-   <var title="">callback</var>, <var title="">pause</var>)</code></dfn>
-   method must, when called, add a tuple made of the given <var
-   title="">time</var> and <var title="">callback</var> to the element's <a
-   href="#cue-point">cue point list</a>, and associate with that entry the
-   value of the <var title="">pause</var> argument.
+  <dl>
+   <dt>A class name
 
-  <p>The <dfn id=removecuepoint
-   title=dom-media-removeCuePoint><code>removeCuePoint(<var
-   title="">time</var>, <var title="">callback</var>)</code></dfn> method
-   must, when called, remove the first tuple matching the given <var
-   title="">time</var> and <var title="">callback</var> from the element's <a
-   href="#cue-point">cue point list</a>.
+   <dd>A group of related ranges can be given the same class name so that
+    they can all be removed at the same time.
+
+   <dt>A start time
+
+   <dt>An end time
+
+   <dd>The actual time range, using the same timeline as the <a
+    href="#media8">media resource</a> itself.
+
+   <dt>A "pause" boolean
+
+   <dd>A flag indicating whether to pause playback on exit.
+
+   <dt>An "enter" callback
+
+   <dd>A callback that is called when the <a href="#current">current playback
+    position</a> enters the range.
+
+   <dt>An "exit" callback
+
+   <dd>A callback that is called when the <a href="#current">current playback
+    position</a> exits the range.
+
+   <dt>An "active" boolean
+
+   <dd>A flag indicating whether the range is active or not.
+  </dl>
+
+  <p>The <dfn id=addcuerange
+   title=dom-media-addCueRange><code>addCueRange(<var
+   title="">className</var>, <var title="">start</var>, <var
+   title="">end</var>, <var title="">pauseOnExit</var>, <var
+   title="">enterCallback</var>, <var
+   title="">exitCallback</var>)</code></dfn> method must, when called, add a
+   <a href="#cue-ranges0">cue range</a> to the <a href="#media5">media
+   element</a>, that cue range having the class name <var
+   title="">className</var>, the start time <var title="">start</var> (in
+   seconds), the end time <var title="">end</var> (in seconds), the "pause"
+   boolean with the same value as <var title="">pauseOnExit</var>, the
+   "enter" callback <var title="">enterCallback</var>, the "exit" callback
+   <var title="">exitCallback</var>, and an "active" boolean that is true if
+   the <a href="#current">current playback position</a> is equal to or
+   greater than the start time and less than the end time, and false
+   otherwise.
+
+  <p>The <dfn id=removecueranges
+   title=dom-media-removeCueRanges><code>removeCueRanges(<var
+   title="">className</var>)</code></dfn> method must, when called, remove
+   all the <a href="#cue-ranges0" title="cue range">cue ranges</a> of the <a
+   href="#media5">media element</a> which have the class name <var
+   title="">className</var>.
 
   <p>When the <a href="#current">current playback position</a> of a <a
-   href="#media5">media element</a> <a href="#reached" title="current
-   playback position reaches">reaches</a> one of the times given in the
-   element's <a href="#cue-point">cue point list</a>, the user agent must
-   follow these steps:
+   href="#media5">media element</a> changes (e.g. due to playback or
+   seeking), the user agent must run the following steps. If the <a
+   href="#current">current playback position</a> changes while the steps are
+   running, then the user agent must wait for the steps to complete, and then
+   must immediately rerun the steps. (If one iteration takes a long time,
+   this can cause certain ranges to be skipped over as the user agent rushes
+   ahead to "catch up".)
 
   <ol>
    <li>
-    <p>First, if any of the entries in the <a href="#cue-point">cue point
-     list</a> with that time have their associated <var title="">pause</var>
-     boolean set to true, then the user agent must immediately act as if the
-     element's <code title=dom-media-pause><a
-     href="#pause0">pause()</a></code> method had been invoked.
+    <p>Let <var title="">current ranges</var> be an ordered list of <a
+     href="#cue-ranges0" title="cue range">cue ranges</a>, initialised to
+     contain all the <a href="#cue-ranges0" title="cue range">cue ranges</a>
+     of the <a href="#media5">media element</a> whose start times are less
+     than or equal to the <a href="#current">current playback position</a>
+     and whose end times are greater than the <a href="#current">current
+     playback position</a>, in the order they were added to the element.
+
+   <li>
+    <p>Let <var title="">other ranges</var> be an ordered list of <a
+     href="#cue-ranges0" title="cue range">cue ranges</a>, initialised to
+     contain all the <a href="#cue-ranges0" title="cue range">cue ranges</a>
+     of the <a href="#media5">media element</a> that are not present in <var
+     title="">current ranges</var>, in the order they were added to the
+     element.
+
+   <li>
+    <p>If none of the <a href="#cue-ranges0" title="cue range">cue ranges</a>
+     in <var title="">current ranges</var> have their "active" boolean set to
+     "false" (inactive) and none of the <a href="#cue-ranges0" title="cue
+     range">cue ranges</a> in <var title="">current ranges</var> have their
+     "active" boolean set to "true" (active), then abort these steps.
 
    <li>
     <p>If the time was reached through the usual monotonic increase of the
@@ -15133,10 +15167,38 @@ The island of Shalott.&lt;/p></pre>
      playback position.)
 
    <li>
-    <p>The user agent must then invoke all the non-null callbacks for all the
-     entries in the list that match the <a href="#current">current playback
-     position</a> time, in the order they were added to the list.
+    <p>If there are any <a href="#cue-ranges0" title="cue range">cue
+     ranges</a> in <var title="">other ranges</var> that have their "active"
+     boolean set to "true" (active) and have their "pause" boolean set to
+     "true" as well, then immediately act as if the element's <code
+     title=dom-media-pause><a href="#pause0">pause()</a></code> method had
+     been invoked.
+
+   <li>
+    <p>Invoke all the non-null "exit" callbacks for all of the <a
+     href="#cue-ranges0" title="cue range">cue ranges</a> in <var
+     title="">other ranges</var> that have their "active" boolean set to
+     "true" (active), in list order.
+   </li>
+   <!-- XXX queue -->
+
+   <li>
+    <p>Invoke all the non-null "enter" callbacks for all of the <a
+     href="#cue-ranges0" title="cue range">cue ranges</a> in <var
+     title="">current ranges</var> that have their "active" boolean set to
+     "false" (inactive), in list order.
+   </li>
+   <!-- XXX queue -->
+
+   <li>
+    <p>Set the "active" boolean of all the <a href="#cue-ranges0" title="cue
+     range">cue ranges</a> in the <var title="">current ranges</var> list to
+     "true" (active), and the "active" boolean of all the <a
+     href="#cue-ranges0" title="cue range">cue ranges</a> in the <var
+     title="">other ranges</var> list to "false" (inactive).
   </ol>
+  <!-- XXX the remainder of this subsection will be removed once we
+  have a way to mark up callbacks in IDL -->
 
   <p>Invoking a callback (an object implementing the <code><a
    href="#voidcallback">VoidCallback</a></code> interface) means calling its
@@ -45197,24 +45259,25 @@ interface <dfn id=timeouthandler>TimeoutHandler</dfn> {
    Sutton, Agust&iacute;n Fern&aacute;ndez, Alexey Feldgendler, Andrew Gove,
    Andrew Sidwell, Anne van Kesteren, Anthony Hickson, Antti Koivisto,
    Asbj&oslash;rn Ulsberg, Ben Godfrey, Ben Meadowcroft, Benjamin
-   Hawkes-Lewis, Bert Bos, Bjoern Hoehrmann, Boris Zbarsky, Brad Fults, Brad
-   Neuberg, Brady Eidson, Brendan Eich, Brett Wilson, Brian Campbell, Carlos
-   Perell&oacute; Mar&iacute;n, Chao Cai, &#xc724;&#xc11d;&#xcc2c; (Channy
-   Yun), Charl van Niekerk<!--status.whatwg.org maintainer-->, Charles Iliya
-   Krempeaux, Charles McCathieNevile, Christian Biesinger, Christian
-   Johansen, Chriswa, Daniel Peng, Daniel Sp&aring;ng, Darin Alder, Darin
-   Fisher, Dave Singer, Dave Townsend<!-- Mossop on moz irc -->, David Baron,
-   David Flanagan, David H&aring;s&auml;ther, David Hyatt, Derek
-   Featherstone, Dimitri Glazkov, dolphinling, Doron Rosenberg, Eira Monstad,
-   Elliotte Harold, Erik Arvidsson, Evan Martin, fantasai, Franck 'Shift'
-   Qu&eacute;lain, Geoffrey Sneddon, H&aring;kon Wium Lie, Henri Sivonen,
-   Henrik Lied, Ignacio Javier, Ivo Emanuel Gon&ccedil;alves, J. King, James
-   Graham, James M Snell, James Perrett, Jan-Klaas Kollhof, Jasper
-   Bryant-Greene, Jeff Cutsinger, Jeff Walden, Jens Bannmann, Jeroen van der
-   Meer, Joel Spolsky, John Boyer, John Bussjaeger, John Harding, Johnny
-   Stenback, Jon Perlow, Jonathan Worent, Jorgen Horstink, Josh Levenberg,
-   Joshua Randall, Jukka K. Korpela, Kai Hendry,
-   <!-- Keryx Web, = Lars Gunther --> Kornel Lesinski,
+   Hawkes-Lewis, Bert Bos, Billy Wong, Bjoern Hoehrmann, Boris Zbarsky, Brad
+   Fults, Brad Neuberg, Brady Eidson, Brendan Eich, Brett Wilson, Brian
+   Campbell, Carlos Perell&oacute; Mar&iacute;n, Chao Cai,
+   &#xc724;&#xc11d;&#xcc2c; (Channy Yun), Charl van
+   Niekerk<!--status.whatwg.org maintainer-->, Charles Iliya Krempeaux,
+   Charles McCathieNevile, Christian Biesinger, Christian Johansen, Chriswa,
+   Daniel Peng, Daniel Sp&aring;ng, Darin Alder, Darin Fisher, Dave Singer,
+   Dave Townsend<!-- Mossop on moz irc -->, David Baron, David Flanagan,
+   David H&aring;s&auml;ther, David Hyatt, Derek Featherstone, Dimitri
+   Glazkov, dolphinling, Doron Rosenberg, Eira Monstad, Elliotte Harold, Erik
+   Arvidsson, Evan Martin, fantasai, Franck 'Shift' Qu&eacute;lain, Geoffrey
+   Sneddon, H&aring;kon Wium Lie, Henri Sivonen, Henrik Lied, Ignacio Javier,
+   Ivo Emanuel Gon&ccedil;alves, J. King, James Graham, James M Snell, James
+   Perrett, Jan-Klaas Kollhof, Jasper Bryant-Greene, Jeff Cutsinger, Jeff
+   Walden, Jens Bannmann, Jeroen van der Meer, Joel Spolsky, John Boyer, John
+   Bussjaeger, John Harding, Johnny Stenback, Jon Perlow, Jonathan Worent,
+   Jorgen Horstink, Josh Levenberg, Joshua Randall, Jukka K. Korpela, Kai
+   Hendry, <!-- Keryx Web, = Lars
+  Gunther --> Kornel Lesinski,
    &#x9ed2;&#x6fa4;&#x525b;&#x5fd7; (KUROSAWA Takeshi), Kristof Zelechovski,
    Lachlan Hunt, Larry Page, Lars Gunther, Laurens Holst, Lenny Domnitser,
    L&eacute;onard Bouchet, Leons Petrazickis, Logan<!-- on moz irc -->,
