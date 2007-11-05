@@ -22,7 +22,7 @@
 
    <h1 id=html-5>HTML 5</h1>
 
-   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 3 November 2007</h2>
+   <h2 class="no-num no-toc" id=working>Working Draft &mdash; 5 November 2007</h2>
 
    <p>You can take part in this work. <a
     href="http://www.whatwg.org/mailing-list">Join the working group's
@@ -1111,7 +1111,7 @@
         load processing model for inline content that doesn't have a DOM</a>
 
        <li><a href="#scroll-to-fragid"><span class=secno>4.8.7.
-        </span>Scrolling to a fragment identifier</a>
+        </span>Navigating to a fragment identifier</a>
       </ul>
 
      <li><a href="#content-type-sniffing"><span class=secno>4.9.
@@ -27900,9 +27900,8 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
      identifier, and the two share the same <code>Document</code> object,
      then <a href="#firing2">fire a simple event</a> with the name
      <code>hashchanged</code> at <a href="#the-body0">the <code>body</code>
-     element</a>.</p>
-
-    <p class=issue>I'm open to better event names and targets here.
+     element</a>, and, if the new URI has a fragment identifier, <a
+     href="#scroll">scroll to the fragment identifier</a>.
 
    <li>
     <p>User agents may also update other aspects of the document view when
@@ -28255,8 +28254,8 @@ user reload must be equivalent to .reload()
 
    <li>
     <p>If the new resource is the same as the current resource, but a
-     fragment identifier has been specified, then <a href="#scrolling0"
-     title=navigate-fragid>scroll for that fragment identifier</a> and abort
+     fragment identifier has been specified, then <a href="#navigating0"
+     title=navigate-fragid>navigate to that fragment identifier</a> and abort
      these steps.
 
    <li>
@@ -28724,27 +28723,68 @@ user reload must be equivalent to .reload()
    the page has been completely set up, the user agent must <a
    href="#update2">update the session history with the new page</a>.
 
-  <h4 id=scroll-to-fragid><span class=secno>4.8.7. </span><dfn id=scrolling0
-   title=navigate-fragid>Scrolling to a fragment identifier</dfn></h4>
+  <h4 id=scroll-to-fragid><span class=secno>4.8.7. </span><dfn id=navigating0
+   title=navigate-fragid>Navigating to a fragment identifier</dfn></h4>
 
-  <p>When a user agent is supposed to scroll for a fragment identifier, then
-   the user agent must follow these steps:
+  <p>When a user agent is supposed to navigate to a fragment identifier, then
+   the user agent must <a href="#update2">update the session history with the
+   new page</a>, where "the new page" has the same <code>Document</code> as
+   before but with the URI having the newly specified fragment identifier.
+
+  <p>Part of that algorithm involves the user agent having to <a
+   href="#scroll">scroll to the fragment identifier</a>, which is the
+   important part for this step.
+
+  <p>When the user agent is required to <dfn id=scroll>scroll to the fragment
+   identifier</dfn>, it must change the scrolling position of the document,
+   or perform some other action, such that <a href="#the-indicated">the
+   indicated part of the document</a> is brought to the user's attention. If
+   there is no indicated part, then the user agent must not scroll anywhere.
+
+  <p>The <dfn id=the-indicated>the indicated part of the document</dfn> is
+   the one that the fragment identifier identifies. The semantics of the
+   fragment identifier in terms of mapping it to a specific DOM Node is
+   defined by the MIME type specification of the document's MIME Type (for
+   example, the processing of fragment identifiers for XML MIME types is the
+   responsibility of RFC3023).
+
+  <p>For HTML documents (and the <code>text/html</code> MIME type), the
+   following processing model must be followed to determine what <a
+   href="#the-indicated">the indicated part of the document</a> is.
 
   <ol>
    <li>
-    <p>First, <a href="#update2">update the session history with the new
-     page</a>, where "the new page" has the same <code>Document</code> as
-     before but with the URI having the newly specified fragment identifier.
+    <p>Let <i>fragid</i> be the &lt;fragment&gt; part of the URI. <a
+     href="#refsRFC3987">[RFC3987]</a>
+   </li>
+   <!-- IRI,
+   ifragment? XXX -->
 
    <li>
-    <p>Then, change the scrolling position of the document, or perform some
-     other action, such that <a href="#the-indicated">the indicated part of
-     the document</a> is brought to the user's attention.
+    <p>If <i>fragid</i> is the empty string, then the the indicated part of
+     the document is the top of the document.
+
+   <li>
+    <p>If there is an element in the DOM that has an ID exactly equal to
+     <i>fragid</i>, then the first such element in tree order is <a
+     href="#the-indicated">the indicated part of the document</a>; stop the
+     algorithm here.
+
+   <li>
+    <p>If there is an <code><a href="#a">a</a></code> element in the DOM that
+     has a <code title=attr-a-name>name</code> attribute whose value is
+     exactly equal to <i>fragid</i>, then the first such element in tree
+     order is <a href="#the-indicated">the indicated part of the
+     document</a>; stop the algorithm here.
+
+   <li>
+    <p>Otherwise, there is no indicated part of the document.
   </ol>
 
-  <p class=big-issue>how to get "<dfn id=the-indicated>the indicated part of
-   the document</dfn>" from a frag id -- id="", name="", XPointer, etc;
-   missing IDs (e.g. the infamous "#top")
+  <p>For the purposes of the interaction of HTML with Selectors' :target
+   pseudo-class, the <i>target element</i> is <a href="#the-indicated">the
+   indicated part of the document</a>, if that is an element; otherwise there
+   is no <i>target element</i>. <a href="#refsSELECTORS">[SELECTORS]</a>
 
   <h3 id=content-type-sniffing><span class=secno>4.9. </span>Determining the
    type of a new resource in a browsing context</h3>
@@ -45334,31 +45374,32 @@ interface <dfn id=timeouthandler>TimeoutHandler</dfn> {
    Daniel Peng, Daniel Sp&aring;ng, Darin Alder, Darin Fisher, Dave Singer,
    Dave Townsend<!-- Mossop on moz irc -->, David Baron, David Flanagan,
    David H&aring;s&auml;ther, David Hyatt, Derek Featherstone, Dimitri
-   Glazkov, dolphinling, Doron Rosenberg, Eira Monstad, Elliotte Harold, Erik
-   Arvidsson, Evan Martin, fantasai, Franck 'Shift' Qu&eacute;lain, Geoffrey
-   Sneddon, H&aring;kon Wium Lie, Henri Sivonen, Henrik Lied, Ignacio Javier,
-   Ivo Emanuel Gon&ccedil;alves, J. King, James Graham, James M Snell, James
-   Perrett, Jan-Klaas Kollhof, Jasper Bryant-Greene, Jeff Cutsinger, Jeff
-   Walden, Jens Bannmann, Jeroen van der Meer, Joel Spolsky, John Boyer, John
-   Bussjaeger, John Harding, Johnny Stenback, Jon Perlow, Jonathan Worent,
-   Jorgen Horstink, Josh Levenberg, Joshua Randall, Jukka K. Korpela, Kai
-   Hendry, <!-- Keryx Web, = Lars
-  Gunther --> Kornel Lesinski,
-   &#x9ed2;&#x6fa4;&#x525b;&#x5fd7; (KUROSAWA Takeshi), Kristof Zelechovski,
-   Lachlan Hunt, Larry Page, Lars Gunther, Laurens Holst, Lenny Domnitser,
-   L&eacute;onard Bouchet, Leons Petrazickis, Logan<!-- on moz irc -->,
-   Loune, Maciej Stachowiak, Malcolm Rowe, Mark Nottingham, Mark
-   Rowe<!--bdash-->, Mark Schenk, Martijn Wargers, Martin Atkins, Martin
-   Honnen, Mathieu Henri, Matthew Mastracci, Matthew Raymond, Matthew Thomas,
-   Mattias Waldau, Max Romantschuk, Michael 'Ratt' Iannarelli, Michael A.
-   Nachbaur, Michael A. Puls II<!--Shadow2531-->, Michael Gratton, Michael
-   Powers, Michel Fortin, Mihai &#x015E;ucan<!-- from ROBO
-  Design -->, Mike
-   Brown, Mike Dierken<!-- S. Mike Dierken -->, Mike Dixon, Mike Schinkel,
-   Mike Shaver, Mikko Rantalainen, Neil Deakin, Olav Junker Kj&aelig;r, Peter
-   Kasting, Philip Taylor, Rajas Moonka, Ralph Giles, Rimantas Liubertas,
-   Robert O'Callahan, Robert Sayre, Roman Ivanov, S. Mike Dierken, Sam Ruby,
-   Sam Weinig, Scott Hess, Sean Knapp, Shaun Inman, Silvia Pfeiffer, Simon
+   Glazkov, dolphinling, Doron Rosenberg, Doug Kramer, Eira Monstad, Elliotte
+   Harold, Erik Arvidsson, Evan Martin, fantasai, Franck 'Shift'
+   Qu&eacute;lain, Geoffrey Sneddon, H&aring;kon Wium Lie, Henri Sivonen,
+   Henrik Lied, Ignacio Javier, Ivo Emanuel Gon&ccedil;alves, J. King, James
+   Graham, James M Snell, James Perrett, Jan-Klaas Kollhof, Jasper
+   Bryant-Greene, Jeff Cutsinger, Jeff Walden, Jens Bannmann, Jeroen van der
+   Meer, Joel Spolsky, John Boyer, John Bussjaeger, John Harding, Johnny
+   Stenback, Jon Perlow, Jonathan Worent, Jorgen Horstink, Josh Levenberg,
+   Joshua Randall, Jukka K. Korpela, Kai Hendry, <!-- Keryx Web, = Lars
+  Gunther -->
+   Kornel Lesinski, &#x9ed2;&#x6fa4;&#x525b;&#x5fd7; (KUROSAWA Takeshi),
+   Kristof Zelechovski, Lachlan Hunt, Larry Page, Lars Gunther, Laurens
+   Holst, Lenny Domnitser, L&eacute;onard Bouchet, Leons Petrazickis,
+   Logan<!-- on moz irc -->, Loune, Maciej Stachowiak, Malcolm Rowe, Mark
+   Nottingham, Mark Rowe<!--bdash-->, Mark Schenk, Martijn Wargers, Martin
+   Atkins, Martin Honnen, Mathieu Henri, Matthew Mastracci, Matthew Raymond,
+   Matthew Thomas, Mattias Waldau, Max Romantschuk, Michael 'Ratt'
+   Iannarelli, Michael A. Nachbaur, Michael A. Puls II<!--Shadow2531-->,
+   Michael Gratton, Michael Powers, Michel Fortin, Mihai
+   &#x015E;ucan<!-- from ROBO
+  Design -->, Mike Brown, Mike
+   Dierken<!-- S. Mike Dierken -->, Mike Dixon, Mike Schinkel, Mike Shaver,
+   Mikko Rantalainen, Neil Deakin, Olav Junker Kj&aelig;r, Peter Kasting,
+   Philip Taylor, Rajas Moonka, Ralph Giles, Rimantas Liubertas, Robert
+   O'Callahan, Robert Sayre, Roman Ivanov, S. Mike Dierken, Sam Ruby, Sam
+   Weinig, Scott Hess, Sean Knapp, Shaun Inman, Silvia Pfeiffer, Simon
    Pieters, Stefan Haustein, Stephen Ma, Steve Runyon, Steven Garrity,
    Stewart Brodie, Stuart Parmenter, Tantek &Ccedil;elik, Thomas Broyer,
    Thomas O'Connor, Tim Altman, Tyler Close, Vladimir
