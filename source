@@ -14377,8 +14377,7 @@ notes on what would need to be defined for dashed lines:
   <h6><dfn>Shadows</dfn></h6>
 
   <p>All drawing operations are affected by the four global shadow
-  attributes. Shadows form part of the source image during
-  composition.</p>
+  attributes.</p>
 
   <p>The <dfn
   title="dom-context-2d-shadowColor"><code>shadowColor</code></dfn>
@@ -14402,7 +14401,8 @@ notes on what would need to be defined for dashed lines:
   title="dom-context-2d-shadowOffsetY"><code>shadowOffsetY</code></dfn>
   attributes specify the distance that the shadow will be offset in
   the positive horizontal and positive vertical distance
-  respectively. Their values are in coordinate space units.</p>
+  respectively. Their values are in coordinate space units. They are
+  not affected by the current transformation matrix.</p>
 
   <p>When the context is created, the shadow offset attributes
   initially have the value <code>0</code>.</p>
@@ -14412,8 +14412,9 @@ notes on what would need to be defined for dashed lines:
 
   <p>The <dfn
   title="dom-context-2d-shadowBlur"><code>shadowBlur</code></dfn>
-  attribute specifies the number of coordinate space units that the
-  blurring is to cover.</p>
+  attribute specifies the size of the blurring effect. (The units do
+  not map to coordinate space units, and are not affected by the
+  current transformation matrix.)</p>
 
   <p>When the context is created, the <code
   title="dom-context-2d-shadowBlur">shadowBlur</code> attribute must
@@ -14422,7 +14423,7 @@ notes on what would need to be defined for dashed lines:
   <p>On getting, the attribute must return its current value. On
   setting, if the value is greater than or equal to zero, then the
   attribute must be set to the new value; otherwise, the new value is
-  igored.</p>
+  ignored.</p>
 
   <p>Support for shadows is optional. When they are supported, then,
   when shadows are drawn, they must be rendered as follows:</p>
@@ -14438,7 +14439,7 @@ notes on what would need to be defined for dashed lines:
    <li> <p>Copy the alpha channel of A to B, offset by <code
    title="dom-context-2d-shadowOffsetX">shadowOffsetX</code> in the
    positive <var title="">x</var> direction, and <code
-   title="dom-conteyt-2d-shadowOffsetY">shadowOffsetY</code> in the
+   title="dom-context-2d-shadowOffsetY">shadowOffsetY</code> in the
    positive <var title="">y</var> direction.</p> </li>
 
    <li> <p>If <code
@@ -14452,15 +14453,18 @@ notes on what would need to be defined for dashed lines:
      8, let <var title="">&sigma;</var> be <span><code
      title="dom-context-2d-shadowBlur">shadowBlur</code>/2</span>;
      otherwise, let <var title="">&sigma;</var> be the square root of
-     span><code
-     title="dom-context-2d-shadowBlur">shadowBlur</code>*2</span>
-     </p></li>
+     <span><code
+     title="dom-context-2d-shadowBlur">shadowBlur</code>*2</span>. </p></li>
 
-     <li> <p>Perform a Gaussian Blur on B, using <var
+     <li> <p>Perform a 2D Gaussian Blur on B, using <var
      title="">&sigma;</var> as the standard deviation. </li> <!-- need
      a reference for this XXX -->
 
     </ol>
+
+    <p>User agents may limit values of <var title="">&sigma;</var> to
+    an implementation-specific maximum value to avoid exceeding
+    hardware limitations during the Gaussian blur operation.</p>
 
    </li>
 
@@ -14470,7 +14474,7 @@ notes on what would need to be defined for dashed lines:
    </li>
 
    <li> <p>Multiply the alpha component of every pixel in B by the
-   alpha components of the color of <code
+   alpha component of the color of <code
    title="dom-context-2d-shadowColor">shadowColor</code>.</p> </li>
 
    <li> <p>The shadow is in the bitmap B, and is rendered as part of
@@ -14502,9 +14506,11 @@ notes on what would need to be defined for dashed lines:
   title="">h</var></span>)</span>.</p>
 
   <p>Shapes are painted without affecting the current path, and are
-  subject to <span title="shadows">shadow effects</span>, <span
-  title="dom-context-2d-globalAlpha">global alpha</span>, <span
-  title="clipping path">clipping paths</span>, and <span
+  subject to <span title="clipping path">clipping paths</span>, and,
+  with the exception of <code
+  title="dom-context-2d-clearRect">clearRect()</code>, also <span
+  title="shadows">shadow effects</span>, <span
+  title="dom-context-2d-globalAlpha">global alpha</span>, and <span
   title="dom-context-2d-globalCompositeOperation">global composition
   operators</span>.</p>
 
@@ -14514,9 +14520,10 @@ notes on what would need to be defined for dashed lines:
 
   <p>The <dfn
   title="dom-context-2d-clearRect"><code>clearRect()</code></dfn>
-  method must clear the pixels in the specified rectangle to a fully
-  transparent black, erasing any previous image. If either height or
-  width are zero, this method has no effect.</p>
+  method must clear the pixels in the specified rectangle that also
+  intersect the current clipping path to a fully transparent black,
+  erasing any previous image. If either height or width are zero, this
+  method has no effect.</p>
 
   <p>The <dfn
   title="dom-context-2d-fillRect"><code>fillRect()</code></dfn> method
@@ -15003,26 +15010,39 @@ notes on what would need to be defined for dashed lines:
 
   <ol>
 
-   <li>The shape or image is rendered, creating image <var
+   <li><p>Render the shape or image, creating image <var
    title="">A</var>, as described in the previous sections. For
    shapes, the current fill, stroke, and line styles must be honoured,
    and the stroke must itself also be subjected to the current
-   transformation matrix.</li>
+   transformation matrix.</p></li>
 
-   <li>The shadow is rendered from image <var title="">A</var>, using
-   the current shadow styles, creating image <var
-   title="">B</var>.</li>
+   <li><p>If shadows are supported:</p>
 
-   <li>Image <var title="">A</var> is composited over image <var
-   title="">B</var> creating the source image and the source-over
-   operator.</li>
+    <ol>
 
-   <li>The source image has its alpha adjusted by <code
-   title="dom-context-2d-globalAlpha">globalAlpha</code>.</li>
+     <li><p>Render the shadow from image <var title="">A</var>, using
+     the current shadow styles, creating image <var
+     title="">B</var>.</p></li>
 
-   <li>Within the clipping path, the source image is composited over
-   the current canvas bitmap using the current composition
-   operator.</li>
+     <li><p>Multiply the alpha component of every pixel in <var
+     title="">B</var> by <code
+     title="dom-context-2d-globalAlpha">globalAlpha</code>.</p></li>
+
+     <li><p>Within the clipping path, composite <var title="">B</var>
+     over the current canvas bitmap using the current composition
+     operator.</p></li>
+
+    </ol>
+
+   </li>
+
+   <li><p>Multiply the alpha component of every pixel in <var
+   title="">A</var> by <code
+   title="dom-context-2d-globalAlpha">globalAlpha</code>.</p></li>
+
+   <li><p>Within the clipping path, composite <var title="">A</var>
+   over the current canvas bitmap using the current composition
+   operator.</p></li>
 
   </ol>
 
