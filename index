@@ -12585,11 +12585,12 @@ The island of Shalott.&lt;/p></pre>
 
   <p>Once the download has completed, if the image is a valid image, the user
    agent must <a href="#firing4">fire a <code title=event-load>load</code>
-   event</a> on the <code><a href="#img">img</a></code> element. If the
-   download fails or it completes but the image is not a valid or supported
-   image, the user agent must <a href="#firing5">fire an <code
-   title=event-error>error</code> event</a> on the <code><a
-   href="#img">img</a></code> element.
+   event</a> on the <code><a href="#img">img</a></code> element (this happens
+   after <code title=dom-img-complete><a href="#complete">complete</a></code>
+   starts returning true). If the download fails or it completes but the
+   image is not a valid or supported image, the user agent must <a
+   href="#firing5">fire an <code title=event-error>error</code> event</a> on
+   the <code><a href="#img">img</a></code> element.
 
   <p>The remote server's response metadata (e.g. an HTTP 404 status code, or
    <a href="#content-type8" title=Content-Type>associated Content-Type
@@ -12644,6 +12645,10 @@ The island of Shalott.&lt;/p></pre>
    user agent has downloaded the image specified in the <code
    title=attr-img-src><a href="#src">src</a></code> attribute, and it is a
    valid image, and false otherwise.
+
+  <p class=note>The value of <code title=dom-img-complete><a
+   href="#complete">complete</a></code> can change while a script is
+   executing.
 
   <h4 id=the-iframe><span class=secno>3.14.3. </span>The <dfn
    id=iframe><code>iframe</code></dfn> element</h4>
@@ -15873,8 +15878,8 @@ The island of Shalott.&lt;/p></pre>
    <dd>
     <pre
      class=idl>interface <dfn id=htmlcanvaselement>HTMLCanvasElement</dfn> : <a href="#htmlelement">HTMLElement</a> {
-         attribute unsigned long <a href="#width1" title=dom-canvas-width>width</a>;
-         attribute unsigned long <a href="#height1" title=dom-canvas-height>height</a>;
+           attribute unsigned long <a href="#width1" title=dom-canvas-width>width</a>;
+           attribute unsigned long <a href="#height1" title=dom-canvas-height>height</a>;
 
   DOMString <a href="#todataurl" title=dom-canvas-toDataURL>toDataURL</a>();
   DOMString <a href="#todataurl0" title=dom-canvas-toDataURL-type>toDataURL</a>(in DOMString type);
@@ -16006,6 +16011,12 @@ The island of Shalott.&lt;/p></pre>
    containing a representation of the image as a PNG file. <a
    href="#refsPNG">[PNG]</a>.
 
+  <p>If the canvas has no pixels (i.e. either its horizontal dimension or its
+   vertical dimension is zero) then the method must return the string "<code
+   title="">data:,</code>". (This is the shortest <code title="">data:</code>
+   URI; it represents the empty string in a <code title="">text/plain</code>
+   resource.)
+
   <p>The <dfn id=todataurl0
    title=dom-canvas-toDataURL-type><code>toDataURL(<var
    title="">type</var>)</code></dfn> method (when called with one <em>or
@@ -16101,8 +16112,8 @@ The island of Shalott.&lt;/p></pre>
            attribute DOMObject <a href="#fillstyle" title=dom-context-2d-fillStyle>fillStyle</a>; // (default black)
   <a href="#canvasgradient0">CanvasGradient</a> <a href="#createlineargradient" title=dom-context-2d-createLinearGradient>createLinearGradient</a>(in float x0, in float y0, in float x1, in float y1);
   <a href="#canvasgradient0">CanvasGradient</a> <a href="#createradialgradient" title=dom-context-2d-createRadialGradient>createRadialGradient</a>(in float x0, in float y0, in float r0, in float x1, in float y1, in float r1);
-  <a href="#canvaspattern0">CanvasPattern</a> <a href="#createpatternimage" title=dom-context-2d-createPattern>createPattern</a>(in <a href="#htmlimageelement">HTMLImageElement</a> image, in DOMString repetition);
-  <a href="#canvaspattern0">CanvasPattern</a> <a href="#createpatternimage" title=dom-context-2d-createPattern>createPattern</a>(in <a href="#htmlcanvaselement">HTMLCanvasElement</a> image, in DOMString repetition);
+  <a href="#canvaspattern0">CanvasPattern</a> <a href="#createpattern" title=dom-context-2d-createPattern>createPattern</a>(in <a href="#htmlimageelement">HTMLImageElement</a> image, in DOMString repetition);
+  <a href="#canvaspattern0">CanvasPattern</a> <a href="#createpattern" title=dom-context-2d-createPattern>createPattern</a>(in <a href="#htmlcanvaselement">HTMLCanvasElement</a> image, in DOMString repetition);
 
   // line caps/joins
            attribute float <a href="#linewidth" title=dom-context-2d-lineWidth>lineWidth</a>; // (default 1)
@@ -16599,6 +16610,19 @@ interface <dfn id=imagedata>ImageData</dfn> {
 
   <ol>
    <li>
+    <p>If <span><var title="">x<sub>0</sub></var>&nbsp;=&nbsp;<var
+     title="">x<sub>1</sub></var></span> and <span><var
+     title="">y<sub>0</sub></var>&nbsp;=&nbsp;<var
+     title="">y<sub>1</sub></var></span> and <span><var
+     title="">r<sub>0</sub></var>&nbsp;=&nbsp;<var
+     title="">r<sub>1</sub></var></span>, then the radial gradient must paint
+     nothing. Abort these steps.</p>
+    <!-- XXX could make this
+   paint the start colour, or the end colour, or a circle of one in
+   the other, or raise an exception -->
+    
+
+   <li>
     <p>Let <span>x(<var title="">&omega;</var>)&nbsp;=&nbsp;(<var
      title="">x<sub>1</sub></var>-<var title="">x<sub>0</sub></var>)<var
      title="">&omega;</var>&nbsp;+&nbsp;<var
@@ -16636,17 +16660,6 @@ interface <dfn id=imagedata>ImageData</dfn> {
      this rendering of the gradient.
   </ol>
 
-  <p>If <span><var title="">x<sub>0</sub></var>&nbsp;=&nbsp;<var
-   title="">x<sub>1</sub></var></span> and <span><var
-   title="">y<sub>0</sub></var>&nbsp;=&nbsp;<var
-   title="">y<sub>1</sub></var></span> and <span><var
-   title="">r<sub>0</sub></var>&nbsp;=&nbsp;<var
-   title="">r<sub>1</sub></var></span>, then the radial gradient must paint
-   nothing.</p>
-  <!-- XXX could make this paint the start colour,
-  or the end colour, or a circle of one in the other, or raise an
-  exception -->
-
   <p class=note>This effectively creates a cone, touched by the two circles
    defined in the creation of the gradient, with the part of the cone before
    the start circle (0.0) using the color of the first offset, the part of
@@ -16667,15 +16680,16 @@ interface <dfn id=imagedata>ImageData</dfn> {
   <p>Patterns are represented by objects implementing the opaque <dfn
    id=canvaspattern0><code>CanvasPattern</code></dfn> interface.
 
-  <p>To create objects of this type, the <dfn id=createpatternimage
-   title=dom-context-2d-createPattern><code>createPattern(image,
-   repetition)</code></dfn> method is used. The first argument gives the
-   image to use as the pattern (either an <code><a
-   href="#htmlimageelement">HTMLImageElement</a></code> or an <code><a
-   href="#htmlcanvaselement">HTMLCanvasElement</a></code>). Modifying this
-   image after calling the <code title=dom-context-2d-createPattern><a
-   href="#createpatternimage">createPattern()</a></code> method must not
-   affect the pattern. The second argument must be a string with one of the
+  <p>To create objects of this type, the <dfn id=createpattern
+   title=dom-context-2d-createPattern><code>createPattern(<var
+   title="">image</var>, <var title="">repetition</var>)</code></dfn> method
+   is used. The first argument gives the image to use as the pattern (either
+   an <code><a href="#htmlimageelement">HTMLImageElement</a></code> or an
+   <code><a href="#htmlcanvaselement">HTMLCanvasElement</a></code>).
+   Modifying this image after calling the <code
+   title=dom-context-2d-createPattern><a
+   href="#createpattern">createPattern()</a></code> method must not affect
+   the pattern. The second argument must be a string with one of the
    following values: <code title="">repeat</code>, <code
    title="">repeat-x</code>, <code title="">repeat-y</code>, <code
    title="">no-repeat</code>. If the empty string or null is specified, <code
@@ -16693,7 +16707,12 @@ interface <dfn id=imagedata>ImageData</dfn> {
    <code>TYPE_MISMATCH_ERR</code> exception. If the <var title="">image</var>
    argument is an <code><a
    href="#htmlimageelement">HTMLImageElement</a></code> object whose <code
-   title=dom-attr-complete>complete</code> attribute is false, then the
+   title=dom-img-complete><a href="#complete">complete</a></code> attribute
+   is false, then the implementation must raise an
+   <code>INVALID_STATE_ERR</code> exception. If the <var title="">image</var>
+   argument is an <code><a
+   href="#htmlcanvaselement">HTMLCanvasElement</a></code> object with either
+   a horizonal dimension or a vertical dimension equal to zero, then the
    implementation must raise an <code>INVALID_STATE_ERR</code> exception.
 
   <p>Patterns must be painted so that the top left of the first image is
@@ -16702,14 +16721,14 @@ interface <dfn id=imagedata>ImageData</dfn> {
    string was specified) or vertically up and down (if the
    <code>repeat-y</code> string was specified) or in all four directions all
    over the canvas (if the <code>repeat</code> string was specified). The
-   images are not be scaled by this process; one CSS pixel of the image must
-   be painted on one coordinate space unit. Of course, patterns must only
+   images are not scaled by this process; one CSS pixel of the image must be
+   painted on one coordinate space unit. Of course, patterns must only
    actually painted where the stroking or filling effect requires that they
    be drawn, and are affected by the current transformation matrix.
 
   <p>Support for patterns is optional. If the user agent doesn't support
    patterns, then <code title=dom-context-2d-createPattern><a
-   href="#createpatternimage">createPattern()</a></code> must return null.</p>
+   href="#createpattern">createPattern()</a></code> must return null.</p>
   <!--
    XXXv3 Requests for v3 features:
     * apply transforms to patterns, so you don't have to create
@@ -17253,8 +17272,9 @@ notes on what would need to be defined for dashed lines:
    negative, the implementation must raise an <code>INDEX_SIZE_ERR</code>
    exception. If the <var title="">image</var> argument is an <code><a
    href="#htmlimageelement">HTMLImageElement</a></code> object whose <code
-   title=dom-attr-complete>complete</code> attribute is false, then the
-   implementation must raise an <code>INVALID_STATE_ERR</code> exception.
+   title=dom-img-complete><a href="#complete">complete</a></code> attribute
+   is false, then the implementation must raise an
+   <code>INVALID_STATE_ERR</code> exception.
 
   <p>When <code title=dom-context-2d-drawImage><a
    href="#drawimage">drawImage()</a></code> is invoked, the specified region
@@ -20604,7 +20624,7 @@ notes on what would need to be defined for dashed lines:
    <dd>
     <pre
      class=idl>interface <dfn id=htmldetailselement>HTMLDetailsElement</dfn> : <a href="#htmlelement">HTMLElement</a> {
-  attribute boolean <a href="#open1" title=dom-details-open>open</a>;
+           attribute boolean <a href="#open1" title=dom-details-open>open</a>;
 };</pre>
   </dl>
 

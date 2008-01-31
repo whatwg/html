@@ -10500,10 +10500,12 @@ The island of Shalott.&lt;/p></pre>
   <p>Once the download has completed, if the image is a valid image,
   the user agent must <span>fire a <code
   title="event-load">load</code> event</span> on the <code>img</code>
-  element. If the download fails or it completes but the image is not
-  a valid or supported image, the user agent must <span>fire an <code
-  title="event-error">error</code> event</span> on the <code>img</code>
-  element.</p>
+  element (this happens after <code
+  title="dom-img-complete">complete</code> starts returning true). If
+  the download fails or it completes but the image is not a valid or
+  supported image, the user agent must <span>fire an <code
+  title="event-error">error</code> event</span> on the
+  <code>img</code> element.</p>
 
   <p>The remote server's response metadata (e.g. an HTTP 404 status
   code, or <span title="Content-Type">associated Content-Type
@@ -10560,6 +10562,10 @@ The island of Shalott.&lt;/p></pre>
   true if the user agent has downloaded the image specified in the
   <code title="attr-img-src">src</code> attribute, and it is a valid
   image, and false otherwise.</p>
+
+  <p class="note">The value of <code
+  title="dom-img-complete">complete</code> can change while a script
+  is executing.</p>
 
 
   <h4>The <dfn><code>iframe</code></dfn> element</h4>
@@ -13428,8 +13434,8 @@ The island of Shalott.&lt;/p></pre>
    <dt>DOM interface:</dt>
    <dd>
     <pre class="idl">interface <dfn>HTMLCanvasElement</dfn> : <span>HTMLElement</span> {
-         attribute unsigned long <span title="dom-canvas-width">width</span>;
-         attribute unsigned long <span title="dom-canvas-height">height</span>;
+           attribute unsigned long <span title="dom-canvas-width">width</span>;
+           attribute unsigned long <span title="dom-canvas-height">height</span>;
 
   DOMString <span title="dom-canvas-toDataURL">toDataURL</span>();
   DOMString <span title="dom-canvas-toDataURL-type">toDataURL</span>(in DOMString type);
@@ -13559,6 +13565,12 @@ The island of Shalott.&lt;/p></pre>
   must, when called with no arguments, return a <code
   title="">data:</code> URI containing a representation of the image
   as a PNG file. <a href="#refsPNG">[PNG]</a>.</p>
+
+  <p>If the canvas has no pixels (i.e. either its horizontal dimension
+  or its vertical dimension is zero) then the method must return the
+  string "<code title="">data:,</code>". (This is the shortest <code
+  title="">data:</code> URI; it represents the empty string in a <code
+  title="">text/plain</code> resource.)</p>
 
   <p>The <dfn title="dom-canvas-toDataURL-type"><code>toDataURL(<var
   title="">type</var>)</code></dfn> method (when called with one
@@ -14141,6 +14153,16 @@ interface <dfn>ImageData</dfn> {
 
   <ol>
 
+   <li><p>If <span><var title="">x<sub>0</sub></var>&nbsp;=&nbsp;<var
+   title="">x<sub>1</sub></var></span> and <span><var
+   title="">y<sub>0</sub></var>&nbsp;=&nbsp;<var
+   title="">y<sub>1</sub></var></span> and <span><var
+   title="">r<sub>0</sub></var>&nbsp;=&nbsp;<var
+   title="">r<sub>1</sub></var></span>, then the radial gradient must
+   paint nothing. Abort these steps.</p> <!-- XXX could make this
+   paint the start colour, or the end colour, or a circle of one in
+   the other, or raise an exception --> </li>
+
    <li>
 
     <p>Let <span>x(<var title="">&omega;</var>)&nbsp;=&nbsp;(<var
@@ -14186,16 +14208,6 @@ interface <dfn>ImageData</dfn> {
 
   </ol>
 
-  <p>If <span><var title="">x<sub>0</sub></var>&nbsp;=&nbsp;<var
-  title="">x<sub>1</sub></var></span> and <span><var
-  title="">y<sub>0</sub></var>&nbsp;=&nbsp;<var
-  title="">y<sub>1</sub></var></span> and <span><var
-  title="">r<sub>0</sub></var>&nbsp;=&nbsp;<var
-  title="">r<sub>1</sub></var></span>, then the radial gradient must
-  paint nothing.</p> <!-- XXX could make this paint the start colour,
-  or the end colour, or a circle of one in the other, or raise an
-  exception -->
-
   <p class="note">This effectively creates a cone, touched by the two
   circles defined in the creation of the gradient, with the part of
   the cone before the start circle (0.0) using the color of the first
@@ -14218,11 +14230,12 @@ interface <dfn>ImageData</dfn> {
   <dfn><code>CanvasPattern</code></dfn> interface.</p>
 
   <p>To create objects of this type, the <dfn
-  title="dom-context-2d-createPattern"><code>createPattern(image,
-  repetition)</code></dfn> method is used. The first argument gives
-  the image to use as the pattern (either an
-  <code>HTMLImageElement</code> or an <code>HTMLCanvasElement</code>).
-  Modifying this image after calling the <code
+  title="dom-context-2d-createPattern"><code>createPattern(<var
+  title="">image</var>, <var title="">repetition</var>)</code></dfn>
+  method is used. The first argument gives the image to use as the
+  pattern (either an <code>HTMLImageElement</code> or an
+  <code>HTMLCanvasElement</code>).  Modifying this image after calling
+  the <code
   title="dom-context-2d-createPattern">createPattern()</code> method
   must not affect the pattern. The second argument must be a string
   with one of the following values: <code title="">repeat</code>,
@@ -14241,8 +14254,12 @@ interface <dfn>ImageData</dfn> {
   implementation must raise a <code>TYPE_MISMATCH_ERR</code>
   exception. If the <var title="">image</var> argument is an
   <code>HTMLImageElement</code> object whose <code
-  title="dom-attr-complete">complete</code> attribute is false, then
+  title="dom-img-complete">complete</code> attribute is false, then
   the implementation must raise an <code>INVALID_STATE_ERR</code>
+  exception. If the <var title="">image</var> argument is an
+  <code>HTMLCanvasElement</code> object with either a horizonal
+  dimension or a vertical dimension equal to zero, then the
+  implementation must raise an <code>INVALID_STATE_ERR</code>
   exception.</p>
 
   <p>Patterns must be painted so that the top left of the first image
@@ -14251,7 +14268,7 @@ interface <dfn>ImageData</dfn> {
   <code>repeat-x</code> string was specified) or vertically up and
   down (if the <code>repeat-y</code> string was specified) or in all
   four directions all over the canvas (if the <code>repeat</code>
-  string was specified). The images are not be scaled by this process;
+  string was specified). The images are not scaled by this process;
   one CSS pixel of the image must be painted on one coordinate space
   unit. Of course, patterns must only actually painted where the
   stroking or filling effect requires that they be drawn, and are
@@ -14841,7 +14858,7 @@ notes on what would need to be defined for dashed lines:
   arguments is negative, the implementation must raise an
   <code>INDEX_SIZE_ERR</code> exception. If the <var
   title="">image</var> argument is an <code>HTMLImageElement</code>
-  object whose <code title="dom-attr-complete">complete</code>
+  object whose <code title="dom-img-complete">complete</code>
   attribute is false, then the implementation must raise an
   <code>INVALID_STATE_ERR</code> exception.</p>
 
@@ -18215,7 +18232,7 @@ notes on what would need to be defined for dashed lines:
    <dt>DOM interface:</dt>
    <dd>
 <pre class="idl">interface <dfn>HTMLDetailsElement</dfn> : <span>HTMLElement</span> {
-  attribute boolean <span title="dom-details-open">open</span>;
+           attribute boolean <span title="dom-details-open">open</span>;
 };</pre>
    </dd>
   </dl>
