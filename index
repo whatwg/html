@@ -16279,7 +16279,7 @@ interface <dfn id=imagedata>ImageData</dfn> {
    <li>The current <a href="#transformations0"
     title=dom-context-2d-transformation>transformation matrix</a>.
 
-   <li>The current <a href="#clipping">clipping path</a>.
+   <li>The current <a href="#clipping">clipping region</a>.
 
    <li>The current values of the following attributes: <code
     title=dom-context-2d-strokeStyle><a
@@ -16788,17 +16788,22 @@ interface <dfn id=imagedata>ImageData</dfn> {
   <p>The <var title="">image</var> argument must be an instance of an
    <code><a href="#htmlimageelement">HTMLImageElement</a></code> or <code><a
    href="#htmlcanvaselement">HTMLCanvasElement</a></code>. If the <var
-   title="">image</var> is of the wrong type, the implementation must raise a
-   <code>TYPE_MISMATCH_ERR</code> exception. If the <var title="">image</var>
-   argument is an <code><a
+   title="">image</var> is of the wrong type or null, the implementation must
+   raise a <code>TYPE_MISMATCH_ERR</code> exception.</p>
+  <!-- drawImage() has an equivalent paragraph -->
+
+  <p>If the <var title="">image</var> argument is an <code><a
    href="#htmlimageelement">HTMLImageElement</a></code> object whose <code
    title=dom-img-complete><a href="#complete">complete</a></code> attribute
    is false, then the implementation must raise an
-   <code>INVALID_STATE_ERR</code> exception. If the <var title="">image</var>
-   argument is an <code><a
+   <code>INVALID_STATE_ERR</code> exception.</p>
+  <!-- drawImage() has an equivalent paragraph -->
+
+  <p>If the <var title="">image</var> argument is an <code><a
    href="#htmlcanvaselement">HTMLCanvasElement</a></code> object with either
    a horizonal dimension or a vertical dimension equal to zero, then the
-   implementation must raise an <code>INVALID_STATE_ERR</code> exception.
+   implementation must raise an <code>INVALID_STATE_ERR</code> exception.</p>
+  <!-- drawImage() has an equivalent paragraph -->
 
   <p>Patterns must be painted so that the top left of the first image is
    anchored at the origin of the coordinate space, and images are then
@@ -16810,6 +16815,13 @@ interface <dfn id=imagedata>ImageData</dfn> {
    painted on one coordinate space unit. Of course, patterns must only
    actually painted where the stroking or filling effect requires that they
    be drawn, and are affected by the current transformation matrix.
+
+  <p>When the <code title=dom-context-2d-createPattern><a
+   href="#createpattern">createPattern()</a></code> method is passed, as its
+   <var title="">image</var> argument, an animated image, the poster frame of
+   the animation, or the first frame of the animation if there is no poster
+   frame, must be used.</p>
+  <!-- drawImage() has an equivalent paragraph -->
 
   <p>Support for patterns is optional. If the user agent doesn't support
    patterns, then <code title=dom-context-2d-createPattern><a
@@ -17071,8 +17083,8 @@ notes on what would need to be defined for dashed lines:
    title="">y</var>+<var title="">h</var></span>)</span>.
 
   <p>Shapes are painted without affecting the current path, and are subject
-   to <a href="#clipping" title="clipping path">clipping paths</a>, and, with
-   the exception of <code title=dom-context-2d-clearRect><a
+   to the <a href="#clipping" title="clipping region">clipping region</a>,
+   and, with the exception of <code title=dom-context-2d-clearRect><a
    href="#clearrect">clearRect()</a></code>, also <a href="#shadows0"
    title=shadows>shadow effects</a>, <a href="#globalalpha"
    title=dom-context-2d-globalAlpha>global alpha</a>, and <a
@@ -17087,7 +17099,7 @@ notes on what would need to be defined for dashed lines:
    title=dom-context-2d-clearRect><code>clearRect(<var title="">x</var>, <var
    title="">y</var>, <var title="">w</var>, <var
    title="">h</var>)</code></dfn> method must clear the pixels in the
-   specified rectangle that also intersect the current clipping path to a
+   specified rectangle that also intersect the current clipping region to a
    fully transparent black, erasing any previous image. If either height or
    width are zero, this method has no effect.
 
@@ -17298,15 +17310,19 @@ notes on what would need to be defined for dashed lines:
    exception.
 
   <p>The <dfn id=fill title=dom-context-2d-fill><code>fill()</code></dfn>
-   method must fill each subpath of the current path in turn, using <code
+   method must fill all the subpaths of the current path, using <code
    title=dom-context-2d-fillStyle><a href="#fillstyle">fillStyle</a></code>,
    and using the non-zero winding number rule. Open subpaths must be
    implicitly closed when being filled (without affecting the actual
    subpaths).
 
+  <p class=note>Thus, if two overlapping but otherwise independent subpaths
+   have opposite windings, they cancel out and result in no fill. If they
+   have the same winding, that area just gets painted once.
+
   <p>The <dfn id=stroke
    title=dom-context-2d-stroke><code>stroke()</code></dfn> method must stroke
-   each subpath of the current path in turn, using the <code
+   all the subpaths of the current path, using the <code
    title=dom-context-2d-strokeStyle><a
    href="#strokestyle">strokeStyle</a></code>, <code
    title=dom-context-2d-lineWidth><a href="#linewidth">lineWidth</a></code>,
@@ -17316,11 +17332,15 @@ notes on what would need to be defined for dashed lines:
    title=dom-context-2d-miterLimit><a
    href="#miterlimit">miterLimit</a></code> attributes.
 
+  <p class=note>Since the subpaths are all stroked as one, overlapping parts
+   of the paths in one stroke operation are treated as if their union was
+   what was painted.
+
   <p>Paths, when filled or stroked, must be painted without affecting the
    current path, and must be subject to <span>transformations</span>, <a
    href="#shadows0" title=shadows>shadow effects</a>, <a href="#globalalpha"
-   title=dom-context-2d-globalAlpha>global alpha</a>, <a href="#clipping"
-   title="clipping path">clipping paths</a>, and <a
+   title=dom-context-2d-globalAlpha>global alpha</a>, the <a href="#clipping"
+   title="clipping region">clipping region</a>, and <a
    href="#globalcompositeoperation"
    title=dom-context-2d-globalCompositeOperation>global composition
    operators</a>.
@@ -17328,26 +17348,22 @@ notes on what would need to be defined for dashed lines:
   <p>Zero-length line segments must be pruned before stroking a path. Empty
    subpaths must be ignored.
 
-  <p class=note>The transformation is applied to the path when it is drawn,
-   not when the path is constructed. Thus, a single path can be constructed
-   and then drawn according to different transformations without recreating
-   the path.
-
   <p>The <dfn id=clip title=dom-context-2d-clip><code>clip()</code></dfn>
-   method must create a new <dfn id=clipping>clipping path</dfn> by
-   calculating the intersection of the current clipping path and the area
+   method must create a new <dfn id=clipping>clipping region</dfn> by
+   calculating the intersection of the current clipping region and the area
    described by the current path, using the non-zero winding number rule.
-   Open subpaths must be implicitly closed when computing the clipping path,
-   without affecting the actual subpaths.
+   Open subpaths must be implicitly closed when computing the clipping
+   region, without affecting the actual subpaths. The new clipping region
+   replaces the current clipping region.
 
-  <p>When the context is created, the initial clipping path is the rectangle
-   with the top left corner at (0,0) and the width and height of the
-   coordinate space.</p>
+  <p>When the context is initialised, the clipping region must be set to the
+   rectangle with the top left corner at (0,0) and the width and height of
+   the coordinate space.</p>
   <!-- XXXv3
    Jordan OSETE suggests:
-    * support ways of extending the clip region (union instead of intersection)
+    * support ways of extending the clipping region (union instead of intersection)
        - also "add", "substract", "replace", "intersect" and "xor"
-    * support ways of resetting the clip region without save/restore
+    * support ways of resetting the clipping region without save/restore
   -->
 
   <p>The <dfn id=ispointinpath
@@ -17355,9 +17371,9 @@ notes on what would need to be defined for dashed lines:
    title="">x</var>, <var title="">y</var>)</code></dfn> method must return
    true if the point given by the <var title="">x</var> and <var
    title="">y</var> coordinates passed to the method, when treated as
-   coordinates in the canvas' coordinate space unaffected by the current
-   transformation, is within the area of the canvas that would be filled if
-   the current path was to be filled; and must return false otherwise.
+   coordinates in the canvas coordinate space unaffected by the current
+   transformation, is inside the current path; and must return false
+   otherwise. Points on the path itself are considered to be inside the path.
 
   <h6 id=images><span class=secno>3.14.11.1.9. </span>Images</h6>
 
@@ -17378,38 +17394,53 @@ notes on what would need to be defined for dashed lines:
    href="#htmlimageelement">HTMLImageElement</a></code> or an <code><a
    href="#htmlcanvaselement">HTMLCanvasElement</a></code> for the <var
    title="">image</var> argument.) If not specified, the <var
-   title="">dw</var> and <var title="">dh</var> arguments default to the
+   title="">dw</var> and <var title="">dh</var> arguments must default to the
    values of <var title="">sw</var> and <var title="">sh</var>, interpreted
    such that one CSS pixel in the image is treated as one unit in the canvas
    coordinate space. If the <var title="">sx</var>, <var title="">sy</var>,
    <var title="">sw</var>, and <var title="">sh</var> arguments are omitted,
-   they default to 0, 0, the image's intrinsic width in image pixels, and the
-   image's intrinsic height in image pixels, respectively.
+   they must default to 0, 0, the image's intrinsic width in image pixels,
+   and the image's intrinsic height in image pixels, respectively.
 
   <p>The <var title="">image</var> argument must be an instance of an
    <code><a href="#htmlimageelement">HTMLImageElement</a></code> or <code><a
    href="#htmlcanvaselement">HTMLCanvasElement</a></code>. If the <var
-   title="">image</var> is of the wrong type, the implementation must raise a
-   <code>TYPE_MISMATCH_ERR</code> exception. If one of the <var
-   title="">sy</var>, <var title="">sw</var>, <var title="">sw</var>, and
-   <var title="">sh</var> arguments is outside the size of the image, or if
-   one of the <var title="">dw</var> and <var title="">dh</var> arguments is
-   negative, the implementation must raise an <code>INDEX_SIZE_ERR</code>
-   exception. If the <var title="">image</var> argument is an <code><a
+   title="">image</var> is of the wrong type or null, the implementation must
+   raise a <code>TYPE_MISMATCH_ERR</code> exception.</p>
+  <!-- createPattern() has an equivalent paragraph -->
+
+  <p>If the <var title="">image</var> argument is an <code><a
    href="#htmlimageelement">HTMLImageElement</a></code> object whose <code
    title=dom-img-complete><a href="#complete">complete</a></code> attribute
    is false, then the implementation must raise an
-   <code>INVALID_STATE_ERR</code> exception.
+   <code>INVALID_STATE_ERR</code> exception.</p>
+  <!-- createPattern() has an equivalent paragraph -->
+  <!-- handled by the next paragraph
+  <p>If the <var title="">image</var> argument is an
+  <code>HTMLCanvasElement</code> object with either a horizonal
+  dimension or a vertical dimension equal to zero, then the
+  implementation must raise an <code>INVALID_STATE_ERR</code>
+  exception.</p>
+  -->
+  <!-- createPattern() has an equivalent paragraph -->
+
+  <p>If the rectangle given by the <var title="">sx</var>, <var
+   title="">sy</var>, <var title="">sw</var>, and <var title="">sh</var>
+   arguments is not entirely within the source image, or if one of the <var
+   title="">sw</var> or <var title="">sh</var> arguments is negative or zero,
+   or if one of the <var title="">dw</var> or <var title="">dh</var>
+   arguments is negative, the implementation must raise an
+   <code>INDEX_SIZE_ERR</code> exception.
 
   <p>When <code title=dom-context-2d-drawImage><a
-   href="#drawimage">drawImage()</a></code> is invoked, the specified region
-   of the image specified by the source rectangle (<var title="">sx</var>,
-   <var title="">sy</var>, <var title="">sw</var>, <var title="">sh</var>)
-   must be painted on the region of the canvas specified by the destination
-   rectangle (<var title="">dx</var>, <var title="">dy</var>, <var
-   title="">dw</var>, <var title="">dh</var>), after applying the <a
-   href="#transformations0" title=dom-context-2d-transformation>current
-   transformation matrix</a>.
+   href="#drawimage">drawImage()</a></code> is invoked, the region of the
+   image specified by the source rectangle (<var title="">sx</var>, <var
+   title="">sy</var>, <var title="">sw</var>, <var title="">sh</var>) must be
+   painted on the region of the canvas specified by the destination rectangle
+   (<var title="">dx</var>, <var title="">dy</var>, <var title="">dw</var>,
+   <var title="">dh</var>), after applying the <a href="#transformations0"
+   title=dom-context-2d-transformation>current transformation matrix</a> to
+   the destination rectangle.
 
   <p><img alt="" src="images/drawImage.png"></p>
   <!-- no alt="" text
@@ -17421,10 +17452,17 @@ notes on what would need to be defined for dashed lines:
    canvas, so it is possible to copy parts of a canvas onto overlapping parts
    of itself.
 
+  <p>When the <code title=dom-context-2d-drawImage><a
+   href="#drawimage">drawImage()</a></code> method is passed, as its <var
+   title="">image</var> argument, an animated image, the poster frame of the
+   animation, or the first frame of the animation if there is no poster
+   frame, must be used.</p>
+  <!-- createPattern() has an equivalent paragraph -->
+
   <p>Images are painted without affecting the current path, and are subject
    to <a href="#shadows0" title=shadows>shadow effects</a>, <a
-   href="#globalalpha" title=dom-context-2d-globalAlpha>global alpha</a>, <a
-   href="#clipping" title="clipping path">clipping paths</a>, and <a
+   href="#globalalpha" title=dom-context-2d-globalAlpha>global alpha</a>, the
+   <a href="#clipping" title="clipping region">clipping region</a>, and <a
    href="#globalcompositeoperation"
    title=dom-context-2d-globalCompositeOperation>global composition
    operators</a>.</p>
@@ -17557,8 +17595,8 @@ notes on what would need to be defined for dashed lines:
   <p>The current path, <a href="#transformations0"
    title=dom-context-2d-transformation>transformation matrix</a>, <a
    href="#shadows0" title=shadows>shadow attributes</a>, <a
-   href="#globalalpha" title=dom-context-2d-globalAlpha>global alpha</a>, <a
-   href="#clipping" title="clipping path">clipping path</a>, and <a
+   href="#globalalpha" title=dom-context-2d-globalAlpha>global alpha</a>, the
+   <a href="#clipping" title="clipping region">clipping region</a>, and <a
    href="#globalcompositeoperation"
    title=dom-context-2d-globalCompositeOperation>global composition
    operator</a> must not affect the <code
@@ -17703,7 +17741,7 @@ notes on what would need to be defined for dashed lines:
        href="#globalalpha">globalAlpha</a></code>.
 
      <li>
-      <p>Within the clipping path, composite <var title="">B</var> over the
+      <p>Within the clipping region, composite <var title="">B</var> over the
        current canvas bitmap using the current composition operator.
     </ol>
 
@@ -17713,7 +17751,7 @@ notes on what would need to be defined for dashed lines:
      href="#globalalpha">globalAlpha</a></code>.
 
    <li>
-    <p>Within the clipping path, composite <var title="">A</var> over the
+    <p>Within the clipping region, composite <var title="">A</var> over the
      current canvas bitmap using the current composition operator.
   </ol>
   <!-- XXX add xrefs in the list above -->
