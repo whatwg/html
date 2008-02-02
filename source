@@ -13592,8 +13592,6 @@ The island of Shalott.&lt;/p></pre>
   pixels per unit in the coordinate space, so that the rendering
   remains at high quality throughout.</p>
 
-  <p>The canvas must initially be fully transparent black.</p>
-
   <p>Whenever the <code title="attr-canvas-width">width</code> and
   <code title="attr-canvas-height">height</code> attributes are set
   (whether to a new value or to the previous value), the bitmap and
@@ -13617,6 +13615,11 @@ The island of Shalott.&lt;/p></pre>
   canvas.width = canvas.width; // clears the canvas
   context.fillRect(100,0,50,50); // only this square remains</pre>
   </div>
+
+
+  <p>When the canvas is initialised it must be set to fully
+  transparent black.</p>
+
 
   <p>To draw on the canvas, authors must first obtain a reference to a
   <dfn>context</dfn> using the <dfn
@@ -13648,6 +13651,7 @@ The island of Shalott.&lt;/p></pre>
   <p class="note">A future version of this specification will probably
   define a <code>3d</code> context (probably based on the OpenGL ES
   API).</p>
+
 
   <p>The <dfn
   title="dom-canvas-toDataURL"><code>toDataURL()</code></dfn> method
@@ -13818,6 +13822,25 @@ interface <dfn>ImageData</dfn> {
   context paints on.</p>
 
 
+  <p>Unless otherwise stated, for the 2D context interface, any method
+  call with a numeric argument whose value is infinite or a NaN value
+  must be ignored.</p>
+
+  <!--
+   Philip Taylor wrote:
+   > My experience with some 3d canvas code is that infinities come up in
+   > naturally harmless places, e.g. having a function that scales by x then
+   > translates by 1/x and wanting it to work when x=0 (which ought to draw
+   > nothing, since anything it draws is zero pixels wide), and it's a bit
+   > annoying to track down and fix those issues, so I'd probably like it if
+   > they were harmless in canvas methods. Opera appears to silently not draw
+   > anything if the transformation matrix is not finite, but Firefox throws
+   > exceptions when passing in non-finite arguments.
+  -->
+
+
+
+
   <h6>The canvas state</h6>
 
   <p>Each context maintains a stack of drawing states. <dfn
@@ -13887,20 +13910,6 @@ idea from Mihai:
   initially be the identity transform. It may then be adjusted using
   the transformation methods.</p>
 
-  <p>The transformation matrix can become infinite, at which point
-  nothing is drawn anymore.</p>
-  <!--
-   Philip Taylor wrote:
-   > My experience with some 3d canvas code is that infinities come up in
-   > naturally harmless places, e.g. having a function that scales by x then
-   > translates by 1/x and wanting it to work when x=0 (which ought to draw
-   > nothing, since anything it draws is zero pixels wide), and it's a bit
-   > annoying to track down and fix those issues, so I'd probably like it if
-   > they were harmless in canvas methods. Opera appears to silently not draw
-   > anything if the transformation matrix is not finite, but Firefox throws
-   > exceptions when passing in non-finite arguments.
-  -->
-
   <p>The transformations must be performed in reverse order. For
   instance, if a scale transformation that doubles the width is
   applied, followed by a rotation transformation that rotates drawing
@@ -13914,14 +13923,15 @@ idea from Mihai:
   transformation matrix. The <var title="">x</var> argument represents
   the scale factor in the horizontal direction and the <var
   title="">y</var> argument represents the scale factor in the
-  vertical direction. The factors are multiples. If either argument is
-  Infinity the transformation matrix must be marked as infinite.</p>
+  vertical direction. The factors are multiples.</p>
 
   <p>The <dfn title="dom-context-2d-rotate"><code>rotate(<var
   title="">angle</var>)</code></dfn> method must add the rotation
   transformation described by the argument to the transformation
   matrix. The <var title="">angle</var> argument represents a
-  clockwise rotation angle expressed in radians.</p>
+  clockwise rotation angle expressed in radians. If the <var
+  title="">angle</var> argument is infinite, the method call must be
+  ignored.</p>
 
   <p>The <dfn title="dom-context-2d-translate"><code>translate(<var
   title="">x</var>, <var title="">y</var>)</code></dfn> method must
@@ -13929,9 +13939,7 @@ idea from Mihai:
   transformation matrix. The <var title="">x</var> argument represents
   the translation distance in the horizontal direction and the <var
   title="">y</var> argument represents the translation distance in the
-  vertical direction. The arguments are in coordinate space units. If
-  either argument is Infinity the transformation matrix must be marked
-  as infinite.</p>
+  vertical direction. The arguments are in coordinate space units.</p>
 
   <p>The <dfn title="dom-context-2d-transform"><code>transform(<var
   title="">m11</var>, <var title="">m12</var>, <var
@@ -13957,9 +13965,6 @@ idea from Mihai:
    </tr>
   </table>
 
-  <p>If any of the arguments are Infinity the transformation matrix
-  must be marked as infinite.</p>
-
   <p>The <dfn
   title="dom-context-2d-setTransform"><code>setTransform(<var
   title="">m11</var>, <var title="">m12</var>, <var
@@ -13969,9 +13974,7 @@ idea from Mihai:
   title="dom-context-2d-transform">transform</span>(<var
   title="">m11</var>, <var title="">m12</var>, <var
   title="">m21</var>, <var title="">m22</var>, <var title="">dx</var>,
-  <var title="">dy</var>)</code> method with the same arguments. If
-  any of the arguments are Infinity the transformation matrix must be
-  marked as infinite.</p>
+  <var title="">dy</var>)</code> method with the same arguments.</p>
 
 
   <h6>Compositing</h6>
@@ -14173,6 +14176,7 @@ idea from Mihai:
   title="dom-context-2d-fillStyle">fillStyle</code> attributes must
   initially have the string value <code title="">#000000</code>.</p>
 
+
   <p>There are two types of gradients, linear gradients and radial
   gradients, both represented by objects implementing the opaque
   <dfn><code>CanvasGradient</code></dfn> interface.</p>
@@ -14192,11 +14196,12 @@ idea from Mihai:
   title="dom-canvasgradient-addColorStop"><code>addColorStop(<var
   title="">offset</var>, <var title="">color</var>)</code></dfn>
   method on the <code>CanvasGradient</code> interface adds a new stop
-  to a gradient. If the <var title="">offset</var> is less than 0 or
-  greater than 1 then an <code>INDEX_SIZE_ERR</code> exception must be
-  raised. If the <var title="">color</var> cannot be parsed as a CSS
-  color, then a <code>SYNTAX_ERR</code> exception must be raised.
-  Otherwise, the gradient must have a new stop placed, at offset <var
+  to a gradient. If the <var title="">offset</var> is less than 0,
+  greater than 1, infinite, or NaN, then an
+  <code>INDEX_SIZE_ERR</code> exception must be raised. If the <var
+  title="">color</var> cannot be parsed as a CSS color, then a
+  <code>SYNTAX_ERR</code> exception must be raised.  Otherwise, the
+  gradient must have a new stop placed, at offset <var
   title="">offset</var> relative to the whole gradient, and with the
   color obtained by parsing <var title="">color</var> as a CSS
   &lt;color&gt; value. If multiple stops are added at the same offset
@@ -14212,9 +14217,13 @@ idea from Mihai:
   <var title="">y1</var>)</code></dfn> method takes four arguments,
   representing the start point (<var title="">x0</var>, <var
   title="">y0</var>) and end point (<var title="">x1</var>, <var
-  title="">y1</var>) of the gradient, in coordinate space units, and
-  must return a linear <code>CanvasGradient</code> initialised with
-  that line.</p>
+  title="">y1</var>) of the gradient, in coordinate space units. If
+  any of the arguments to <code
+  title="dom-context-2d-createLinearGradient">createLinearGradient()</code>
+  are infinite or NaN, the method must raise an
+  <code>INDEX_SIZE_ERR</code> exception. Otherwise, the method must
+  return a linear <code>CanvasGradient</code> initialised with the
+  specified line.</p>
 
   <p>Linear gradients must be rendered such that at and before the
   starting point on the canvas the color at offset 0 is used, that at
@@ -14241,10 +14250,11 @@ idea from Mihai:
   title="">r0</var>, and the last three representing the end circle
   with origin (<var title="">x1</var>, <var title="">y1</var>) and
   radius <var title="">r1</var>. The values are in coordinate space
-  units. The method must return a radial <code>CanvasGradient</code>
-  initialised with those two circles. If either of <var
-  title="">r0</var> or <var title="">r1</var> are negative, an
-  <code>INDEX_SIZE_ERR</code> exception must be raised.</p>
+  units. If either of <var title="">r0</var> or <var title="">r1</var>
+  are negative, or if any of the arguments are infinite or NaN, an
+  <code>INDEX_SIZE_ERR</code> exception must be raised. Otherwise, the
+  method must return a radial <code>CanvasGradient</code> initialised
+  with the two specified circles.</p>
 
   <p>Radial gradients must be rendered by following these steps:</p>
 
@@ -14406,8 +14416,8 @@ idea from Mihai:
   <p>The <dfn
   title="dom-context-2d-lineWidth"><code>lineWidth</code></dfn>
   attribute gives the width of lines, in coordinate space units. On
-  setting, zero and negative values must be ignored, leaving the value
-  unchanged.</p>
+  setting, zero, negative, infinite, and NaN values must be ignored,
+  leaving the value unchanged.</p>
 
   <p>When the context is created, the <code
   title="dom-context-2d-lineWidth">lineWidth</code> attribute must
@@ -14490,8 +14500,8 @@ idea from Mihai:
 
   <p>The miter limit ratio can be explicitly set using the <dfn
   title="dom-context-2d-miterLimit"><code>miterLimit</code></dfn>
-  attribute. On setting, zero and negative values must be ignored,
-  leaving the value unchanged.</p>
+  attribute. On setting, zero, negative, infinite, and NaN values must
+  be ignored, leaving the value unchanged.</p>
 
   <p>When the context is created, the <code
   title="dom-context-2d-miterLimit">miterLimit</code> attribute must
@@ -14557,7 +14567,9 @@ notes on what would need to be defined for dashed lines:
   initially have the value <code>0</code>.</p>
 
   <p>On getting, they must return their current value. On setting, the
-  attribute being set must be set to the new value.</p>
+  attribute being set must be set to the new value, except if the
+  value is infinite or NaN, in which case the new value must be
+  ignored.</p>
 
   <p>The <dfn
   title="dom-context-2d-shadowBlur"><code>shadowBlur</code></dfn>
@@ -14570,9 +14582,9 @@ notes on what would need to be defined for dashed lines:
   initially have the value <code>0</code>.</p>
 
   <p>On getting, the attribute must return its current value. On
-  setting, if the value is greater than or equal to zero, then the
-  attribute must be set to the new value; otherwise, the new value is
-  ignored.</p>
+  setting the attribute must be set to the new value, except if the
+  value is negative, infinite or NaN, in which case the new value must
+  be ignored.</p>
 
   <p>Support for shadows is optional. When they are supported, then,
   when shadows are drawn, they must be rendered as follows:</p>
@@ -14966,10 +14978,11 @@ notes on what would need to be defined for dashed lines:
   title="">x</var>, <var title="">y</var>)</code></dfn> method must
   return true if the point given by the <var title="">x</var> and <var
   title="">y</var> coordinates passed to the method, when treated as
-  coordinates in the canvas coordinate space unaffected by the
-  current transformation, is inside the current path; and must return
-  false otherwise. Points on the path itself are considered to be
-  inside the path.</p>
+  coordinates in the canvas coordinate space unaffected by the current
+  transformation, is inside the current path; and must return false
+  otherwise. Points on the path itself are considered to be inside the
+  path. If either of the arguments is infinite or NaN, then the method
+  must return false.</p>
 
 
 
@@ -15098,6 +15111,11 @@ notes on what would need to be defined for dashed lines:
   title="">sh</var></span>). Pixels outside the canvas must be
   returned as transparent black. Pixels must be returned as
   non-premultiplied alpha values.</p>
+
+  <p>If any of the arguments to <code
+  title="dom-context-2d-getImageData">getImageData()</code> are
+  infinite or NaN, the method must instead raise an
+  <code>INDEX_SIZE_ERR</code> exception.</p>
 
   <p><code>ImageData</code> objects must be initialised so that their
   <dfn title="dom-imagedata-width"><code>width</code></dfn> attribute
