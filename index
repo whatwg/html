@@ -25445,6 +25445,7 @@ never reset. This is nice and consistent.)
 
   // <a href="#cross-document">cross-document messaging</a>
   void <a href="#postmessage" title=dom-window-postMessage>postMessage</a>(in DOMString message);
+  void <a href="#postmessage" title=dom-window-postMessage>postMessage</a>(in DOMString message, in DOMString origin);
 
   // <a href="#event4">event handler DOM attributes</a>
            attribute <span>EventListener</span> <a href="#onabort" title=handler-onabort>onabort</a>;
@@ -29418,10 +29419,11 @@ user reload must be equivalent to .reload()
     <p>Otherwise, there is no indicated part of the document.
   </ol>
 
-  <p>For the purposes of the interaction of HTML with Selectors' :target
-   pseudo-class, the <i>target element</i> is <a href="#the-indicated">the
-   indicated part of the document</a>, if that is an element; otherwise there
-   is no <i>target element</i>. <a href="#refsSELECTORS">[SELECTORS]</a>
+  <p>For the purposes of the interaction of HTML with Selectors' <code
+   title="">:target</code> pseudo-class, the <i>target element</i> is <a
+   href="#the-indicated">the indicated part of the document</a>, if that is
+   an element; otherwise there is no <i>target element</i>. <a
+   href="#refsSELECTORS">[SELECTORS]</a>
 
   <h3 id=content-type-sniffing><span class=secno>4.9 </span>Determining the
    type of a new resource in a browsing context</h3>
@@ -36542,30 +36544,98 @@ Target: #image1
 
   <p>When a script invokes the <dfn id=postmessage
    title=dom-window-postMessage><code>postMessage(<var
-   title="">message</var>)</code></dfn> method on a <code><a
-   href="#window">Window</a></code> object, the user agent must create an
-   event that uses the <code><a href="#messageevent">MessageEvent</a></code>
-   interface, with the event name <code title=event-message><a
-   href="#message0">message</a></code>, which bubbles, is cancelable, and has
-   no default action. The <code title=dom-MessageEvent-data><a
-   href="#data4">data</a></code> attribute must be set to the value passed as
-   the <var title="">message</var> argument to the <code
-   title=dom-window-postMessage><a
-   href="#postmessage">postMessage()</a></code> method, the <code
-   title=dom-MessageEvent-origin>origin</code> attribute must be set to the
-   <a href="#origin0">origin</a> of the document that the script that invoked
-   the methods is associated with, and the <code
-   title=dom-MessageEvent-source><a href="#source2">source</a></code>
-   attribute must be set to the <code><a href="#window">Window</a></code>
-   object of the default view of the browsing context with which that
-   document is associated.
+   title="">message</var>, <var title="">origin</var>)</code></dfn> method on
+   a <code><a href="#window">Window</a></code> object, the user agent must
+   follow these steps:
 
-  <p class=issue>Define 'origin' more exactly -- IDN vs no IDN, effect of
-   window.document.domain on its value, etc
+  <ol>
+   <li>
+    <p>Let <var title="">target</var> be the <code>Document</code> object
+     that is the <a href="#active">active document</a> of the <code><a
+     href="#window">Window</a></code> object on which the method was invoked.
 
-  <p>The event must then be dispatched at the <code>Document</code> object
-   that is the <a href="#active">active document</a> of the <code><a
-   href="#window">Window</a></code> object on which the method was invoked.
+   <li>
+    <p>If the <var title="">origin</var> argument is present and not null,
+     run these substeps:</p>
+
+    <ol>
+     <li>
+      <p>If the value of the <var title="">origin</var> argument is not a
+       valid URI or IRI, then throw a <code>SYNTAX_ERR</code> exception and
+       abort these steps. <a href="#refsRFC3490">[RFC3986]</a> <a
+       href="#refsRFC3490">[RFC3987]</a>
+
+     <li>
+      <p>If the <a href="#origin0">origin</a> of the <var
+       title="">target</var> document is not a scheme/host/port tuple, then
+       abort these steps silently.
+
+     <li>
+      <p>Otherwise, let <var title="">origin</var> be the URI or IRI parsed
+       from the <var title="">origin</var> argument. <a
+       href="#refsRFC3490">[RFC3986]</a> <a href="#refsRFC3490">[RFC3987]</a>
+
+     <li>
+      <p>If <var title="">origin</var> uses a URI scheme that does not have a
+       server-based naming authority, then abort these steps silently. <a
+       href="#refsRFC3490">[RFC3986]</a>
+
+     <li>
+      <p>Let <var title="">desired scheme</var> be the &lt;scheme> component
+       of <var title="">origin</var>.
+
+     <li>
+      <p>Let <var title="">desired host</var> be the &lt;host> or &lt;ihost>
+       part of <var title="">origin</var>, with the ToAscii algorithm
+       applied. <a href="#refsRFC3490">[RFC3490]</a>
+
+     <li>
+      <p>Let <var title="">desired port</var> be the &lt;port> component of
+       <var title="">origin</var>, or, if there isn't one, the default port
+       for <var title="">desired scheme</var>.
+
+     <li>
+      <p>If <var title="">desired scheme</var> is not the same as the scheme
+       component of the <a href="#origin0">origin</a> of the <var
+       title="">target</var> document, then abort these steps silently.
+
+     <li>
+      <p>If <var title="">desired host</var> is not the same as the host
+       component of the <a href="#origin0">origin</a> of the <var
+       title="">target</var> document, after having the ToAscii algorithm
+       applied, then abort these steps silently. <a
+       href="#refsRFC3490">[RFC3490]</a>
+
+     <li>
+      <p>If <var title="">desired port</var> is not the same as the port
+       component of the <a href="#origin0">origin</a> of the <var
+       title="">target</var> document, then abort these steps silently.
+    </ol>
+
+   <li>
+    <p>Create an event that uses the <code><a
+     href="#messageevent">MessageEvent</a></code> interface, with the event
+     name <code title=event-message><a href="#message0">message</a></code>,
+     which bubbles, is cancelable, and has no default action. The <code
+     title=dom-MessageEvent-data><a href="#data4">data</a></code> attribute
+     must be set to the value passed as the <var title="">message</var>
+     argument to the <code title=dom-window-postMessage><a
+     href="#postmessage">postMessage()</a></code> method, the <code
+     title=dom-MessageEvent-origin>origin</code> attribute must be set to the
+     <a href="#origin0">origin</a> of the document that the script that
+     invoked the methods is associated with, and the <code
+     title=dom-MessageEvent-source><a href="#source2">source</a></code>
+     attribute must be set to the <code><a href="#window">Window</a></code>
+     object of the default view of the browsing context with which that
+     document is associated.</p>
+
+    <p class=issue>Define 'origin' more exactly -- IDN vs no IDN, effect of
+     window.document.domain on its value, etc</p>
+
+   <li>
+    <p>Dispatch the event created in the previous step at the <var
+     title="">target</var> document.
+  </ol>
 
   <p>The <code title=dom-window-postMessage><a
    href="#postmessage">postMessage()</a></code> method must only return once
@@ -36578,6 +36648,11 @@ Target: #image1
    messages are only accepted from domains that they expect to receive
    messages from. Otherwise, bugs in the author's message handling code could
    be exploited by hostile sites.
+
+  <p class=warning>Authors should include the <var title="">origin</var>
+   argument in messages that contain any confidential information, to make
+   sure that the message is only delivered to the recipient to which it was
+   intended.
 
   <div class=example>
    <p>For example, if document A contains an <code><a
@@ -36598,7 +36673,7 @@ o.contentWindow.postMessage('Hello world');</pre>
 function receiver(e) {
   if (e.origin == 'http://example.com') {
     if (e.data == 'Hello world') {
-      e.source.postMessage('Hello');
+      e.source.postMessage('Hello', e.origin);
     } else {
       alert(e.data);
     }
@@ -45653,41 +45728,44 @@ interface <dfn id=timeouthandler>TimeoutHandler</dfn> {
    Campbell, Cameron McCormack, Carlos Perell&oacute; Mar&iacute;n, Chao Cai,
    &#xc724;&#xc11d;&#xcc2c; (Channy Yun), Charl van Niekerk, Charles Iliya
    Krempeaux, Charles McCathieNevile, Christian Biesinger, Christian
-   Johansen, Chriswa, Daniel Brumbaugh Keeney, Daniel Glazman, Daniel Peng,
-   Daniel Sp&aring;ng, Darin Alder, Darin Fisher, Dave Singer, Dave
-   Townsend<!-- Mossop on moz irc -->, David Baron, David Flanagan, David
-   H&aring;s&auml;ther, David Hyatt, Derek Featherstone, DeWitt Clinton,
-   Dimitri Glazkov, dolphinling, Doron Rosenberg, Doug Kramer, Eira Monstad,
-   Elliotte Harold, Erik Arvidsson, Evan Martin, fantasai, Franck 'Shift'
-   Qu&eacute;lain, Garrett Smith, Geoffrey Sneddon, H&aring;kon Wium Lie,
-   Henri Sivonen, Henrik Lied, Ignacio Javier, Ivo Emanuel Gon&ccedil;alves,
-   J. King, James Graham, James M Snell, James Perrett, Jan-Klaas Kollhof,
-   Jasper Bryant-Greene, Jeff Cutsinger, Jeff Walden, Jens Bannmann, Jens
-   Fendler, Jeroen van der Meer, Jim Meehan, Joel Spolsky, John Boyer, John
-   Bussjaeger, John Harding, Johnny Stenback, Jon Perlow, Jonathan Worent,
-   Jorgen Horstink, Josh Levenberg, Joshua Randall, Jukka K. Korpela, Kai
-   Hendry, <!-- Keryx Web, = Lars
-  Gunther --> Kornel Lesinski,
-   &#x9ed2;&#x6fa4;&#x525b;&#x5fd7; (KUROSAWA Takeshi), Kristof Zelechovski,
-   Lachlan Hunt, Larry Page, Lars Gunther, Laurens Holst, Lenny Domnitser,
-   L&eacute;onard Bouchet, Leons Petrazickis, Logan<!-- on moz irc -->,
-   Loune, Maciej Stachowiak, Malcolm Rowe, Mark Nottingham, Mark
-   Rowe<!--bdash-->, Mark Schenk, Martijn Wargers, Martin Atkins, Martin
-   D&uuml;rst, Martin Honnen, Mathieu Henri, Matthew Mastracci, Matthew
-   Raymond, Matthew Thomas, Mattias Waldau, Max Romantschuk, Michael 'Ratt'
-   Iannarelli, Michael A. Nachbaur, Michael A. Puls II<!--Shadow2531-->,
-   Michael Gratton, Michael Powers, Michel Fortin, Michiel van der Blonk,
-   Mihai &#x015E;ucan<!-- from ROBO Design -->, Mike Brown, Mike
-   Dierken<!-- S. Mike Dierken -->, Mike Dixon, Mike Schinkel, Mike Shaver,
-   Mike Smith, Mikko Rantalainen, Neil Deakin, Olav Junker Kj&aelig;r, Oliver
-   Hunt, Peter Kasting, Philip Taylor, Rachid Finge, Rajas Moonka, Ralph
-   Giles, Rimantas Liubertas, Robert O'Callahan, Robert Sayre, Roman Ivanov,
-   S. Mike Dierken, Sam Ruby, Sam Weinig, Scott Hess, Sean Knapp, Shaun
-   Inman, Silvia Pfeiffer, Simon Pieters, Stefan Haustein, Stephen Ma, Steve
-   Runyon, Steven Garrity, Stewart Brodie, Stuart Parmenter, Tantek
-   &Ccedil;elik, Thomas Broyer, Thomas O'Connor, Tim Altman, Tyler Close,
-   Vladimir Vuki&#x0107;evi&#x0107;, Wakaba, William Swanson, and
-   &Oslash;istein E. Andersen, for their useful and substantial comments.
+   Johansen, Chriswa, Collin Jackson, Daniel Brumbaugh Keeney, Daniel
+   Glazman, Daniel Peng, Daniel Sp&aring;ng, Darin Alder, Darin Fisher, Dave
+   Singer, Dave Townsend<!-- Mossop on moz
+  irc -->, David Baron, David
+   Flanagan, David H&aring;s&auml;ther, David Hyatt, Derek Featherstone,
+   DeWitt Clinton, Dimitri Glazkov, dolphinling, Doron Rosenberg, Doug
+   Kramer, Eira Monstad, Elliotte Harold, Erik Arvidsson, Evan Martin,
+   fantasai, Franck 'Shift' Qu&eacute;lain, Garrett Smith, Geoffrey Sneddon,
+   H&aring;kon Wium Lie, Henri Sivonen, Henrik Lied, Ignacio Javier, Ivo
+   Emanuel Gon&ccedil;alves, J. King, James Graham, James M Snell, James
+   Perrett, Jan-Klaas Kollhof, Jasper Bryant-Greene, Jeff Cutsinger, Jeff
+   Walden, Jens Bannmann, Jens Fendler, Jeroen van der Meer, Jim Meehan, Joel
+   Spolsky, John Boyer, John Bussjaeger, John Harding, Johnny Stenback, Jon
+   Perlow, Jonathan Worent, Jorgen Horstink, Josh Levenberg, Joshua Randall,
+   Jukka K. Korpela, Kai Hendry, <!-- Keryx
+  Web, = Lars Gunther --> Kornel
+   Lesinski, &#x9ed2;&#x6fa4;&#x525b;&#x5fd7; (KUROSAWA Takeshi), Kristof
+   Zelechovski, Lachlan Hunt, Larry Page, Lars Gunther, Laurens Holst, Lenny
+   Domnitser, L&eacute;onard Bouchet, Leons Petrazickis,
+   Logan<!-- on moz irc -->, Loune, Maciej Stachowiak, Malcolm Rowe, Mark
+   Nottingham, Mark Rowe<!--bdash-->, Mark Schenk, Martijn Wargers, Martin
+   Atkins, Martin D&uuml;rst, Martin Honnen, Mathieu Henri, Matthew
+   Mastracci, Matthew Raymond, Matthew Thomas, Mattias Waldau, Max
+   Romantschuk, Michael 'Ratt' Iannarelli, Michael A. Nachbaur, Michael A.
+   Puls II<!--Shadow2531-->, Michael Gratton, Michael Powers, Michel Fortin,
+   Michiel van der Blonk, Mihai &#x015E;ucan<!-- from ROBO Design -->, Mike
+   Brown, Mike Dierken<!--
+  S. Mike Dierken -->, Mike Dixon, Mike Schinkel,
+   Mike Shaver, Mike Smith, Mikko Rantalainen, Neil Deakin, Olav Junker
+   Kj&aelig;r, Oliver Hunt, Peter Kasting, Philip Taylor, Rachid Finge, Rajas
+   Moonka, Ralph Giles, Rimantas Liubertas, Robert O'Callahan, Robert Sayre,
+   Roman Ivanov, S. Mike Dierken, Sam Ruby, Sam Weinig, Scott Hess, Sean
+   Knapp, Shaun Inman, Silvia Pfeiffer, Simon Pieters, Stefan Haustein,
+   Stephen Ma, Steve Runyon, Steven Garrity, Stewart Brodie, Stuart
+   Parmenter, Tantek &Ccedil;elik, Thomas Broyer, Thomas O'Connor, Tim
+   Altman, Tyler Close, Vladimir Vuki&#x0107;evi&#x0107;, Wakaba, William
+   Swanson, and &Oslash;istein E. Andersen, for their useful and substantial
+   comments.
 
   <p>Thanks also to everyone who has ever posted about HTML5 to their blogs,
    public mailing lists, or forums, including the <a
