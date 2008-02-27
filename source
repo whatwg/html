@@ -381,10 +381,10 @@
     them for conformance should act in accordance to the semantics of
     the documents that they process.</p>
 
-    <p class="example">A tool that generates <span title="sections and
-    headings">document outlines</span> but increases the nesting level
-    for each paragraph and does not increase the nesting level for
-    each section would not be conforming.</p>
+    <p class="example">A tool that generates <span
+    title="outline">document outlines</span> but increases the nesting
+    level for each paragraph and does not increase the nesting level
+    for each section would not be conforming.</p>
 
    </dd>
 
@@ -7195,16 +7195,19 @@ isn't his only passion. He also enjoys other pleasures.&lt;/p>
 
   <h5 id="outlines">Creating an outline</h5>
 
-  <p>This section defines an algorithm for creating an outline for a
-  <span>sectioning content</code> element or a <span>sectioning
-  root</span> element. It is defined in terms of a walk over the nodes
-  of a DOM tree, in tree order, with each node being visited when it
-  is <i>entered</i> and when it is <i>exited</i> during the walk.</p>
+  <p>This section defines an algorithm for creating an
+  <dfn>outline</dfn> for a <span>sectioning content</code> element or
+  a <span>sectioning root</span> element. It is defined in terms of a
+  walk over the nodes of a DOM tree, in tree order, with each node
+  being visited when it is <i>entered</i> and when it is <i>exited</i>
+  during the walk.</p>
 
   <p>The outline for a <span>sectioning content</code> element or a
   <span>sectioning root</span> element consists of a list of one or
   more potentially nested sections. Each section can have zero or one
-  heading associated with it.</p>
+  heading associated with it. The algorithm for the outline also
+  associates each node in the DOM tree with a particular section and
+  potentially a heading.</p>
 
   <p>The algorithm that must be followed during a walk of a DOM
   subtree rooted at a <span>sectioning content</span> element or a
@@ -7364,10 +7367,10 @@ isn't his only passion. He also enjoys other pleasures.&lt;/p>
 
     </dl>
 
-    <p>In addition, whenever you exit a node, after doing the steps
-    above, if <var title="">current section</var> is not null,
-    associate the node with the section <var title="">current
-    section</var>.</p>
+    <p id="associatedSection">In addition, whenever you exit a node,
+    after doing the steps above, if <var title="">current
+    section</var> is not null, associate the node with the section
+    <var title="">current section</var>.</p>
 
    </li>
 
@@ -7379,6 +7382,9 @@ isn't his only passion. He also enjoys other pleasures.&lt;/p>
    <li><p>Associate any nodes that were not associated a section in
    the steps above with <var title="">current outlinee</var> as their
    section.</p></li>
+
+   <li><p>Associate all nodes with the heading of the section which
+   which they are associated, if any.</p></li>
 
    <li><p>If <var title="">current outlinee</var> is <span>the
    <code>body</code> element</span>, then the outline created for that
@@ -7436,222 +7442,37 @@ isn't his only passion. He also enjoys other pleasures.&lt;/p>
   </div>
 
 
+  <h5>Distinguishing site-wide headings from page headings</h5>
 
-  <h5 id="associatedSection">Determining which heading and section
-  applies to a particular node</h5>
-
-  <p class="big-issue">This section will be rewritten at some
-  point. The algorithm likely won't change, but its description will
-  be dramatically simplified.</p>
-
-  <p>Given a particular node, user agents must use the following
-  algorithm, <em>in the given order</em>, to determine which heading
-  and section the node is most closely associated with. The processing
-  of this algorithm must stop as soon as the associated section and
-  heading are established (even if they are established to be
-  nothing).</p>
-
-  <ol>
-
-   <li>If the node has an ancestor that is a <code>header</code>
-   element, then the associated heading is the most distant such
-   ancestor. The associated section is that <code>header</code>'s
-   associated section (i.e. repeat this algorithm for that
-   <code>header</code>).</li>
-
-   <li>If the node has an ancestor that is an
-   <code>h1</code>-<code>h6</code> element, then the associated
-   heading is the most distant such ancestor. The associated section
-   is that heading's section (i.e. repeat this algorithm for that
-   heading element).</li>
-
-   <li>If the node is an <code>h1</code>-<code>h6</code> element or a
-   <code>header</code> element, then the associated heading is the
-   element itself. The UA must then generate the <a
-   href="#outlines">hypothetical section tree</a> described in the
-   previous section, rooted at the nearest section ancestor (or the
-   <span>root element</span> if there is no such ancestor). If the
-   parent of the heading in that hypothetical tree is an element in
-   the real document tree, then that element is the associated
-   section. Otherwise, there is no associated section element.</li>
-
-   <li>If the node is an element of <span>sectioning content</span>,
-   then the associated section is itself. The UA must then generate
-   the <a href="#outlines">hypothetical section tree</a> described in
-   the previous section, rooted at the section itself. If the section
-   element, in that hypothetical tree, has a child element that is an
-   <code>h1</code>-<code>h6</code> element or a <code>header</code>
-   element, then that element is the associated heading. Otherwise,
-   there is no associated heading element.</li>
-
-   <li>If the node is a <code>footer</code> or <code>address</code>
-   element, then the associated section is the nearest ancestor
-   element of <span>sectioning content</span>, if there is one. The
-   node's associated heading is the same as that element of
-   <span>sectioning content</span>'s associated heading (i.e.  repeat
-   this algorithm for that element of <span>sectioning
-   content</span>). If there is no ancestor element of
-   <span>sectioning content</span>, the element has no associated
-   section nor an associated heading.</li>
-
-   <li>Otherwise, the node is just a normal node, and the document has
-   to be examined more closely to determine its section and heading.
-   Create a view rooted at the nearest ancestor element of
-   <span>sectioning content</span> (or the <span>root element</span>
-   if there is none) that has just <code>h1</code>-<code>h6</code>
-   elements, <code>header</code> elements, the node itself, and
-   elements of <span>sectioning content</span> other than
-   <code>blockquote</code> elements. (Descendants of any of the nodes
-   in this view can be ignored, as can any node later in the tree than
-   the node in question, as the algorithm below merely walks backwards
-   up this view.)</li>
-
-   <li>Let <var title="">n</var> be an iterator for this view,
-   initialised at the node in question.</li>
-
-   <li>Let <var title="">c</var> be the current best candidate
-   heading, initially null, and initially not used. It is used when
-   top-level heading candidates are to be searched for (see
-   below).</li>
-
-   <li>Repeat these steps (which effectively goes backwards through
-   the node's previous siblings) until an answer is found:
-
-    <ol>
-
-     <li>If <var title="">n</var> points to a node with no previous
-     sibling, and <var title="">c</var> is null, then return the
-     node's parent node as the answer. If the node has no parent node,
-     return null as the answer.</li>
-
-     <li>Otherwise, if <var title="">n</var> points to a node with no
-     previous sibling, return <var title="">c</var> as the
-     answer.</li>
-
-     <li>Adjust <var title="">n</var> so that it points to the
-     previous sibling of the current position.</li>
-
-     <li>If <var title="">n</var> is pointing at an <code>h1</code> or
-     <code>header</code> element, then return that element as the
-     answer.</li>
-
-     <li>If <var title="">n</var> is pointing at an
-     <code>h2</code>-<code>h6</code> element, and heading candidates
-     are not being searched for, then return that element as the
-     answer.</li>
-
-     <li>Otherwise, if <var title="">n</var> is pointing at an
-     <code>h2</code>-<code>h6</code> element, and either <var
-     title="">c</var> is still null, or <var title="">c</var> is a
-     heading of lower <span>rank</span> than this one, then set <var
-     title="">c</var> to be this element, and continue going backwards
-     through the previous siblings.</li>
-
-     <li>If <var title="">n</var> is pointing at an element of
-     <span>sectioning content</span>, then from this point on
-     top-level heading candidates are being searched
-     for. (Specifically, we are looking for the nearest top-level
-     header for the current section.) Continue going backwards through
-     the previous siblings.</li>
-
-    </ol>
-
-   </li>
-
-   <li>If the answer from the previous step (the loop) is null, which
-   can only happen if the node has no preceeding headings and is not
-   contained in an element of <span>sectioning content</span>, then
-   there is no associated heading and no associated section.</li>
-
-   <li>Otherwise, if the answer from the earlier loop step is an
-   element of <span>sectioning content</span>, then the associated
-   section is that element and the associated heading is that element
-   of <span>sectioning content</span>'s associated heading
-   (i.e. repeat this algorithm for that section).</li>
-
-   <li>Otherwise, if the answer from that same earlier step is an
-   <code>h1</code>-<code>h6</code> element or a <code>header</code>
-   element, then the associated heading is that element and the
-   associated section is that heading element's associated section
-   (i.e. repeat this algorithm for that heading).</li>
-
-  </ol>
-
-  <p class="note">Not all nodes have an associated header or section.
-  For example, if a section is implied, as when multiple headers are
-  found in one element of <span>sectioning content</span>, then a node
-  in that section has an anonymous associated section (its section is
-  not represented by a real element), and the algorithm above does not
-  associate that node with any particular element of <span>sectioning
-  content</span>.</p>
-
-  <div class="example">
-   <p>For the following fragment:</p>
-   <pre>&lt;body&gt;
- &lt;h1&gt;X&lt;/h1&gt;
- &lt;h2&gt;X&lt;/h2&gt;
- &lt;blockquote&gt;
-  &lt;h3&gt;X&lt;/h3&gt;
- &lt;/blockquote&gt;
- &lt;p id="a"&gt;X&lt;/p&gt;
- &lt;h4&gt;Text Node A&lt;/h4&gt;
- &lt;section&gt;
-  &lt;h5&gt;X&lt;/h5&gt;
- &lt;/section&gt;
- &lt;p&gt;Text Node B&lt;/p&gt;
-&lt;/body&gt;</pre>
-   <p>The associations are as follows (not all associations are shown):</p>
-   <table>
-    <thead>
-     <tr>
-      <th>Node</th> <th>Associated heading</th> <th>Associated section</th>
-     </tr>
-    </thead>
-    <tbody>
-     <tr> <td><code>&lt;body&gt;</code></td> <td><code>&lt;h1&gt;</code></td> <td><code>&lt;body&gt;</code></td> </tr>
-     <tr> <td><code>&lt;h1&gt;</code></td> <td><code>&lt;h1&gt;</code></td> <td><code>&lt;body&gt;</code></td> </tr>
-     <tr> <td><code>&lt;h2&gt;</code></td> <td><code>&lt;h2&gt;</code></td> <td>None.</td> </tr>
-     <tr> <td><code>&lt;blockquote&gt;</code></td> <td><code>&lt;h2&gt;</code></td> <td>None.</td> </tr>
-     <tr> <td><code>&lt;h3&gt;</code></td> <td><code>&lt;h3&gt;</code></td> <td><code>&lt;blockquote&gt;</code></td> </tr>
-     <tr> <td><code>&lt;p id="a"&gt;</code></td> <td><code>&lt;h2&gt;</code></td> <td>None.</td> </tr>
-     <tr> <td><code>Text Node A</code></td> <td><code>&lt;h4&gt;</code></td> <td>None.</td> </tr>
-     <tr> <td><code>Text Node B</code></td> <td><code>&lt;h1&gt;</code></td> <td><code>&lt;body&gt;</code></td> </tr>
-    </tbody>
-   </table>
-  </div>
-
-
-  <h5>Distinguishing site-wide headers from page headers</h5>
-
-  <p>Given the <a href="#outlines">hypothetical section tree</a>, but
-  ignoring any sections created for <code>nav</code> and
-  <code>aside</code> elements, and any of their descendants, if the
-  root of the tree is <span>the <code>body</code> element</span>'s
-  section, and it has only a single subsection which is created by an
-  <code>article</code> element, then the header of <span>the
-  <code>body</code> element</span> should be assumed to be a site-wide
-  header, and the header of the <code>article</code> element should be
-  assumed to be the page's header.</p>
+  <p>Given the <span>outline</span> of a document, but ignoring any
+  sections created for <code>nav</code> and <code>aside</code>
+  elements, and any of their descendants, if the only root of the tree
+  is <span>the <code>body</code> element</span>'s section, and it has
+  only a single subsection which is created by an <code>article</code>
+  element, then the heading of <span>the <code>body</code>
+  element</span> should be assumed to be a site-wide heading, and the
+  heading of the <code>article</code> element should be assumed to be
+  the page's heading.</p>
 
   <p>If a page starts with a heading that is common to the whole site,
-  the document must be authored such that, in the document's <a
-  href="#outlines">hypothetical section tree</a>, ignoring any
-  sections created for <code>nav</code> and <code>aside</code>
-  elements and any of their descendants, the root of the tree is
-  <span>the <code>body</code> element</span>'s section, its heading is
-  the site-wide heading, <span>the <code>body</code> element</span>
-  has just one subsection, that subsection is created by an
-  <code>article</code> element, and that <code>article</code>'s header
-  is the page heading.</p>
+  the document must be authored such that, in the document's
+  <span>outline</span>, ignoring any sections created for
+  <code>nav</code> and <code>aside</code> elements and any of their
+  descendants, the tree has only one root section, <span>the
+  <code>body</code> element</span>'s section, its heading is the
+  site-wide heading, <span>the <code>body</code> element</span> has
+  just one subsection, that subsection is created by an
+  <code>article</code> element, and that <code>article</code>'s
+  heading is the page heading.</p>
 
   <p>If a page does not contain a site-wide heading, then the page
-  must be authored such that, in the document's <a
-  href="#outlines">hypothetical section tree</a>, ignoring any
-  sections created for <code>nav</code> and <code>aside</code>
-  elements and any of their descendants, either <span>the
-  <code>body</code> element</span> has no subsections, or it has more
-  than one subsection, or it has a single subsection but that
-  subsection is not created by an <code>article</code> element.</p>
+  must be authored such that, in the document's <span>outline</span>,
+  ignoring any sections created for <code>nav</code> and
+  <code>aside</code> elements and any of their descendants, either
+  <span>the <code>body</code> element</span> has no subsections, or it
+  has more than one subsection, or it has a single subsection but that
+  subsection is not created by an <code>article</code> element, or
+  there is more than one section at the root of the outline.</p>
 
   <p class="note">Conceptually, a site is thus a document with many
   articles &mdash; when those articles are split into many pages, the
