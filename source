@@ -7195,85 +7195,207 @@ isn't his only passion. He also enjoys other pleasures.&lt;/p>
 
   <h5 id="outlines">Creating an outline</h5>
 
-  <p class="big-issue">This section will be rewritten at some
-  point. The algorithm likely won't change, but its description will
-  be dramatically simplified.</p>
+  <p>This section defines an algorithm for creating an outline for a
+  <span>sectioning content</code> element or a <span>sectioning
+  root</span> element. It is defined in terms of a walk over the nodes
+  of a DOM tree, in tree order, with each node being visited when it
+  is <i>entered</i> and when it is <i>exited</i> during the walk.</p>
 
-  <p>Documents can be viewed as a tree of sections, which defines how
-  each element in the tree is semantically related to the others, in
-  terms of the overall section structure. This tree is related to the
-  document tree, but there is not a one-to-one relationship between
-  elements in the DOM and the document's sections.</p>
+  <p>The outline for a <span>sectioning content</code> element or a
+  <span>sectioning root</span> element consists of a list of one or
+  more potentially nested sections. Each section can have zero or one
+  heading associated with it.</p>
 
-  <p>The tree of sections should be used when generating document
-  outlines, for example when generating tables of contents.</p>
+  <p>The algorithm that must be followed during a walk of a DOM
+  subtree rooted at a <span>sectioning content</span> element or a
+  <span>sectioning root</span> element to determine that element's
+  outline is as follows:</p>
 
-  <p>To derive the tree of sections from the document tree, a
-  hypothetical tree is used, consisting of a view of the document tree
-  containing only the elements of <span>heading content</span> and the
-  elements of <span>sectioning content</span> other than
-  <code>blockquote</code>. Descendants of
-  <code>h1</code>-<code>h6</code>, <code>header</code>, and
-  <code>blockquote</code> elements must be removed from this view.</p>
+  <ol>
 
-  <p>The hypothetical tree must be rooted at the <span>root
-  element</span> or at an element of <span>sectioning
-  content</span>. In particular, while the sections inside
-  <code>blockquote</code>s do not contribute to the document's tree of
-  sections, <code>blockquote</code>s can have outlines of their
-  own.</p>
+   <li><p>Let <var title="">current outlinee</var> be null. (It holds
+   the element whose outline is being created.)</p></li>
 
-  <p>UAs must take this hypothetical tree (which will become the
-  outline) and mutate it by walking it depth first in <span>tree
-  order</span> and, for each element of <span>heading content</span>
-  that is not the first element of its parent <span>sectioning
-  content</span> element, inserting a new element of <span>sectioning
-  content</span>, as follows:</p>
+   <li><p>Let <var title="">current section</var> be null. (It holds a
+   pointer to a section, so that elements in the DOM can all be
+   associated with a section.)</p></li>
 
-  <dl class="switch">
+   <li><p>Create a stack to hold elements, which is used to handle
+   nesting. Initialise this stack to empty.</p></li>
 
-   <dt>If the element is a <code>header</code> element, or if it is an
-   <code>h1</code>-<code>h6</code> node of <span>rank</span> equal to
-   or higher than the first element in the parent element of
-   <span>sectioning content</span> (assuming that is also an
-   <code>h1</code>-<code>h6</code> node), or if the first element of
-   the parent element of <span>sectioning content</span> is an element
-   of <span>sectioning content</span>:</dt>
+   <li>
 
-   <dd>Insert the new element of <span>sectioning content</span> as
-   the immediately following sibling of the parent element of
-   <span>sectioning content</span>, and move all the elements from the
-   current element of <span>heading content</span> up to the end of
-   the parent element of <span>sectioning content</span> into the new
-   element of <span>sectioning content</span>.</dd>
+    <p>As you walk over the DOM in <span>tree order</span>, trigger
+    the first relevant step below for each element as you enter and
+    exit it.</p>
 
-   <dt>Otherwise:</dt>
+    <dl class="switch">
 
-   <dd>Move the current heading element, and all subsequent siblings
-   up to but excluding the next element of <span>sectioning
-   content</span>, <code>header</code> element, or
-   <code>h1</code>-<code>h6</code> of equal or higher
-   <span>rank</span>, whichever comes first, into the new element of
-   <span>sectioning content</span>, then insert the new element of
-   <span>sectioning content</span> where the current header was.</dd>
+     <dt>If the top of the stack is an element, and you are exiting
+     that element</dt>
 
-  </dl>
+     <dd><p>Pop that element from the stack.</p></dd>
 
-  <p>The outline is then the resulting hypothetical tree. The <span
-  title="rank">ranks</span> of the headers become irrelevant at this
-  point: each element of <span>sectioning content</span> in the hypothetical tree contains
-  either no or one heading element child. If there is one, then it
-  gives the section's heading, of there isn't, the section has no
-  heading.</p>
 
-  <p>Sections are nested as in the hypothetical tree. If a
-  <span>sectioning content</span> element is a child of another, that
-  means it is a subsection of that other section.</p>
+     <dt>If the top of the stack is a <span>heading content</span>
+     element</dt>
+
+     <dd><p>Do nothing.</p></dd>
+
+
+     <dt>When entering a <span>sectioning content</span> element or a
+     <span>sectioning root</span> element</dt>
+
+     <dd>
+
+      <p>If <var title="">current outlinee</var> is not null, push
+      <var title="">current outlinee</var> onto the stack.</p>
+
+      <p>Let <var title="">current outlinee</var> be the element
+      that is being entered.</p>
+
+      <p>Let <var title="">current section</var> be a newly created
+      section for the <var title="">current outlinee</var>
+      element.</p>
+
+      <p>Let there be a new outline for the new <var title="">current
+      outlinee</var>, initialised with just the new <var
+      title="">current section</var> as the only section in the
+      outline.</p>
+
+     </dd>
+
+
+     <dt>When exiting a <span>sectioning content</span> element or a
+     <span>sectioning root</span> element, if the stack is not
+     empty</dt>
+
+     <dd>
+
+      <p>Pop the top element from the stack, and let the <var
+      title="">current outlinee</var> be that element.</p>
+
+      <p>Let <var title="">current section</var> be the last section
+      in the outline of the <var title="">current outlinee</var>
+      element.</p>
+
+      <p>If the element being exited is a <span>sectioning
+      content</span> element, then insert its outline at the end of
+      the <var title="">current section</var>. (This does not change
+      which section is the last section in the outline.)</p>
+
+     </dd>
+
+
+     <dt>When exiting a <span>sectioning content</span> element or a
+     <span>sectioning root</span> element</dt>
+
+     <dd>
+
+      <p class="note">The <var title="">current outlinee</var> is
+      the element being exitted.</p>
+
+      <p>Let <var title="">current section</var> be the first section
+      in the outline of the <var title="">current outlinee</var>
+      element.</p>
+
+      <p>Skip to the next step in the overall set of steps. (The walk
+      is over.)</p>
+
+     </dd>
+
+
+     <dt>If the <var title="">current outlinee</var> is null.</dt>
+
+     <dd><p>Do nothing.</p></dd>
+
+
+     <dt>When entering a <span>heading content</span> element</dt>
+
+     <dd>
+
+      <p>If the <var title="">current section</var> has no heading,
+      let the element being entered be the heading for the <var
+      title="">current section</var>.</p>
+
+      <p>Otherwise, if the element being entered has a rank equal to
+      or greater than the heading of the <var title="">current
+      section</var>, then create a new section and append it to the
+      outline of the <var title="">current outlinee</var> element, so
+      that this new section is the new last section of that
+      outline. Let <var title="">current section</var> be that new
+      section. Let the element being entered be the new heading for
+      the <var title="">current section</var>.</p>
+
+      <p>Otherwise, run these substeps:</p>
+
+      <ol>
+
+       <li><p>Let <var title="">candidate section</var> be <var
+       title="">current section</var>.</p></li>
+
+       <li><p>If the element being entered has a rank lower than the
+       rank of the heading of the <var title="">candidate
+       section</var>, then create a new section, and append it to <var
+       title="">candidate section</var>. (This does not change which
+       section is the last section in the outline.) Let <var
+       title="">current section</var> be this new section.  Let the
+       element being entered be the new heading for the <var
+       title="">current section</var>. Abort these substeps.</p>
+
+       <li><p>Let <var title="">candidate section</var> be the section
+       that contains the previous <var title="">candidate
+       section</var> in the outline of <var title="">current
+       outlinee</var>.</p></li>
+
+       <li><p>Return to step 2.</p></li>
+
+      </ol>
+
+      <p>Push the element being entered onto the stack. (This causes
+      the algorithm to skip any descendants of the element.)</p>
+
+     </dd>
+
+
+     <dt>Otherwise</dt>
+
+     <dd><p>Do nothing.</p></dd>
+
+    </dl>
+
+    <p>In addition, whenever you exit a node, after doing the steps
+    above, if <var title="">current section</var> is not null,
+    associate the node with the section <var title="">current
+    section</var>.</p>
+
+   </li>
+
+   <li><p>If the <var title="">current outlinee</var> is null,
+   then there was no <span>sectioning content</span> element or
+   <span>sectioning root</span> element in the DOM. There is no
+   outline. Abort these steps.</p></li>
+
+   <li><p>Associate any nodes that were not associated a section in
+   the steps above with <var title="">current outlinee</var> as their
+   section.</p></li>
+
+   <li><p>If <var title="">current outlinee</var> is <span>the
+   <code>body</code> element</span>, then the outline created for that
+   element is the outline of the entire document.</p></li>
+
+  </ol>
+
+  <p>The tree of sections created by the algorithm above, or a proper
+  subset thereof, must be used when generating document outlines, for
+  example when generating tables of contents.</p>
 
   <p>When creating an interactive table of contents, entries should
-  jump the user to the relevant section element, if it was a real
-  element in the original document, or to the heading, if the section
-  element was one of those created during the above process.</p>
+  jump the user to the relevant <span>sectioning content</span>
+  element, if the section was created for a real element in the
+  original document, or to the relevant <span>heading content</span>
+  element, if the section in the tree was generated for a heading in
+  the above process.</p>
 
   <p class="example">Selecting the first section of the document
   therefore always takes the user to the top of the document,
@@ -7282,50 +7404,37 @@ isn't his only passion. He also enjoys other pleasures.&lt;/p>
 
   <div class="note">
 
-   <p>The hypothetical tree (before mutations) could be generated by
-   creating a <code>TreeWalker</code> with the following <a
-   href="http://www.w3.org/TR/DOM-Level-2-Traversal-Range/traversal.html#Traversal-NodeFilter"><code>NodeFilter</code></a>
-   (described here as an anonymous ECMAScript function). <a
-   href="#refsDOMTR">[DOMTR]</a> <a
+   <p>The following JavaScript function shows how the tree walk could
+   be implemented. The <var title="">root</var> argument is the root
+   of the tree to walk, and the <var title="">enter</var> and <var
+   title="">exit</var> arguments are callbacks that are called with
+   the nodes as they are entered and exited. <a
    href="#refsECMA262">[ECMA262]</a></p>
 
-   <pre>function (n) {
-  // This implementation only knows about HTML elements.
-  // An implementation that supports other languages might be
-  // different.
-
-  // Reject anything that isn't an element.
-  if (n.nodeType != Node.ELEMENT_NODE)
-    return NodeFilter.FILTER_REJECT;
-
-  // Skip any descendants of headings.
-  if ((n.parentNode &amp;&amp; n.parentNode.namespaceURI == 'http://www.w3.org/1999/xhtml') &amp;&amp;
-      (n.parentNode.localName == 'h1' || n.parentNode.localName == 'h2' ||
-       n.parentNode.localName == 'h3' || n.parentNode.localName == 'h4' ||
-       n.parentNode.localName == 'h5' || n.parentNode.localName == 'h6' ||
-       n.parentNode.localName == 'header'))
-    return NodeFilter.FILTER_REJECT;
-
-  // Skip any blockquotes.
-  if ((n.namespaceURI == 'http://www.w3.org/1999/xhtml') &amp;&amp;
-      (n.localName == 'blockquote'))
-    return NodeFilter.FILTER_REJECT;
-
-  // Accept HTML elements in the list given in the prose above.
-  if ((n.namespaceURI == 'http://www.w3.org/1999/xhtml') &amp;&amp;
-      (n.localName == 'body' || /*n.localName == 'blockquote' ||*/
-       n.localName == 'section' || n.localName == 'nav' ||
-       n.localName == 'article' || n.localName == 'aside' ||
-       n.localName == 'h1' || n.localName == 'h2' ||
-       n.localName == 'h3' || n.localName == 'h4' ||
-       n.localName == 'h5' || n.localName == 'h6' ||
-       n.localName == 'header'))
-    return NodeFilter.FILTER_ACCEPT;
-
-  // Skip the rest.
-  return NodeFilter.FILTER_SKIP;
+   <pre>function (root, enter, exit) {
+  var node = root;
+  start: do while (node) {
+    enter(node);
+    if (node.firstChild) {
+      node = node.firstChild;
+      continue start;
+    }
+    end: while (node) {
+      exit(node);
+      if (node.nextSibling) {
+        node = node.nextSibling;
+        continue start;
+      }
+      if (node == root)
+        node = null;
+      else
+        node = node.parentNode;
+    }
+  }
 }</pre>
+
   </div>
+
 
 
   <h5 id="associatedSection">Determining which heading and section
