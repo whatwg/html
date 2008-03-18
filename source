@@ -17420,9 +17420,11 @@ notes on what would need to be defined for dashed lines:
    <dt>Element-specific attributes:</dt>
    <dd><code title="attr-tdth-colspan">colspan</code></dd>
    <dd><code title="attr-tdth-rowspan">rowspan</code></dd>
+   <dd><code title="attr-td-headers">headers</code></dd>
    <dt>DOM interface:</dt>
    <dd>
     <pre class="idl">interface <dfn>HTMLTableDataCellElement</dfn> : <span>HTMLTableCellElement</span> {
+           attribute DOMString <span title="dom-td-headers">headers</span>;
 };</pre>
    </dd>
   </dl>
@@ -17430,10 +17432,29 @@ notes on what would need to be defined for dashed lines:
   <p>The <code>td</code> element represents a data <span
   title="concept-cell">cell</span> in a table.</p>
 
+  <p>The <code>th</code> element may have a <dfn
+  title="attr-td-headers"><code>headers</code></dfn> content attribute
+  specified. The <code title="attr-td-headers">headers</code>
+  attribute, if specified, must contain a string consisting of an
+  <span>unordered set of unique space-separated tokens</span>, each of
+  which must have the value of an ID of a <code>th</code> element
+  taking part in the same <span title="concept-table">table</span> as
+  the <code>td</code> element (as defined by the <span>table
+  model</span>).</p>
+
+  <p>The exact effect of the attribute is described in detail in the
+  <span>algorithm for assigning header cells to data cells</span>,
+  which user agents must apply to determine the relationships between
+  data cells and header cells.</p>
+
   <p>The <code>td</code> element and its <code
   title="attr-tdth-colspan">colspan</code> and <code
   title="attr-tdth-rowspan">rowspan</code> attributes take part in the
   <span>table model</span>.</p>
+
+  <p>The <dfn title="dom-td-headers"><code>headers</code></dfn> DOM
+  attribute must <span>reflect</span> the content attribute of the
+  same name.</p>
 
 
   <h4>The <dfn><code>th</code></dfn> element</h4>
@@ -17510,9 +17531,8 @@ notes on what would need to be defined for dashed lines:
   data cells and header cells.</p>
 
   <p>The <code>th</code> element and its <code
-  title="attr-tdth-colspan">colspan</code>, <code
-  title="attr-tdth-rowspan">rowspan</code>, and <code
-  title="attr-th-scope">scope</code> attributes take part in the
+  title="attr-tdth-colspan">colspan</code> and <code
+  title="attr-tdth-rowspan">rowspan</code> attributes take part in the
   <span>table model</span>.</p>
 
   <p>The <dfn title="dom-th-scope"><code>scope</code></dfn> DOM
@@ -18352,151 +18372,243 @@ notes on what would need to be defined for dashed lines:
   <span>table model error</span>.</p>
 
 
+
   <h5 id="header-and-data-cell-semantics">Forming relationships between data cells and header cells</h5>
 
   <p>Each data cell can be assigned zero or more header cells. The
   <dfn>algorithm for assigning header cells to data cells</dfn> is as
   follows.</p>
 
-  <p>For each header cell in the table, in <span>tree
-  order</span>:</p>
-
   <ol>
 
    <li>
 
-    <p>Let (<var title="">header<sub title="">x</sub></var>, <var
-    title="">header<sub title="">y</sub></var>) be the coordinate of
-    the slot to which the header cell is anchored.</p>
+    <p>For each header cell in the table, in <span>tree order</span>,
+    run these substeps:</p>
+
+    <ol>
+
+     <li>
+
+      <p>Let (<var title="">header<sub title="">x</sub></var>, <var
+      title="">header<sub title="">y</sub></var>) be the coordinate of
+      the slot to which the header cell is anchored.</p>
+
+     </li>
+
+     <li>
+
+      <p>Examine the <code title="attr-th-scope">scope</code>
+      attribute of the <code>th</code> element corresponding to the
+      header cell, and, based on its state, apply the appropriate
+      substep:</p>
+
+      <!-- XXX this entire switch statement should be changed around
+      so that it just defines the area to assign headers in, and the
+      direction to do the assigning in, and then defers to a set of
+      steps below it that then does the assigning. Then, we can
+      support colspaning/rowspaning headers and can stop when we hit
+      other headers, if we want to do that. -->
+
+      <dl class="switch">
+
+       <dt>If it is in the <em title="attr-th-scope-row">row</em> state</dt>
+
+       <dd>
+
+        <p>Assign the header cell to any data cells anchored at slots
+        with coordinates (<var title="">data<sub
+        title="">x</sub></var>, <var title="">data<sub
+        title="">y</sub></var>) where <span><var title="">header<sub
+        title="">x</sub></var>&nbsp;&lt;&nbsp;<var title="">data<sub
+        title="">x</sub></var>&nbsp;&le;&nbsp;<var title="">x<sub
+        title="">max</sub></var></span> and <span><var
+        title="">data<sub title="">y</sub></var>&nbsp;=&nbsp;<var
+        title="">header<sub title="">y</sub></var></span>, except for
+        any data cells corresponding to <code>td</code> elements that
+        have a <code title="attr-td-headers">headers</code> attribute
+        specified.</p>
+
+       </dd>
+
+       <dt>If it is in the <em title="attr-th-scope-col">column</em> state</dt>
+
+       <dd>
+
+        <p>Assign the header cell to any data cells anchored at slots
+        with coordinates (<var title="">data<sub
+        title="">x</sub></var>, <var title="">data<sub
+        title="">y</sub></var>) where <span><var title="">data<sub
+        title="">x</sub></var>&nbsp;=&nbsp;<var title="">header<sub
+        title="">x</sub></var></span> and <span><var
+        title="">header<sub title="">y</sub></var>&nbsp;&lt;&nbsp;<var
+        title="">data<sub title="">y</sub></var>&nbsp;&le;&nbsp;<var
+        title="">y<sub title="">max</sub></var></span>, except for any
+        data cells corresponding to <code>td</code> elements that have
+        a <code title="attr-td-headers">headers</code> attribute
+        specified.</p>
+
+       </dd>
+
+       <dt>If it is in the <em title="attr-th-scope-rowgroup">row group</em> state</dt>
+
+       <dd>
+
+        <p>If the header cell is not in a <span
+        title="concept-row-group">row group</span>, then don't assign
+        the header cell to any data cells.</p>
+
+        <p>Otherwise, let (1, <var title="">group<sub
+        title="">y</sub></var>) be the slot at which the row group is
+        anchored, let <var title="">height</var> be the number of rows
+        in the row group, and assign the header cell to any data cells
+        anchored at slots with coordinates (<var title="">data<sub
+        title="">x</sub></var>, <var title="">data<sub
+        title="">y</sub></var>) where <span><var title="">header<sub
+        title="">x</sub></var>&nbsp;&le;&nbsp;<var title="">data<sub
+        title="">x</sub></var>&nbsp;&le;&nbsp;<var title="">x<sub
+        title="">max</sub></var></span> and <span><var
+        title="">header<sub title="">y</sub></var>&nbsp;&le;&nbsp;<var
+        title="">data<sub title="">y</sub></var>&nbsp;&lt;&nbsp;<var
+        title="">group<sub title="">y</sub></var>+<var
+        title="">height</var></span>, except for any data cells
+        corresponding to <code>td</code> elements that have a <code
+        title="attr-td-headers">headers</code> attribute
+        specified.</p>
+
+       </dd>
+
+       <dt>If it is in the <em title="attr-th-scope-colgroup">column group</em> state</dt>
+
+       <dd>
+
+        <p>If the header cell is not in a <span
+        title="concept-column-group">column group</span>, then don't
+        assign the header cell to any data cells.</p>
+
+        <p>Otherwise, let (<var title="">group<sub
+        title="">x</sub></var>, 1) be the slot at which the column
+        group is anchored, let <var title="">width</var> be the number
+        of columns in the column group, and assign the header cell to
+        any data cells anchored at slots with coordinates (<var
+        title="">data<sub title="">x</sub></var>, <var
+        title="">data<sub title="">y</sub></var>) where <span><var
+        title="">header<sub title="">x</sub></var>&nbsp;&le;&nbsp;<var
+        title="">data<sub title="">x</sub></var>&nbsp;&lt;&nbsp;<var
+        title="">group<sub title="">x</sub></var>+<var
+        title="">width</var></span> and <span><var title="">header<sub
+        title="">y</sub></var>&nbsp;&le;&nbsp;<var title="">data<sub
+        title="">y</sub></var>&nbsp;&le;&nbsp;<var title="">y<sub
+        title="">max</sub></var></span>, except for any data cells
+        corresponding to <code>td</code> elements that have a <code
+        title="attr-td-headers">headers</code> attribute
+        specified.</p>
+
+       </dd>
+
+       <dt>Otherwise, it is in the <em title="">auto</em> state</dt>
+
+       <dd>
+
+        <p>If the header cell is not in the first row of the table, or
+        not in the first cell of a row, then don't assign the header
+        cell to any data cells.</p>
+
+        <p class="big-issue">This is shortly to be made better and
+        more magical.</p>
+
+        <p>Otherwise, if the header cell is in the first row of the
+        table, assign the header cell to any data cells anchored at
+        slots with coordinates (<var title="">data<sub
+        title="">x</sub></var>, <var title="">data<sub
+        title="">y</sub></var>) where <span><var title="">data<sub
+        title="">x</sub></var>&nbsp;=&nbsp;<var title="">header<sub
+        title="">x</sub></var></span> and <span><var
+        title="">header<sub title="">y</sub></var>&nbsp;&lt;&nbsp;<var
+        title="">data<sub title="">y</sub></var>&nbsp;&le;&nbsp;<var
+        title="">y<sub title="">max</sub></var></span>, except for any
+        data cells corresponding to <code>td</code> elements that have
+        a <code title="attr-td-headers">headers</code> attribute
+        specified.</p>
+
+        <p>Otherwise, the header cell is in the first column of the
+        table; assign the header cell to any data cells anchored at
+        slots with coordinates (<var title="">data<sub
+        title="">x</sub></var>, <var title="">data<sub
+        title="">y</sub></var>) where <span><var title="">header<sub
+        title="">x</sub></var>&nbsp;&lt;&nbsp;<var title="">data<sub
+        title="">x</sub></var>&nbsp;&le;&nbsp;<var title="">x<sub
+        title="">max</sub></var></span> and <span><var
+        title="">data<sub title="">y</sub></var>&nbsp;=&nbsp;<var
+        title="">header<sub title="">y</sub></var></span>, except for
+        any data cells corresponding to <code>td</code> elements that
+        have a <code title="attr-td-headers">headers</code> attribute
+        specified.</p>
+
+       </dd>
+
+      </dl>
+
+     </li>
+
+    </ol>
 
    </li>
 
    <li>
 
-    <p>Examine the <code title="attr-th-scope">scope</code> attribute
-    of the <code>th</code> element corresponding to the header cell,
-    and, based on its state, apply the appropriate substep:</p>
+    <p>For each data cell in the table, in <span>tree order</span>,
+    run these substeps:</p>
 
-    <dl class="switch">
+    <ol>
 
-     <dt>If it is in the <em title="attr-th-scope-row">row</em> state</dt>
+     <li>
 
-     <dd>
+      <p>If the data cell corresponds to a <code>td</code> element
+      that does not have a <code
+      title="attr-td-headers">headers</code> attribute specified, then
+      skip these substeps and move on to the next data cell (if
+      any).</p>
 
-      <p>Assign the header cell to any data cells anchored at slots
-      with coordinates (<var title="">data<sub title="">x</sub></var>,
-      <var title="">data<sub title="">y</sub></var>) where <span><var
-      title="">header<sub title="">x</sub></var>&nbsp;&lt;&nbsp;<var
-      title="">data<sub title="">x</sub></var>&nbsp;&le;&nbsp;<var
-      title="">x<sub title="">max</sub></var></span> and <span><var
-      title="">data<sub title="">y</sub></var>&nbsp;=&nbsp;<var
-      title="">header<sub title="">y</sub></var></span>.</p>
+     </li>
 
-     </dd>
+     <li>
 
-     <dt>If it is in the <em title="attr-th-scope-col">column</em> state</dt>
+      <p>Otherwise, take the value of the <code
+      title="attr-td-headers">headers</code> attribute and <span
+      title="split a string on spaces">split it on spaces</span>,
+      letting <var title="">id list</var> be the list of tokens
+      obtained.</p>
 
-     <dd>
+     </li>
 
-      <p>Assign the header cell to any data cells anchored at slots
-      with coordinates (<var title="">data<sub title="">x</sub></var>,
-      <var title="">data<sub title="">y</sub></var>) where <span><var
-      title="">data<sub title="">x</sub></var>&nbsp;=&nbsp;<var
-      title="">header<sub title="">x</sub></var></span> and <span><var
-      title="">header<sub title="">y</sub></var>&nbsp;&lt;&nbsp;<var
-      title="">data<sub title="">y</sub></var>&nbsp;&le;&nbsp;<var
-      title="">y<sub title="">max</sub></var></span>.</p>
+     <li>
 
-     </dd>
+      <!-- XXX if nothing was added to this subalgorithm, then make it
+      a single paragraph instead of a nested list. -->
 
-     <dt>If it is in the <em title="attr-th-scope-rowgroup">row group</em> state</dt>
+      <p>For each token in the <var title="">id list</var>, run the
+      following steps:</p>
 
-     <dd>
+      <ol>
 
-      <p>If the header cell is not in a <span
-      title="concept-row-group">row group</span>, then don't assign
-      the header cell to any data cells.</p>
+       <li><p>Let <var title="">id</var> be the token.</p></li>
 
-      <p>Otherwise, let (1, <var title="">group<sub
-      title="">y</sub></var>) be the slot at which the row group is
-      anchored, let <var title="">height</var> be the number of rows
-      in the row group, and assign the header cell to any data cells
-      anchored at slots with coordinates (<var title="">data<sub
-      title="">x</sub></var>, <var title="">data<sub
-      title="">y</sub></var>) where <span><var title="">header<sub
-      title="">x</sub></var>&nbsp;&le;&nbsp;<var title="">data<sub
-      title="">x</sub></var>&nbsp;&le;&nbsp;<var title="">x<sub
-      title="">max</sub></var></span> and <span><var
-      title="">header<sub title="">y</sub></var>&nbsp;&le;&nbsp;<var
-      title="">data<sub title="">y</sub></var>&nbsp;&lt;&nbsp;<var
-      title="">group<sub title="">y</sub></var>+<var
-      title="">height</var></span>.</p>
+       <li><p>If there is a header cell in the <span
+       title="concept-table">table</span> whose corresponding
+       <code>th</code> element has an ID that is equal to the value of
+       <var title="">id</var>, then assign that header cell to the
+       data cell.</p></li>
 
-     </dd>
+      </ol>
 
-     <dt>If it is in the <em title="attr-th-scope-colgroup">column group</em> state</dt>
+     </li>
 
-     <dd>
-
-      <p>If the header cell is not in a <span
-      title="concept-column-group">column group</span>, then don't
-      assign the header cell to any data cells.</p>
-
-      <p>Otherwise, let (<var title="">group<sub
-      title="">x</sub></var>, 1) be the slot at which the column group
-      is anchored, let <var title="">width</var> be the number of
-      columns in the column group, and assign the header cell to any
-      data cells anchored at slots with coordinates (<var
-      title="">data<sub title="">x</sub></var>, <var title="">data<sub
-      title="">y</sub></var>) where <span><var title="">header<sub
-      title="">x</sub></var>&nbsp;&le;&nbsp;<var title="">data<sub
-      title="">x</sub></var>&nbsp;&lt;&nbsp;<var title="">group<sub
-      title="">x</sub></var>+<var title="">width</var></span> and
-      <span><var title="">header<sub
-      title="">y</sub></var>&nbsp;&le;&nbsp;<var title="">data<sub
-      title="">y</sub></var>&nbsp;&le;&nbsp;<var title="">y<sub
-      title="">max</sub></var></span>.</p>
-
-     </dd>
-
-     <dt>Otherwise, it is in the <em title="">auto</em> state</dt>
-
-     <dd>
-
-      <p>If the header cell is not in the first row of the table, or
-      not in the first cell of a row, then don't assign the header
-      cell to any data cells.</p>
-
-      <p>Otherwise, if the header cell is in the first row of the
-      table, assign the header cell to any data cells anchored at
-      slots with coordinates (<var title="">data<sub
-      title="">x</sub></var>, <var title="">data<sub
-      title="">y</sub></var>) where <span><var title="">data<sub
-      title="">x</sub></var>&nbsp;=&nbsp;<var title="">header<sub
-      title="">x</sub></var></span> and <span><var title="">header<sub
-      title="">y</sub></var>&nbsp;&lt;&nbsp;<var title="">data<sub
-      title="">y</sub></var>&nbsp;&le;&nbsp;<var title="">y<sub
-      title="">max</sub></var></span>.</p>
-
-      <p>Otherwise, the header cell is in the first column of the
-      table; assign the header cell to any data cells anchored at
-      slots with coordinates (<var title="">data<sub
-      title="">x</sub></var>, <var title="">data<sub
-      title="">y</sub></var>) where <span><var title="">header<sub
-      title="">x</sub></var>&nbsp;&lt;&nbsp;<var title="">data<sub
-      title="">x</sub></var>&nbsp;&le;&nbsp;<var title="">x<sub
-      title="">max</sub></var></span> and <span><var title="">data<sub
-      title="">y</sub></var>&nbsp;=&nbsp;<var title="">header<sub
-      title="">y</sub></var></span>.</p>
-
-     </dd>
-
-    </dl>
+    </ol>
 
    </li>
 
   </ol>
-
 
 
   <h3 id="forms">Forms</h3>
