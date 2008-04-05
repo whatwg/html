@@ -1649,7 +1649,7 @@
         construction</a>
         <ul class=toc>
          <li><a href="#creating"><span class=secno>8.2.5.1. </span>Creating
-          and inserting HTML elements</a>
+          and inserting elements</a>
 
          <li><a href="#closing"><span class=secno>8.2.5.2. </span>Closing
           elements that have implied end tags</a>
@@ -1697,23 +1697,27 @@
          <li><a href="#parsing-main-inselect"><span class=secno>8.2.5.16.
           </span>The "in select" insertion mode</a>
 
-         <li><a href="#parsing-main-inselect"><span class=secno>8.2.5.17.
-          </span>The "in select in table" insertion mode</a>
+         <li><a href="#parsing-main-inselectintable"><span
+          class=secno>8.2.5.17. </span>The "in select in table" insertion
+          mode</a>
 
-         <li><a href="#parsing-main-afterbody"><span class=secno>8.2.5.18.
+         <li><a href="#parsing-main-inforeign"><span class=secno>8.2.5.18.
+          </span>The "in foreign content" insertion mode</a>
+
+         <li><a href="#parsing-main-afterbody"><span class=secno>8.2.5.19.
           </span>The "after body" insertion mode</a>
 
-         <li><a href="#parsing-main-inframeset"><span class=secno>8.2.5.19.
+         <li><a href="#parsing-main-inframeset"><span class=secno>8.2.5.20.
           </span>The "in frameset" insertion mode</a>
 
          <li><a href="#parsing-main-afterframeset"><span
-          class=secno>8.2.5.20. </span>The "after frameset" insertion
+          class=secno>8.2.5.21. </span>The "after frameset" insertion
           mode</a>
 
-         <li><a href="#the-after0"><span class=secno>8.2.5.21. </span>The
+         <li><a href="#the-after0"><span class=secno>8.2.5.22. </span>The
           "after after body" insertion mode</a>
 
-         <li><a href="#the-after1"><span class=secno>8.2.5.22. </span>The
+         <li><a href="#the-after1"><span class=secno>8.2.5.23. </span>The
           "after after frameset" insertion mode</a>
         </ul>
 
@@ -39491,8 +39495,9 @@ function receiver(e) {
    mode: in row">in row</a>", "<a href="#in-cell" title="insertion mode: in
    cell">in cell</a>", "<a href="#in-select" title="insertion mode: in
    select">in select</a>", "<a href="#in-select0" title="insertion mode: in
-   select in table">in select in table</a>", "<a href="#after5"
-   title="insertion mode: after body">after body</a>", "<a
+   select in table">in select in table</a>", "<a href="#in-foreign"
+   title="insertion mode: in foreign content">in foreign content</a>", "<a
+   href="#after5" title="insertion mode: after body">after body</a>", "<a
    href="#in-frameset" title="insertion mode: in frameset">in frameset</a>",
    "<a href="#after6" title="insertion mode: after frameset">after
    frameset</a>", "<a href="#after7" title="insertion mode: after after
@@ -39518,6 +39523,13 @@ function receiver(e) {
    mode</span> unchanged (unless the rules in that section themselves switch
    the <span>insertion mode</span>).
 
+  <p>When the insertion mode is switched to "<a href="#in-foreign"
+   title="insertion mode: in foreign content">in foreign content</a>", the
+   <dfn id=secondary1>secondary insertion mode</dfn> is also set. This
+   secondary mode is used within the rules for the "<a href="#in-foreign"
+   title="insertion mode: in foreign content">in foreign content</a>" mode to
+   handle HTML (i.e. not foreign) content.
+
   <p>When the steps below require the UA to <dfn id=reset>reset the insertion
    mode appropriately</dfn>, it means the UA must follow these steps:
 
@@ -39533,7 +39545,13 @@ function receiver(e) {
     fragment parsing algorithm</a> is neither a <code><a
     href="#td">td</a></code> element nor a <code><a href="#th">th</a></code>
     element, then set <var title="">node</var> to the <var
-    title="">context</var> element. (<a href="#fragment">fragment case</a>)
+    title="">context</var> element. (<a href="#fragment">fragment case</a>)</li>
+   <!-- XXX this fails to
+   actually set "node" to something useful in the <td> case, which we
+   want (either body (or nothing, to hit the last clause in this list)
+   or td/th; in the former case, remove the redundant 'fragment case'
+   bits in the 'in cell' section, in the latter case, check that
+   td.innerHTML = "<caption>" works as expected by browsers) -->
 
    <li>If <var title="">node</var> is a <code>select</code> element, then
     switch the <span>insertion mode</span> to "<a href="#in-select"
@@ -39571,6 +39589,12 @@ function receiver(e) {
     href="#table">table</a></code> element, then switch the <span>insertion
     mode</span> to "<a href="#in-table" title="insertion mode: in table">in
     table</a>" and abort these steps.
+
+   <li>If <var title="">node</var> is an element from the <a
+    href="#mathml0">MathML namespace</a> or the <a href="#svg-namespace">SVG
+    namespace</a>, then switch the <span>insertion mode</span> to "<a
+    href="#in-foreign" title="insertion mode: in foreign content">in foreign
+    content</a>" and abort these steps.
 
    <li>If <var title="">node</var> is a <code><a href="#head">head</a></code>
     element, then switch the <span>insertion mode</span> to "<a
@@ -39932,7 +39956,9 @@ function receiver(e) {
    title="">PLAINTEXT</em>. Initially it must be in the PCDATA state. In the
    RCDATA and CDATA states, a further <dfn id=escape>escape flag</dfn> is
    used to control the behaviour of the tokeniser. It is either true or
-   false, and initially must be set to the false state.
+   false, and initially must be set to the false state. The <span>insertion
+   mode</span> and the <a href="#stack">stack of open elements</a> also
+   affects tokenisation.
 
   <p>The output of the tokenisation step is a series of zero or more of the
    following tokens: DOCTYPE, start tag, end tag, comment, character,
@@ -39941,9 +39967,11 @@ function receiver(e) {
    created, its name, public identifier, and system identifier must be marked
    as missing (which is a distinct state from the empty string), and the
    <i>force-quirks flag</i> must be set to <i>off</i> (its other state is
-   <i>on</i>). Start and end tag tokens have a tag name and a list of
-   attributes, each of which has a name and a value. Comment and character
-   tokens have data.
+   <i>on</i>). Start and end tag tokens have a tag name, a <i>self-closing
+   flag</i>, and a list of attributes, each of which has a name and a value.
+   When a DOCTYPE token is created, its <i>self-closing flag</i> must be
+   unset (its other state is that it be set), and its attributes list must be
+   empty. Comment and character tokens have data.
 
   <p>When a token is emitted, it must immediately be handled by the <a
    href="#tree-construction0">tree construction</a> stage. The tree
@@ -39953,17 +39981,19 @@ function receiver(e) {
    in scripts executing and using the <a href="#dynamic2">dynamic markup
    insertion</a> APIs to insert characters into the stream being tokenised.)
 
+  <p>When a start tag token is emitted with its <i>self-closing flag</i> set,
+   if the flag is not <dfn id=acknowledged title="acknowledge self-closing
+   flag">acknowledged</dfn> when it is processed by the tree construction
+   stage, that is a <a href="#parse1">parse error</a>.
+
   <p>When an end tag token is emitted, the <a href="#content2">content model
    flag</a> must be switched to the PCDATA state.
 
   <p>When an end tag token is emitted with attributes, that is a <a
    href="#parse1">parse error</a>.
 
-  <p>A <dfn id=permitted>permitted slash</dfn> is a U+002F SOLIDUS character
-   that is immediately followed by a U+003E GREATER-THAN SIGN, if, and only
-   if, the current token being processed is a start tag token whose tag name
-   is the same as the tag name of one of <a href="#void-elements">void
-   elements</a>.
+  <p>When an end tag token is emitted with its <i>self-closing flag</i> set,
+   that is a <a href="#parse1">parse error</a>.
 
   <p>Before each step of the tokeniser, the user agent may check to see if
    either one of the scripts in the <a href="#list-of1">list of scripts that
@@ -40238,9 +40268,8 @@ function receiver(e) {
 
      <dt>U+002F SOLIDUS (/)
 
-     <dd><a href="#parse1">Parse error</a> unless this is a <a
-      href="#permitted">permitted slash</a>. Switch to the <a
-      href="#before">before attribute name state</a>.
+     <dd>Switch to the <a href="#self-closing">self-closing start tag
+      state</a>.
 
      <dt>Anything else
 
@@ -40282,9 +40311,8 @@ function receiver(e) {
 
      <dt>U+002F SOLIDUS (/)
 
-     <dd><a href="#parse1">Parse error</a> unless this is a <a
-      href="#permitted">permitted slash</a>. Stay in the <a
-      href="#before">before attribute name state</a>.
+     <dd>Switch to the <a href="#self-closing">self-closing start tag
+      state</a>.
 
      <dt>U+0022 QUOTATION MARK (&quot;)
 
@@ -40345,9 +40373,8 @@ function receiver(e) {
 
      <dt>U+002F SOLIDUS (/)
 
-     <dd><a href="#parse1">Parse error</a> unless this is a <a
-      href="#permitted">permitted slash</a>. Switch to the <a
-      href="#before">before attribute name state</a>.
+     <dd>Switch to the <a href="#self-closing">self-closing start tag
+      state</a>.
 
      <dt>U+0022 QUOTATION MARK (&quot;)
 
@@ -40413,9 +40440,8 @@ function receiver(e) {
 
      <dt>U+002F SOLIDUS (/)
 
-     <dd><a href="#parse1">Parse error</a> unless this is a <a
-      href="#permitted">permitted slash</a>. Switch to the <a
-      href="#before">before attribute name state</a>.
+     <dd>Switch to the <a href="#self-closing">self-closing start tag
+      state</a>.
 
      <dt>EOF
 
@@ -40634,9 +40660,25 @@ function receiver(e) {
 
      <dt>U+002F SOLIDUS (/)
 
-     <dd><a href="#parse1">Parse error</a> unless this is a <a
-      href="#permitted">permitted slash</a>. Switch to the <a
+     <dd>Switch to the <a href="#self-closing">self-closing start tag
+      state</a>.
+
+     <dt>Anything else
+
+     <dd><a href="#parse1">Parse error</a>. Reconsume the character in the <a
       href="#before">before attribute name state</a>.
+    </dl>
+
+   <dt><dfn id=self-closing>Self-closing start tag state</dfn>
+
+   <dd>
+    <p>Consume the <a href="#next-input">next input character</a>:</p>
+
+    <dl class=switch>
+     <dt>U+003E GREATER-THAN SIGN (&gt;)
+
+     <dd>Set the <i>self-closing flag</i> of the current tag token. Emit the
+      current tag token. Switch to the <a href="#data-state">data state</a>.
 
      <dt>Anything else
 
@@ -40674,10 +40716,49 @@ function receiver(e) {
      data is the empty string, and switch to the <a href="#comment0">comment
      start state</a>.</p>
 
-    <p>Otherwise if the next seven characters are a
+    <p>Otherwise, if the next seven characters are a
      <span>case-insensitive</span><!-- XXX xref, ascii only --> match for the
      word "DOCTYPE", then consume those characters and switch to the <a
      href="#doctype0">DOCTYPE state</a>.</p>
+
+    <p>Otherwise, if the <span>insertion mode</span> is "<a
+     href="#in-foreign" title="insertion mode: in foreign content">in foreign
+     content</a>" and the <a href="#current4">current node</a> is not one of
+     the following:</p>
+
+    <ul>
+     <li>An <code>mi</code> element in the <a href="#mathml0">MathML
+      namespace</a>.
+
+     <li>An <code>mo</code> element in the <a href="#mathml0">MathML
+      namespace</a>.
+
+     <li>An <code>mn</code> element in the <a href="#mathml0">MathML
+      namespace</a>.
+
+     <li>An <code>ms</code> element in the <a href="#mathml0">MathML
+      namespace</a>.
+
+     <li>An <code>mtext</code> element in the <a href="#mathml0">MathML
+      namespace</a>.
+
+     <li>A <code>foreignObject</code> element in the <a
+      href="#svg-namespace">SVG namespace</a>.
+
+     <li>A <code>desc</code> element in the <a href="#svg-namespace">SVG
+      namespace</a>.
+
+     <li>A <code><a href="#title1">title</a></code> element in the <a
+      href="#svg-namespace">SVG namespace</a>.
+    </ul>
+
+    <p>...and the next seven characters are a
+     <span>case-sensitive</span><!-- XXX xref, ascii only --> match for the
+     string "[CDATA[" (the five uppercase letters "CDATA" with a U+005B LEFT
+     SQUARE BRACKET character before and after), then consume those
+     characters and switch to the <span>CDATA block state</span> (which is
+     unrelated to the <a href="#content2">content model flag</a>'s CDATA
+     state).</p>
 
     <p>Otherwise, this is a <a href="#parse1">parse error</a>. Switch to the
      <a href="#bogus">bogus comment state</a>. The next character that is
@@ -41310,6 +41391,25 @@ function receiver(e) {
 
      <dd>Stay in the <a href="#bogus0">bogus DOCTYPE state</a>.
     </dl>
+
+   <dt><dfn id=cdata1>CDATA state</dfn>
+
+   <dd>
+    <p><em>(This can only happen if the <a href="#content2">content model
+     flag</a> is set to the PCDATA state, and is unrelated to the <a
+     href="#content2">content model flag</a>'s CDATA state.)</em></p>
+
+    <p>Consume every character up to the next occurrence of the three
+     character sequence U+005D RIGHT SQUARE BRACKET U+005D RIGHT SQUARE
+     BRACKET U+003E GREATER-THAN SIGN (<code title="">]]></code>), or the end
+     of the file (EOF), whichever comes first. Emit a series of text tokens
+     consisting of all the characters consumed except the matching three
+     character sequence at the end (if one was found before the end of the
+     file).</p>
+
+    <p>Switch to the <a href="#data-state">data state</a>.</p>
+
+    <p>If the end of the file was reached, reconsume the EOF character.</p>
   </dl>
 
   <h5 id=tokenising><span class=secno>8.2.4.1. </span>Tokenising entities</h5>
@@ -41734,34 +41834,47 @@ function receiver(e) {
    agents to impose nesting depths.
 
   <h5 id=creating><span class=secno>8.2.5.1. </span>Creating and inserting
-   HTML elements</h5>
+   elements</h5>
 
   <p>When the steps below require the UA to <dfn id=create title="create an
-   element for the token">create an element for a token</dfn>, the UA must
-   create a node implementing the interface appropriate for the element type
-   corresponding to the tag name of the token (as given in the section of
-   this specification that defines that element, e.g. for an <code><a
-   href="#a">a</a></code> element it would be the <code><a
+   element for the token">create an element for a token</dfn> in a particular
+   namespace, the UA must create a node implementing the interface
+   appropriate for the element type corresponding to the tag name of the
+   token in the given namespace (as given in the specification that defines
+   that element, e.g. for an <code><a href="#a">a</a></code> element in the
+   <a href="#html-namespace0">HTML namespace</a>, this specification defines
+   it to be the <code><a
    href="#htmlanchorelement">HTMLAnchorElement</a></code> interface), with
-   the tag name being the name of that element, with the node being in the <a
-   href="#html-namespace0">HTML namespace</a>, and with the attributes on the
-   node being those given in the given token.
+   the tag name being the name of that element, with the node being in the
+   given namespace, and with the attributes on the node being those given in
+   the given token.
+
+  <p>The interface appropriate for an element in the <a
+   href="#html-namespace0">HTML namespace</a> that is not defined in this
+   specification is <code><a href="#htmlelement">HTMLElement</a></code>. The
+   interface appropriate for an element in another namespace that is not
+   defined by that namespace's specification is <code>Element</code>.
 
   <p>When the steps below require the UA to <dfn id=insert0>insert an HTML
    element</dfn> for a token, the UA must first <a href="#create">create an
-   element for the token</a>, and then append this node to the <a
+   element for the token</a> in the <a href="#html-namespace0">HTML
+   namespace</a>, and then append this node to the <a
    href="#current4">current node</a>, and push it onto the <a
    href="#stack">stack of open elements</a> so that it is the new <a
    href="#current4">current node</a>.
 
   <p>The steps below may also require that the UA insert an HTML element in a
-   particular place, in which case the UA must <a href="#create">create an
-   element for the token</a> and then insert or append the new node in the
-   location specified. (This happens in particular during the parsing of
-   tables with invalid content.)
+   particular place, in which case the UA must follow the same steps except
+   that it must insert or append the new node in the location specified
+   insead of appending it to the <a href="#current4">current node</a>. (This
+   happens in particular during the parsing of tables with invalid content.)
 
-  <p>The interface appropriate for an element that is not defined in this
-   specification is <code><a href="#htmlelement">HTMLElement</a></code>.
+  <p>When the steps below require the UA to <dfn id=insert1>insert a foreign
+   element</dfn> for a token, the UA must first <a href="#create">create an
+   element for the token</a> in the given namespace, and then append this
+   node to the <a href="#current4">current node</a>, and push it onto the <a
+   href="#stack">stack of open elements</a> so that it is the new <a
+   href="#current4">current node</a>.
 
   <p>The <dfn id=generic>generic CDATA parsing algorithm</dfn> and the <dfn
    id=generic0>generic RCDATA parsing algorithm</dfn> consist of the
@@ -42170,8 +42283,9 @@ function receiver(e) {
    <dt>A start tag whose tag name is "html"
 
    <dd>
-    <p><a href="#create">Create an element for the token</a>. Append it to
-     the <code>Document</code> object. Put this element in the <a
+    <p><a href="#create">Create an element for the token</a>, using the <a
+     href="#html-namespace0">HTML namespace</a>. Append it to the
+     <code>Document</code> object. Put this element in the <a
      href="#stack">stack of open elements</a>.</p>
 
     <p id=parser-appcache>If the token has an attribute "manifest", then run
@@ -42250,13 +42364,11 @@ function receiver(e) {
    <dt>A start tag whose tag name is "head"
 
    <dd>
-    <p><a href="#create">Create an element for the token</a>.</p>
+    <p><a href="#insert0">Insert an HTML element</a> for the token.</p>
 
     <p>Set the <a href="#head-element"><code title="">head</code> element
-     pointer</a> to this new element node.</p>
-
-    <p>Append the new element to the <a href="#current4">current node</a> and
-     push it onto the <a href="#stack">stack of open elements</a>.</p>
+     pointer</a> to the newly created <code><a href="#head">head</a></code>
+     element.</p>
 
     <p>Switch the <span>insertion mode</span> to "<a href="#in-head"
      title="insertion mode: in head">in head</a>".</p>
@@ -42328,12 +42440,20 @@ function receiver(e) {
      Immediately pop the <a href="#current4">current node</a> off the <a
      href="#stack">stack of open elements</a>.</p>
 
+    <p><a href="#acknowledged" title="acknowledge self-closing
+     flag">Acknowledge the token's <i>self-closing flag</i></a>, if it is
+     set.</p>
+
    <dt>A start tag whose tag name is "meta"
 
    <dd>
     <p><a href="#insert0">Insert an HTML element</a> for the token.
      Immediately pop the <a href="#current4">current node</a> off the <a
      href="#stack">stack of open elements</a>.</p>
+
+    <p><a href="#acknowledged" title="acknowledge self-closing
+     flag">Acknowledge the token's <i>self-closing flag</i></a>, if it is
+     set.</p>
 
     <p id=meta-charset-during-parse>If the element has a <code
      title=attr-meta-charset><a href="#charset0">charset</a></code>
@@ -42378,7 +42498,8 @@ function receiver(e) {
    <dt id=scriptTag>A start tag whose tag name is "script"
 
    <dd>
-    <p><a href="#create">Create an element for the token</a>.</p>
+    <p><a href="#create">Create an element for the token</a> in the <a
+     href="#html-namespace0">HTML namespace</a>.</p>
 
     <p>Mark the element as being <a
      href="#parser-inserted">"parser-inserted"</a>. This ensures that, if the
@@ -43418,6 +43539,10 @@ function receiver(e) {
      Immediately pop the <a href="#current4">current node</a> off the <a
      href="#stack">stack of open elements</a>.</p>
 
+    <p><a href="#acknowledged" title="acknowledge self-closing
+     flag">Acknowledge the token's <i>self-closing flag</i></a>, if it is
+     set.</p>
+
    <dt>A start tag whose tag name is "hr"
 
    <dd>
@@ -43429,6 +43554,10 @@ function receiver(e) {
     <p><a href="#insert0">Insert an HTML element</a> for the token.
      Immediately pop the <a href="#current4">current node</a> off the <a
      href="#stack">stack of open elements</a>.</p>
+
+    <p><a href="#acknowledged" title="acknowledge self-closing
+     flag">Acknowledge the token's <i>self-closing flag</i></a>, if it is
+     set.</p>
 
    <dt>A start tag whose tag name is "image"
 
@@ -43446,17 +43575,19 @@ function receiver(e) {
     <p><a href="#reconstruct">Reconstruct the active formatting elements</a>,
      if any.</p>
 
-    <p><a href="#insert0">Insert an HTML element</a> for the token.</p>
+    <p><a href="#insert0">Insert an HTML element</a> for the token.
+     Immediately pop the <a href="#current4">current node</a> off the <a
+     href="#stack">stack of open elements</a>.</p>
+
+    <p><a href="#acknowledged" title="acknowledge self-closing
+     flag">Acknowledge the token's <i>self-closing flag</i></a>, if it is
+     set.</p>
 
     <p>If the <a href="#form-element"><code title="">form</code> element
-     pointer</a> is not null, then <span>associate</span><!--XXX
-    xref! -->
-     the <code>input</code> element with the <code>form</code> element
-     pointed to by the <a href="#form-element"><code title="">form</code>
-     element pointer</a>.</p>
-
-    <p>Pop that <code>input</code> element off the <a href="#stack">stack of
-     open elements</a>.</p>
+     pointer</a> is not null, then <span>associate</span><!--XXX xref! -->
+     the newly created <code>input</code> element with the <code>form</code>
+     element pointed to by the <a href="#form-element"><code
+     title="">form</code> element pointer</a>.</p>
 
    <dt id=isindex>A start tag whose tag name is "isindex"
 
@@ -43524,16 +43655,15 @@ function receiver(e) {
    <dt>A start tag whose tag name is "textarea"
 
    <dd>
-    <p><a href="#create">Create an element for the token</a>.</p>
+    <p><a href="#create">Create an element for the token</a>, in the <a
+     href="#html-namespace0">HTML namespace</a>. Append the new element to
+     the <a href="#current4">current node</a>.</p>
 
     <p>If the <a href="#form-element"><code title="">form</code> element
-     pointer</a> is not null, then <span>associate</span><!--XXX
-    xref! -->
-     the <code>textarea</code> element with the <code>form</code> element
-     pointed to by the <a href="#form-element"><code title="">form</code>
-     element pointer</a>.</p>
-
-    <p>Append the new element to the <a href="#current4">current node</a>.</p>
+     pointer</a> is not null, then <span>associate</span><!--XXX xref! -->
+     the newly created <code>textarea</code> element with the
+     <code>form</code> element pointed to by the <a
+     href="#form-element"><code title="">form</code> element pointer</a>.</p>
 
     <p>Switch the tokeniser's <a href="#content2">content model flag</a> to
      the RCDATA state.</p>
@@ -43595,6 +43725,44 @@ function receiver(e) {
    <dd>
     <p><a href="#parse1">Parse error</a>. Act as if a start tag token with
      the tag name "br" had been seen. Ignore the end tag token.</p>
+
+   <dt>A start tag whose tag name is "math"
+
+   <dd>
+    <p><a href="#reconstruct">Reconstruct the active formatting elements</a>,
+     if any.</p>
+
+    <p><a href="#insert1">Insert a foreign element</a> for the token, in the
+     <a href="#mathml0">MathML namespace</a>.</p>
+
+    <p>If the token has its <i>self-closing flag</i> set, pop the <a
+     href="#current4">current node</a> off the <a href="#stack">stack of open
+     elements</a> and <a href="#acknowledged" title="acknowledge self-closing
+     flag">acknowledge the token's <i>self-closing flag</i></a>.</p>
+
+    <p>Otherwise, let the <a href="#secondary1">secondary insertion mode</a>
+     be the current <span>insertion mode</span>, and then switch the
+     <span>insertion mode</span> to "<a href="#in-foreign" title="insertion
+     mode: in foreign content">in foreign content</a>".</p>
+
+   <dt>A start tag whose tag name is "svg"
+
+   <dd>
+    <p><a href="#reconstruct">Reconstruct the active formatting elements</a>,
+     if any.</p>
+
+    <p><a href="#insert1">Insert a foreign element</a> for the token, in the
+     <a href="#svg-namespace">SVG namespace</a>.</p>
+
+    <p>If the token has its <i>self-closing flag</i> set, pop the <a
+     href="#current4">current node</a> off the <a href="#stack">stack of open
+     elements</a> and <a href="#acknowledged" title="acknowledge self-closing
+     flag">acknowledge the token's <i>self-closing flag</i></a>.</p>
+
+    <p>Otherwise, let the <a href="#secondary1">secondary insertion mode</a>
+     be the current <span>insertion mode</span>, and then switch the
+     <span>insertion mode</span> to "<a href="#in-foreign" title="insertion
+     mode: in foreign content">in foreign content</a>".</p>
 
    <dt>A start or end tag whose tag name is one of: "caption", "col",
     "colgroup", "frame", "frameset", "head", "option", "optgroup", "tbody",
@@ -44005,6 +44173,10 @@ mtd, maction
     <p><a href="#insert0">Insert an HTML element</a> for the token.
      Immediately pop the <a href="#current4">current node</a> off the <a
      href="#stack">stack of open elements</a>.</p>
+
+    <p><a href="#acknowledged" title="acknowledge self-closing
+     flag">Acknowledge the token's <i>self-closing flag</i></a>, if it is
+     set.</p>
 
    <dt>An end tag whose tag name is "colgroup"
 
@@ -44446,9 +44618,9 @@ mtd, maction
     <p><a href="#parse1">Parse error</a>. Ignore the token.</p>
   </dl>
 
-  <h5 id=parsing-main-inselect><span class=secno>8.2.5.17. </span>The "<dfn
-   id=in-select0 title="insertion mode: in select in table">in select in
-   table</dfn>" insertion mode</h5>
+  <h5 id=parsing-main-inselectintable><span class=secno>8.2.5.17. </span>The
+   "<dfn id=in-select0 title="insertion mode: in select in table">in select
+   in table</dfn>" insertion mode</h5>
 
   <p>When the <span>insertion mode</span> is "<a href="#in-select0"
    title="insertion mode: in select in table">in select in table</a>", tokens
@@ -44482,7 +44654,110 @@ mtd, maction
      <span>insertion mode</span>.</p>
   </dl>
 
-  <h5 id=parsing-main-afterbody><span class=secno>8.2.5.18. </span>The "<dfn
+  <h5 id=parsing-main-inforeign><span class=secno>8.2.5.18. </span>The "<dfn
+   id=in-foreign title="insertion mode: in foreign content">in foreign
+   content</dfn>" insertion mode</h5>
+
+  <p>When the <span>insertion mode</span> is "<a href="#in-foreign"
+   title="insertion mode: in foreign content">in foreign content</a>", tokens
+   must be handled as follows:
+
+  <dl class=switch>
+   <dt>A character token
+
+   <dd>
+    <p><a href="#insert" title="insert a character">Insert the token's
+     character</a> into the <a href="#current4">current node</a>.</p>
+
+   <dt>A comment token
+
+   <dd>
+    <p>Append a <code>Comment</code> node to the <a href="#current4">current
+     node</a> with the <code title="">data</code> attribute set to the data
+     given in the comment token.</p>
+
+   <dt>A DOCTYPE token
+
+   <dd>
+    <p><a href="#parse1">Parse error</a>. Ignore the token.</p>
+
+   <dt>A start tag, if the <a href="#current4">current node</a> is an
+    <code>mi</code> element in the <a href="#mathml0">MathML namespace</a>.
+
+   <dt>A start tag, if the <a href="#current4">current node</a> is an
+    <code>mo</code> element in the <a href="#mathml0">MathML namespace</a>.
+
+   <dt>A start tag, if the <a href="#current4">current node</a> is an
+    <code>mn</code> element in the <a href="#mathml0">MathML namespace</a>.
+
+   <dt>A start tag, if the <a href="#current4">current node</a> is an
+    <code>ms</code> element in the <a href="#mathml0">MathML namespace</a>.
+
+   <dt>A start tag, if the <a href="#current4">current node</a> is an
+    <code>mtext</code> element in the <a href="#mathml0">MathML
+    namespace</a>.
+
+   <dt>A start tag, if the <a href="#current4">current node</a> is a
+    <code>foreignObject</code> element in the <a href="#svg-namespace">SVG
+    namespace</a>.
+
+   <dt>A start tag, if the <a href="#current4">current node</a> is a
+    <code>desc</code> element in the <a href="#svg-namespace">SVG
+    namespace</a>.
+
+   <dt>A start tag, if the <a href="#current4">current node</a> is a <code><a
+    href="#title1">title</a></code> element in the <a
+    href="#svg-namespace">SVG namespace</a>.
+
+   <dt>A start tag, if the <a href="#current4">current node</a> is an element
+    in the <a href="#html-namespace0">HTML namespace</a>.
+
+   <dt>A start tag whose tag name is "svg", if the <a
+    href="#current4">current node</a> is an <code>annotation-xml</code>
+    element in the <a href="#mathml0">MathML namespace</a>.
+
+   <dt>An end tag
+
+   <dd>
+    <p>Process the token <a href="#using8">using the rules for</a> the <a
+     href="#secondary1">secondary insertion mode</a>.</p>
+
+    <p>If, after doing so, the <span>insertion mode</span> is still "<a
+     href="#in-foreign" title="insertion mode: in foreign content">in foreign
+     content</a>", but there is no element in scope that has a namespace
+     other than the <a href="#html-namespace0">HTML namespace</a>, switch the
+     <span>insertion mode</span> to the <a href="#secondary1">secondary
+     insertion mode</a>.</p>
+
+   <dt>A start tag whose tag name is one of: <span title=big-issue>the HTML
+    element tag names</span>
+
+   <dd>
+    <p><a href="#parse1">Parse error</a>.</p>
+
+    <p>Pop elements from the <a href="#stack">stack of open elements</a>
+     until the <a href="#current4">current node</a> is in the <a
+     href="#html-namespace0">HTML namespace</a>.</p>
+
+    <p>Switch the <span>insertion mode</span> to the <a
+     href="#secondary1">secondary insertion mode</a>, and reprocess the
+     token.</p>
+
+   <dt>Any other start tag
+
+   <dd>
+    <p class=big-issue>Apply case fixups, attribute namespace fixups.</p>
+
+    <p><a href="#insert1">Insert a foreign element</a> for the token, in the
+     same namespace as the <a href="#current4">current node</a>.</p>
+
+    <p>If the token has its <i>self-closing flag</i> set, pop the <a
+     href="#current4">current node</a> off the <a href="#stack">stack of open
+     elements</a> and <a href="#acknowledged" title="acknowledge self-closing
+     flag">acknowledge the token's <i>self-closing flag</i></a>.</p>
+  </dl>
+
+  <h5 id=parsing-main-afterbody><span class=secno>8.2.5.19. </span>The "<dfn
    id=after5 title="insertion mode: after body">after body</dfn>" insertion
    mode</h5>
 
@@ -44546,7 +44821,7 @@ mtd, maction
      body</a>" and reprocess the token.</p>
   </dl>
 
-  <h5 id=parsing-main-inframeset><span class=secno>8.2.5.19. </span>The "<dfn
+  <h5 id=parsing-main-inframeset><span class=secno>8.2.5.20. </span>The "<dfn
    id=in-frameset title="insertion mode: in frameset">in frameset</dfn>"
    insertion mode</h5>
 
@@ -44612,6 +44887,10 @@ mtd, maction
      Immediately pop the <a href="#current4">current node</a> off the <a
      href="#stack">stack of open elements</a>.</p>
 
+    <p><a href="#acknowledged" title="acknowledge self-closing
+     flag">Acknowledge the token's <i>self-closing flag</i></a>, if it is
+     set.</p>
+
    <dt>A start tag whose tag name is "noframes"
 
    <dd>
@@ -44637,7 +44916,7 @@ mtd, maction
     <p><a href="#parse1">Parse error</a>. Ignore the token.</p>
   </dl>
 
-  <h5 id=parsing-main-afterframeset><span class=secno>8.2.5.20. </span>The
+  <h5 id=parsing-main-afterframeset><span class=secno>8.2.5.21. </span>The
    "<dfn id=after6 title="insertion mode: after frameset">after
    frameset</dfn>" insertion mode</h5>
 
@@ -44697,7 +44976,7 @@ mtd, maction
    that do support frames but want to show the NOFRAMES content. Supporting
    the former is easy; supporting the latter is harder.
 
-  <h5 id=the-after0><span class=secno>8.2.5.21. </span>The "<dfn id=after7
+  <h5 id=the-after0><span class=secno>8.2.5.22. </span>The "<dfn id=after7
    title="insertion mode: after after body">after after body</dfn>" insertion
    mode</h5>
 
@@ -44739,7 +45018,7 @@ mtd, maction
      body</a>" and reprocess the token.</p>
   </dl>
 
-  <h5 id=the-after1><span class=secno>8.2.5.22. </span>The "<dfn id=after8
+  <h5 id=the-after1><span class=secno>8.2.5.23. </span>The "<dfn id=after8
    title="insertion mode: after after frameset">after after frameset</dfn>"
    insertion mode</h5>
 
