@@ -37015,6 +37015,421 @@ function receiver(e) {
 
 
 
+  <h4>Parse state</h4>
+
+  <h5>The insertion mode</h5>
+
+  <p>Initially the <span>insertion mode</span> is "<span
+  title="insertion mode: initial">initial</span>". It can change to
+  "<span title="insertion mode: before html">before html</span>",
+  "<span title="insertion mode: before head">before head</span>",
+  "<span title="insertion mode: in head">in head</span>", "<span
+  title="insertion mode: in head noscript">in head noscript</span>",
+  "<span title="insertion mode: after head">after head</span>", "<span
+  title="insertion mode: in body">in body</span>", "<span
+  title="insertion mode: in table">in table</span>", "<span
+  title="insertion mode: in caption">in caption</span>", "<span
+  title="insertion mode: in column group">in column group</span>",
+  "<span title="insertion mode: in table body">in table body</span>",
+  "<span title="insertion mode: in row">in row</span>", "<span
+  title="insertion mode: in cell">in cell</span>", "<span
+  title="insertion mode: in select">in select</span>", "<span
+  title="insertion mode: in select in table">in select in
+  table</span>", "<span title="insertion mode: after body">after
+  body</span>", "<span title="insertion mode: in frameset">in
+  frameset</span>", "<span title="insertion mode: after
+  frameset">after frameset</span>", "<span title="insertion mode:
+  after after body">after after body</span>", and "<span
+  title="insertion mode: after after frameset">after after
+  frameset</span>" during the course of the parsing, as described in
+  the <span>tree construction</span> stage. The insertion mode affects
+  how tokens are processed and whether CDATA blocks are supported.</p>
+
+  <p>Seven of these modes, namely "<span title="insertion mode: in
+  head">in head</span>", "<span title="insertion mode: in body">in
+  body</span>", "<span title="insertion mode: in table">in
+  table</span>", "<span title="insertion mode: in table body">in table
+  body</span>", "<span title="insertion mode: in row">in row</span>",
+  "<span title="insertion mode: in cell">in cell</span>", and "<span
+  title="insertion mode: in select">in select</span>", are special, in
+  that the other modes defer to them at various times. When the
+  algorithm below says that the user agent is to do something
+  "<dfn>using the rules for</dfn> the <var title="">m</var> insertion
+  mode", where <var title="">m</var> is one of these modes, the user
+  agent must use the rules described under that <span>insertion
+  mode</span>'s section, but must leave the <span>insertion
+  mode</span> unchanged (unless the rules in that section themselves
+  switch the <span>insertion mode</span>).</p>
+
+
+  <p>When the steps below require the UA to <dfn>reset the insertion
+  mode appropriately</dfn>, it means the UA must follow these
+  steps:</p>
+
+  <ol>
+
+   <li>Let <var title="">last</var> be false.</li>
+
+   <li>Let <var title="">node</var> be the last node in the
+   <span>stack of open elements</span>.</li>
+
+   <li>If <var title="">node</var> is the first node in the stack of
+   open elements, then set <var title="">last</var> to true; if, in
+   addition, the <var title="">context</var> element of the <span>HTML
+   fragment parsing algorithm</span> is neither a <code>td</code>
+   element nor a <code>th</code> element, then set <var
+   title="">node</var> to the <var title="">context</var>
+   element. (<span>fragment case</span>)</li>
+
+   <li>If <var title="">node</var> is a <code>select</code> element,
+   then switch the <span>insertion mode</span> to "<span
+   title="insertion mode: in select">in select</span>" and abort these
+   steps. (<span>fragment case</span>)</li>
+
+   <li>If <var title="">node</var> is a <code>td</code> or
+   <code>th</code> element, then switch the <span>insertion
+   mode</span> to "<span title="insertion mode: in cell">in
+   cell</span>" and abort these steps.</li>
+
+   <li>If <var title="">node</var> is a <code>tr</code> element, then
+   switch the <span>insertion mode</span> to "<span title="insertion
+   mode: in row">in row</span>" and abort these steps.</li>
+
+   <li>If <var title="">node</var> is a <code>tbody</code>,
+   <code>thead</code>, or <code>tfoot</code> element, then switch the
+   <span>insertion mode</span> to "<span title="insertion mode: in
+   table body">in table body</span>" and abort these steps.</li>
+
+   <li>If <var title="">node</var> is a <code>caption</code> element,
+   then switch the <span>insertion mode</span> to "<span
+   title="insertion mode: in caption">in caption</span>" and abort
+   these steps.</li>
+
+   <li>If <var title="">node</var> is a <code>colgroup</code> element,
+   then switch the <span>insertion mode</span> to "<span
+   title="insertion mode: in column group">in column group</span>" and
+   abort these steps. (<span>fragment case</span>)</li>
+
+   <li>If <var title="">node</var> is a <code>table</code> element,
+   then switch the <span>insertion mode</span> to "<span
+   title="insertion mode: in table">in table</span>" and abort these
+   steps.</li>
+
+   <li>If <var title="">node</var> is a <code>head</code> element,
+   then switch the <span>insertion mode</span> to "<span
+   title="insertion mode: in body">in body</span>" ("<span
+   title="insertion mode: in body">in body</span>"! <em> not "<span
+   title="insertion mode: in head">in head</span>"</em>!) and abort
+   these steps. (<span>fragment case</span>)</li> <!-- This is only
+   here for now in case people think that the spec accidentally
+   omitted it and try to "fix" it. Note that noscript-in-head is also
+   handled this way. This is all intentional. The only thing it
+   doesn't handle is the scripting-enabled fragment parsing case for a
+   <head> element containing a <noscript> which itself contains
+   something other than a <link> or a <style> element; you'd expect
+   that to break out of the <noscript> but it doesn't. This is an edge
+   case that doesn't affect the spec, since the algorithm for fragment
+   parsing is only used for innerHTML, where we know scripting is
+   enabled. -->
+
+   <li>If <var title="">node</var> is a <code>body</code> element,
+   then switch the <span>insertion mode</span> to "<span
+   title="insertion mode: in body">in body</span>" and abort these
+   steps.</li>
+
+   <li>If <var title="">node</var> is a <code>frameset</code> element,
+   then switch the <span>insertion mode</span> to "<span
+   title="insertion mode: in frameset">in frameset</span>" and abort
+   these steps. (<span>fragment case</span>)</li>
+
+   <li>If <var title="">node</var> is an <code>html</code> element,
+   then: if the <span><code title="">head</code> element
+   pointer</span> is null, switch the <span>insertion mode</span> to
+   "<span title="insertion mode: before head">before head</span>",
+   otherwise, switch the <span>insertion mode</span> to "<span
+   title="insertion mode: after head">after head</span>". In either
+   case, abort these steps. (<span>fragment case</span>)</li> <!-- XXX
+   can the head element pointer ever be non-null when we're going
+   through these steps? -->
+
+   <li>If <var title="">last</var> is true, then switch the
+   <span>insertion mode</span> to "<span title="insertion mode: in
+   body">in body</span>" and abort these steps. (<span>fragment
+   case</span>)</li>
+
+   <li>Let <var title="">node</var> now be the node before <var
+   title="">node</var> in the <span>stack of open
+   elements</span>.</li>
+
+   <li>Return to step 3.</li>
+
+  </ol>
+
+
+  <h5>The stack of open elements</h5>
+
+  <p>Initially the <dfn>stack of open elements</dfn> is empty. The
+  stack grows downwards; the topmost node on the stack is the first
+  one added to the stack, and the bottommost node of the stack is the
+  most recently added node in the stack (notwithstanding when the
+  stack is manipulated in a random access fashion as part of <a
+  href="#adoptionAgency">the handling for misnested tags</a>).</p>
+
+  <p>The "<span title="insertion mode: before html">before
+  html</span>" <span>insertion mode</span> creates the
+  <code>html</code> root element node, which is then added to the
+  stack.</p>
+
+  <p>In the <span>fragment case</span>, the <span>stack of open
+  elements</span> is initialised to contain an <code>html</code>
+  element that is created as part of <span title="html fragment
+  parsing algorithm">that algorithm</span>. (The <span>fragment
+  case</span> skips the "<span title="insertion mode: before
+  html">before html</span>" <span>insertion mode</span>.)</p>
+
+  <p>The <code>html</code> node, however it is created, is the topmost
+  node of the stack. It never gets popped off the stack.</p>
+
+  <p>The <dfn>current node</dfn> is the bottommost node in this
+  stack.</p>
+
+  <p>The <dfn>current table</dfn> is the last <code>table</code>
+  element in the <span>stack of open elements</span>, if there is
+  one. If there is no <code>table</code> element in the <span>stack of
+  open elements</span> (<span>fragment case</span>), then the
+  <span>current table</span> is the first element in the <span>stack
+  of open elements</span> (the <code>html</code> element).</p>
+
+  <p>Elements in the stack fall into the following categories:</p>
+
+  <dl>
+
+   <dt><dfn>Special</dfn></dt>
+   <dd><p>The following HTML elements have varying levels of special
+   parsing rules: <code>address</code>, <code>area</code>,
+   <code>base</code>, <code>basefont</code>, <code>bgsound</code>,
+   <code>blockquote</code>, <code>body</code>, <code>br</code>,
+   <code>center</code>, <code>col</code>, <code>colgroup</code>,
+   <code>dd</code>, <code>dir</code>, <code>div</code>,
+   <code>dl</code>, <code>dt</code>, <code>embed</code>,
+   <code>fieldset</code>, <code>form</code>, <code>frame</code>,
+   <code>frameset</code>, <code>h1</code>, <code>h2</code>,
+   <code>h3</code>, <code>h4</code>, <code>h5</code>, <code>h6</code>,
+   <code>head</code>, <code>hr</code>, <code>iframe</code>,
+   <code>image</code><!-- XXX ? this isn't an element that can end up
+   on the stack-->, <code>img</code>, <code>input</code>,
+   <code>isindex</code>, <code>li</code>, <code>link</code>,
+   <code>listing</code>, <code>menu</code>, <code>meta</code>,
+   <code>noembed</code>, <code>noframes</code>, <code>noscript</code>,
+   <code>ol</code>, <code>optgroup</code>, <code>option</code>,
+   <code>p</code>, <code>param</code>, <code>plaintext</code>,
+   <code>pre</code>, <code>script</code>, <code>select</code>,
+   <code>spacer</code>, <code>style</code>, <code>tbody</code>,
+   <code>textarea</code>, <code>tfoot</code>, <code>thead</code>,
+   <code>title</code>, <code>tr</code>, <code>ul</code>, and
+   <code>wbr</code>.</p></dd>
+
+   <dt><dfn>Scoping</dfn></dt>
+   <dd><p>The following HTML elements introduce new <span title="has
+   an element in scope">scopes</span> for various parts of the
+   parsing: <code>applet</code>, <code>button</code>,
+   <code>caption</code>, <code>html</code>, <code>marquee</code>,
+   <code>object</code>, <code>table</code>, <code>td</code> and
+   <code>th</code>.</p></dd>
+
+   <dt><dfn>Formatting</dfn></dt>
+   <dd><p>The following HTML elements are those that end up in the
+   <span>list of active formatting elements</span>: <code>a</code>,
+   <code>b</code>, <code>big</code>, <code>em</code>,
+   <code>font</code>, <code>i</code>, <code>nobr</code>,
+   <code>s</code>, <code>small</code>, <code>strike</code>,
+   <code>strong</code>, <code>tt</code>, and <code>u</code>.</p></dd>
+
+   <dt><dfn>Phrasing</dfn></dt>
+   <dd><p>All other elements found while parsing an HTML
+   document.</p></dd>
+
+  </dl>
+
+  <p class="big-issue">Still need to add these new elements to the
+  lists: <code>event-source</code>, <code>section</code>,
+  <code>nav</code>, <code>article</code>, <code>aside</code>,
+  <code>header</code>, <code>footer</code>, <code>datagrid</code>,
+  <code>command</code></p>
+
+  <p>The <span>stack of open elements</span> is said to <dfn
+  title="has an element in scope">have an element in scope</dfn> or
+  <dfn title="has an element in table scope">have an element in
+  <em>table scope</em></dfn> when the following algorithm terminates
+  in a match state:</p>
+
+  <ol>
+
+   <li><p>Initialise <var title="">node</var> to be the <span>current
+   node</span> (the bottommost node of the stack).</p></li>
+
+   <li><p>If <var title="">node</var> is the target node, terminate in a match
+   state.</p></li>
+
+   <li><p>Otherwise, if <var title="">node</var> is a <code>table</code>
+   element, terminate in a failure state.</p></li>
+
+   <li><p>Otherwise, if the algorithm is the "has an element in scope"
+   variant (rather than the "has an element in table scope" variant),
+   and <var title="">node</var> is one of the following, terminate in a failure
+   state:</p>
+    <ul class="brief">
+     <li><code>applet</code></li>
+     <li><code>caption</code></li>
+     <li><code>td</code></li>
+     <li><code>th</code></li>
+     <li><code>button</code></li>
+     <li><code>marquee</code></li>
+     <li><code>object</code></li>
+    </ul>
+   </li>
+
+   <li><p>Otherwise, if <var title="">node</var> is an <code>html</code>
+   element, terminate in a failure state. (This can only happen if the
+   <var title="">node</var> is the topmost node of the <span>stack of open
+   elements</span>, and prevents the next step from being invoked if
+   there are no more elements in the stack.)</p></li>
+
+   <li><p>Otherwise, set <var title="">node</var> to the previous entry in the
+   <span>stack of open elements</span> and return to step 2. (This
+   will never fail, since the loop will always terminate in the
+   previous step if the top of the stack is reached.)</p></li>
+
+  </ol>
+
+  <p>Nothing happens if at any time any of the elements in the
+  <span>stack of open elements</span> are moved to a new location in,
+  or removed from, the <code>Document</code> tree. In particular, the
+  stack is not changed in this situation. This can cause, amongst
+  other strange effects, content to be appended to nodes that are no
+  longer in the DOM.</p>
+
+  <p class="note">In some cases (namely, when <a
+  href="#adoptionAgency">closing misnested formatting elements</a>),
+  the stack is manipulated in a random-access fashion.</p>
+
+
+  <h5>The list of active formatting elements</h5>
+
+  <p>Initially the <dfn>list of active formatting elements</dfn> is
+  empty. It is used to handle mis-nested <span
+  title="formatting">formatting element tags</span>.</p>
+
+  <p>The list contains elements in the <span>formatting</span>
+  category, and scope markers. The scope markers are inserted when
+  entering <code>applet</code> elements, buttons, <code>object</code>
+  elements, marquees, table cells, and table captions, and are used to
+  prevent formatting from "leaking" into <code>applet</code> elements,
+  buttons, <code>object</code> elements, marquees, and tables.</p>
+
+  <p>When the steps below require the UA to <dfn>reconstruct the
+  active formatting elements</dfn>, the UA must perform the following
+  steps:</p>
+
+  <ol>
+
+   <li>If there are no entries in the <span>list of active formatting
+   elements</span>, then there is nothing to reconstruct; stop this
+   algorithm.</li>
+
+   <li>If the last (most recently added) entry in the <span>list of
+   active formatting elements</span> is a marker, or if it is an
+   element that is in the <span>stack of open elements</span>, then
+   there is nothing to reconstruct; stop this algorithm.</li>
+
+   <li>Let <var title="">entry</var> be the last (most recently added)
+   element in the <span>list of active formatting
+   elements</span>.</li>
+
+   <li>If there are no entries before <var title="">entry</var> in the
+   <span>list of active formatting elements</span>, then jump to step
+   8.</li>
+
+   <li>Let <var title="">entry</var> be the entry one earlier than
+   <var title="">entry</var> in the <span>list of active formatting
+   elements</span>.</li>
+
+   <li>If <var title="">entry</var> is neither a marker nor an element
+   that is also in the <span>stack of open elements</span>, go to step
+   4.</li>
+
+   <li>Let <var title="">entry</var> be the element one later than
+   <var title="">entry</var> in the <span>list of active formatting
+   elements</span>.</li>
+
+   <li>Perform a shallow clone of the element <var title="">entry</var> to
+   obtain <var title="">clone</var>. <a
+   href="#refsDOM3CORE">[DOM3CORE]</a></li>
+
+   <li>Append <var title="">clone</var> to the <span>current
+   node</span> and push it onto the <span>stack of open
+   elements</span> so that it is the new <span>current
+   node</span>.</li>
+
+   <li>Replace the entry for <var title="">entry</var> in the list
+   with an entry for <var title="">clone</var>.</li>
+
+   <li>If the entry for <var title="">clone</var> in the <span>list of
+   active formatting elements</span> is not the last entry in the
+   list, return to step 7.</li>
+
+  </ol>
+
+  <p>This has the effect of reopening all the formatting elements that
+  were opened in the current body, cell, or caption (whichever is
+  youngest) that haven't been explicitly closed.</p>
+
+  <p class="note">The way this specification is written, the
+  <span>list of active formatting elements</span> always consists of
+  elements in chronological order with the least recently added
+  element first and the most recently added element last (except for
+  while steps 8 to 11 of the above algorithm are being executed, of
+  course).</p>
+
+  <p>When the steps below require the UA to <dfn>clear the list of
+  active formatting elements up to the last marker</dfn>, the UA must
+  perform the following steps:</p>
+
+  <ol>
+
+   <li>Let <var title="">entry</var> be the last (most recently added)
+   entry in the <span>list of active formatting elements</span>.</li>
+
+   <li>Remove <var title="">entry</var> from the <span>list of active
+   formatting elements</span>.</li>
+
+   <li>If <var title="">entry</var> was a marker, then stop the
+   algorithm at this point. The list has been cleared up to the last
+   marker.</li>
+
+   <li>Go to step 1.</li>
+
+  </ol>
+
+
+  <h5>The element pointers</h5>
+
+  <p>Initially the <dfn><code title="">head</code> element
+  pointer</dfn> and the <dfn><code title="">form</code> element
+  pointer</dfn> are both null.</p>
+
+  <p>Once a <code>head</code> element has been parsed (whether
+  implicitly or explicitly) the <span><code title="">head</code>
+  element pointer</span> gets set to point to this node.</p>
+
+  <p>The <span><code title="">form</code> element pointer</span>
+  points to the last <code>form</code> element that was opened and
+  whose end tag has not yet been seen. It is used to make form
+  controls associate with forms in the face of dramatically bad
+  markup, for historical reasons.</p>
+
+
+
   <h4><dfn>Tokenisation</dfn></h4>
 
   <p>Implementations must act as if they used the following state
@@ -38570,6 +38985,10 @@ function receiver(e) {
   has to render the <code>Document</code> so that it is available to
   the user, or when it has to begin accepting user input.</p>
 
+  <p>As each token is emitted from the tokeniser, the user agent must
+  process the token according to the rules given in the section
+  corresponding to the current <span>insertion mode</span>.</p>
+
   <p>When the steps below require the UA to <dfn>insert a
   character</dfn> into a node, if that node has a child immediately
   before where the character is to be inserted, and that child is a
@@ -38599,301 +39018,6 @@ function receiver(e) {
   recognised that <a href="#hardwareLimitations">practical
   concerns</a> will likely force user agents to impose nesting
   depths.</p>
-
-  <p>As each token is emitted from the tokeniser, the user agent must
-  process the token according to the rules given in the section
-  corresponding to the current <dfn>insertion mode</dfn>.</p>
-
-  <p>Initially the <span>insertion mode</span> is "<span
-  title="insertion mode: initial">initial</span>". It can change to
-  "<span title="insertion mode: before html">before html</span>",
-  "<span title="insertion mode: before head">before head</span>",
-  "<span title="insertion mode: in head">in head</span>", "<span
-  title="insertion mode: in head noscript">in head noscript</span>",
-  "<span title="insertion mode: after head">after head</span>", "<span
-  title="insertion mode: in body">in body</span>", "<span
-  title="insertion mode: in table">in table</span>", "<span
-  title="insertion mode: in caption">in caption</span>", "<span
-  title="insertion mode: in column group">in column group</span>",
-  "<span title="insertion mode: in table body">in table body</span>",
-  "<span title="insertion mode: in row">in row</span>", "<span
-  title="insertion mode: in cell">in cell</span>", "<span
-  title="insertion mode: in select">in select</span>", "<span
-  title="insertion mode: in select in table">in select in
-  table</span>", "<span title="insertion mode: after body">after
-  body</span>", "<span title="insertion mode: in frameset">in
-  frameset</span>", "<span title="insertion mode: after
-  frameset">after frameset</span>", "<span title="insertion mode:
-  after after body">after after body</span>", and "<span
-  title="insertion mode: after after frameset">after after
-  frameset</span>" during the course of the parsing, as described
-  below. It affects how certain tokens are processed.</p>
-
-  <p>Four of these modes, namely "<span title="insertion mode: in
-  head">in head</span>", "<span title="insertion mode: in body">in
-  body</span>", "<span title="insertion mode: in table">in
-  table</span>", and "<span title="insertion mode: in select">in
-  select</span>", are special, in that the other modes defer to them
-  at various times. When the algorithm below says that the user agent
-  is to do something "<dfn>using the rules for</dfn> the <var
-  title="">m</var> insertion mode", where <var title="">m</var> is one
-  of these modes, the user agent must use the rules described under
-  that <span>insertion mode</span>'s section, but must leave the
-  <span>insertion mode</span> unchanged (unless the rules in that
-  section themselves switch the <span>insertion mode</span>).</p>
-
-  <p>In addition to the <span>insertion mode</span>, the tree
-  construction stage has several pieces of state: a <span>stack of
-  open elements</span>, a <span>list of active formatting
-  elements</span>, a <span><code title="">head</code> element
-  pointer</span>, and a <span><code title="">form</code> element
-  pointer</span>.</p>
-
-
-  <h5>The stack of open elements</h5>
-
-  <p>Initially the <dfn>stack of open elements</dfn> is empty. The
-  stack grows downwards; the topmost node on the stack is the first
-  one added to the stack, and the bottommost node of the stack is the
-  most recently added node in the stack (notwithstanding when the
-  stack is manipulated in a random access fashion as part of <a
-  href="#adoptionAgency">the handling for misnested tags</a>).</p>
-
-  <p>The "<span title="insertion mode: before html">before
-  html</span>" <span>insertion mode</span> creates the
-  <code>html</code> root element node, which is then added to the
-  stack.</p>
-
-  <p>In the <span>fragment case</span>, the <span>stack of open
-  elements</span> is initialised to contain an <code>html</code>
-  element that is created as part of <span title="html fragment
-  parsing algorithm">that algorithm</span>. (The <span>fragment
-  case</span> skips the "<span title="insertion mode: before
-  html">before html</span>" <span>insertion mode</span>.)</p>
-
-  <p>The <code>html</code> node, however it is created, is the topmost
-  node of the stack. It never gets popped off the stack.</p>
-
-  <p>The <dfn>current node</dfn> is the bottommost node in this
-  stack.</p>
-
-  <p>The <dfn>current table</dfn> is the last <code>table</code>
-  element in the <span>stack of open elements</span>, if there is
-  one. If there is no <code>table</code> element in the <span>stack of
-  open elements</span> (<span>fragment case</span>), then the
-  <span>current table</span> is the first element in the <span>stack
-  of open elements</span> (the <code>html</code> element).</p>
-
-  <p>Elements in the stack fall into the following categories:</p>
-
-  <dl>
-
-   <dt><dfn>Special</dfn></dt>
-   <dd><p>The following HTML elements have varying levels of special
-   parsing rules: <code>address</code>, <code>area</code>,
-   <code>base</code>, <code>basefont</code>, <code>bgsound</code>,
-   <code>blockquote</code>, <code>body</code>, <code>br</code>,
-   <code>center</code>, <code>col</code>, <code>colgroup</code>,
-   <code>dd</code>, <code>dir</code>, <code>div</code>,
-   <code>dl</code>, <code>dt</code>, <code>embed</code>,
-   <code>fieldset</code>, <code>form</code>, <code>frame</code>,
-   <code>frameset</code>, <code>h1</code>, <code>h2</code>,
-   <code>h3</code>, <code>h4</code>, <code>h5</code>, <code>h6</code>,
-   <code>head</code>, <code>hr</code>, <code>iframe</code>,
-   <code>image</code><!-- XXX ? this isn't an element that can end up
-   on the stack-->, <code>img</code>, <code>input</code>,
-   <code>isindex</code>, <code>li</code>, <code>link</code>,
-   <code>listing</code>, <code>menu</code>, <code>meta</code>,
-   <code>noembed</code>, <code>noframes</code>, <code>noscript</code>,
-   <code>ol</code>, <code>optgroup</code>, <code>option</code>,
-   <code>p</code>, <code>param</code>, <code>plaintext</code>,
-   <code>pre</code>, <code>script</code>, <code>select</code>,
-   <code>spacer</code>, <code>style</code>, <code>tbody</code>,
-   <code>textarea</code>, <code>tfoot</code>, <code>thead</code>,
-   <code>title</code>, <code>tr</code>, <code>ul</code>, and
-   <code>wbr</code>.</p></dd>
-
-   <dt><dfn>Scoping</dfn></dt>
-   <dd><p>The following HTML elements introduce new <span title="has
-   an element in scope">scopes</span> for various parts of the
-   parsing: <code>applet</code>, <code>button</code>,
-   <code>caption</code>, <code>html</code>, <code>marquee</code>,
-   <code>object</code>, <code>table</code>, <code>td</code> and
-   <code>th</code>.</p></dd>
-
-   <dt><dfn>Formatting</dfn></dt>
-   <dd><p>The following HTML elements are those that end up in the
-   <span>list of active formatting elements</span>: <code>a</code>,
-   <code>b</code>, <code>big</code>, <code>em</code>,
-   <code>font</code>, <code>i</code>, <code>nobr</code>,
-   <code>s</code>, <code>small</code>, <code>strike</code>,
-   <code>strong</code>, <code>tt</code>, and <code>u</code>.</p></dd>
-
-   <dt><dfn>Phrasing</dfn></dt>
-   <dd><p>All other elements found while parsing an HTML
-   document.</p></dd>
-
-  </dl>
-
-  <p class="big-issue">Still need to add these new elements to the
-  lists: <code>event-source</code>, <code>section</code>,
-  <code>nav</code>, <code>article</code>, <code>aside</code>,
-  <code>header</code>, <code>footer</code>, <code>datagrid</code>,
-  <code>command</code></p>
-
-  <p>The <span>stack of open elements</span> is said to <dfn
-  title="has an element in scope">have an element in scope</dfn> or
-  <dfn title="has an element in table scope">have an element in
-  <em>table scope</em></dfn> when the following algorithm terminates
-  in a match state:</p>
-
-  <ol>
-
-   <li><p>Initialise <var title="">node</var> to be the <span>current
-   node</span> (the bottommost node of the stack).</p></li>
-
-   <li><p>If <var title="">node</var> is the target node, terminate in a match
-   state.</p></li>
-
-   <li><p>Otherwise, if <var title="">node</var> is a <code>table</code>
-   element, terminate in a failure state.</p></li>
-
-   <li><p>Otherwise, if the algorithm is the "has an element in scope"
-   variant (rather than the "has an element in table scope" variant),
-   and <var title="">node</var> is one of the following, terminate in a failure
-   state:</p>
-    <ul class="brief">
-     <li><code>applet</code></li>
-     <li><code>caption</code></li>
-     <li><code>td</code></li>
-     <li><code>th</code></li>
-     <li><code>button</code></li>
-     <li><code>marquee</code></li>
-     <li><code>object</code></li>
-    </ul>
-   </li>
-
-   <li><p>Otherwise, if <var title="">node</var> is an <code>html</code>
-   element, terminate in a failure state. (This can only happen if the
-   <var title="">node</var> is the topmost node of the <span>stack of open
-   elements</span>, and prevents the next step from being invoked if
-   there are no more elements in the stack.)</p></li>
-
-   <li><p>Otherwise, set <var title="">node</var> to the previous entry in the
-   <span>stack of open elements</span> and return to step 2. (This
-   will never fail, since the loop will always terminate in the
-   previous step if the top of the stack is reached.)</p></li>
-
-  </ol>
-
-  <p>Nothing happens if at any time any of the elements in the
-  <span>stack of open elements</span> are moved to a new location in,
-  or removed from, the <code>Document</code> tree. In particular, the
-  stack is not changed in this situation. This can cause, amongst
-  other strange effects, content to be appended to nodes that are no
-  longer in the DOM.</p>
-
-  <p class="note">In some cases (namely, when <a
-  href="#adoptionAgency">closing misnested formatting elements</a>),
-  the stack is manipulated in a random-access fashion.</p>
-
-
-  <h5>The list of active formatting elements</h5>
-
-  <p>Initially the <dfn>list of active formatting elements</dfn> is
-  empty. It is used to handle mis-nested <span
-  title="formatting">formatting element tags</span>.</p>
-
-  <p>The list contains elements in the <span>formatting</span>
-  category, and scope markers. The scope markers are inserted when
-  entering <code>applet</code> elements, buttons, <code>object</code>
-  elements, marquees, table cells, and table captions, and are used to
-  prevent formatting from "leaking" into <code>applet</code> elements,
-  buttons, <code>object</code> elements, marquees, and tables.</p>
-
-  <p>When the steps below require the UA to <dfn>reconstruct the
-  active formatting elements</dfn>, the UA must perform the following
-  steps:</p>
-
-  <ol>
-
-   <li>If there are no entries in the <span>list of active formatting
-   elements</span>, then there is nothing to reconstruct; stop this
-   algorithm.</li>
-
-   <li>If the last (most recently added) entry in the <span>list of
-   active formatting elements</span> is a marker, or if it is an
-   element that is in the <span>stack of open elements</span>, then
-   there is nothing to reconstruct; stop this algorithm.</li>
-
-   <li>Let <var title="">entry</var> be the last (most recently added)
-   element in the <span>list of active formatting
-   elements</span>.</li>
-
-   <li>If there are no entries before <var title="">entry</var> in the
-   <span>list of active formatting elements</span>, then jump to step
-   8.</li>
-
-   <li>Let <var title="">entry</var> be the entry one earlier than
-   <var title="">entry</var> in the <span>list of active formatting
-   elements</span>.</li>
-
-   <li>If <var title="">entry</var> is neither a marker nor an element
-   that is also in the <span>stack of open elements</span>, go to step
-   4.</li>
-
-   <li>Let <var title="">entry</var> be the element one later than
-   <var title="">entry</var> in the <span>list of active formatting
-   elements</span>.</li>
-
-   <li>Perform a shallow clone of the element <var title="">entry</var> to
-   obtain <var title="">clone</var>. <a
-   href="#refsDOM3CORE">[DOM3CORE]</a></li>
-
-   <li>Append <var title="">clone</var> to the <span>current
-   node</span> and push it onto the <span>stack of open
-   elements</span> so that it is the new <span>current
-   node</span>.</li>
-
-   <li>Replace the entry for <var title="">entry</var> in the list
-   with an entry for <var title="">clone</var>.</li>
-
-   <li>If the entry for <var title="">clone</var> in the <span>list of
-   active formatting elements</span> is not the last entry in the
-   list, return to step 7.</li>
-
-  </ol>
-
-  <p>This has the effect of reopening all the formatting elements that
-  were opened in the current body, cell, or caption (whichever is
-  youngest) that haven't been explicitly closed.</p>
-
-  <p class="note">The way this specification is written, the
-  <span>list of active formatting elements</span> always consists of
-  elements in chronological order with the least recently added
-  element first and the most recently added element last (except for
-  while steps 8 to 11 of the above algorithm are being executed, of
-  course).</p>
-
-  <p>When the steps below require the UA to <dfn>clear the list of
-  active formatting elements up to the last marker</dfn>, the UA must
-  perform the following steps:</p>
-
-  <ol>
-
-   <li>Let <var title="">entry</var> be the last (most recently added)
-   entry in the <span>list of active formatting elements</span>.</li>
-
-   <li>Remove <var title="">entry</var> from the <span>list of active
-   formatting elements</span>.</li>
-
-   <li>If <var title="">entry</var> was a marker, then stop the
-   algorithm at this point. The list has been cleared up to the last
-   marker.</li>
-
-   <li>Go to step 1.</li>
-
-  </ol>
 
 
   <h5>Creating and inserting HTML elements</h5>
@@ -38975,173 +39099,6 @@ function receiver(e) {
   <p>If a step requires the UA to generate implied end tags but lists
   an element to exclude from the process, then the UA must perform the
   above steps as if that element was not in the above list.</p>
-
-
-  <h5>The element pointers</h5>
-
-  <p>Initially the <dfn><code title="">head</code> element
-  pointer</dfn> and the <dfn><code title="">form</code> element
-  pointer</dfn> are both null.</p>
-
-  <p>Once a <code>head</code> element has been parsed (whether
-  implicitly or explicitly) the <span><code title="">head</code>
-  element pointer</span> gets set to point to this node.</p>
-
-  <p>The <span><code title="">form</code> element pointer</span>
-  points to the last <code>form</code> element that was opened and
-  whose end tag has not yet been seen. It is used to make form
-  controls associate with forms in the face of dramatically bad
-  markup, for historical reasons.</p>
-
-
-  <h5>Resetting the insertion mode</h5>
-
-  <p>When the steps below require the UA to <dfn>reset the insertion
-  mode appropriately</dfn>, it means the UA must follow these
-  steps:</p>
-
-  <ol>
-
-   <li>Let <var title="">last</var> be false.</li>
-
-   <li>Let <var title="">node</var> be the last node in the
-   <span>stack of open elements</span>.</li>
-
-   <li>If <var title="">node</var> is the first node in the stack of
-   open elements, then set <var title="">last</var> to true; if, in
-   addition, the <var title="">context</var> element of the <span>HTML
-   fragment parsing algorithm</span> is neither a <code>td</code>
-   element nor a <code>th</code> element, then set <var
-   title="">node</var> to the <var title="">context</var>
-   element. (<span>fragment case</span>)</li>
-
-   <li>If <var title="">node</var> is a <code>select</code> element,
-   then switch the <span>insertion mode</span> to "<span
-   title="insertion mode: in select">in select</span>" and abort these
-   steps. (<span>fragment case</span>)</li>
-
-   <li>If <var title="">node</var> is a <code>td</code> or
-   <code>th</code> element, then switch the <span>insertion
-   mode</span> to "<span title="insertion mode: in cell">in
-   cell</span>" and abort these steps.</li>
-
-   <li>If <var title="">node</var> is a <code>tr</code> element, then
-   switch the <span>insertion mode</span> to "<span title="insertion
-   mode: in row">in row</span>" and abort these steps.</li>
-
-   <li>If <var title="">node</var> is a <code>tbody</code>,
-   <code>thead</code>, or <code>tfoot</code> element, then switch the
-   <span>insertion mode</span> to "<span title="insertion mode: in
-   table body">in table body</span>" and abort these steps.</li>
-
-   <li>If <var title="">node</var> is a <code>caption</code> element,
-   then switch the <span>insertion mode</span> to "<span
-   title="insertion mode: in caption">in caption</span>" and abort
-   these steps.</li>
-
-   <li>If <var title="">node</var> is a <code>colgroup</code> element,
-   then switch the <span>insertion mode</span> to "<span
-   title="insertion mode: in column group">in column group</span>" and
-   abort these steps. (<span>fragment case</span>)</li>
-
-   <li>If <var title="">node</var> is a <code>table</code> element,
-   then switch the <span>insertion mode</span> to "<span
-   title="insertion mode: in table">in table</span>" and abort these
-   steps.</li>
-
-   <li>If <var title="">node</var> is a <code>head</code> element,
-   then switch the <span>insertion mode</span> to "<span
-   title="insertion mode: in body">in body</span>" ("<span
-   title="insertion mode: in body">in body</span>"! <em> not "<span
-   title="insertion mode: in head">in head</span>"</em>!) and abort
-   these steps. (<span>fragment case</span>)</li> <!-- This is only
-   here for now in case people think that the spec accidentally
-   omitted it and try to "fix" it. Note that noscript-in-head is also
-   handled this way. This is all intentional. The only thing it
-   doesn't handle is the scripting-enabled fragment parsing case for a
-   <head> element containing a <noscript> which itself contains
-   something other than a <link> or a <style> element; you'd expect
-   that to break out of the <noscript> but it doesn't. This is an edge
-   case that doesn't affect the spec, since the algorithm for fragment
-   parsing is only used for innerHTML, where we know scripting is
-   enabled. -->
-
-   <li>If <var title="">node</var> is a <code>body</code> element,
-   then switch the <span>insertion mode</span> to "<span
-   title="insertion mode: in body">in body</span>" and abort these
-   steps.</li>
-
-   <li>If <var title="">node</var> is a <code>frameset</code> element,
-   then switch the <span>insertion mode</span> to "<span
-   title="insertion mode: in frameset">in frameset</span>" and abort
-   these steps. (<span>fragment case</span>)</li>
-
-   <li>If <var title="">node</var> is an <code>html</code> element,
-   then: if the <span><code title="">head</code> element
-   pointer</span> is null, switch the <span>insertion mode</span> to
-   "<span title="insertion mode: before head">before head</span>",
-   otherwise, switch the <span>insertion mode</span> to "<span
-   title="insertion mode: after head">after head</span>". In either
-   case, abort these steps. (<span>fragment case</span>)</li> <!-- XXX
-   can the head element pointer ever be non-null when we're going
-   through these steps? -->
-
-   <li>If <var title="">last</var> is true, then switch the
-   <span>insertion mode</span> to "<span title="insertion mode: in
-   body">in body</span>" and abort these steps. (<span>fragment
-   case</span>)</li>
-
-   <li>Let <var title="">node</var> now be the node before <var
-   title="">node</var> in the <span>stack of open
-   elements</span>.</li>
-
-   <li>Return to step 3.</li>
-
-  </ol>
-
-<!--When you don't have to handle the fragment case, you can use this
-simplified explanation instead:
-
-  <ol>
-
-   <li><p>If the <span>stack of open elements</span> <span title="has
-   an element in table scope">has a <code>td</code> or <code>th</code>
-   element in table scope</span>, then switch the <span>insertion
-   mode</span> to "<span title="insertion mode: in cell">in
-   cell</span>".</p></li>
-
-   <li><p>Otherwise, if the <span>stack of open elements</span> <span
-   title="has an element in table scope">has a <code>tr</code> element
-   in table scope</span>, then switch the <span>insertion mode</span>
-   to "<span title="insertion mode: in row">in row</span>".</p></li>
-
-   <li><p>Otherwise, if the <span>stack of open elements</span> <span
-   title="has an element in table scope">has a <code>tbody</code>,
-   <code>tfoot</code>, or <code>thead</code> element in table
-   scope</span>, then switch the <span>insertion mode</span> to "<span
-   title="insertion mode: in table body">in table
-   body</span>".</p></li>
-
-   <li><p>Otherwise, if the <span>stack of open elements</span> <span
-   title="has an element in table scope">has a <code>caption</code>
-   element in table scope</span>, then switch the <span>insertion
-   mode</span> to "<span title="insertion mode: in caption">in
-   caption</span>".</p></li>
-
-   ( you can't reach this point with a colgroup element on the
-   stack )
-
-   <li><p>Otherwise, if the <span>stack of open elements</span> <span
-   title="has an element in table scope">has a <code>table</code>
-   element in table scope</span>, then switch the <span>insertion
-   mode</span> to "<span title="insertion mode: in table">in
-   table</span>".</p></li>
-
-   <li><p>Otherwise, switch the <span>insertion mode</span> to "<span
-   title="insertion mode: in body">in body</span>".</p></li>
-
-  </ol>
--->
 
 
   <h5>The "<dfn title="insertion mode: initial">initial</dfn>" insertion mode</h5>
