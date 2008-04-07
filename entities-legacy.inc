@@ -1,14 +1,6 @@
      <tr> <td> <code title="">lang;</code> </td> <td> U+027E8 </td> </tr> <!-- HTML4 had this mapping to U+2329 which is canonically equivalent to U+3008 which is a CJK full-width character. U+27E8 is the mathematical equivalent. -->
      <tr> <td> <code title="">rang;</code> </td> <td> U+027E9 </td> </tr> <!-- HTML4 had this mapping to U+232A which is canonically equivalent to U+3009 which is a CJK full-width character. U+27E9 is the mathematical equivalent. -->
 
-     <tr> <td> <code title="">AMP;</code> </td> <td> U+00026 </td> </tr>
-     <tr> <td> <code title="">COPY;</code> </td> <td> U+000A9 </td> </tr>
-     <tr> <td> <code title="">GT;</code> </td> <td> U+0003E </td> </tr>
-     <tr> <td> <code title="">LT;</code> </td> <td> U+0003C </td> </tr>
-     <tr> <td> <code title="">QUOT;</code> </td> <td> U+00022 </td> </tr>
-     <tr> <td> <code title="">REG;</code> </td> <td> U+000AE </td> </tr>
-     <tr> <td> <code title="">TRADE;</code> </td> <td> U+02122 </td> </tr>
-
      <tr> <td> <code title="">AElig</code> </td> <td> U+000C6 </td> </tr> <!-- (invalid entity with missing semicolon for legacy support only) -->
      <tr> <td> <code title="">AMP</code> </td> <td> U+00026 </td> </tr> <!-- (invalid entity with missing semicolon for legacy support only) -->
      <tr> <td> <code title="">Aacute</code> </td> <td> U+000C1 </td> </tr> <!-- (invalid entity with missing semicolon for legacy support only) -->
