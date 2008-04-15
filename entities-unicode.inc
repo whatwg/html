@@ -1478,8 +1478,10 @@
      <tr> <td> <code title="">LeftDoubleBracket;</code> </td> <td> U+027E6 </td> </tr>
      <tr> <td> <code title="">robrk;</code> </td> <td> U+027E7 </td> </tr>
      <tr> <td> <code title="">RightDoubleBracket;</code> </td> <td> U+027E7 </td> </tr>
+     <tr> <td> <code title="">lang;</code> </td> <td> U+027E8 </td> </tr>
      <tr> <td> <code title="">LeftAngleBracket;</code> </td> <td> U+027E8 </td> </tr>
      <tr> <td> <code title="">langle;</code> </td> <td> U+027E8 </td> </tr>
+     <tr> <td> <code title="">rang;</code> </td> <td> U+027E9 </td> </tr>
      <tr> <td> <code title="">RightAngleBracket;</code> </td> <td> U+027E9 </td> </tr>
      <tr> <td> <code title="">rangle;</code> </td> <td> U+027E9 </td> </tr>
      <tr> <td> <code title="">Lang;</code> </td> <td> U+027EA </td> </tr>
