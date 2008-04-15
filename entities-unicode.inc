@@ -345,6 +345,7 @@
      <tr> <td> <code title="">tau;</code> </td> <td> U+003C4 </td> </tr>
      <tr> <td> <code title="">upsi;</code> </td> <td> U+003C5 </td> </tr>
      <tr> <td> <code title="">upsilon;</code> </td> <td> U+003C5 </td> </tr>
+     <tr> <td> <code title="">phi;</code> </td> <td> U+003C6 </td> </tr>
      <tr> <td> <code title="">phiv;</code> </td> <td> U+003C6 </td> </tr>
      <tr> <td> <code title="">varphi;</code> </td> <td> U+003C6 </td> </tr>
      <tr> <td> <code title="">chi;</code> </td> <td> U+003C7 </td> </tr>
@@ -355,7 +356,6 @@
      <tr> <td> <code title="">thetasym;</code> </td> <td> U+003D1 </td> </tr>
      <tr> <td> <code title="">Upsi;</code> </td> <td> U+003D2 </td> </tr>
      <tr> <td> <code title="">upsih;</code> </td> <td> U+003D2 </td> </tr>
-     <tr> <td> <code title="">phi;</code> </td> <td> U+003D5 </td> </tr>
      <tr> <td> <code title="">straightphi;</code> </td> <td> U+003D5 </td> </tr>
      <tr> <td> <code title="">piv;</code> </td> <td> U+003D6 </td> </tr>
      <tr> <td> <code title="">varpi;</code> </td> <td> U+003D6 </td> </tr>
@@ -1333,10 +1333,6 @@
      <tr> <td> <code title="">sfrown;</code> </td> <td> U+02322 </td> </tr>
      <tr> <td> <code title="">smile;</code> </td> <td> U+02323 </td> </tr>
      <tr> <td> <code title="">ssmile;</code> </td> <td> U+02323 </td> </tr>
-     <tr> <td> <code title="">LeftAngleBracket;</code> </td> <td> U+02329 </td> </tr>
-     <tr> <td> <code title="">langle;</code> </td> <td> U+02329 </td> </tr>
-     <tr> <td> <code title="">RightAngleBracket;</code> </td> <td> U+0232A </td> </tr>
-     <tr> <td> <code title="">rangle;</code> </td> <td> U+0232A </td> </tr>
      <tr> <td> <code title="">cylcty;</code> </td> <td> U+0232D </td> </tr>
      <tr> <td> <code title="">profalar;</code> </td> <td> U+0232E </td> </tr>
      <tr> <td> <code title="">topbot;</code> </td> <td> U+02336 </td> </tr>
@@ -1352,6 +1348,10 @@
      <tr> <td> <code title="">bbrk;</code> </td> <td> U+023B5 </td> </tr>
      <tr> <td> <code title="">UnderBracket;</code> </td> <td> U+023B5 </td> </tr>
      <tr> <td> <code title="">bbrktbrk;</code> </td> <td> U+023B6 </td> </tr>
+     <tr> <td> <code title="">OverParenthesis;</code> </td> <td> U+023DC </td> </tr>
+     <tr> <td> <code title="">UnderParenthesis;</code> </td> <td> U+023DD </td> </tr>
+     <tr> <td> <code title="">OverBrace;</code> </td> <td> U+023DE </td> </tr>
+     <tr> <td> <code title="">UnderBrace;</code> </td> <td> U+023DF </td> </tr>
      <tr> <td> <code title="">trpezium;</code> </td> <td> U+023E2 </td> </tr>
      <tr> <td> <code title="">elinters;</code> </td> <td> U+023E7 </td> </tr>
      <tr> <td> <code title="">blank;</code> </td> <td> U+02423 </td> </tr>
@@ -1472,10 +1472,16 @@
      <tr> <td> <code title="">maltese;</code> </td> <td> U+02720 </td> </tr>
      <tr> <td> <code title="">sext;</code> </td> <td> U+02736 </td> </tr>
      <tr> <td> <code title="">VerticalSeparator;</code> </td> <td> U+02758 </td> </tr>
+     <tr> <td> <code title="">lbbrk;</code> </td> <td> U+02772 </td> </tr>
+     <tr> <td> <code title="">rbbrk;</code> </td> <td> U+02773 </td> </tr>
      <tr> <td> <code title="">lobrk;</code> </td> <td> U+027E6 </td> </tr>
      <tr> <td> <code title="">LeftDoubleBracket;</code> </td> <td> U+027E6 </td> </tr>
      <tr> <td> <code title="">robrk;</code> </td> <td> U+027E7 </td> </tr>
      <tr> <td> <code title="">RightDoubleBracket;</code> </td> <td> U+027E7 </td> </tr>
+     <tr> <td> <code title="">LeftAngleBracket;</code> </td> <td> U+027E8 </td> </tr>
+     <tr> <td> <code title="">langle;</code> </td> <td> U+027E8 </td> </tr>
+     <tr> <td> <code title="">RightAngleBracket;</code> </td> <td> U+027E9 </td> </tr>
+     <tr> <td> <code title="">rangle;</code> </td> <td> U+027E9 </td> </tr>
      <tr> <td> <code title="">Lang;</code> </td> <td> U+027EA </td> </tr>
      <tr> <td> <code title="">Rang;</code> </td> <td> U+027EB </td> </tr>
      <tr> <td> <code title="">loang;</code> </td> <td> U+027EC </td> </tr>
@@ -1614,8 +1620,6 @@
      <tr> <td> <code title="">rpargt;</code> </td> <td> U+02994 </td> </tr>
      <tr> <td> <code title="">gtlPar;</code> </td> <td> U+02995 </td> </tr>
      <tr> <td> <code title="">ltrPar;</code> </td> <td> U+02996 </td> </tr>
-     <tr> <td> <code title="">lbbrk;</code> </td> <td> U+02997 </td> </tr>
-     <tr> <td> <code title="">rbbrk;</code> </td> <td> U+02998 </td> </tr>
      <tr> <td> <code title="">vzigzag;</code> </td> <td> U+0299A </td> </tr>
      <tr> <td> <code title="">vangrt;</code> </td> <td> U+0299C </td> </tr>
      <tr> <td> <code title="">angrtvbd;</code> </td> <td> U+0299D </td> </tr>
@@ -1890,10 +1894,6 @@
      <tr> <td> <code title="">fllig;</code> </td> <td> U+0FB02 </td> </tr>
      <tr> <td> <code title="">ffilig;</code> </td> <td> U+0FB03 </td> </tr>
      <tr> <td> <code title="">ffllig;</code> </td> <td> U+0FB04 </td> </tr>
-     <tr> <td> <code title="">OverParenthesis;</code> </td> <td> U+0FE35 </td> </tr>
-     <tr> <td> <code title="">UnderParenthesis;</code> </td> <td> U+0FE36 </td> </tr>
-     <tr> <td> <code title="">OverBrace;</code> </td> <td> U+0FE37 </td> </tr>
-     <tr> <td> <code title="">UnderBrace;</code> </td> <td> U+0FE38 </td> </tr>
      <tr> <td> <code title="">Ascr;</code> </td> <td> U+1D49C </td> </tr>
      <tr> <td> <code title="">Cscr;</code> </td> <td> U+1D49E </td> </tr>
      <tr> <td> <code title="">Dscr;</code> </td> <td> U+1D49F </td> </tr>
