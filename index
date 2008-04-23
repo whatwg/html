@@ -36785,18 +36785,19 @@ XXX Once we resolve the style="" issue, address these:
 
   <h3 id=event1><span class=secno>6.1 </span>Event definitions</h3>
 
-  <p>Messages in <a href="#cross-document">cross-document messaging</a> and,
-   by default, in <a href="#server-sent">server-sent DOM events</a>, use the
-   <dfn id=message0 title=event-message><code>message</code></dfn> event.
+  <p>Messages in <a href="#cross-document">cross-document messaging</a> and
+   in <a href="#server-sent">server-sent DOM events</a>, use the <dfn
+   id=message0 title=event-message><code>message</code></dfn> event.
 
   <p>The following interface is defined for this event:
 
   <pre class=idl>interface <dfn id=messageevent>MessageEvent</dfn> : Event {
   readonly attribute DOMString <a href="#data4" title=dom-MessageEvent-data>data</a>;
-  readonly attribute DOMString <span title=dom-MessageEvent-origin>origin</span>;
+  readonly attribute DOMString <a href="#origin1" title=dom-MessageEvent-origin>origin</a>;
+  readonly attribute DOMString <a href="#lasteventid" title=dom-MessageEvent-lastEventId>lastEventId</a>;
   readonly attribute <a href="#window">Window</a> <a href="#source2" title=dom-MessageEvent-source>source</a>;
-  void <a href="#initmessageevent" title=dom-MessageEvent-initMessageEvent>initMessageEvent</a>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString originArg, in Window sourceArg);
-  void <a href="#initmessageeventns" title=dom-MessageEvent-initMessageEventNS>initMessageEventNS</a>(in DOMString namespaceURI, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString originArg, in Window sourceArg);
+  void <a href="#initmessageevent" title=dom-MessageEvent-initMessageEvent>initMessageEvent</a>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString originArg, in DOMString lastEventIdArg, in Window sourceArg);
+  void <a href="#initmessageeventns" title=dom-MessageEvent-initMessageEventNS>initMessageEventNS</a>(in DOMString namespaceURI, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString originArg, in DOMString lastEventIdArg, in Window sourceArg);
 };</pre>
 
   <p>The <dfn id=initmessageevent
@@ -36811,11 +36812,16 @@ XXX Once we resolve the style="" issue, address these:
    attribute represents the message being sent.
 
   <p>The <dfn id=origin1
-   title=dom-MessageEvent-domain><code>origin</code></dfn> attribute
+   title=dom-MessageEvent-origin><code>origin</code></dfn> attribute
    represents, in <a href="#cross-document">cross-document messaging</a>, the
    <a href="#origin0">origin</a> of the document that sent the message
    (typically the scheme, hostname, and port of the document, but not its
    path or fragment identifier).
+
+  <p>The <dfn id=lasteventid
+   title=dom-MessageEvent-lastEventId><code>lastEventId</code></dfn>
+   attribute represents, in <a href="#server-sent">server-sent dom
+   events</a>, the <span>last event ID string</span> of the event source.
 
   <p>The <dfn id=source2
    title=dom-MessageEvent-source><code>source</code></dfn> attribute
@@ -37107,8 +37113,7 @@ XXX Once we resolve the style="" issue, address these:
    <dt>If the field name is "event"
 
    <dd>
-    <p>Set the <var title="">event name</var> buffer the field value. <a
-     href="#refsXMLNS">[XMLNS]</a>
+    <p>Set the <var title="">event name</var> buffer the to field value.
 
    <dt>If the field name is "data"
 
@@ -37141,7 +37146,7 @@ XXX Once we resolve the style="" issue, address these:
     <p>The field is ignored.
   </dl>
 
-  <p id=dispatchEvent>When the user agent is required to <dfn id=dispatch
+  <p id=dispatchMessage>When the user agent is required to <dfn id=dispatch
    title="">dispatch the event</dfn>, then the user agent must act as
    follows:
 
@@ -37165,10 +37170,14 @@ XXX Once we resolve the style="" issue, address these:
      which does not bubble, is cancelable, and has no default action. The
      <code title=dom-MessageEvent-data><a href="#data4">data</a></code>
      attribute must be set to the value of the <var title="">data</var>
-     buffer, the <code title=dom-MessageEvent-origin>origin</code> attribute
-     must be set to the <a href="#origin0">origin</a> of the event stream,
-     and the <code title=dom-MessageEvent-source><a
-     href="#source2">source</a></code> attribute must be set to null.
+     buffer, the <code title=dom-MessageEvent-origin><a
+     href="#origin1">origin</a></code> attribute must be set to the <a
+     href="#origin0">origin</a> of the event stream, the <code
+     title=dom-MessageEvent-lastEventId><a
+     href="#lasteventid">lastEventId</a></code> attribute must be set to the
+     <span>last event ID string</span> of the event source, and the <code
+     title=dom-MessageEvent-source><a href="#source2">source</a></code>
+     attribute must be set to null.
 
    <li>
     <p>If the <var title="">event name</var> buffer has a value other than
@@ -37184,6 +37193,12 @@ XXX Once we resolve the style="" issue, address these:
      href="#remoteeventtarget0">RemoteEventTarget</a></code> object to which
      the event stream is registered.
   </ol>
+
+  <p class=note>If an event doesn't have an "id" field, but an earlier event
+   did set the event source's <span>last event ID string</span>, then the
+   event's <code title=dom-MessageEvent-lastEventId><a
+   href="#lasteventid">lastEventId</a></code> field will be set to the value
+   of whatever the last seen "id" field was.
 
   <div class=example>
    <p>The following event stream, once followed by a blank line:</p>
@@ -38227,13 +38242,15 @@ data:&nbsp;test</pre>
      title="">message</var> argument to the <code
      title=dom-window-postMessage><a
      href="#postmessage">postMessage()</a></code> method, the <code
-     title=dom-MessageEvent-origin>origin</code> attribute must be set to the
-     <a href="#origin0">origin</a> of the document that the script that
-     invoked the methods is associated with, and the <code
-     title=dom-MessageEvent-source><a href="#source2">source</a></code>
-     attribute must be set to the <code><a href="#window">Window</a></code>
-     object of the default view of the browsing context with which that
-     document is associated.</p>
+     title=dom-MessageEvent-origin><a href="#origin1">origin</a></code>
+     attribute must be set to the <a href="#origin0">origin</a> of the
+     document that the script that invoked the methods is associated with,
+     the <code title=dom-MessageEvent-lastEventId><a
+     href="#lasteventid">lastEventId</a></code> attribute must be set to the
+     empty string, and the <code title=dom-MessageEvent-source><a
+     href="#source2">source</a></code> attribute must be set to the <code><a
+     href="#window">Window</a></code> object of the default view of the
+     browsing context with which that document is associated.</p>
 
     <p class=issue>Define 'origin' more exactly -- IDN vs no IDN, effect of
      window.document.domain on its value, etc</p>
@@ -38250,10 +38267,10 @@ data:&nbsp;test</pre>
    and event listeners have been executed as appropriate).
 
   <p class=warning>Authors should check the <code
-   title=dom-MessageEvent-origin>origin</code> attribute to ensure that
-   messages are only accepted from domains that they expect to receive
-   messages from. Otherwise, bugs in the author's message handling code could
-   be exploited by hostile sites.
+   title=dom-MessageEvent-origin><a href="#origin1">origin</a></code>
+   attribute to ensure that messages are only accepted from domains that they
+   expect to receive messages from. Otherwise, bugs in the author's message
+   handling code could be exploited by hostile sites.
 
   <p class=warning>Authors should include the <var title="">origin</var>
    argument in messages that contain any confidential information, to make
