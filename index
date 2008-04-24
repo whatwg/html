@@ -26814,8 +26814,7 @@ never reset. This is nice and consistent.)
   <a href="#window">Window</a> <a href="#open2" title=dom-open>open</a>(in DOMString url, in DOMString target, in DOMString features, in DOMString replace);
 
   // <a href="#cross-document">cross-document messaging</a>
-  void <a href="#postmessage" title=dom-window-postMessage>postMessage</a>(in DOMString message);
-  void <a href="#postmessage" title=dom-window-postMessage>postMessage</a>(in DOMString message, in DOMString origin);
+  void <a href="#postmessage" title=dom-window-postMessage>postMessage</a>(in DOMString message, in DOMString targetOrigin);
 
   // <a href="#event4">event handler DOM attributes</a>
            attribute <span>EventListener</span> <a href="#onabort" title=handler-onabort>onabort</a>;
@@ -38288,9 +38287,9 @@ data:&nbsp;test</pre>
 
   <p>When a script invokes the <dfn id=postmessage
    title=dom-window-postMessage><code>postMessage(<var
-   title="">message</var>, <var title="">origin</var>)</code></dfn> method on
-   a <code><a href="#window">Window</a></code> object, the user agent must
-   follow these steps:
+   title="">message</var>, <var title="">targetOrigin</var>)</code></dfn>
+   method on a <code><a href="#window">Window</a></code> object, the user
+   agent must follow these steps:
 
   <ol>
    <li>
@@ -38299,13 +38298,14 @@ data:&nbsp;test</pre>
      href="#window">Window</a></code> object on which the method was invoked.
 
    <li>
-    <p>If the <var title="">origin</var> argument is present and not null,
-     run these substeps:</p>
+    <p>If the <var title="">targetOrigin</var> argument has a value other
+     than a single literal U+002A ASTERISK character ("*"), run these
+     substeps:</p>
 
     <ol>
      <li>
-      <p>If the value of the <var title="">origin</var> argument is not a
-       valid URI or IRI, then throw a <code>SYNTAX_ERR</code> exception and
+      <p>If the value of the <var title="">targetOrigin</var> argument is not
+       a valid URI or IRI, then throw a <code>SYNTAX_ERR</code> exception and
        abort the overall set of steps. <a href="#refsRFC3490">[RFC3986]</a>
        <a href="#refsRFC3490">[RFC3987]</a>
 
@@ -38315,28 +38315,28 @@ data:&nbsp;test</pre>
        abort the overall set of steps silently.
 
      <li>
-      <p>Otherwise, let <var title="">origin</var> be the URI or IRI parsed
-       from the <var title="">origin</var> argument. <a
+      <p>Otherwise, let <var title="">targetOrigin</var> be the URI or IRI
+       parsed from the <var title="">targetOrigin</var> argument. <a
        href="#refsRFC3490">[RFC3986]</a> <a href="#refsRFC3490">[RFC3987]</a>
 
      <li>
-      <p>If <var title="">origin</var> uses a URI scheme that does not have a
-       server-based naming authority, then abort the overall set of steps
-       silently. <a href="#refsRFC3490">[RFC3986]</a>
+      <p>If <var title="">targetOrigin</var> uses a URI scheme that does not
+       have a server-based naming authority, then abort the overall set of
+       steps silently. <a href="#refsRFC3490">[RFC3986]</a>
 
      <li>
       <p>Let <var title="">desired scheme</var> be the &lt;scheme> component
-       of <var title="">origin</var>.
+       of <var title="">targetOrigin</var>.
 
      <li>
       <p>Let <var title="">desired host</var> be the &lt;host> or &lt;ihost>
-       part of <var title="">origin</var>, with the ToAscii algorithm
+       part of <var title="">targetOrigin</var>, with the ToAscii algorithm
        applied. <a href="#refsRFC3490">[RFC3490]</a>
 
      <li>
       <p>Let <var title="">desired port</var> be the &lt;port> component of
-       <var title="">origin</var>, or, if there isn't one, the default port
-       for <var title="">desired scheme</var>.
+       <var title="">targetOrigin</var>, or, if there isn't one, the default
+       port for <var title="">desired scheme</var>.
 
      <li>
       <p>If <var title="">desired scheme</var> is not the same as the scheme
@@ -38359,6 +38359,11 @@ data:&nbsp;test</pre>
     </ol>
 
    <li>
+    <p>Return from the <code title=dom-window-postMessage><a
+     href="#postmessage">postMessage()</a></code> method, but asynchronously
+     continue running these steps.</p>
+
+   <li>
     <p>Create an event that uses the <code><a
      href="#messageevent">MessageEvent</a></code> interface, with the event
      name <code title=event-message><a href="#message0">message</a></code>,
@@ -38378,19 +38383,20 @@ data:&nbsp;test</pre>
      href="#window">Window</a></code> object of the default view of the
      browsing context with which that document is associated.</p>
 
-    <p class=issue>Define 'origin' more exactly -- IDN vs no IDN, effect of
-     window.document.domain on its value, etc</p>
+    <p class=big-issue>Define 'origin' more exactly -- IDN vs no IDN (should
+     probably be exposing unicode), effect of window.document.domain on its
+     value, etc</p>
 
    <li>
-    <p>Dispatch the event created in the previous step at the <var
-     title="">target</var> document.
+    <p>Once the browsing context in which <var title="">target</var> is found
+     has no running scripts, dispatch the event created in the previous step
+     at the <var title="">target</var> document.</p>
+    <!-- XXX define this in
+   terms of the event queue -->
+    <p class=big-isue>Should we instead make this an event that bubbles and
+     fire it at the 'body' element? It seems inconsistent to make it fire on
+     document... Opinions?</p>
   </ol>
-
-  <p>The <code title=dom-window-postMessage><a
-   href="#postmessage">postMessage()</a></code> method must only return once
-   the event dispatch has been completely processed by the target document
-   (i.e. all three of the capture, target, and bubble phases have been done,
-   and event listeners have been executed as appropriate).
 
   <p class=warning>Authors should check the <code
    title=dom-MessageEvent-origin><a href="#origin1">origin</a></code>
@@ -38398,10 +38404,10 @@ data:&nbsp;test</pre>
    expect to receive messages from. Otherwise, bugs in the author's message
    handling code could be exploited by hostile sites.
 
-  <p class=warning>Authors should include the <var title="">origin</var>
-   argument in messages that contain any confidential information, to make
-   sure that the message is only delivered to the recipient to which it was
-   intended.
+  <p class=warning>Authors should not use the wildcard keyword ("*") in the
+   <var title="">targetOrigin</var> argument in messages that contain any
+   confidential information, as otherwise there is no way to guarantee that
+   the message is only delivered to the recipient to which it was intended.
 
   <div class=example>
    <p>For example, if document A contains an <code><a
@@ -38412,7 +38418,7 @@ data:&nbsp;test</pre>
     document A. The script in document A might look like:</p>
 
    <pre>var o = document.getElementsByTagName('object')[0];
-o.contentWindow.postMessage('Hello world');</pre>
+o.contentWindow.postMessage('Hello world', 'http://b.example.org/');</pre>
 
    <p>To register an event handler for incoming events, the script would use
     <code title="">addEventListener()</code> (or similar mechanisms). For
