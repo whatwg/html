@@ -1041,7 +1041,10 @@
 
      <li><a href="#origin"><span class=secno>4.3 </span>Origin</a>
       <ul class=toc>
-       <li><a href="#the-string"><span class=secno>4.3.1 </span>The string
+       <li><a href="#relaxing"><span class=secno>4.3.1 </span>Relaxing the
+        same-origin restriction</a>
+
+       <li><a href="#the-string"><span class=secno>4.3.2 </span>The string
         representing the script's domain in IDNA format</a>
       </ul>
 
@@ -2676,8 +2679,9 @@
   <p>User agents must raise a <a href="#security9">security exception</a>
    whenever any of the members of an <code><a
    href="#htmldocument">HTMLDocument</a></code> object are accessed by
-   scripts whose <a href="#origin0">origin</a> is not the same as the
-   <code>Document</code>'s origin.
+   scripts whose <a href="#effective3">effective script origin</a> is not the
+   same as the <code>Document</code>'s <a href="#effective3">effective script
+   origin</a>.
 
   <h4 id=resource><span class=secno>2.1.2 </span><dfn id=resource0>Resource
    metadata management</dfn></h4>
@@ -2685,42 +2689,6 @@
   <p>The <dfn id=url title=dom-document-URL><code>URL</code></dfn> attribute
    must return <span>the document's address</span><!-- XXX
   xref -->.
-
-  <p>The <dfn id=domain title=dom-document-domain><code>domain</code></dfn>
-   attribute must be initialised to <a href="#domain0">the document's
-   domain</a>, if it has one, and null otherwise. On getting, the attribute
-   must return its current value. On setting, if the new value is an allowed
-   value (as defined below), the attribute's value must be changed to the new
-   value. If the new value is not an allowed value, then a <a
-   href="#security9">security exception</a> must be raised instead.
-
-  <p>A new value is an allowed value for the <code
-   title=dom-document-domain><a href="#domain">document.domain</a></code>
-   attribute if it is equal to the attribute's current value, or if the new
-   value, prefixed by a U+002E FULL STOP ("."), exactly matches the end of
-   the current value. If the current value is null, new values other than
-   null will never be allowed.
-
-  <p>If the <code>Document</code> object's <span title="the document's
-   address">address</span><!-- XXX xref --> is hierarchical and uses a
-   server-based naming authority, then its <dfn id=domain0 title="the
-   document's domain">domain</dfn> is the &lt;host&gt;/&lt;ihost&gt; part of
-   that address. Otherwise, it has no domain.
-
-  <p class=note>The <code title=dom-document-domain><a
-   href="#domain">domain</a></code> attribute is used to enable pages on
-   different hosts of a domain to access each others' DOMs<span
-   class=big-issue>, though this is not yet defined by this
-   specification</span>.</p>
-  <!-- XXX xref -->
-
-  <p class=big-issue>we should handle IP addresses here</p>
-  <!--XXX
-    http://lxr.mozilla.org/seamonkey/source/content/html/document/src/nsHTMLDocument.cpp
-    search for ::GetDomain ::SetDomain
-    http://trac.webkit.org/projects/webkit/browser/trunk/WebCore/dom/Document.cpp
-    search for ::domain ::setDomain
-  -->
 
   <p>The <dfn id=referrer
    title=dom-document-referrer><code>referrer</code></dfn> attribute must
@@ -26897,10 +26865,12 @@ never reset. This is nice and consistent.)
 
   <p>User agents must raise a <a href="#security9">security exception</a>
    whenever any of the members of a <code><a href="#window">Window</a></code>
-   object are accessed by scripts whose <a href="#origin0">origin</a> is not
-   the same as the <code><a href="#window">Window</a></code> object's <a
-   href="#browsing0">browsing context</a>'s <a href="#active">active
-   document</a>'s origin, with the following exceptions:
+   object are accessed by scripts whose <a href="#effective3">effective
+   script origin</a> is not the same as the <code><a
+   href="#window">Window</a></code> object's <a href="#browsing0">browsing
+   context</a>'s <a href="#active">active document</a>'s <a
+   href="#effective3">effective script origin</a>, with the following
+   exceptions:
 
   <ul>
    <li>The <code title=dom-location><a href="#location1">location</a></code>
@@ -27071,14 +27041,19 @@ never reset. This is nice and consistent.)
     https://bugzilla.mozilla.org/show_bug.cgi?id=344495
   -->
 
-  <p>The <dfn id=origin0>origin</dfn> of content is the cornerstone of the
-   Web security model. It is defined as follows:
+  <p>The <dfn id=origin0>origin</dfn> of a resource and the <dfn
+   id=effective3>effective script origin</dfn> of a resource are both either
+   opaque identifiers or tuples consisting of a scheme component, a host
+   component, and a port component.
+
+  <p>These characteristics are defined as follows:
 
   <dl>
-   <dt>The origin of a URI
+   <dt>For URIs
 
    <dd>
-    <p>The origin is whatever is returned by the following algorithm:</p>
+    <p>The origin of the URI is whatever is returned by the following
+     algorithm:</p>
 
     <ol>
      <li>
@@ -27128,33 +27103,34 @@ never reset. This is nice and consistent.)
        title="">host</var>, <var title="">port</var>).
     </ol>
 
-   <dt>The origin of scripts
+   <dt>For scripts
 
    <dd>
-    <dl>
+    <p>The origin and <a href="#effective3">effective script origin</a> of a
+     script are determined from another resource, called the <i>owner</i>:</p>
+
+    <dl class=switch>
      <dt>If a script is in a <code><a href="#script0">script</a></code>
       element
 
-     <dd>The origin of the script is the origin of the <code>Document</code>
-      to which the <code><a href="#script0">script</a></code> element
-      belongs.
+     <dd>The owner is the <code>Document</code> to which the <code><a
+      href="#script0">script</a></code> element belongs.
 
      <dt>If a script is a function or other code reference created by another
       script
 
-     <dd>The origin of the script is the origin of the script that created
-      it.
+     <dd>The owner is the script that created it.
 
      <dt>If a script is a <a href="#the-javascript" title="javascript
       protocol"><code title="">javascript:</code> URI</a> in an attribute
 
-     <dd>The origin is the origin of the <code>Document</code> of the element
-      on which the attribute is found.
+     <dd>The owner is the <code>Document</code> of the element on which the
+      attribute is found.
 
      <dt>If a script is a <a href="#the-javascript" title="javascript
       protocol"><code title="">javascript:</code> URI</a> in a style sheet
 
-     <dd>The origin is the origin of the URI of the style sheet.
+     <dd>The owner is the URI of the style sheet.
 
      <dt>If a script is a <a href="#the-javascript" title="javascript
       protocol"><code title="">javascript:</code> URI</a> to which a <a
@@ -27162,7 +27138,7 @@ never reset. This is nice and consistent.)
       title=navigate>navigated</a>, the URI having been provided by the user
       (e.g. by using a <i>bookmarklet</i>)
 
-     <dd>The origin is the origin of the <code>Document</code> of the <a
+     <dd>The owner is the <code>Document</code> of the <a
       href="#browsing0">browsing context</a>'s <a href="#active">active
       document</a>.
 
@@ -27171,8 +27147,8 @@ never reset. This is nice and consistent.)
       href="#browsing0">browsing context</a> is being <a href="#navigate"
       title=navigate>navigated</a>, the URI having been declared in markup
 
-     <dd>The origin is the origin of the <code>Document</code> of the element
-      (e.g. an <code><a href="#a">a</a></code> or <code><a
+     <dd>The owner is the <code>Document</code> of the element (e.g. an
+      <code><a href="#a">a</a></code> or <code><a
       href="#area">area</a></code> element) that declared the URI.
 
      <dt>If a script is a <a href="#the-javascript" title="javascript
@@ -27180,13 +27156,18 @@ never reset. This is nice and consistent.)
       href="#browsing0">browsing context</a> is being <a href="#navigate"
       title=navigate>navigated</a>, the URI having been provided by script
 
-     <dd>The origin is the origin of the script that provided the URI.
+     <dd>The owner is the script that provided the URI.
     </dl>
 
-   <dt>The origin of <code>Document</code> objects and images
+    <p>The origin of the script is then the same as the origin of the owner,
+     and the <a href="#effective3">effective script origin</a> of the script
+     is the same as the <a href="#effective3">effective script origin</a> of
+     the owner.</p>
+
+   <dt>For <code>Document</code> objects and images
 
    <dd>
-    <dl>
+    <dl class=switch>
      <dt>If a <code>Document</code> or image was generated from a <a
       href="#the-javascript" title="javascript
       protocol"><code>javascript:</code> URI</a>
@@ -27208,15 +27189,57 @@ never reset. This is nice and consistent.)
      <dd>The origin is the origin of the <code>Document</code> or script in
       which the <code>data:</code> URI was found.
 
+     <dt>If a <code>Document</code> or image has a URI whose scheme is
+      "<code>about:blank</code>"
+
+     <dd class=big-issue>...
+
      <dt>If a <code>Document</code> or image was obtained in some other
       manner (e.g. a <code>data:</code> URI typed in by the user)
 
      <dd>The origin is a globally unique identifier assigned when the
       <code>Document</code> or image is created.
     </dl>
+
+    <p>When a <code>Document</code> is created, its <a
+     href="#effective3">effective script origin</a> is initialised to the <a
+     href="#origin0">origin</a> of the <code>Document</code>. However, the
+     <code title=dom-document-domain><a
+     href="#domain">document.domain</a></code> attribute can be used to
+     change it.</p>
   </dl>
 
-  <h4 id=the-string><span class=secno>4.3.1 </span>The string representing
+  <h4 id=relaxing><span class=secno>4.3.1 </span>Relaxing the same-origin
+   restriction</h4>
+
+  <p>The <dfn id=domain title=dom-document-domain><code>domain</code></dfn>
+   attribute on <code>Document</code> objects must be initialised to <a
+   href="#domain0">the document's domain</a>, if it has one, and null
+   otherwise. On getting, the attribute must return its current value. On
+   setting, if the new value is an allowed value (as defined below), the
+   attribute's value must be changed to the new value, and the <a
+   href="#effective3">effective script origin</a> of the
+   <code>Document</code> must be changed so that its host part is the new
+   value and the port part is "manual override". If the new value is not an
+   allowed value, then a <a href="#security9">security exception</a> must be
+   raised instead.
+
+  <p>A new value is an allowed value for the <code
+   title=dom-document-domain><a href="#domain">document.domain</a></code>
+   attribute if it is equal to the attribute's current value, or if the
+   current value is not an IP address and the new value, prefixed by a U+002E
+   FULL STOP ("."), exactly matches the end of the current value.
+
+  <p>The <dfn id=domain0 title="the document's domain">domain</dfn> of a
+   <code>Document</code> is the host part of the document's <a
+   href="#origin0">origin</a>, if that is a tuple. If it isn't, then the
+   document does not have a domain.
+
+  <p class=note>The <code title=dom-document-domain><a
+   href="#domain">domain</a></code> attribute is used to enable pages on
+   different hosts of a domain to access each others' DOMs.
+
+  <h4 id=the-string><span class=secno>4.3.2 </span>The string representing
    the script's domain in IDNA format</h4>
   <!-- XXX this is only used by the TCPConnection stuff and will be
   removed when that part is next updated -->
@@ -30352,9 +30375,10 @@ user reload must be equivalent to .reload()
   <p>User agents must raise a <a href="#security9">security exception</a>
    whenever any of the members of a <code><a
    href="#location2">Location</a></code> object are accessed by scripts whose
-   <a href="#origin0">origin</a> is not the same as the <code><a
-   href="#location2">Location</a></code> object's associated
-   <code>Document</code>'s origin, with the following exceptions:
+   <a href="#effective3">effective script origin</a> is not the same as the
+   <code><a href="#location2">Location</a></code> object's associated
+   <code>Document</code>'s <a href="#effective3">effective script origin</a>,
+   with the following exceptions:
 
   <ul>
    <li>The <code title=dom-location-href><a href="#href5">href</a></code>
