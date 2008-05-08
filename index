@@ -4862,9 +4862,9 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
 
    <li>
     <p>If there is a character in the string <var title="">input</var> at
-     position <var title="">position</var>, and it is either U+002C COMMA
-     character or a U+0020 SPACE character, then advance <var
-     title="">position</var> to the next character in <var
+     position <var title="">position</var>, and it is either a U+0020 SPACE
+     character, a U+002C COMMA character, or a U+003B SEMICOLON character,
+     then advance <var title="">position</var> to the next character in <var
      title="">input</var>, or to beyond the end of the string if there are no
      more characters.
 
@@ -4874,8 +4874,8 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
 
    <li>
     <p>If the character in the string <var title="">input</var> at position
-     <var title="">position</var> is a U+002C COMMA character or a U+0020
-     SPACE character, return to step 4.
+     <var title="">position</var> is a U+0020 SPACE character, a U+002C COMMA
+     character, or a U+003B SEMICOLON character, then return to step 4.
 
    <li>
     <p>Let <var title="">negated</var> be false.
@@ -4884,10 +4884,17 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
     <p>Let <var title="">value</var> be 0.
 
    <li>
-    <p>Let <var title="">started</var> be false.
+    <p>Let <var title="">started</var> be false. This variable is set to true
+     when the parser sees a number or a "<code title="">-</code>" character.
 
    <li>
-    <p>Let <var title="">finished</var> be false.
+    <p>Let <var title="">got number</var> be false. This variable is set to
+     true when the parser sees a number.
+
+   <li>
+    <p>Let <var title="">finished</var> be false. This variable is set to
+     true to switch parser into a mode where it ignores characters until the
+     next separator.
 
    <li>
     <p>Let <var title="">bogus</var> be false.
@@ -4896,22 +4903,21 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
     <p><em>Parser:</em> If the character in the string <var
      title="">input</var> at position <var title="">position</var> is:</p>
 
-    <dl
-     class=switch><!-- XXX this doesn't quite match what IE does: http://www.hixie.ch/tests/adhoc/html/flow/image-maps/004-demo.html
-          I couldn't work out a pattern to IE's results. Let me know if you can see one. -->
-
+    <dl class=switch>
      <dt>A U+002D HYPHEN-MINUS character
 
      <dd>
       <p>Follow these substeps:</p>
 
       <ol>
+       <li>If <var title="">got number</var> is true, let <var
+        title="">finished</var> be true.
+
        <li>If <var title="">finished</var> is true, skip to the next step in
         the overall set of steps.
 
-       <li>If <var title="">started</var> is true or if <var
-        title="">bogus</var> is true, let <var title="">negated</var> be
-        false.
+       <li>If <var title="">started</var> is true, let <var
+        title="">negated</var> be false.
 
        <li>Otherwise, if <var title="">started</var> is false and if <var
         title="">bogus</var> is false, let <var title="">negated</var> be
@@ -4935,18 +4941,23 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
         title="">value</var>.
 
        <li>Let <var title="">started</var> be true.
+
+       <li>Let <var title="">got number</var> be true.
       </ol>
+
+     <dt>A U+0020 SPACE character
 
      <dt>A U+002C COMMA character
 
-     <dt>A U+0020 SPACE character
+     <dt>A U+003B SEMICOLON character
 
      <dd>
       <p>Follow these substeps:</p>
 
       <ol>
-       <li>If <var title="">started</var> is false, return the <var
-        title="">numbers</var> list and abort.
+       <li>If <var title="">got number</var> is false, return the <var
+        title="">numbers</var> list and abort. This happens if an entry in
+        the list has no digits, as in "<code title="">1,2,x,4</code>".
 
        <li>If <var title="">negated</var> is true, then negate <var
         title="">value</var>.
@@ -4957,13 +4968,111 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
        <li>Jump to step 4 in the overall set of steps.
       </ol>
 
-     <dt>A U+002E FULL STOP character
+     <dt>A U+002E FULL STOP character</dt>
+     <!--
+ Test: http://www.hixie.ch/tests/adhoc/html/flow/image-maps/004-demo.html
+ IE6 on Wine treats the following characters like this also: U+1-U+1f,
+ U+21-U+2b, U+2d-U+2f, U+3a, U+3c-U+40, U+5b-U+60, U+7b-U+82,
+ U+84-U+89, U+8b, U+8d, U+8f-U`+99, U+9b, U+9d, U+a0-U+bf, U+d7, U+f7,
+ U+1f6-U+1f9, U+218-U+24f, U+2a9-U+385, U+387, U+38b, U+38d, U+3a2,
+ U+3cf, U+3d7-U+3d9, U+3db, U+3dd, U+3df, U+3e1, U+3f4-U+400, U+40d,
+ U+450, U+45d, U+482-U+48f, U+4c5-U+4c6, U+4c9-U+4ca, U+4cd-U+4cf,
+ U+4ec-U+4ed, U+4f6-U+4f7, U+4fa-U+530, U+557-U+560, U+588-U+5cf,
+ U+5eb-U+5ef, U+5f3-U+620, U+63b-U+640, U+64b-U+670, U+6b8-U+6b9,
+ U+6bf, U+6cf, U+6d4, U+6d6-U+904, U+93a-U+957, U+962-U+984,
+ U+98d-U+98e, U+991-U+992, U+9a9, U+9b1, U+9b3-U+9b5, U+9ba-U+9db,
+ U+9de, U+9e2-U+9ef, U+9f2-U+a04, U+a0b-U+a0e, U+a11-U+a12, U+a29,
+ U+a31, U+a34, U+a37, U+a3a-U+a58, U+a5d, U+a5f-U+a84, U+a8c, U+a8e,
+ U+a92, U+aa9, U+ab1, U+ab4, U+aba-U+adf, U+ae1-U+b04, U+b0d-U+b0e,
+ U+b11-U+b12, U+b29, U+b31, U+b34-U+b35, U+b3a-U+b5b, U+b5e,
+ U+b62-U+b84, U+b8b-U+b8d, U+b91, U+b96-U+b98, U+b9b, U+b9d,
+ U+ba0-U+ba2, U+ba5-U+ba7, U+bab-U+bad, U+bb6, U+bba-U+c04, U+c0d,
+ U+c11, U+c29, U+c34, U+c3a-U+c5f, U+c62-U+c84, U+c8d, U+c91, U+ca9,
+ U+cb4, U+cba-U+cdd, U+cdf, U+ce2-U+d04, U+d0d, U+d11, U+d29,
+ U+d3a-U+d5f, U+d62-U+e00, U+e2f, U+e31, U+e34-U+e3f, U+e46-U+e80,
+ U+e83, U+e85-U+e86, U+e89, U+e8b-U+e8c, U+e8e-U+e93, U+e98, U+ea0,
+ U+ea4, U+ea6, U+ea8-U+ea9, U+eac, U+eaf-U+edb, U+ede-U+109f,
+ U+10c6-U+10cf, U+10f7-U+10ff, U+115a-U+115e, U+11a3-U+11a7,
+ U+11fa-U+1dff, U+1e9b-U+1e9f, U+1efa-U+1eff, U+1f16-U+1f17,
+ U+1f1e-U+1f1f, U+1f46-U+1f47, U+1f4e-U+1f4f, U+1f58, U+1f5a, U+1f5c,
+ U+1f5e, U+1f7e-U+1f7f, U+1fb5, U+1fbd-U+1fc1, U+1fc5, U+1fcd-U+1fcf,
+ U+1fd4-U+1fd5, U+1fdc-U+1fdf, U+1fed-U+1ff1, U+1ff5, U+1ffd-U+249b,
+ U+24ea-U+3004, U+3006-U+3040, U+3095-U+309a, U+309f-U+30a0, U+30fb,
+ U+30ff-U+3104, U+312d-U+3130, U+318f-U+4dff, U+9fa6-U+abff,
+ U+d7a4-U+d7ff, U+e000-U+f8ff, U+fa2e-U+faff, U+fb07-U+fb12,
+ U+fb18-U+fb1e, U+fb37, U+fb3d, U+fb3f, U+fb42, U+fb45, U+fbb2-U+fbd2,
+ U+fbe9, U+fce1, U+fd3e-U+fd4f, U+fd90-U+fd91, U+fdc8-U+fdef,
+ U+fdfc-U+fe7f, U+fefd-U+ff20, U+ff3b-U+ff40, U+ff5b-U+ff65, U+ffa0,
+ U+ffbf-U+ffc1, U+ffc8-U+ffc9, U+ffd0-U+ffd1, U+ffd8-U+ffd9,
+ U+ffdd-U+ffff
+ IE7 on Win2003 treats the following characters like this also
+ instead: U+1-U+1f, U+21-U+2b, U+2d-U+2f, U+3a, U+3c-U+40, U+5b-U+60,
+ U+7b-U+82, U+84-U+89, U+8b, U+8d, U+8f-U+99, U+9b, U+9d, U+a0-U+a9,
+ U+ab-U+b4, U+b6-U+b9, U+bb-U+bf, U+d7, U+f7, U+220-U+221,
+ U+234-U+24f, U+2ae-U+2af, U+2b9-U+2ba, U+2c2-U+2df, U+2e5-U+2ed,
+ U+2ef-U+344, U+346-U+379, U+37b-U+385, U+387, U+38b, U+38d, U+3a2,
+ U+3cf, U+3d8-U+3d9, U+3f4-U+3ff, U+482-U+48b, U+4c5-U+4c6,
+ U+4c9-U+4ca, U+4cd-U+4cf, U+4f6-U+4f7, U+4fa-U+530, U+557-U+558,
+ U+55a-U+560, U+588-U+5cf, U+5eb-U+5ef, U+5f3-U+620, U+63b-U+640,
+ U+656-U+66f, U+6d4, U+6dd-U+6e0, U+6e9-U+6ec, U+6ee-U+6f9,
+ U+6fd-U+70f, U+72d-U+72f, U+740-U+77f, U+7b1-U+900, U+904,
+ U+93a-U+93c, U+94d - U+94f, U+951-U+957, U+964-U+980, U+984,
+ U+98d-U+98e, U+991-U+992, U+9a9, U+9b1, U+9b3-U+9b5, U+9ba-U+9bd,
+ U+9c5-U+9c6, U+9c9-U+9ca, U+9cd-U+9d6, U+9d8-U+9db, U+9de,
+ U+9e4-U+9ef, U+9f2-U+a01, U+a03-U+a04, U+a0b-U+a0e, U+a11-U+a12,
+ U+a29, U+a31, U+a34, U+a37, U+a3a-U+a3d, U+a43-U+a46, U+a49-U+a4a,
+ U+a4d-U+a58, U+a5d, U+a5f-U+a6f, U+a75-U+a80, U+a84, U+a8c, U+a8e,
+ U+a92, U+aa9, U+ab1, U+ab4, U+aba-U+abc, U+ac6, U+aca, U+acd-U+acf,
+ U+ad1-U+adf, U+ae1-U+b00, U+b04, U+b0d-U+b0e, U+b11-U+b12, U+b29,
+ U+b31, U+b34-U+b35, U+b3a-U+b3c, U+b44-U+b46, U+b49 - U+b4a,
+ U+b4d-U+b55, U+b58-U+b5b, U+b5e, U+b62-U+b81, U+b84, U+b8b-U+b8d,
+ U+b91, U+b96-U+b98, U+b9b, U+b9d, U+ba0 - U+ba2, U+ba5-U+ba7,
+ U+bab-U+bad, U+bb6, U+bba-U+bbd, U+bc3-U+bc5, U+bc9, U+bcd-U+bd6,
+ U+bd8-U+c00, U+c04, U+c0d, U+c11, U+c29, U+c34, U+c3a-U+c3d, U+c45,
+ U+c49, U+c4d-U+c54, U+c57-U+c5f, U+c62-U+c81, U+c84, U+c8d, U+c91,
+ U+ca9, U+cb4, U+cba-U+cbd, U+cc5, U+cc9, U+ccd-U+cd4, U+cd7-U+cdd,
+ U+cdf, U+ce2-U+d01, U+d04, U+d0d, U+d11, U+d29, U+d3a-U+d3d,
+ U+d44-U+d45, U+d49, U+d4d-U+d56, U+d58-U+d5f, U+d62-U+d81, U+d84,
+ U+d97-U+d99, U+db2, U+dbc, U+dbe - U+dbf, U+dc7-U+dce, U+dd5, U+dd7,
+ U+de0-U+df1, U+df4-U+e00, U+e3b-U+e3f, U+e4f-U+e80, U+e83,
+ U+e85-U+e86, U+e89, U+e8b-U+e8c, U+e8e-U+e93, U+e98, U+ea0, U+ea4,
+ U+ea6, U+ea8-U+ea9, U+eac, U+eba, U+ebe-U+ebf, U+ec5-U+ecc,
+ U+ece-U+edb, U+ede-U+eff, U+f01-U+f3f, U+f48, U+f6b-U+f70,
+ U+f82-U+f87, U+f8c-U+f8f, U+f98, U+fbd-U+fff, U+1022, U+1028, U+102b,
+ U+1033-U+1035, U+1037, U+1039-U+104f, U+105a-U+109f, U+10c6-U+10cf,
+ U+10f7-U+10ff, U+115a - U+115e, U+11a3-U+11a7, U+11fa-U+11ff, U+1207,
+ U+1247, U+1249, U+124e-U+124f, U+1257, U+1259, U+125e-U+125f, U+1287,
+ U+1289, U+128e-U+128f, U+12af, U+12b1, U+12b6-U+12b7, U+12bf, U+12c1,
+ U+12c6-U+12c7, U+12cf, U+12d7, U+12ef, U+130f, U+1311, U+1316-U+1317,
+ U+131f, U+1347, U+135b-U+139f, U+13f5-U+1400, U+166d-U+166e,
+ U+1677-U+1680, U+169b - U+169f, U+16eb-U+177f, U+17c9-U+181f, U+1843,
+ U+1878-U+187f, U+18aa-U+1dff, U+1e9c-U+1e9f, U+1efa-U+1eff,
+ U+1f16-U+1f17, U+1f1e-U+1f1f, U+1f46-U+1f47, U+1f4e-U+1f4f, U+1f58,
+ U+1f5a, U+1f5c, U+1f5e, U+1f7e-U+1f7f, U+1fb5, U+1fbd, U+1fbf-U+1fc1,
+ U+1fc5, U+1fcd-U+1fcf, U+1fd4-U+1fd5, U+1fdc-U+1fdf, U+1fed-U+1ff1,
+ U+1ff5, U+1ffd-U+207e, U+2080-U+2101, U+2103-U+2106, U+2108-U+2109,
+ U+2114, U+2116-U+2118, U+211e-U+2123, U+2125, U+2127, U+2129, U+212e,
+ U+2132, U+213a-U+215f, U+2184-U+3005, U+3008-U+3020, U+302a-U+3037,
+ U+303b-U+3104, U+312d-U+3130, U+318f - U+319f, U+31b8-U+33ff,
+ U+4db6-U+4dff, U+9fa6-U+9fff, U+a48d-U+abff, U+d7a4-U+d7ff,
+ U+e000-U+f8ff, U+fa2e-U+faff, U+fb07-U+fb12, U+fb18-U+fb1c, U+fb1e,
+ U+fb29, U+fb37, U+fb3d, U+fb3f, U+fb42, U+fb45, U+fbb2-U+fbd2,
+ U+fd3e-U+fd4f, U+fd90-U+fd91, U+fdc8-U+fdef, U+fdfc-U+fe6f, U+fe73,
+ U+fe75, U+fefd-U+ff20, U+ff3b-U+ff40, U+ff5b-U+ff9f, U+ffbf-U+ffc1,
+ U+ffc8-U+ffc9, U+ffd0-U+ffd1, U+ffd8-U+ffd9, U+ffdd-U+ffff
+ -->
 
      <dd>
       <p>Follow these substeps:</p>
 
       <ol>
-       <li>Let <var title="">finished</var> be true.
+       <li>If <var title="">got number</var> is true, let <var
+        title="">finished</var> be true.
+
+       <li>If <var title="">finished</var> is true, skip to the next step in
+        the overall set of steps.
+
+       <li>Let <var title="">negated</var> be false.
       </ol>
 
      <dt>Any other character
