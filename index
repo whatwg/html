@@ -29894,7 +29894,8 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
        the step labelled "start of line".</p>
 
       <p>Resolve the URI or IRI references in <var title="">part one</var>
-       and <var title="">part two</var> to absolute URIs or IRIs.</p>
+       and <var title="">part two</var> to absolute URIs or IRIs, and drop
+       the fragment identifiers, if any.</p>
 
       <p>If the absolute URI or IRI corresponding to <var title="">part
        one</var> is already in the <var title="">fallback URIs</var> mapping
@@ -30045,30 +30046,10 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
    <li>
     <p>If the previous step fails (e.g. the server returns a 4xx or 5xx
      response or equivalent, or there is a DNS error, or the connection times
-     out, or the parser for manifests fails when checking the magic
-     signature), or if the resource is labelled with a MIME type other than
-     <code title="">text/cache-manifest</code>, then run these substeps:</p>
-
-    <ol>
-     <li>
-      <p><a href="#firing2">Fire a simple event</a> called <code
-       title=event-error><a href="#error1">error</a></code> at the <code><a
-       href="#applicationcache">ApplicationCache</a></code> singleton of each
-       <a href="#top-level">top-level browsing context</a> that is associated
-       with a cache in <var title="">cache group</var>. The default action of
-       this event should be the display of some sort of user interface
-       indicating to the user that the user agent failed to save the
-       application for offline use.
-
-     <li>
-      <p>If this is a <a href="#cache" title=concept-appcache-cache>cache
-       attempt</a>, then discard <var title="">cache</var> and abort the
-       update process, optionally alerting the user to the failure.
-
-     <li>
-      <p>Otherwise, jump to the last step in the overall set of steps of the
-       update process.
-    </ol>
+     out, or the user cancels the download, or the parser for manifests fails
+     when checking the magic signature), or if the resource is labelled with
+     a MIME type other than <code title="">text/cache-manifest</code>, then
+     run just to the <span>caching failure steps</span>.</p>
 
    <li>
     <p>If this is an <a href="#upgrade"
@@ -30155,7 +30136,8 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
 
    <li>
     <p>For each URI in <var title="">file list</var>, run the following
-     steps:</p>
+     steps. These steps may be run in parallel for two or more of the URIs at
+     a time.</p>
 
     <ol>
      <li>
@@ -30177,33 +30159,23 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
        title="">cache</var> as an HTTP cache, and honour HTTP caching
        semantics (such as expiration, ETags, and so forth) with respect to
        that cache. User agents may also have other caches in place that are
-       also honored.
+       also honored. If the resource in question is already being downloaded
+       for other reasons then the existing download process may be used for
+       the purposes of this step.</p>
+
+      <p class=example>An example of a resource that might already be being
+       downloaded is a large image on a Web page that is being seen for the
+       first time. The image would get downloaded to satisfy the <code><a
+       href="#img">img</a></code> element on the page, as well as being
+       listed in the cache manifest. According to the previous paragraph,
+       that image only need be downloaded once, and it can be used both for
+       the cache and for the rendered Web page.</p>
 
      <li>
       <p>If the previous steps fails (e.g. the server returns a 4xx or 5xx
        response or equivalent, or there is a DNS error, or the connection
-       times out), then run these substeps:</p>
-
-      <ol>
-       <li>
-        <p><a href="#firing2">Fire a simple event</a> called <code
-         title=event-error><a href="#error1">error</a></code> at the <code><a
-         href="#applicationcache">ApplicationCache</a></code> singleton of
-         each <a href="#top-level">top-level browsing context</a> that is
-         associated with a cache in <var title="">cache group</var>. The
-         default action of this event should be the display of some sort of
-         user interface indicating to the user that the user agent failed to
-         save the application for offline use.
-
-       <li>
-        <p>If this is a <a href="#cache" title=concept-appcache-cache>cache
-         attempt</a>, then discard <var title="">cache</var> and abort the
-         update process, optionally alerting the user to the failure.
-
-       <li>
-        <p>Otherwise, jump to the last step in the overall set of steps of
-         the update process.
-      </ol>
+       times out, or the user cancels the download), then run the <a
+       href="#cache0">cache failure steps</a>.
 
      <li>
       <p>Otherwise, the fetching succeeded. Store the resource in the <var
@@ -30235,6 +30207,21 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
        title="">file list</var>, then categorise the entry as a <a
        href="#dynamic3" title=concept-appcache-dynamic>dynamic entry</a>.
     </ol>
+
+   <li>
+    <p>Wait for all pending downloads of <span title="implicit
+     entry">implicit entries</span> that are being stored in the cache to
+     have completed.</p>
+
+    <p class=example>For example, if the <a href="#top-level">top-level
+     browsing context</a>'s <a href="#active">active document</a> isn't
+     itself listed in the cache manifest, then it might still be being
+     downloaded.</p>
+
+    <p>If any of these downloads fail (e.g. the server returns a 4xx or 5xx
+     response or equivalent, or there is a DNS error, or the connection times
+     out, or the user cancels the download), then run the <a
+     href="#cache0">cache failure steps</a>.</p>
 
    <li>
     <p>Store <var title="">manifest</var> in <var title="">new cache</var>,
@@ -30300,6 +30287,32 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
      the group of caches to which <var title="">cache</var> belongs be
      <i>idle</i>. If appropriate, remove any user interface indicating that
      an update for this cache is in progress.
+  </ol>
+
+  <p>The <dfn id=cache0>cache failure steps</dfn> are as follows:
+
+  <ol>
+   <li>
+    <p><a href="#firing2">Fire a simple event</a> called <code
+     title=event-error><a href="#error1">error</a></code> at the <code><a
+     href="#applicationcache">ApplicationCache</a></code> singleton of each
+     <a href="#top-level">top-level browsing context</a> that is associated
+     with a cache in <var title="">cache group</var>. The default action of
+     this event should be the display of some sort of user interface
+     indicating to the user that the user agent failed to save the
+     application for offline use.
+
+   <li>
+    <p>If this is a <a href="#cache" title=concept-appcache-cache>cache
+     attempt</a>, then discard <var title="">cache</var> and abort the update
+     process.
+
+   <li>
+    <p>Otherwise, let the <a href="#update0"
+     title=concept-appcache-status>status</a> of the group of caches to which
+     <var title="">cache</var> belongs be <i>idle</i>. If appropriate, remove
+     any user interface indicating that an update for this cache is in
+     progress. Abort the update process.
   </ol>
 
   <h4 id=processing2><span class=secno>4.7.5 </span>Processing model</h4>
