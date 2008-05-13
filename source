@@ -28390,15 +28390,16 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
 
    <li>
 
-    <p>If the resource's URI has the same <span>origin</span> as the manifest's URI, and the start of
-    the resource's URI's &lt;path&gt; component is exactly matched by
-    the &lt;path&gt; component of an <span
-    title="concept-appcache-oppcache-ns">opportunistic caching
+    <p>If the resource's URI has the same <span>origin</span> as the
+    manifest's URI, and the start of the resource's URI's &lt;path&gt;
+    component is exactly matched by the &lt;path&gt; component of an
+    <span title="concept-appcache-oppcache-ns">opportunistic caching
     namespace</span> in the <span>application cache</span>, then:
 
     <p>Fetch the resource normally. If this results 4xx or 5xx status
-    codes or equivalent, or if there were network errors, then instead
-    fetch, from the cache, the resource of the <span
+    codes or equivalent, or if there were network errors (but not if
+    the user canceled the download), then instead fetch, from the
+    cache, the resource of the <span
     title="concept-appcache-fallback">fallback entry</span>
     corresponding to the namespace with the longest matching
     &lt;path&gt; component. Abort these steps.</p>
@@ -28584,7 +28585,8 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
    title="">uri</var>.</p></li>
 
    <li><p>If this results 4xx or 5xx status codes or equivalent, or if
-   there were network errors, then abort these steps.</p></li>
+   there were network errors, or if the user canceled the download,
+   then abort these steps.</p></li>
 
    <li>
 
@@ -29289,7 +29291,7 @@ user reload must be equivalent to .reload()
     with the same <span>origin</span> as the URI in
     question, and that have this URI as one of their entries
     (excluding entries marked as <span
-    title="concept-appcache-foreign">manifest</span>), and that
+    title="concept-appcache-foreign">foreign</span>), and that
     already contain their manifest, categorised as a <span
     title="concept-appcache-manifest">manifest</span>. If so, then the
     user agent must then fetch the resource from the <span
@@ -29329,37 +29331,57 @@ user reload must be equivalent to .reload()
     and its URI <span
     title="concept-appcache-matches-oppcache">matches the
     opportunistic caching namespace</span> of one or more application
-    caches, then:</p>
+    caches, and the user didn't cancel the navigation attempt during
+    the previous step, then:</p>
 
     <dl class="switch">
 
-     <dt>If the file was successfully downloaded</dt>
+     <dt>If the browsing context being navigated is a <span>top-level
+     browsing context</span>, and the navigation attempt failed
+     (e.g. the server returned a 4xx or 5xx status code or equivalent,
+     or there was a DNS error)</dt>
 
-     <dd>The user agent must cache the resource in all those
-     application caches, categorised as <span
-     title="concept-appcache-oppcache">opportunistically cached
-     entries</span>.</dd>
+     <dd>
 
+      <p>Let <var title="">candidate</var> be the <span
+      title="concept-appcache-fallback">fallback resource</span>
+      specified for the opportunistic caching namespace in
+      question. If multiple application caches match, the user agent
+      must use the fallback of the <span
+      title="concept-appcache-selection">most appropriate application
+      cache</span> of those that match.</p>
 
-     <dt>If the server returned a 4xx or 5xx status code or
-     equivalent, or there were network errors</dt>
+      <p>If <var title="">candidate</var> is not marked as <span
+      title="concept-appcache-foreign">foreign</span>, then the user
+      agent must discard the failed load and instead continue along
+      these steps using <var title="">candidate</var> as the
+      resource.</p>
 
-     <dd>If the browsing context being navigated is a <span>top-level
-     browsing context</span>, then the user agent must discard the
-     failed load and instead use the <span
-     title="concept-appcache-fallback">fallback resource</span>
-     specified for the opportunistic caching namespace in question. If
-     multiple application caches match, the user agent must use the
-     fallback of the <span title="concept-appcache-selection">most
-     appropriate application cache</span> of those that match. For the
-     purposes of session history (and features that depend on session
-     history, e.g. bookmarking) the user agent must use the URI of the
-     resource that was requested (the one that matched the
-     opportunistic caching namespace), not the fallback
-     resource. However, the user agent may indicate to the user that
-     the original page load failed, that the page used was a fallback
-     resource, and what the URI of the fallback resource actually
-     is.</dd>
+      <p>For the purposes of session history (and features that depend
+      on session history, e.g. bookmarking) the user agent must use
+      the URI of the resource that was requested (the one that matched
+      the opportunistic caching namespace), not the fallback
+      resource. However, the user agent may indicate to the user that
+      the original page load failed, that the page used was a fallback
+      resource, and what the URI of the fallback resource actually
+      is.</p>
+
+     </dd>
+
+     <dt>Otherwise</dt>
+
+     <dd>
+
+      <p>Once the download is complete, if there were no errors and
+      the user didn't cancel the request, the user agent must cache
+      the resource in all the application caches that have a <span
+      title="concept-appcache-matches-oppcache">matching opportunistic
+      caching namespace</span>, categorised as <span
+      title="concept-appcache-oppcache">opportunistically cached
+      entries</span>. Meanwhile, the user must continue along these
+      steps.</p>
+
+     </dd>
 
     </dl>
 
