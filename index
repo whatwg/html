@@ -696,13 +696,16 @@
          <li><a href="#user-interface"><span class=secno>3.12.10.10.
           </span>User interface</a>
 
-         <li><a href="#time-range"><span class=secno>3.12.10.11. </span>Time
-          range</a>
+         <li><a href="#time-ranges"><span class=secno>3.12.10.11. </span>Time
+          ranges</a>
 
-         <li><a href="#mediaevents"><span class=secno>3.12.10.12.
+         <li><a href="#byte-ranges"><span class=secno>3.12.10.12. </span>Byte
+          ranges</a>
+
+         <li><a href="#mediaevents"><span class=secno>3.12.10.13.
           </span>Event summary</a>
 
-         <li><a href="#security0"><span class=secno>3.12.10.13.
+         <li><a href="#security0"><span class=secno>3.12.10.14.
           </span>Security and privacy considerations</a>
         </ul>
 
@@ -15379,6 +15382,8 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
   readonly attribute unsigned short <a href="#networkstate" title=dom-media-networkState>networkState</a>;
   readonly attribute float <a href="#bufferingrate" title=dom-media-bufferingRate>bufferingRate</a>;
   readonly attribute <a href="#timeranges">TimeRanges</a> <a href="#buffered" title=dom-media-buffered>buffered</a>;
+  readonly attribute <a href="#byteranges">ByteRanges</a> <a href="#bufferedbytes" title=dom-media-bufferedBytes>bufferedBytes</a>;
+  readonly attribute unsigned long <a href="#totalbytes" title=dom-media-totalBytes>totalBytes</a>;
   void <a href="#load" title=dom-media-load>load</a>();
 
   // ready state
@@ -15444,7 +15449,6 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
     * control over closed captions:
       - enable, disable, select language
       - event that sends caption text to script
-    * get byte ranges as well as time ranges for buffered data
     * in-band metadata and cue points to allow:
       - Chapter markers that synchronize to playback (without having to poll
         the playhead position)
@@ -15458,7 +15462,6 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
       - getMetadata(key: string, language: string) => HTMLImageElement or string
       - onmetadatachanged (no context info)
     * external captions support (request from John Foliot)
-    * video: changing the playback aspect ratio 
     * video: applying CSS filters 
     * infinite looping 
   -->
@@ -16100,6 +16103,20 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
   <p class=note>Typically this will be a single range anchored at the zero
    point, but if, e.g. the user agent uses HTTP range requests in response to
    seeking, then there could be multiple ranges.
+
+  <p>The <dfn id=bufferedbytes
+   title=dom-media-bufferedBytes><code>bufferedBytes</code></dfn> attribute
+   must return a static <a href="#normalised0">normalised
+   <code>ByteRanges</code> object</a> that represents the ranges of the <a
+   href="#media10">media resource</a>, if any, that the user agent has
+   downloaded, at the time the attribute is evaluated.
+
+  <p>The <dfn id=totalbytes
+   title=dom-media-totalBytes><code>totalBytes</code></dfn> attribute must
+   return the length of the <a href="#media10">media resource</a>, in bytes,
+   if it is known and finite. If it is not known, is infinite (e.g. streaming
+   radio), or if no <a href="#media9">media data</a> is available, the
+   attribute must return 0.
 
   <h5 id=offsets><span class=secno>3.12.10.5. </span>Offsets into the media
    resource</h5>
@@ -17119,7 +17136,7 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
    title=event-volumechange><a href="#volumechange">volumechange</a></code>
    at the <a href="#media7">media element</a>.
 
-  <h5 id=time-range><span class=secno>3.12.10.11. </span>Time range</h5>
+  <h5 id=time-ranges><span class=secno>3.12.10.11. </span>Time ranges</h5>
 
   <p>Objects implementing the <code><a
    href="#timeranges">TimeRanges</a></code> interface represent a list of
@@ -17161,7 +17178,8 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
   </ul>
 
   <p>In other words, the ranges in such an object are ordered, don't overlap,
-   and don't touch (adjacent ranges are folded into one bigger range).
+   aren't empty, and don't touch (adjacent ranges are folded into one bigger
+   range).
 
   <p>The timelines used by the objects returned by the <code
    title=dom-media-buffered><a href="#buffered">buffered</a></code>, <code
@@ -17170,7 +17188,56 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
    of <a href="#media7" title="media element">media elements</a> must be the
    same as that element's <a href="#media10">media resource</a>'s timeline.
 
-  <h5 id=mediaevents><span class=secno>3.12.10.12. </span>Event summary</h5>
+  <h5 id=byte-ranges><span class=secno>3.12.10.12. </span>Byte ranges</h5>
+
+  <p>Objects implementing the <code><a
+   href="#byteranges">ByteRanges</a></code> interface represent a list of
+   ranges of bytes.
+
+  <pre class=idl>interface <dfn id=byteranges>ByteRanges</dfn> {
+  readonly attribute unsigned long <a href="#length4" title=dom-ByteRanges-length>length</a>;
+  unsigned long <a href="#start5" title=dom-ByteRanges-start>start</a>(in unsigned long index);
+  unsigned long <a href="#endindex0" title=dom-ByteRanges-end>end</a>(in unsigned long index);
+};</pre>
+
+  <p>The <dfn id=length4
+   title=dom-ByteRanges-length><code>length</code></dfn> DOM attribute must
+   return the number of ranges represented by the object.
+
+  <p>The <dfn id=start5 title=dom-ByteRanges-start><code>start(<var
+   title="">index</var>)</code></dfn> method must return the position of the
+   first byte of the <var title="">index</var>th range represented by the
+   object.
+
+  <p>The <dfn id=endindex0 title=dom-ByteRanges-end><code>end(<var
+   title="">index</var>)</code></dfn> method must return the position of the
+   byte immediately after the last byte of the <var title="">index</var>th
+   range represented by the object. (The byte position returned by this
+   method is not in the range itself. If the first byte of the range is the
+   byte at position 0, and the entire stream of bytes is in the range, then
+   the value of the position of the byte returned by this method for that
+   range will be the same as the number of bytes in the stream.)
+
+  <p>These methods must raise <code>INDEX_SIZE_ERR</code> exceptions if
+   called with an <var title="">index</var> argument greater than or equal to
+   the number of ranges represented by the object.
+
+  <p>When a <code><a href="#byteranges">ByteRanges</a></code> object is said
+   to be a <dfn id=normalised0>normalised <code>ByteRanges</code>
+   object</dfn>, the ranges it represents must obey the following criteria:
+
+  <ul>
+   <li>The start of a range must be greater than the end of all earlier
+    ranges.
+
+   <li>The start of a range must be less than the end of that same range.
+  </ul>
+
+  <p>In other words, the ranges in such an object are ordered, don't overlap,
+   aren't empty, and don't touch (adjacent ranges are folded into one bigger
+   range).
+
+  <h5 id=mediaevents><span class=secno>3.12.10.13. </span>Event summary</h5>
 
   <p>The following events fire on <a href="#media7" title="media
    element">media elements</a> as part of the processing model described
@@ -17516,7 +17583,7 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
      <td>
   </table>
 
-  <h5 id=security0><span class=secno>3.12.10.13. </span>Security and privacy
+  <h5 id=security0><span class=secno>3.12.10.14. </span>Security and privacy
    considerations</h5>
 
   <p class=big-issue>Talk about making sure interactive media files (e.g.
@@ -25433,7 +25500,7 @@ XXX selection ranges -->
    depth, which would then require the selection to be infinite if every row,
    including every hidden row, was selected.
 
-  <p>The <dfn id=length4
+  <p>The <dfn id=length5
    title=dom-DataGridSelection-length><code>length</code></dfn> attribute
    must return the number of rows currently present in the selection. The
    <dfn id=itemindex3 title=dom-DataGridSelection-item><code>item(<var
@@ -25464,7 +25531,7 @@ XXX selection ranges -->
    method must mark all the rows in the data grid as selected. After a call
    to <code title=dom-DataGridSelection-selectAll><a
    href="#selectall">selectAll()</a></code>, the <code
-   title=dom-DataGridSelection-length><a href="#length4">length</a></code>
+   title=dom-DataGridSelection-length><a href="#length5">length</a></code>
    attribute will return the number of rows in the data grid, not counting
    children of closed rows.
 
@@ -25478,7 +25545,7 @@ XXX selection ranges -->
    mark all the rows in the data grid to be marked as not selected. After a
    call to <code title=dom-DataGridSelection-clear><a
    href="#clear">clear()</a></code>, the <code
-   title=dom-DataGridSelection-length><a href="#length4">length</a></code>
+   title=dom-DataGridSelection-length><a href="#length5">length</a></code>
    attribute will return zero.
 
   <p>If the <code><a href="#datagrid0">datagrid</a></code> element has a <dfn
@@ -27979,7 +28046,7 @@ never reset. This is nice and consistent.)
 
   // other browsing contexts
   readonly attribute <a href="#window">Window</a> <a href="#frames" title=dom-frames>frames</a>;
-  readonly attribute unsigned long <a href="#length5" title=dom-length>length</a>;
+  readonly attribute unsigned long <a href="#length6" title=dom-length>length</a>;
   [IndexGetter] <a href="#window">Window</a> <a href="#xxx4index" title=dom-XXX4>XXX4</a>(in unsigned long index); <!-- XXX DOMB -->
   readonly attribute <a href="#window">Window</a> <a href="#opener0" title=dom-opener>opener</a>;
   <a href="#window">Window</a> <a href="#open2" title=dom-open>open</a>();
@@ -28216,7 +28283,7 @@ never reset. This is nice and consistent.)
   <h4 id=accessing><span class=secno>4.2.4 </span>Accessing other browsing
    contexts</h4>
 
-  <p>The <dfn id=length5 title=dom-length><code>length</code></dfn> DOM
+  <p>The <dfn id=length6 title=dom-length><code>length</code></dfn> DOM
    attribute on the <code><a href="#window">Window</a></code> interface must
    return the number of <a href="#child" title="child browsing context">child
    browsing contexts</a> of the <a href="#active" title="active
@@ -30803,7 +30870,7 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   void <a href="#swapcache" title=dom-appcache-swapCache>swapCache</a>();
 
   // dynamic entries
-  readonly attribute unsigned long <a href="#length6" title=dom-appcache-length>length</a>;
+  readonly attribute unsigned long <a href="#length7" title=dom-appcache-length>length</a>;
   DOMString <a href="#itemindex4" title=dom-appcache-item>item</a>(in unsigned long index);
   void <a href="#adduri" title=dom-appcache-add>add</a>(in DOMString uri);
   void <a href="#remove1" title=dom-appcache-remove>remove</a>(in DOMString uri);
@@ -30905,7 +30972,7 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
      title=concept-appcache-manifest>manifest</a>.
   </dl>
 
-  <p>The <dfn id=length6 title=dom-appcache-length><code>length</code></dfn>
+  <p>The <dfn id=length7 title=dom-appcache-length><code>length</code></dfn>
    attribute must return the number of <a href="#dynamic3"
    title=concept-appcache-dynamic>dynamic entries</a> in the <a
    href="#application0">application cache</a> with which the <code><a
@@ -30919,7 +30986,7 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
    title=dom-appcache-add><a href="#adduri">add()</a></code> method, with the
    oldest entry being the zeroth entry, and the most recently added entry
    having the index <span><code title=dom-appcache-length><a
-   href="#length6">length</a></code>-1</span>.
+   href="#length7">length</a></code>-1</span>.
 
   <p>The <dfn id=itemindex4 title=dom-appcache-item><code>item(<var
    title="">index</var>)</code></dfn> method must return the absolute URI of
@@ -30930,7 +30997,7 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
    the object is not associated with any application cache, or if the <var
    title="">index</var> argument is lower than zero or greater than
    <span><code title=dom-appcache-length><a
-   href="#length6">length</a></code>-1</span>, the method must instead raise
+   href="#length7">length</a></code>-1</span>, the method must instead raise
    an <code>INDEX_SIZE_ERR</code> exception.
 
   <p>The <dfn id=adduri title=dom-appcache-add><code>add(<var
@@ -31279,7 +31346,7 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
    href="#history2">History</a></code> interface</h4>
 
   <pre class=idl>interface <dfn id=history2>History</dfn> {
-  readonly attribute long <a href="#length7" title=dom-history-length>length</a>;
+  readonly attribute long <a href="#length8" title=dom-history-length>length</a>;
   void <a href="#godelta" title=dom-history-go>go</a>(in long delta);
   void <a href="#go" title=dom-history-go-0>go</a>();
   void <a href="#back" title=dom-history-back>back</a>();
@@ -31289,7 +31356,7 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   void <a href="#clearstate" title=dom-history-clearState>clearState</a>();
 };</pre>
 
-  <p>The <dfn id=length7 title=dom-history-length><code>length</code></dfn>
+  <p>The <dfn id=length8 title=dom-history-length><code>length</code></dfn>
    attribute of the <code><a href="#history2">History</a></code> interface
    must return the number of entries in this <a href="#session">session
    history</a>.
@@ -31302,7 +31369,7 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
 
   <p>If the index of the <a href="#current1">current entry</a> plus <var
    title="">delta</var> is less than zero or greater than or equal to the <a
-   href="#length7" title=dom-history-length>number of items in the session
+   href="#length8" title=dom-history-length>number of items in the session
    history</a>, then the user agent must do nothing.
 
   <p>If the <var title="">delta</var> is zero, then the user agent must act
@@ -33241,7 +33308,7 @@ user reload must be equivalent to .reload()
   something? -->
 
   <pre class=idl>interface <dfn id=storage0>Storage</dfn> {
-  readonly attribute unsigned long <a href="#length8" title=dom-Storage-length>length</a>;
+  readonly attribute unsigned long <a href="#length9" title=dom-Storage-length>length</a>;
   [IndexGetter] DOMString <a href="#keyn" title=dom-Storage-key>key</a>(in unsigned long index);
   [NameGetter] DOMString <a href="#getitem" title=dom-Storage-getItem>getItem</a>(in DOMString key);
   [NameSetter] void <a href="#setitem" title=dom-Storage-setItem>setItem</a>(in DOMString key, in DOMString data);
@@ -33274,7 +33341,7 @@ user reload must be equivalent to .reload()
    href="#storage0">Storage</a></code> interface can all be associated with
    the same list of key/value pairs simultaneously.
 
-  <p>The <dfn id=length8 title=dom-Storage-length><code>length</code></dfn>
+  <p>The <dfn id=length9 title=dom-Storage-length><code>length</code></dfn>
    attribute must return the number of key/value pairs currently present in
    the list associated with the object.
 
@@ -33559,7 +33626,7 @@ user reload must be equivalent to .reload()
    detect any concurrent script execution.
 
   <p>This is required to guarentee that the <code title=dom-Storage-length><a
-   href="#length8">length</a></code> attribute of a <code><a
+   href="#length9">length</a></code> attribute of a <code><a
    href="#storage0">Storage</a></code> object never changes while a script is
    executing, other than in a way that is predictable by the script itself.
 
@@ -33877,17 +33944,17 @@ interface <dfn id=sqlstatementerrorcallback>SQLStatementErrorCallback</dfn> {
    href="#sqlresultsetrowlist">SQLResultSetRowList</a></code> representing
    the rows returned, in the order returned by the database. If no rows were
    returned, then the object will be empty (its <code
-   title=dom-SQLResultSetRowList-length><a href="#length9">length</a></code>
+   title=dom-SQLResultSetRowList-length><a href="#length10">length</a></code>
    will be zero).
 
   <pre
    class=idl>interface <dfn id=sqlresultsetrowlist>SQLResultSetRowList</dfn> {
-  readonly attribute unsigned long <a href="#length9" title=dom-SQLResultSetRowList-length>length</a>;
+  readonly attribute unsigned long <a href="#length10" title=dom-SQLResultSetRowList-length>length</a>;
   [IndexGetter] <span>DOMObject</span> <a href="#itemindex5" title=dom-SQLResultSetRowList-item>item</a>(in unsigned long index);
 };</pre>
 
   <p><code><a href="#sqlresultsetrowlist">SQLResultSetRowList</a></code>
-   objects have a <dfn id=length9
+   objects have a <dfn id=length10
    title=dom-SQLResultSetRowList-length><code>length</code></dfn> attribute
    that must return the number of rows it represents (the number of rows
    returned by the database).
@@ -37423,7 +37490,7 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
   void <a href="#clearundo" title=dom-UndoManager-clearUndo>clearUndo</a>();
   void <a href="#clearredo" title=dom-UndoManager-clearRedo>clearRedo</a>();
   [IndexGetter] DOMObject <a href="#itemn" title=dom-UndoManager-item>item</a>(in unsigned long index);
-  readonly attribute unsigned long <a href="#length10" title=dom-UndoManager-length>length</a>;
+  readonly attribute unsigned long <a href="#length11" title=dom-UndoManager-length>length</a>;
   readonly attribute unsigned long <a href="#position0" title=dom-UndoManager-position>position</a>;
 };</pre>
 
@@ -37441,7 +37508,7 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
    entries are absent from the <a href="#undo-transaction">undo transaction
    history</a>.
 
-  <p>The <dfn id=length10
+  <p>The <dfn id=length11
    title=dom-UndoManager-length><code>length</code></dfn> attribute must
    return the number of <a href="#undo-object">undo object</a> entries in the
    <a href="#undo-transaction">undo transaction history</a>.
@@ -37465,7 +37532,7 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
    nearest to the <a href="#current4">undo position</a>, on the "redo" side.
    If there are no <a href="#undo-object">undo object</a> entries on the
    "redo" side, then the attribute must return the same as the <code
-   title=dom-UndoManager-length><a href="#length10">length</a></code>
+   title=dom-UndoManager-length><a href="#length11">length</a></code>
    attribute. If there are no <a href="#undo-object">undo object</a> entries
    on the "undo" side of the <a href="#current4">undo position</a>, the <code
    title=dom-UndoManager-position><a href="#position0">position</a></code>
@@ -37512,7 +37579,7 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
    href="#undo-object">undo object</a> entry with the specified <var
    title="">index</var>. If the index is less than zero or greater than or
    equal to <code title=dom-UndoManager-length><a
-   href="#length10">length</a></code> then the method must raise an
+   href="#length11">length</a></code> then the method must raise an
    <code>INDEX_SIZE_ERR</code> exception. <a href="#dom-changes">DOM
    changes</a> entries are unaffected by this method.
 
@@ -40219,7 +40286,7 @@ function receiver(e) {
 
   <p><dfn id=tags title=syntax-tags>Tags</dfn> are used to delimit the start
    and end of elements in the markup. CDATA, RCDATA, and normal elements have
-   a <a href="#start5" title=syntax-start-tags>start tag</a> to indicate
+   a <a href="#start6" title=syntax-start-tags>start tag</a> to indicate
    where they begin, and an <a href="#end-tags0" title=syntax-end-tags>end
    tag</a> to indicate where they end. The start and end tags of certain
    normal elements can be <a href="#omitted"
@@ -40290,7 +40357,7 @@ function receiver(e) {
 
   <h5 id=start><span class=secno>8.1.2.1. </span>Start tags</h5>
 
-  <p><dfn id=start5 title=syntax-start-tags>Start tags</dfn> must have the
+  <p><dfn id=start6 title=syntax-start-tags>Start tags</dfn> must have the
    following format:
 
   <ol>
