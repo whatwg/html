@@ -21489,10 +21489,9 @@ XXXDVT (also check for '- -' bits in the part above) -->
       script's type</var> (see the <a href="#scriptingLanguages">scripting
       languages</a> section below).</p>
 
-      <p>Scripts must be executed in the scope of the <span>browsing
-      context</span> of the element's <code>Document</code>. The
-      <span>script execution browsing context</span> is that browsing
-      context.</p>
+      <p>The <span>script execution context</span> of the script must
+      be the <code>Window</code> object of that <span>browsing
+      context</span>.</p>
 
       <p class="note">The element's attributes' values might have changed
       between when the element was inserted into the document and when the
@@ -26402,8 +26401,14 @@ never reset. This is nice and consistent.)
   <span>browsing context</span> was just created as part of the
   <span>the rules for chosing a browsing context given a browsing
   context name</span>. The navigation must be done with the
-  <span>script execution browsing context</span> of the script that
-  invoked the method as the <span>source browsing context</span>.</p>
+  <span>browsing context</span> corresponding to the
+  <code>Window</code> object that is the <span>script execution
+  context</span> of the script that invoked the method as the
+  <span>source browsing context</span>.</p>
+
+  <p class="note">If the <span>script execution context</span> of a
+  script isn't a <code>Window</code> object, then it can't ever get to
+  a <code>Window</code> object to call this method.</p>
 
   <p>The method must return the <code>Window</code> object of the
   default view of the <span>browsing context</span> that was
@@ -26627,7 +26632,8 @@ never reset. This is nice and consistent.)
      URI</span></dt>
 
      <dd>The <span>origin</span> is equal to the <span>origin</span>
-     of the script of that <code>javascript:</code> URI.</dd>
+     of the script of that <span title="javascript
+     protocol"><code>javascript:</code> URI</span>.</dd>
 
 
      <dt>If a <code>Document</code> or image was served over the
@@ -26899,38 +26905,39 @@ never reset. This is nice and consistent.)
 
   <h4>Script execution contexts</h4>
 
-  <p>The <dfn>script execution browsing context</dfn> of a script is
-  defined when that script is created. It is typically the
-  <span>browsing context</span> of the <code>Window</code> object that
-  is being used as the script's dereference context.</p>
+  <p>The <dfn>script execution context</dfn> of a script is defined
+  when that script is created. It is typically a <code>Window</code>
+  object.</p>
 
-  <p>All <span title="browsing context">browsing contexts</span> are,
-  by definition, potential <span title="script execution browsing
-  context">script execution browsing contexts</span>.</p>
+  <p>A <span>script execution context</span> always has an associated
+  <span>browsing context</span>. If the <span>script execution
+  context</span> is a <code>Window</code> object, then that object's
+  <span>browsing context</span> is it. Otherwise, the <span>script
+  execution context</span> is associated explicitly with a
+  <span>browsing context</span> when it is created.</p>
 
   <p>It is said that <dfn>scripting is disabled</dfn> in a
-  <span>script execution browsing context</span> when any of the
-  following conditions are true:</p>
+  <span>script execution context</span> when any of the following
+  conditions are true:</p>
 
   <ul>
 
    <li>The user agent does not support scripting.</li>
 
    <li>The user has disabled scripting for this <span>script execution
-   browsing context</span>. (User agents may provide users with the
-   option to disable scripting globally, on a per-origin basis, or in
-   other ways down to the granularity of individual <span
-   title="script execution browsing context">script execution browsing
-   contexts</span>.)</li>
+   context</span>. (User agents may provide users with the option to
+   disable scripting globally, on a per-origin basis, or in other ways
+   down to the granularity of individual <span title="script execution
+   context">script execution contexts</span>.)</li>
 
    <li id="designModeScriptBlocked">The <span>script execution
-   browsing context</span> is a <span>browsing context</span> whose
+   context</span>'s associated <span>browsing context</span>'s
    <span>active document</span> has <code
    title="dom-document-designMode">designMode</code> enabled.</li>
 
-   <li id="sandboxScriptBlocked">The <span>script execution browsing
-   context</span> is a <span>browsing context</span> whose
-   <span>sandboxed scripts browsing context flag</span> is set.</li>
+   <li id="sandboxScriptBlocked">The <span>script execution
+   context</span>'s associated <span>browsing context</span> has the
+   <span>sandboxed scripts browsing context flag</span> set.</li>
 
   </ul>
 
@@ -26948,9 +26955,8 @@ never reset. This is nice and consistent.)
   can find that are less confusing are also way, way longer.</p>
 
   <p>When a script is to be executed in a <span>script execution
-  browsing context</span> in which <span>scripting is disabled</span>,
-  the script must do nothing and return nothing (a void return
-  value).</p>
+  context</span> in which <span>scripting is disabled</span>, the
+  script must do nothing and return nothing (a void return value).</p>
 
   <p class="note">Thus, for instance, enabling <code
   title="dom-document-designMode">designMode</code> will disable any
@@ -26967,8 +26973,9 @@ never reset. This is nice and consistent.)
   <h4 id="javascript-protocol"><dfn title="javascript protocol">The <code title="">javascript:</code> protocol</dfn></h4>
 
   <p>A URI using the <code title="">javascript:</code> protocol must,
-  if evaluated, be evaluated using the in-context evaluation operation
-  defined for <code title="">javascript:</code> URIs. <a
+  if and when dereferenced, be evaluated by executing the script
+  obtained using the content retrieval operation defined for <code
+  title="">javascript:</code> URIs. <a
   href="#refsJSURI">[JSURI]</a></p>
 
 <!--
@@ -26977,38 +26984,40 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
        http://ietfreport.isoc.org/idref/draft-hoehrmann-javascript-scheme/ for the latest version
 -->
 
-  <p>When a browsing context is <span
+  <p>When a <span>browsing context</span> is <span
   title="navigate">navigated</span> to a <code>javascript:</code> URI,
   and the <span>active document</span> of that browsing context has
   the <span>same origin</span> as the script given by that URI, the
-  dereference context must be the <span>browsing context</span> being
-  navigated. The <span>script execution browsing context</span> in
-  that case is that same <span>browsing context</span>.</p>
+  <span>script execution context</span> must be the
+  <code>Window</code> object of the <span>browsing context</span>
+  being navigated.</p>
 
-<!-- (redundant with next paragraph)
   <p>When a browsing context is <span
   title="navigate">navigated</span> to a <code>javascript:</code> URI,
-  and the <span>active document</span> of that browsing context has a
-  an <span>origin</span> that is <em>not</em> the <span title="same
+  and the <span>active document</span> of that browsing context has an
+  <span>origin</span> that is <em>not</em> the <span title="same
   origin">same</span> as that of the script given by the URI, the
-  dereference context must be an empty object.</p>
--->
+  <span>script execution context</span> must be an empty object, and
+  the <span>script execution context</span>'s associated
+  <span>browsing context</span> must be the <span>browsing
+  context</span> being <span title="navigate">navigated</span>.</p>
 
-  <p>Otherwise, the dereference context must be an empty object, and
-  there is no <span>script execution browsing context</span>.</p>
+  <p>Otherwise, the <span>script execution context</span> must be an
+  empty object, and the <span>script execution context</span>'s
+  associated <span>browsing context</span> must be the <span>browsing
+  context</span> of the <code>Document</code> object of the element,
+  attribute, or style sheet from which the <code>javascript:</code>
+  URI was reached.</p>
 
-  <p>URIs using the <code title="">javascript:</code> protocol should
-  be evaluated when the resource for that URI is needed.</p>
-
-  <p>If the dereference by-product is void (there is no return value),
-  then the URI must be treated in a manner equivalent to an HTTP
-  resource with an HTTP 204 No Content response.</p>
+  <p>If the result of executing the script is void (there is no return
+  value), then the URI must be treated in a manner equivalent to an
+  HTTP resource with an HTTP 204 No Content response.</p>
 
   <p>Otherwise, the URI must be treated in a manner equivalent to an
   HTTP resource with a 200 OK response whose <span
   title="Content-Type">Content-Type metadata</span> is <code
-  title="">text/html</code> and whose response body is the dereference
-  by-product, converted to a string value.</p>
+  title="">text/html</code> and whose response body is the return
+  value converted to a string value.</p>
 
   <p class="note">Certain contexts, in particular <code>img</code>
   elements, ignore the <span title="Content-Type">Content-Type
@@ -27036,6 +27045,10 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
 
   </div>
 
+  <p class="note">The rules for handling script execution in a
+  <span>script execution context</span> include making the script not
+  execute (and just return void) in certain cases, e.g. in a sandbox
+  or when the user has disabled scripting altogether.</p>
 
 
   <h4>Events</h4>
@@ -27080,25 +27093,25 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   scope chain being linked from the activation object of the handler,
   to the element, to the element's <code>form</code> element if it is
   a form control, to the <code>Document</code> object, to the
-  <span>browsing context</span> of that <code>Document</code>. The
-  function's <code>this</code> parameter must be the
-  <code>Element</code> object representing the element. The resulting
-  function must then be set as the value of the corresponding event
-  handler attribute, and the new value must be set as the value of the
-  content attribute. If the given function body fails to compile, then
-  the corresponding event handler attribute must be set to null
-  instead (the content attribute must still be updated to the new
-  value, though).</p>
+  <code>Window</code> object of the <span>browsing context</span> of
+  that <code>Document</code>. The function's <code>this</code>
+  parameter must be the <code>Element</code> object representing the
+  element. The resulting function must then be set as the value of the
+  corresponding event handler attribute, and the new value must be set
+  as the value of the content attribute. If the given function body
+  fails to compile, then the corresponding event handler attribute
+  must be set to null instead (the content attribute must still be
+  updated to the new value, though).</p>
 
   <p class="note">See ECMA262 Edition 3, sections 10.1.6 and 10.2.3,
   for more details on activation objects. <a
   href="#refsECMA262">[ECMA262]</a></p>
 
-  <p>The <span>script execution browsing context</span> of the event
-  handler must be the <span>browsing context</span> at the end of the
-  scope chain.</p>
+  <p>The <span>script execution context</span> of the event handler
+  must be the <code>Window</code> object at the end of the scope
+  chain.</p>
 
-  <p class="issue">How do we allow non-JS event handlers?</p>
+  <p class="big-issue">How do we allow non-JS event handlers?</p>
 
   <p><dfn>Event handler DOM attributes</dfn>, on setting, must set the
   corresponding event handler attribute to their new value, and on
@@ -27703,9 +27716,14 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
 
     <p><span>Navigate</span> the new browsing context to <var
     title="">url</var>, with <span>replacement enabled</span>, and
-    with the <span>script execution browsing context</span> of the
+    with the <span>browsing context</span> of the <code>Window</code>
+    object that is the <span>script execution context</span> of the
     script that invoked the method as the <span>source browsing
     context</span>.</p>
+
+    <p class="note">If the <span>script execution context</span> of a
+    script isn't a <code>Window</code> object, then it can't ever get
+    to a <code>Window</code> object to call this method.</p>
 
    </li>
 
@@ -29986,9 +30004,14 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   <p>Navigation for the <code
   title="dom-location-assign">assign()</code> and <code
   title="dom-location-replace">replace()</code> methods must be done
-  with the <span>script execution browsing context</span> of the
+  with the <span>browsing context</span> of the <code>Window</code>
+  object that is the <span>script execution context</span> of the
   script that invoked the method as the <span>source browsing
   context</span>.</p>
+
+  <p class="note">If the <span>script execution context</span> of a
+  script isn't a <code>Window</code> object, then it can't ever get to
+  a <code>Location</code> object to call these methods.</p>
 
   <p>Relative <var title="">url</var> arguments for <code
   title="dom-location-assign">assign()</code> and <code
