@@ -296,12 +296,12 @@
    <dd>
 
     <p>Implementations that do not support scripting (or which have
-    their scripting features <span title="scripting is
-    disabled">disabled</span>) are exempt from supporting the events
-    and DOM interfaces mentioned in this specification. For the parts
-    of this specification that are defined in terms of an events model
-    or in terms of the DOM, such user agents must still act as if
-    events and the DOM were supported.</p>
+    their scripting features disabled entirely) are exempt from
+    supporting the events and DOM interfaces mentioned in this
+    specification. For the parts of this specification that are
+    defined in terms of an events model or in terms of the DOM, such
+    user agents must still act as if events and the DOM were
+    supported.</p>
 
     <p class="note">Scripting can form an integral part of an
     application. Web browsers that do not support scripting, or that
@@ -324,18 +324,21 @@
     elements only contain quoted material).</p>
 
     <p>Conformance checkers must check that the input document
-    conforms when <span>scripting is disabled</span>, and should also
-    check that the input document conforms when <span>scripting is
-    enabled</span>. (This is only a "SHOULD" and not a "MUST"
-    requirement because it has been proven to be impossible. <a
+    conforms when parsed without a <span>browsing context</span>
+    (meaning that no scripts are run, and that the parser's
+    <span>scripting flag</span> is disabled), and should also check
+    that the input document conforms when parsed with a <span>browsing
+    context</span> in which scripts execute, and that the scripts
+    never cause non-conforming states to occur. (This is only a
+    "SHOULD" and not a "MUST" requirement because it has been proven
+    to be impossible. <a
     href="#refsHALTINGPROBLEM">[HALTINGPROBLEM]</a>)</p> <!-- XXX
     [Computable] On computable numbers, with an application to the
     Entscheidungsproblem. Alan M. Turing. In Proceedings of the London
     Mathematical Society, series 2, volume 42, pages 230-265. London
     Mathematical Society,
     1937. http://www.turingarchive.org/browse.php/B/12 (referenced:
-    2007-03-03)
-    -->
+    2007-03-03) -->
 
     <p>The term "HTML5 validator" can be used to refer to a
     conformance checker that itself conforms to the applicable
@@ -4381,6 +4384,13 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
   <p>An <dfn>ordered set of unique space-separated tokens</dfn> is a
   <span>set of space-separated tokens</span> where none of the words
   are duplicated but where the order of the tokens is meaningful.</p>
+
+  <p><span title="set of space-separated tokens">Sets of
+  space-separated tokens</span> sometimes have a defined set of
+  allowed values. When a set of allowed values is defined, the tokens
+  must all be from that list of allowed values; other values are
+  non-conforming. If no such set of allowed values is provided, then
+  all values are conforming.</p>
 
   <p>When a user agent has to <dfn>split a string on spaces</dfn>, it
   must use the following algorithm:</p>
@@ -12160,12 +12170,14 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
    <dt>Element-specific attributes:</dt>
    <dd><code title="attr-iframe-src">src</code></dd>
    <dd><code title="attr-iframe-name">name</code></dd>
+   <dd><code title="attr-iframe-sandbox">sandbox</code></dd>
    <dd><code title="attr-iframe-seamless">seamless</code></dd>
    <dt>DOM interface:</dt>
    <dd>
 <pre class="idl">interface <dfn>HTMLIFrameElement</dfn> : <span>HTMLElement</span> {
            attribute DOMString <span title="dom-iframe-src">src</span>;
            attribute DOMString <span title="dom-iframe-name">name</span>;
+           attribute DOMString <span title="dom-iframe-sandbox">sandbox</span>;
            attribute DOMString <span title="dom-iframe-seamless">seamless</span>;<!--
   readonly attribute Document <span title="dom-iframe-contentDocument">contentDocument</span>;
   readonly attribute <span>Window</span> <span title="dom-iframe-contentWindow">contentWindow</span>;-->
@@ -12237,6 +12249,131 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
   context</span> in the <code>iframe</code> is again <span
   title="navigate">navigated</span>, that will further <span>delay the
   <code title="event-load">load</code> event</span>.</p>
+
+
+  <p>The <dfn title="attr-iframe-sandbox"><code>sandbox</code></dfn>
+  attribute, when specified, enables a set of extra restrictions on
+  any content hosted by the <code>iframe</code>. Its value must be an
+  <span>unordered set of unique space-separated tokens</span>. The
+  allowed values are <code
+  title="attr-iframe-sandbox-xxx_origin_please_suggest_a_better_name">xxx_origin_please_suggest_a_better_name</code>,
+  <code
+  title="attr-iframe-sandbox-unrestricted-forms">unrestricted-forms</code>,
+  and <code
+  title="attr-iframe-sandbox-unrestricted-scripts">unrestricted-scripts</code>.</p>
+
+  <p>While the <code title="attr-iframe-sandbox">sandbox</code>
+  attribute is specified, the <code>iframe</code> element's
+  <span>nested browsing context</span>, and all the browsing contexts
+  <span title="nested browsing context">nested</span> within it
+  (either directly or indirectly through other nested browsing
+  contexts) must have the following flags set:</p>
+
+  <dl>
+
+   <dt>The <dfn>sandboxed navigation browsing context</dfn> flag</dt>
+
+   <dd>
+
+    <p>This flag <a href="#sandboxLinks">prevents content from
+    navigating browsing contexts other than the sandboxed browsing
+    context itself</a> (or browsing contexts further nested inside
+    it).</p>
+
+    <p>This flag also <a href="#sandboxWindowOpen">prevents content
+    from creating new auxiliary browsing contexts</a>, e.g. using the
+    <code title="attr-hyperlink-target">target</code> attribute or the
+    <code title="dom-window-open">window.open()</code> method.</p>
+
+   </dd>
+
+
+   <dt>The <dfn>sandboxed plugins browsing context</dfn> flag</dt>
+
+   <dd>
+
+    <p>This flag prevents content from instantiating third-party
+    handlers (i.e. plugins), whether using <a
+    href="#sandboxPluginEmbed">the <code>embed</code> element</a>, <a
+    href="#sandboxPluginObject">the <code>object</code> element</a>,
+    <a href="#sandboxPluginApplet">the <code>applet</code>
+    element</a>, or <a href="#sandboxPluginNavigate">through
+    navigation</a> of a <span>nested browsing context</span>.</p>
+
+   </dd>
+
+
+   <dt>The <dfn>sandboxed origin browsing context</dfn> flag, unless
+   the <code title="attr-iframe-sandbox">sandbox</code> attribute's
+   value, when <span title="split a string on spaces">split on
+   spaces</span>, is found to have the <dfn
+   title="attr-iframe-sandbox-xxx_origin_please_suggest_a_better_name"><code>xxx_origin_please_suggest_a_better_name</code></dfn>
+   keyword set</dt>
+
+   <dd>
+
+    <p>This flag <a href="#sandboxOrigin">forces content into a unique
+    origin</a> for the purposes of the <span
+    title="origin">same-origin policy</span>.</p>
+
+    <div class="note">
+
+     <p>The <code
+     title="attr-iframe-sandbox-xxx_origin_please_suggest_a_better_name">xxx_origin_please_suggest_a_better_name</code>
+     attribute is intended for two cases.</p>
+
+     <p>First, it can be used to allow content from the same site to
+     be sandboxed to disable scripting, while still allowing access to
+     the DOM of the sandboxed content.</p>
+
+     <p>Second, it can be used to embed content from a third-party
+     site, sandboxed to prevent that site from opening popup windows,
+     etc, without preventing the embedded page from communicating back
+     to its originating site, using the database APIs to store data,
+     etc.</p>
+
+    </div>
+
+    <p class="big-issue">Please don't implement this keyword using the
+    name "xxx_origin_please_suggest_a_better_name" -- please suggest a
+    better name first!</p>
+
+   </dd>
+
+
+   <dt>The <dfn>sandboxed forms browsing context</dfn> flag, unless
+   the <code title="attr-iframe-sandbox">sandbox</code> attribute's
+   value, when <span title="split a string on spaces">split on
+   spaces</span>, is found to have the <dfn
+   title="attr-iframe-sandbox-unrestricted-forms"><code>unrestricted-forms</code></dfn>
+   keyword set</dt>
+
+   <dd>
+
+    <p>This flag <a href="#sandboxSubmitBlocked">blocks form
+    submission</a>.</p>
+
+   </dd>
+
+
+   <dt>The <dfn>sandboxed scripts browsing context</dfn> flag, unless
+   the <code title="attr-iframe-sandbox">sandbox</code> attribute's
+   value, when <span title="split a string on spaces">split on
+   spaces</span>, is found to have the <dfn
+   title="attr-iframe-sandbox-unrestricted-scripts"><code>unrestricted-scripts</code></dfn>
+   keyword set</dt>
+
+   <dd>
+
+    <p>This flag <a href="#sandboxScriptBlocked">blocks script
+    execution</a>.</p>
+
+   </dd>
+
+  </dl>
+
+  <p>These flags must not be set unless the conditions listed above
+  define them as being set.</p>
 
 
   <p>The <dfn title="attr-iframe-seamless"><code>seamless</code></dfn>
@@ -12364,7 +12501,8 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
 
   <p>The DOM attributes <dfn
   title="dom-iframe-src"><code>src</code></dfn>, <dfn
-  title="dom-iframe-name"><code>name</code></dfn>, and <dfn
+  title="dom-iframe-name"><code>name</code></dfn>, <dfn
+  title="dom-iframe-sandbox"><code>sandbox</code></dfn>, and <dfn
   title="dom-iframe-seamless"><code>seamless</code></dfn> must
   <span>reflect</span> the content attributes of the same name.</p>
 
@@ -12407,7 +12545,30 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
   be present and contain a URI (or IRI).</p>
 
   <p>If the <code title="attr-embed-src">src</code> attribute is
-  missing, then the <code>embed</code> element must be ignored.</p>
+  missing, then the <code>embed</code> element must be ignored (it
+  represents nothing).</p>
+
+  <p id="sandboxPluginEmbed">If the <span>sandboxed plugins browsing
+  context</span> flag is set on the <span>browsing context</span> for
+  which the <code>embed</code> element's document is the <span>active
+  document</span>, then the user agent must render the
+  <code>embed</code> element in a manner that conveys that the plugin
+  was disabled. The user agent may offer the user the option to
+  override the sandbox and instantiate the handler anyway; if the user
+  invokes such an option, the user agent must act as if the
+  <span>sandboxed plugins browsing context</span> flag was not set for
+  the purposes of this element.</p>
+
+  <p class="warning">Plugins are disabled in sandboxed browsing
+  contexts because they might not honour the restrictions imposed by
+  the sandbox (e.g. they might allow scripting even when scripting in
+  the sandbox is disabled). User agents should convey the danger of
+  overriding the sandbox to the user if an option to do so is
+  provided.</p>
+
+  <p>Otherwise, the <code title="attr-embed-src">src</code> attribute
+  is present, and the element is not in a sandboxed browsing
+  context:</p>
 
   <p>When the <code title="attr-embed-src">src</code> attribute is
   set, user agents are expected to find an appropriate handler for the
@@ -12464,8 +12625,7 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
   </ol>
 
   <p class="big-issue">Should we instead say that the content-sniffing
-  that we're going to define for top-level browsing contexts should
-  apply here?</p>
+  used for top-level browsing contexts should apply here?</p>
 
   <p class="big-issue">Should we require the type attribute to match
   the server information?</p>
@@ -12570,12 +12730,13 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
     attribute is present, and has a value that isn't the empty string,
     then: if the user agent can find a handler suitable according to
     the value of the <code title="attr-object-classid">classid</code>
-    attribute, then that handler <a href="#object-plugin">should be
-    used</a>, and the value of the <code
-    title="attr-object-data">data</code> attribute, if any, should be
-    passed to the handler. If no suitable handler can be found, or if
-    the handler reports an error, jump to the last step in the overall
-    set of steps (fallback).</p>
+    attribute, and <a href="#sandboxPluginObject">handlers aren't
+    being sandboxed</a>, then that handler <a
+    href="#object-plugin">should be used</a>, and the value of the
+    <code title="attr-object-data">data</code> attribute, if any,
+    should be passed to the handler. If no suitable handler can be
+    found, or if the handler reports an error, jump to the last step
+    in the overall set of steps (fallback).</p>
 
     <!--
      case insensitive:
@@ -12677,7 +12838,9 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
       <dl class="switch">
 
        <dt>If the <var title="">resource type</var> can be handled by
-       a special handler (e.g. a plugin)</dt>
+       a special handler (e.g. a plugin), and <a
+       href="#sandboxPluginObject">handlers aren't being
+       sandboxed</a></dt>
 
        <dd>
 
@@ -12772,7 +12935,8 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
 
    <li><p>If the <code title="attr-object-data">data</code> attribute
    is absent but the <code title="attr-object-type">type</code>
-   attribute is present, and if the user agent can find a handler
+   attribute is present, <a href="#sandboxPluginObject">handlers
+   aren't being sandboxed</a>, and the user agent can find a handler
    suitable according to the value of the <code
    title="attr-object-type">type</code> attribute, then that handler
    <a href="#object-plugin">should be used</a>. If no suitable handler
@@ -12794,6 +12958,13 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
   supports a scriptable interface, the <code>HTMLObjectElement</code>
   object representing the element should expose that interface. The
   handler is not a nested <span>browsing context</span>.</p>
+
+  <p id="sandboxPluginObject">If the <span>sandboxed plugins browsing
+  context</span> flag is set on the <span>browsing context</span> for
+  which the <code>object</code> element's document is the <span>active
+  document</span>, then the steps above must always act as if they had
+  failed to find a handler, even if one would otherwise have been
+  used.</p>
 
   <!-- duplicates what's in <embed> section above -->
   <p class="note">The <code>object</code> element can, in certain
@@ -15082,14 +15253,14 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
 
   <p>The <dfn title="attr-media-controls"><code>controls</code></dfn>
   attribute is a <span>boolean attribute</span>. If the attribute is
-  present, or if <span>scripting is disabled</span>, then the user
-  agent should <dfn>expose a user interface to the user</dfn>. This
-  user interface should include features to begin playback, pause
-  playback, seek to an arbitrary position in the content (if the
-  content supports arbitrary seeking), change the volume, and show the
-  media content in manners more suitable to the user (e.g. full-screen
-  video or in an independent resizable window). Other controls may
-  also be made available.</p>
+  present, or if the <span>media element</span> is <span>without
+  script</span>, then the user agent should <dfn>expose a user
+  interface to the user</dfn>. This user interface should include
+  features to begin playback, pause playback, seek to an arbitrary
+  position in the content (if the content supports arbitrary seeking),
+  change the volume, and show the media content in manners more
+  suitable to the user (e.g. full-screen video or in an independent
+  resizable window). Other controls may also be made available.</p>
 
   <p>If the attribute is absent, then the user agent should avoid
   making a user interface available that could conflict with an
@@ -15445,22 +15616,23 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
   element. The contents of the <code>canvas</code> element, if any,
   are the element's <span>fallback content</span>.</p>
 
-  <p>In interactive visual media with <span>scripting enabled</span>,
-  the canvas element is an embedded element with a dynamically created
-  image.</p>
+  <p>In interactive visual media, if the <code>canvas</code> element
+  is <span>with script</span>, the <code>canvas</code> element
+  represents an embedded element with a dynamically created image.</p>
 
   <p>In non-interactive, static, visual media, if the
   <code>canvas</code> element has been previously painted on (e.g. if
   the page was viewed in an interactive visual medium and is now being
   printed, or if some script that ran during the page layout process
-  painted on the element), then the <code>canvas</code> element must
-  be treated as <span>embedded content</span> with the current image
-  and size. Otherwise, the element's <span>fallback content</span>
-  must be used instead.</p>
+  painted on the element), then the <code>canvas</code> element
+  represents <span>embedded content</span> with the current image and
+  size. Otherwise, the element represents its <span>fallback
+  content</span> instead.</p>
 
-  <p>In non-visual media, and in visual media with <span>scripting
-  disabled</span>, the <code>canvas</code> element's <span>fallback
-  content</span> must be used instead.</p>
+  <p>In non-visual media, and in visual media if the
+  <code>canvas</code> element is <span>without script</span>, the
+  <code>canvas</code> element represents its <span>fallback
+  content</span> instead.</p>
 
   <p>The <code>canvas</code> element has two attributes to control the
   size of the coordinate space: <dfn
@@ -20688,6 +20860,10 @@ XXXDVT (also check for '- -' bits in the part above) -->
 
   <p class="big-issue">See <a href="http://www.whatwg.org/specs/web-forms/current-work/#form-submission">WF2</a> for now</p>
 
+  <p class="big-issue" id="sandboxSubmitBlocked">If a form is in a
+  browsing context whose <span>sandboxed forms browsing context</span>
+  is set, it must not be submitted.</p>
+
 
 
   <h3>Scripting</h3>
@@ -20898,14 +21074,13 @@ XXXDVT (also check for '- -' bits in the part above) -->
 
    <li>
 
-    <p>If <span>scripting is disabled</span>, or if the
-    <code>Document</code> has <code
-    title="dom-document-designMode">designMode</code> enabled, or if
-    the <code>script</code> element was created by an <span>XML
-    parser</span> that itself was created as part of the processing of
-    the <code title="dom-innerHTML-XML">innerHTML</code> attribute's
-    setter<!-- no need to worry about the innerHTML-HTML case, as the
-    HTML parser handles that for us-->, or if the user agent does not
+    <p>If the <code>script</code> element is <span>without
+    script</span>, or if the <code>script</code> element was created
+    by an <span>XML parser</span> that itself was created as part of
+    the processing of the <code
+    title="dom-innerHTML-XML">innerHTML</code> attribute's setter<!--
+    no need to worry about the innerHTML-HTML case, as the HTML parser
+    handles that for us-->, or if the user agent does not
     <span>support the scripting language</span> given by <var>the
     script's type</var> for this <code>script</code> element, or if
     the <code>script</code> element has its <span>"already
@@ -21181,12 +21356,9 @@ XXXDVT (also check for '- -' bits in the part above) -->
 
      <li>
 
-      <p>If <span>scripting is enabled</span>, and the
-      <code>Document</code> does not have <code
-      title="dom-document-designMode">designMode</code> enabled, and the
-      <code>Document</code> is the <span>active document</span> in its
-      <span>browsing context</span>, the user agent must execute the
-      script:</p>
+      <p>If the <code>script</code> element's <code>Document</code> is
+      the <span>active document</span> in its <span>browsing
+      context</span>, the user agent must execute the script:</p>
 
       <dl class="switch">
 
@@ -21231,7 +21403,7 @@ XXXDVT (also check for '- -' bits in the part above) -->
       languages</a> section below).</p>
 
       <p>Scripts must be executed in the scope of the <span>browsing
-      context</span> of the element's <code>Document</code>. That
+      context</span> of the element's <code>Document</code>. The
       <span>script execution browsing context</span> is that browsing
       context.</p>
 
@@ -21319,9 +21491,9 @@ XXXDVT (also check for '- -' bits in the part above) -->
    <dd>In a <code>head</code> element of an <span title=">HTML documents">HTML document</span>, if there are no ancestor <code>noscript</code> elements.</dd>
    <dd>Where <span>phrasing content</span> is expected in <span>HTML documents</span>, if there are no ancestor <code>noscript</code> elements.</dd>
    <dt>Content model:</dt>
-   <dd>When <span>scripting is disabled</span>, in a <code>head</code> element: in any order, zero or more <code>link</code> elements, zero or more <code>style</code> elements, and zero or more <code>meta</code> elements.</dd>
-   <dd>When <span>scripting is disabled</span>, not in a <code>head</code> element: <span>transparent</span>, but there must be no <code>noscript</code> element descendants.</dd>
-   <dd>When <span>scripting is enabled</span>: text that conforms to the requirements given in the prose.</dd>
+   <dd><span>Without script</span>, in a <code>head</code> element: in any order, zero or more <code>link</code> elements, zero or more <code>style</code> elements, and zero or more <code>meta</code> elements.</dd>
+   <dd><span>Without script</span>, not in a <code>head</code> element: <span>transparent</span>, but there must be no <code>noscript</code> element descendants.</dd>
+   <dd><span>With script</span>: text that conforms to the requirements given in the prose.</dd>
    <dt>Element-specific attributes:</dt>
    <dd>None.</dd>
    <dt>DOM interface:</dt>
@@ -21342,35 +21514,36 @@ XXXDVT (also check for '- -' bits in the part above) -->
   serialisation</span><!-- XXX xref -->.</strong></p>
 
   <p>When used in <span>HTML documents</span>, the allowed content
-  model depends on whether scripting is enabled or not, and whether
-  the element is in a <code>head</code> element or not.</p>
+  model is as follows:</p>
 
-  <p>In a <code>head</code> element, if <span>scripting is
-  disabled</span>, then the content model of a <code>noscript</code>
-  element must contain only <code>link</code>, <code>style</code>, and
-  <code>meta</code> elements. If <span>scripting is enabled</span>,
-  then the content model of a <code>noscript</code> element is text,
-  except that invoking the <span>HTML fragment parsing
-  algorithm</span> with the <code>noscript</code> element as the <var
-  title="">context</var> element and the text contents as the <var
-  title="">input</var> must result in a list of nodes that consists
-  only of <code>link</code>, <code>style</code>, and <code>meta</code>
-  elements.</p>
+  <p>In a <code>head</code> element, if the <code>noscript</code>
+  element is <span>without script</span>, then the content model of a
+  <code>noscript</code> element must contain only <code>link</code>,
+  <code>style</code>, and <code>meta</code> elements. If the
+  <code>noscript</code> element is <span>with script</span>, then the
+  content model of a <code>noscript</code> element is text, except
+  that invoking the <span>HTML fragment parsing algorithm</span> with
+  the <code>noscript</code> element as the <var title="">context</var>
+  element and the text contents as the <var title="">input</var> must
+  result in a list of nodes that consists only of <code>link</code>,
+  <code>style</code>, and <code>meta</code> elements.</p>
 
-  <p>Outside of <code>head</code> elements, if <span>scripting is
-  disabled</span>, then the content model of a <code>noscript</code>
-  element is <span>transparent</span>, with the additional restriction
-  that a <code>noscript</code> element must not have a
-  <code>noscript</code> element as an ancestor (that is,
-  <code>noscript</code> can't be nested).</p>
+  <p>Outside of <code>head</code> elements, if the
+  <code>noscript</code> element is <span>without script</span>, then
+  the content model of a <code>noscript</code> element is
+  <span>transparent</span>, with the additional restriction that a
+  <code>noscript</code> element must not have a <code>noscript</code>
+  element as an ancestor (that is, <code>noscript</code> can't be
+  nested).</p>
 
-  <p>Outside of <code>head</code> elements, if <span>scripting is
-  enabled</span>, then the content model of a <code>noscript</code>
-  element is text, except that the text must be such that running the
-  following algorithm results in a conforming document with no
-  <code>noscript</code> elements and no <code>script</code> elements,
-  and such that no step in the algorithm causes an <span>HTML
-  parser</span> to flag a <span>parse error</span>:</p>
+  <p>Outside of <code>head</code> elements, if the
+  <code>noscript</code> element is <span>with script</span>, then the
+  content model of a <code>noscript</code> element is text, except
+  that the text must be such that running the following algorithm
+  results in a conforming document with no <code>noscript</code>
+  elements and no <code>script</code> elements, and such that no step
+  in the algorithm causes an <span>HTML parser</span> to flag a
+  <span>parse error</span>:</p>
 
   <ol>
 
@@ -21420,15 +21593,22 @@ XXXDVT (also check for '- -' bits in the part above) -->
 
   <p>The <code>noscript</code> element has no other requirements. In
   particular, children of the <code>noscript</code> element are not
-  exempt from form submission, scripting, and so forth, even when
-  scripting is enabled.</p>
+  exempt from form submission, scripting, and so forth, even when the
+  element is <span>with script</span>.</p>
 
   <p class="note">All these contortions are required because, for
-  historical reasons, the <code>noscript</code> element causes the
-  <span>HTML parser</span> to act differently based on whether
-  scripting is enabled or not. The element is not allowed in XML,
-  because in XML the parser is not affected by such state, and thus
-  the element would not have the desired effect.</p>
+  historical reasons, the <code>noscript</code> element is handled
+  differently by the <span>HTML parser</span> based on whether <span
+  title="scripting flag">scripting was enabled or not</span> when the
+  parser was invoked. The element is not allowed in XML, because in
+  XML the parser is not affected by such state, and thus the element
+  would not have the desired effect.</p>
+
+  <p class="note">The <code>noscript</code> element interacts poorly
+  with the <code title="dom-document-designMode">designMode</code>
+  feature. Authors are encouraged to not use <code>noscript</code>
+  elements on pages that will have <code
+  title="dom-document-designMode">designMode</code> enabled.</p>
 
 
   <h4>The <dfn><code>event-source</code></dfn> element</h4>
@@ -24809,12 +24989,11 @@ XXX selection ranges -->
   title="attr-template">template</code> attribute set, the user agent
   must fetch the specified file<!-- XXX or queue it up to be fetched,
   or something --> and parse it (without a <span>browsing
-  context</span>, and with <span>scripting disabled</span><!-- XXX
-  xref -->) to obtain a DOM. If the URI is the same as the URI of the
-  current document<!-- XXX xref -->, then the current document's DOM
-  must be assumed to be that parsed DOM. While this loading and
-  parsing is in progress, the element is said to be <em>busy loading
-  the template rules or data</em>.</p>
+  context</span>) to obtain a DOM. If the URI is the same as the URI
+  of the current document<!-- XXX xref -->, then the current
+  document's DOM must be assumed to be that parsed DOM. While this
+  loading and parsing is in progress, the element is said to be
+  <em>busy loading the template rules or data</em>.</p>
 
   <p>If the resource specified by the <code
   title="attr-template">template</code> attribute is not the current
@@ -24937,13 +25116,12 @@ XXX selection ranges -->
   title="attr-ref">ref</code> attribute has its <code
   title="attr-ref">ref</code> attribute set, the user agent must fetch
   the specified file<!-- XXX or queue it up to be fetched, or
-  something --> and parse it (without a <span>browsing context</span>,
-  and with <span>scripting disabled</span><!-- XXX xref -->) to obtain
-  a DOM. If the URI is the same as the URI of the current document<!--
-  XXX xref -->, then the current document's DOM is assumed to be that
-  parsed DOM. While this loading and parsing is in progress, the
-  element is said to be <em>busy loading the template rules or
-  data</em>.</p>
+  something --> and parse it (without a <span>browsing context</span>)
+  to obtain a DOM. If the URI is the same as the URI of the current
+  document<!-- XXX xref -->, then the current document's DOM is
+  assumed to be that parsed DOM. While this loading and parsing is in
+  progress, the element is said to be <em>busy loading the template
+  rules or data</em>.</p>
 
   <p>If the resource specified by the <code
   title="attr-ref">ref</code> attribute is not the current
@@ -25839,6 +26017,19 @@ never reset. This is nice and consistent.)
 
     <dl>
 
+     <dt id="sandboxWindowOpen">If the current browsing context has
+     the <span>sandboxed navigation browsing context</span> flag
+     set.</dt>
+
+     <dd>The user agent may offer to create a new <span>top-level
+     browsing context</span> or reuse an existing <span>top-level
+     browsing context</span>. If the user picks one of those options,
+     then the designated browsing context must be the chosen one (the
+     browsing context's name isn't set to the given browsing context
+     name). Otherwise (if the user agent doesn't offer the option to
+     the user, or if the user declines to allow a browsing context to
+     be used) there must not be a chosen browsing context.</dd>
+
      <dt>If the user agent has been configured such that in this
      instance it will create a new browsing context</dt>
 
@@ -26320,6 +26511,14 @@ never reset. This is nice and consistent.)
 
     <dl class="switch">
 
+     <dt id="sandboxOrigin">If a <code>Document</code> is in a
+     <span>browsing context</span> whose <span>sandboxed origin
+     browsing context</span> is set</dt>
+
+     <dd>The <span>origin</span> is a globally unique identifier
+     assigned when the <code>Document</code> is created.</dd>
+
+
      <dt>If a <code>Document</code> or image was returned by the
      <code>XMLHttpRequest</code> API</dt>
 
@@ -26609,24 +26808,67 @@ never reset. This is nice and consistent.)
 
   </ul>
 
-  <p>User agents may provide a mechanism to enable or disable the
-  execution of author-provided code. When the user agent is configured
-  such that author-provided code does not execute, or if the user
-  agent is implemented so as to never execute author-provided code, it
-  is said that <dfn>scripting is disabled</dfn>. When author-provided
-  code <em>does</em> execute, <dfn>scripting is enabled</dfn>. A user
-  agent with scripting disabled is a <span title="User agents with no
-  scripting support">user agent with no scripting support</span> for
-  the purposes of conformance.</p>
 
-  
 
   <h4>Script execution contexts</h4>
 
   <p>The <dfn>script execution browsing context</dfn> of a script is
   defined when that script is created. It is typically the
   <span>browsing context</span> of the <code>Window</code> object that
-  is being used as the script's dereference context..</p>
+  is being used as the script's dereference context.</p>
+
+  <p>All <span title="browsing context">browsing contexts</span> are,
+  by definition, potential <span title="script execution browsing
+  context">script execution browsing contexts</span>.</p>
+
+  <p>It is said that <dfn>scripting is disabled</dfn> in a
+  <span>script execution browsing context</span> when any of the
+  following conditions are true:</p>
+
+  <ul>
+
+   <li>The user agent does not support scripting.</li>
+
+   <li>The user has disabled scripting for this <span>script execution
+   browsing context</span>. (User agents may provide users with the
+   option to disable scripting globally, on a per-origin basis, or in
+   other ways down to the granularity of individual <span
+   title="script execution browsing context">script execution browsing
+   contexts</span>.)</li>
+
+   <li id="designModeScriptBlocked">The <span>script execution
+   browsing context</span> is a <span>browsing context</span> whose
+   <span>active document</span> has <code
+   title="dom-document-designMode">designMode</code> enabled.</li>
+
+   <li id="sandboxScriptBlocked">The <span>script execution browsing
+   context</span> is a <span>browsing context</span> whose
+   <span>sandboxed scripts browsing context</span> flag is set.</li>
+
+  </ul>
+
+  <p>A node is said to be <dfn>without script</dfn> if either the
+  <code>Document</code> object of the node (the node itself, it is
+  itself a <code>Document</code> object) does not have an associated
+  <span>browsing context</span>, or <span>scripting is disabled</span>
+  in that <span>browsing context</span>.</p>
+
+  <p>A node is said to be <dfn>with script</dfn> if it is not
+  <span>without script</span>.</p>
+
+  <p class="big-issue">If you can find a better pair of terms than
+  "with script" and "without script" let me know. The only things I
+  can find that are less confusing are also way, way longer.</p>
+
+  <p>When a script is to be executed in a <span>script execution
+  browsing context</span> in which <span>scripting is disabled</span>,
+  the script must do nothing and return nothing (a void return
+  value).</p>
+
+  <p class="note">Thus, for instance, enabling <code
+  title="dom-document-designMode">designMode</code> will disable any
+  event handler attributes, event listeners, timeouts, etc, that were
+  set by scripts in the document.</p>
 
 
 
@@ -26669,11 +26911,7 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   there is no <span>script execution browsing context</span>.</p>
 
   <p>URIs using the <code title="">javascript:</code> protocol should
-  be evaluated when the resource for that URI is needed, unless
-  <span>scripting is disabled</span> or the <code>Document</code>
-  corresponding to the dereference context (as defined above), if any,
-  has <code title="dom-document-designMode">designMode</code>
-  enabled.</p>
+  be evaluated when the resource for that URI is needed.</p>
 
   <p>If the dereference by-product is void (there is no return value),
   then the URI must be treated in a manner equivalent to an HTTP
@@ -27034,30 +27272,25 @@ JSURI: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
 
   <!-- IE actually uncancels the event if the function returns true -->
 
-
-  <p>When <span>scripting is disabled</span>, event handler attributes
-  must do nothing.</p>
-
-  <!-- XXX arguments should use <var>, not <code>: --> <p>When
-  <span>scripting is enabled</span>, all event handler attributes on
-  an element, whether set to null or to a function, must be registered
-  as event listeners on the element, as if the <code
+  <p>All event handler attributes on an element, whether set to null
+  or to a function, must be registered as event listeners on the
+  element, as if the <code
   title="dom-EventTarget-addEventListenerNS">addEventListenerNS()</code>
   method on the <code>Element</code> object's <code>EventTarget</code>
   interface had been invoked when the element was created, with the
-  event type (<code title="dom-event-type">type</code> argument) equal
+  event type (<var title="dom-event-type">type</var> argument) equal
   to the type described for the event handler attribute in the list
-  above, the namespace (<code
-  title="dom-event-namespaceURI">namespaceURI</code> argument) set to
+  above, the namespace (<var
+  title="dom-event-namespaceURI">namespaceURI</var> argument) set to
   null, the listener set to be a target and bubbling phase listener
-  (<code title="dom-event-useCapture">useCapture</code> argument set
-  to false), the event group set to the default group (<code
-  title="dom-event-evtGroup">evtGroup</code> argument set to null),
-  and the event listener itself (<code
-  title="dom-event-listener">listener</code> argument) set to do
+  (<var title="dom-event-useCapture">useCapture</var> argument set to
+  false), the event group set to the default group (<var
+  title="dom-event-evtGroup">evtGroup</var> argument set to null), and
+  the event listener itself (<var
+  title="dom-event-listener">listener</var> argument) set to do
   nothing while the event handler attribute is null, and set to invoke
   the function associated with the event handler attribute
-  otherwise. (The <code title="dom-event-listener">listener</code>
+  otherwise. (The <var title="dom-event-listener">listener</var>
   argument is emphatically <em>not</em> the event handler attribute
   itself.)</p>
 
@@ -29793,6 +30026,21 @@ user reload must be equivalent to .reload()
 
   <ol>
 
+   <li id="sandboxLinks"><p>If the <span>source browsing
+   context</span> is not the same as the <span>browsing context</span>
+   being navigated, and the <span>source browsing context</span> is
+   not one of the <span title="ancestor browsing context">ancestor
+   browsing contexts</span> of the <span>browsing context</span> being
+   navigated, and the <span>source browsing context</span> has its
+   <span>sandboxed navigation browsing context</span> flag set, then
+   abort these steps. The user agent may offer to open the specified
+   resource in a new <span>top-level browsing context</span> or in the
+   <span>top-level browsing context</span> of the <span>source
+   browsing context</span>, at the user's option, in which case the
+   user agent must <span>navigate</span> that designated
+   <span>top-level browsing context</span> to the specified resource
+   as if the user had requested it independently.</p></li>
+
    <li id="seamlessLinks"><p>If the <span>source browsing
    context</span> is the same as the <span>browsing context</span>
    being navigated, and this browsing context has its <span>seamless
@@ -30291,6 +30539,11 @@ user reload must be equivalent to .reload()
   the <code>Document</code>, or attributes to the <code>embed</code>
   element, e.g. to link to stylesheet or an XBL binding, or to give
   the document a <code>title</code>.</p>
+
+  <p class="note" id="sandboxPluginNavigate">If the <span>sandboxed
+  plugins browsing context</span> flag is set on the <span>browsing
+  context</span>, the synthesized <code>embed</code> element will <a
+  href="#sandboxPluginEmbed">fail to render the content</a>.</p>
 
 
   <h4 id="read-ua-inline"><dfn title="navigate-ua-inline">Page load processing model for inline content that doesn't have a DOM</dfn></h4>
@@ -34035,8 +34288,6 @@ at the first element with the given ID must be treated as if it was cloned and r
   <!-- XXX rendering requirement: The current caret should affect the
   line-height (i.e. it acts at least like an empty inline element) -->
 
-  <!-- XXX document.designMode attribute -->
-
   <!-- XXX would be useful to have a way to mark an element as
   unremovable. -->
 
@@ -34264,16 +34515,8 @@ at the first element with the given ID must be treated as if it was cloned and r
   title="dom-document-designMode">designMode</code> disabled.</p>
 
   <p>Enabling <code title="dom-document-designMode">designMode</code>
-  causes scripts in general to be disabled and the document to become
-  editable.</p>
-
-  <p>When the <code>Document</code> has <code
-  title="dom-document-designMode">designMode</code> enabled, the
-  <span>event handler attributes</span> of the document and any
-  elements owned by the document must do nothing, and event listeners
-  registered on the document and any elements owned by the document
-  that are associated with script from the document must similarly do
-  nothing.</p>
+  <a href="#designModeScriptBlocked">causes scripts in general to be
+  disabled</a> and the document to become editable.</p>
 
 
 
@@ -39620,7 +39863,8 @@ function receiver(e) {
    that to break out of the <noscript> but it doesn't. This is an edge
    case that doesn't affect the spec, since the algorithm for fragment
    parsing is only used for innerHTML, where we know scripting is
-   enabled. -->
+   enabled. (XXX except maybe if innerHTML is set from another
+   browsing context on a document with designMode set?) -->
 
    <li>If <var title="">node</var> is a <code>body</code> element,
    then switch the <span>insertion mode</span> to "<span
@@ -39918,6 +40162,13 @@ function receiver(e) {
   controls associate with forms in the face of dramatically bad
   markup, for historical reasons.</p>
 
+
+  <h5>The scripting state</h5>
+
+  <p>The <dfn>scripting flag</dfn> is set to "enabled" if the
+  <code>Document</code> with which the parser is associated was
+  <span>with script</span> when the parser was created, and "disabled"
+  otherwise.</p>
 
 
   <h4><dfn>Tokenisation</dfn></h4>
@@ -42186,13 +42437,13 @@ function receiver(e) {
     <p>Follow the <span>generic RCDATA parsing algorithm</span>.</p>
    </dd>
 
-   <dt>A start tag whose tag name is "noscript", if <span>scripting is enabled</span>:</dt>
+   <dt>A start tag whose tag name is "noscript", if the <span>scripting flag</span> is enabled:</dt>
    <dt>A start tag whose tag name is "style"</dt>
    <dd>
     <p>Follow the <span>generic CDATA parsing algorithm</span>.</p>
    </dd>
 
-   <dt>A start tag whose tag name is "noscript", if <span>scripting is disabled</span>:</dt>
+   <dt>A start tag whose tag name is "noscript", if the <span>scripting flag</span> is disabled:</dt>
    <dd>
 
     <p><span>Insert an HTML element</span> for the token.</p>
@@ -43484,10 +43735,8 @@ function receiver(e) {
 
    </dd>
 
-   <dt>A start tag whose tag name is one of: "iframe",
-   "noembed", "noframes"</dt>
-   <dt>A start tag whose tag name is "noscript", if
-   <span>scripting is enabled</span>:</dt>
+   <dt>A start tag whose tag name is one of: "iframe", "noembed", "noframes"</dt>
+   <dt>A start tag whose tag name is "noscript", if the <span>scripting flag</span> is enabled:</dt>
    <dd>
     <p>Follow the <span>generic CDATA parsing algorithm</span>.</p>
    </dd>
@@ -43586,8 +43835,7 @@ function receiver(e) {
    "isindex", "noembed", "noframes", "param", "select", "spacer",
    "table", "textarea", "wbr"</dt> <!-- add keygen if we add the start
    tag -->
-   <dt>An end tag whose tag name is "noscript", if <span>scripting
-   is enabled</span>:</dt>
+   <dt>An end tag whose tag name is "noscript", if the <span>scripting flag</span> is enabled:</dt>
    <dd>
     <p><span>Parse error</span>. Ignore the token.</p>
    </dd>
@@ -45239,7 +45487,9 @@ http://lxr.mozilla.org/seamonkey/search?string=nested
         title="">current node</var>'s <code title="">data</code> DOM
         attribute literally.</p> <!-- note about noscript: we're
         assuming here that scripting is disabled. If this algorithm is
-        used with scripting disabled, this won't work right. -->
+        used with scripting disabled, this won't work right. XXX This
+        might affect calling innerHTML on nodes in a document that is
+        being designMode'd -->
 
         <p>Otherwise, append the value of <var title="">current
         node</var>'s <code title="">data</code> DOM attribute, <span
@@ -45411,9 +45661,10 @@ http://lxr.mozilla.org/seamonkey/search?string=nested
 
 
      <dt>If it is a <code>noscript</code> element</dt>
-     <dd>If <span>scripting is enabled</span>, set the <span>content
-     model flag</span> to <em>CDATA</em>. Otherwise, set the
-     <span>content model flag</span> to <em>PCDATA</em>.</dd>
+
+     <dd>If the <span>scripting flag</span> is enabled, set the
+     <span>content model flag</span> to <em>CDATA</em>. Otherwise, set
+     the <span>content model flag</span> to <em>PCDATA</em>.</dd>
 
 
      <dt>If it is a <code>plaintext</code> element</dt>
@@ -45754,7 +46005,14 @@ xh|section xh|section xh|section xh|section xh|section xh|h1 { /* same styles as
   is obsoleted so that all extension frameworks (Java, .NET, Flash,
   etc) are handled in a consistent manner.</p>
 
-  <p class="big-issue">define how the element works, if supported</p>
+  <p id="sandboxPluginApplet">If the <span>sandboxed plugins browsing
+  context</span> flag is set on the <span>browsing context</span> for
+  which the <code>applet</code> element's document is the <span>active
+  document</span>, then the element must be ignored (it represents
+  nothing).</p>
+
+  <p>Otherwise, <span class="big-issue">define how the element works,
+  if supported</span>.</p>
 
   <pre class="idl">[XXX] interface <span>HTMLDocument</span> {
   readonly attribute <span>HTMLCollection</span> <span title="dom-document-applets">applets</span>;
