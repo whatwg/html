@@ -631,25 +631,6 @@
 
    </dd>
 
-   <dt>XML Base</dt>
-
-   <dd>
-
-    <!-- XXXURL remove entire entry, define it all in URLs section -->
-    <p id="xmlBase">User agents must follow the rules given by XML
-    Base to resolve relative URIs in HTML and XHTML fragments. That
-    is the mechanism used in this specification for resolving relative
-    URIs in DOM trees. <a href="#refsXMLBASE">[XMLBASE]</a></p>
-
-    <p class="note">It is possible for <code
-    title="attr-xml-base">xml:base</code> attributes to be present
-    even in HTML fragments, as such attributes can be added
-    dynamically using script. (Such scripts would not be conforming,
-    however, as <code title="attr-xml-base">xml:base</code> attributes
-    as not allowed in <span>HTML documents</span>.)</p>
-
-   </dd>
-
    <dt>DOM</dt>
 
    <dd>
@@ -937,6 +918,12 @@
 
   <h3>URLs</h3><!-- XXXURL -->
 
+  <p>This specification defines the term <span>URL</span>, and defines
+  various algorithms for dealing with URLs, because for historical
+  reasons the rules defined by the URI and IRI specifications are not
+  a complete description of what HTML user agents need to implement to
+  be compatible with Web content.</p>
+
   <p class="big-issue">The text in this section is not yet integrated
   with the rest of the specification.</p>
 
@@ -972,31 +959,271 @@
 
   </ul>
 
-  <p>A <span>URL</span> is a <dfn>valid absolute URL</dfn> if it is a
-  <span>valid URL</span> and has an absolute form. <a
-  href="#refsRFC3986">[RFC3986]</a> <a
-  href="#refsRFC3987">[RFC3987]</a></p>
-
-
-  <h4>Parsing URLs</h4>
-
-  <p class="big-issue">...</p>
 
   <h4>Resolving URLs</h4>
 
-  <div class="big-issue">
-   <p>First parse it (we need to define that. For some schemes it's
-   not per spec -- e.g. apparently for ftp: we should split from
-   hosts on ';'). Then handle each bit as follows:</p>
-   <p>scheme: no further processing (treat %-escaped characters literally, treat unicode characters as unicode characters).</p>
-   <p>host: expand %-encoded bytes to Unicode as UTF-8, treat unicode characters as per IDN.</p>
-   <p>path: don't expand %-encoded bytes. Re-encode unicode to UTF-8 and percent-encode.</p>
-   <p>query: don't expand %-encoded bytes. Re-encode unicode to the page's encoding. Do not percent-encode.</p>
-  </div>
+  <p>Relative URLs are resolved relative to a base URL. The <dfn>base
+  URL</dfn> of a <span>URL</span> is the <span>absolute URL</span>
+  obtained as follows:</p>
 
-  <p class="big-issue">define what it means to resolve a relative URL
-  when the base URL doesn't have a path hierarchy (e.g. data:,
-  javascript:, about:blank URLs)</p>
+  <dl class="switch">
+
+   <dt>If the URL to be resolved was passed to an API</dt>
+
+   <dd><p>The base URL is the <span>document base URL</span> of the
+   script's <span>script document context</span>.</p></dd>
+
+   <dt>If the URL to be resolved is from the value of a content
+   attribute</dt>
+
+   <dd>
+
+    <p>The base URL is the <i>base URI of the element</i> that the
+    attribute is on, as defined by the XML Base specification, with
+    <i>the base URI of the document entity</i> being defined as the
+    <span>document base URL</span> of the <code>Document</code> that
+    owns the element.</p>
+
+    <p>For the purposes of the XML Base specification, user agents
+    must act as if all <code>Document</code> objects represented XML
+    documents.</p>
+
+    <p class="note">It is possible for <code
+    title="attr-xml-base">xml:base</code> attributes to be present
+    even in HTML fragments, as such attributes can be added
+    dynamically using script. (Such scripts would not be conforming,
+    however, as <code title="attr-xml-base">xml:base</code> attributes
+    are not allowed in <span>HTML documents</span>.)</p>
+
+   </dd>
+
+  </dl>
+
+  <p>The <dfn>document base URL</dfn> of a <code>Document</code> is
+  the <span>absolute URL</span> obtained by running these steps:</p>
+
+  <ol>
+
+   <li><p>If there is no <code>base</code> element that is both a
+   child of <span>the <code>head</code> element</span> and has an
+   <code title="att-base-href">href</code> attribute, then the
+   <span>document base URL</span> is <span>the document's
+   address</span><!-- XXXDOCURL -->.</p></li>
+
+   <li><p>Otherwise, let <var title="">url</var> be the value of the
+   <code title="att-base-href">href</code> attribute of the first such
+   element.</p></li>
+
+   <li><p><span title="resolve a URL">Resolve</span> the <var
+   title="">url</var> URL, using <span>the document's
+   address</span><!-- XXXDOCURL --> as the <span>document base
+   URL</span>.</p></li>
+
+   <li><p>The <span>document base URL</span> is the result of the
+   previous step if it was successful; otherwise it is <span>the
+   document's address</span><!-- XXXDOCURL -->.</p></li>
+
+  </ol>
+
+  <p>To <dfn>resolve a URL</dfn> to an <span>absolute URL</span> the
+  user agent must use the following steps. Resolving a URL can result
+  in an error, in which case the URL is not resolvable.</p>
+
+  <ol>
+
+   <li><p>Let <var title="">url</var> be the <span>URL</span> being
+   resolved.</p></li>
+
+   <li><p>Let <var title="">document</var> be the
+   <code>Document</code> associated with <var
+   title="">url</var>.</p></li>
+
+   <li><p>Let <var title="">encoding</var> be the <span
+   title="document's character encoding">character encoding</span> of
+   <var title="">document</var>.</p></li>
+
+   <li><p>Let <var title="">base</var> be the <span>base URL</span>
+   for <var title="">url</var>. (This is an <span>absolute
+   URL</span>.)</p></li>
+
+   <li><p>Strip leading and trailing <span title="space
+   character">space characters</span> from <var
+   title="">url</var>.</p></li>
+
+   <li>
+
+    <p>Parse <var title="">url</var> in the manner defined by RFC
+    3986, with the following exceptions:</p>
+
+    <ul>
+
+     <li>Add all characters with codepoints less than or equal to
+     U+0020 or greater than or equal to U+007F to the
+     &lt;unreserved&gt; production.</li>
+
+     <li>Add the characters U+0022, U+003C, U+003E, U+005B .. U+005E,
+     U+0060, and U+007B .. U+007D to the &lt;unreserved&gt;
+     production.
+      <!--
+       0022 QUOTATION MARK
+       003C LESS-THAN SIGN
+       003E GREATER-THAN SIGN
+       005B LEFT SQUARE BRACKET
+       005C REVERSE SOLIDUS
+       005D RIGHT SQUARE BRACKET
+       005E CIRCUMFLEX ACCENT
+       0060 GRAVE ACCENT
+       007B LEFT CURLY BRACKET
+       007C VERTICAL LINE
+       007D RIGHT CURLY BRACKET
+      -->
+     </li>
+
+     <li>Add a single U+0025 PERCENT SIGN character as a second
+     alternative way of matching the &lt;pct-encoded&gt; production,
+     except when the &lt;pct-encoded&gt; is used in the
+     &lt;reg-name&gt; production.</li>
+
+     <li>Add the U+0023 NUMBER SIGN character to the characters
+     allowed in the &lt;fragment&gt; production.</li>
+
+     <!-- some browsers also have other differences, e.g. Mozilla
+     seems to treat ";" as if it was not in sub-delims, if the scheem
+     is "ftp". -->
+
+    </ul>
+
+    <p>If <var title="">url</var> doesn't match the
+    &lt;URI-reference&gt; production, even after the above changes are
+    made to the ABNF definitions, then return an error and abort these
+    steps.</p>
+
+    <p>If parsing <var title="">url</var> was successful, then make a
+    note of which substrings of <var title="">url</var> matched each
+    of the following productions that was matched:</p>
+
+    <ul class="brief">
+     <li>&lt;host&gt;</li>
+     <li>&lt;path-abempty&gt;</li>
+     <li>&lt;path-absolute&gt;</li>
+     <li>&lt;path-noscheme&gt;</li>
+     <li>&lt;path-rootless&gt;</li>
+     <li>&lt;path-empty&gt;</li>
+     <li>&lt;query&gt;</li>
+    </ul>
+
+    <p>When subsequent steps refer to the &lt;path&gt; production,
+    they are referring to whichever of those productions whose names
+    start with "path-" was matched. (Only one at a time can be
+    matched.)</p>
+
+   </li>
+
+   <li>
+
+    <p>If parsing <var title="">url</var> resulted in the &lt;host&gt;
+    production being matched, then replace the matching subtring of
+    <var title="">url</var> with the string that results from
+    expanding any sequences of percent-encoded octets in that
+    component that are valid UTF-8 sequences into Unicode characters
+    as defined by UTF-8.</p>
+
+    <p>If any percent-encoded octets in that component are not valid
+    UTF-8 sequences, then return an error and abort these steps.</p>
+
+    <p>Apply the IDNA ToASCII algorithm to the matching substring,
+    with both the AllowUnassigned and UseSTD3ASCIIRules flags
+    set. Replace the matching substring with the result of the ToASCII
+    algorithm.</p>
+
+    <p>If ToASCII fails to convert one of the components of the
+    string, e.g. because it is too long or because it contains invalid
+    characters, then return an error and abort these steps. <a
+    href="#refsRFC3490">[RFC3490]</a></p>
+
+   </li>
+
+   <li>
+
+    <p>If parsing <var title="">url</var> resulted in the &lt;path&gt;
+    production being matched, then replace the matching substring of
+    <var title="">url</var> with the string that results from applying
+    the following steps to each character that doesn't match the
+    original &lt;path&gt; production defined in RFC 3986:</p>
+
+    <ol>
+
+     <li>Encode the character into a sequence of octets as defined by
+     UTF-8.</li>
+
+     <li>Replace the character with the percent-encoded form of those
+     octets.</li>
+
+    </ol>
+
+    <div class="example">
+
+     <p>For instance if <var title="">url</var> was "<code
+    title="">//example.com/a^b&#x263a;c%FFd/?e</code>", then there
+    would the substring matching the &lt;path&gt; production would be
+    "<code title="">/a^b&#x263a;c%FFd/</code>" and the two characters
+    that would have to be escaped would be "<code title="">^</code>"
+    and "<code title="">&#x263a;</code>". The result after this step
+    was applied would therefore be that <var title="">url</var> now
+    had the value "<code
+    title="">//example.com/a%5Eb%E2%98%BAc%FFd/?e</code>".</p>
+
+    </div>
+
+   </li>
+
+   <li>
+
+    <p>If parsing <var title="">url</var> resulted in the &lt;query&gt;
+    production being matched, then replace the matching substring of
+    <var title="">url</var> with the string that results from applying
+    the following steps to each character that doesn't match the
+    original &lt;query&gt; production defined in RFC 3986:</p>
+
+    <ol>
+
+     <li>Encode the character into a sequence of octets as defined by
+     the encoding <var title="">encoding</var>.</li>
+
+     <li>Replace the character with the percent-encoded form of those
+     octets.</li>
+
+    </ol>
+
+   </li>
+
+   <li><p>Apply the algorithm described in RFC 3986 section 5.2
+   Relative Resolution, using <var title="">url</var> as the
+   potentially relative URI reference (<var title="">R</var>), and
+   <var title="">base</var> as the base URI (<var
+   title="">Base</var>).</p></li>
+
+   <li>
+
+    <p>Apply any relevant conformance criteria of RFC 3986 and RFC
+    3987, returning an error and aborting these steps if
+    appropriate.</p>
+
+    <p class="example">For instance, if an absolute URI that would be
+    returned by the above algorithm violates the restrictions specific
+    to its scheme, e.g. a <code title="">data:</code> URI using the
+    "<code title="">//</code>" naming authority syntax, then user
+    agents are to treat this as an error instead.<!-- RFC 3986, 3.1
+    Scheme --></p>
+
+   <li><p>Return the target URI (<var title="">T</var>) returned by
+   the Relative Resolution algorithm.</p></li>
+
+  </ol>
+
+  <p>A <span>URL</span> is an <dfn>absolute URL</dfn> if <span
+  title="resolve a URL">resolving</span> it results in the same
+  URL without an error.</p>
 
 
   <h4>Open issues</h4>
@@ -1012,16 +1239,6 @@
 
     <li>get rid of references to <a href="#refsRFC3986">[RFC3986]</a>
     <a href="#refsRFC3987">[RFC3987]</a> outside this section</li>
-
-    <li>define how to resolve relative URLs in markup attributes
-    (using XMLBase as defined elsewhere right now)</li>
-
-    <li>define how to resolve relative URLs in APIs, using the
-    <dfn>script's base URI</dfn> maybe</li>
-
-    <li>define "an <dfn>element's base URI</dfn>" and make the various
-    places that talk about a base URI in the context of an element use
-    that definition</li>
 
     <li>make the language used to refer to resolving a base URI
     consistent throughout, maybe make it hyperlink to a definition
@@ -6779,28 +6996,6 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
   other elements in the tree that have attributes with URIs (except
   the <code>html</code> element and its <code
   title="attr-html-manifest">manifest</code> attribute).</p>
-
-  <!-- XXXURL move to URLs section -->
-  <p>User agents must use the value of the <code
-  title="att-base-href">href</code> attribute of the first
-  <code>base</code> element that is both a child of <span>the
-  <code>head</code> element</span> and has an <code
-  title="att-base-href">href</code> attribute, if there is such an
-  element, as the document entity's base URI for the purposes of
-  section 5.1.1 of RFC 3986 ("Establishing a Base URI": "Base URI
-  Embedded in Content"). This base URI from RFC 3986 is referred to by
-  the algorithm given in XML Base, which <a href="#xmlBase">is a
-  normative part of this specification</a>. <a
-  href="#refsRFC3986">[RFC3986]</a></p>
-
-  <!-- XXXURL move to URLs section -->
-  <p>If the base URI given by this attribute is a relative URI, it
-  must be resolved relative to the higher-level base URIs (i.e. the
-  base URI from the encapsulating entity or the URI used to retrieve
-  the entity) to obtain an absolute base URI. All <code
-  title="attr-xml-base">xml:base</code> attributes must be ignored
-  when resolving relative URIs in this <code
-  title="attr-base-href">href</code> attribute.</p>
 
   <!-- XXXURL leave this here, but make it clearer -->
   <p class="note">If there are multiple <code>base</code> elements
