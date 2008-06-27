@@ -222,7 +222,10 @@
        <li><a href="#resolving"><span class=secno>2.3.3 </span>Resolving
         URLs</a>
 
-       <li><a href="#interfaces"><span class=secno>2.3.4 </span>Interfaces
+       <li><a href="#dynamic"><span class=secno>2.3.4 </span>Dynamic changes
+        to base URLs</a>
+
+       <li><a href="#interfaces"><span class=secno>2.3.5 </span>Interfaces
         for URL manipulation</a>
       </ul>
 
@@ -426,16 +429,16 @@
      <li><a href="#apis-in"><span class=secno>3.6 </span>APIs in HTML
       documents</a>
 
-     <li><a href="#dynamic"><span class=secno>3.7 </span>Dynamic markup
+     <li><a href="#dynamic0"><span class=secno>3.7 </span>Dynamic markup
       insertion</a>
       <ul class=toc>
        <li><a href="#controlling"><span class=secno>3.7.1 </span>Controlling
         the input stream</a>
 
-       <li><a href="#dynamic0"><span class=secno>3.7.2 </span>Dynamic markup
+       <li><a href="#dynamic1"><span class=secno>3.7.2 </span>Dynamic markup
         insertion in HTML</a>
 
-       <li><a href="#dynamic1"><span class=secno>3.7.3 </span>Dynamic markup
+       <li><a href="#dynamic2"><span class=secno>3.7.3 </span>Dynamic markup
         insertion in XML</a>
       </ul>
     </ul>
@@ -2676,50 +2679,6 @@
    description of what HTML user agents need to implement to be compatible
    with Web content.
 
-  <p class=big-issue>we still need to define a cheap, interoperable mechanism
-   for URL attributes and anything else that relies on xml:base and the base
-   element to handle dynamic changes to those attributes and elements,
-   possibly by defining some mechanism which causes changes to be ignored in
-   some reliable way.</p>
-  <!--
-On Sat, 1 Mar 2008, Anne van Kesteren wrote:
->
-> Note that the new base URI would only take effect once you actually did
-> something with a potentially affected object. For instance, <img> would
-> not start loading a new image if the base URI changes. <img>.src =
-> <img>.getAttribute("src") could start loading a new resource however if
-> the base URI changed since the initial load.
-
-On Sat, 1 Mar 2008, Jonas Sicking wrote:
-> 
-> Well, that was my intention with the initial proposal. But Hixie pointed    
-> out that "did something" is a very hard thing to define. For example on 
-> a <a href="...">, does the user hovering the node count? Does resizing
-> the window count? Does removing the node from the DOM and reinserting it
-> count?
-
-On Sat, 1 Mar 2008, Maciej Stachowiak wrote:
-> 
-> How about requiring that the base used is the one in effect when a given
-> relative URI is resolved, and define that URIs for resource-loading 
-> elements are resolved at the time the relevant attribute is set or
-> parsed (but for hyperlinks, at the time it is dereferenced). That is        
-> easy to implement, interoperable, and reasonably predictable. It makes
-> sense that changing <base> would affect future loads but not trigger
-> reloads of already loaded or already in progress resources.
-
-possibly "in the event that the xml:base or base href attribute is
-changed, user agents may, whenever convenient, pretend, for the sake
-of url resolution, that it has not changed"
-
-possibly define "base uri change notification behaviour" for all
-elements with URI attributes, and then define changing base href and
-xml:base to activate that behaviour on all elements in the affected
-subtree. Also make this algorithm get called when a node from another
-document is inserted into an HTML document. (we could define that
-you're allowed to do that, in the absence of a DOM Core update)
--->
-
   <h4 id=terminology0><span class=secno>2.3.1 </span>Terminology</h4>
 
   <p>A <dfn id=url>URL</dfn> is a string used to identify a resource. A <a
@@ -2928,7 +2887,8 @@ you're allowed to do that, in the absence of a DOM Core update)
      address</span><!-- XXXDOCURL --> as the <a href="#base-">base URL</a>
      (thus, the <code><a href="#base">base</a></code> <code
      title=attr-base-href><a href="#href">href</a></code> attribute isn't
-     affect by <code title="">xml:base</code> attributes).
+     affect by <code title=attr-xml-base><a
+     href="#xmlbase">xml:base</a></code> attributes).
 
    <li>
     <p>The <a href="#document0">document base URL</a> is the result of the
@@ -3052,7 +3012,71 @@ you're allowed to do that, in the absence of a DOM Core update)
    href="#resolve" title="resolve a URL">resolving</a> it results in the same
    URL without an error.
 
-  <h4 id=interfaces><span class=secno>2.3.4 </span>Interfaces for URL
+  <h4 id=dynamic><span class=secno>2.3.4 </span>Dynamic changes to base URLs</h4>
+
+  <p>When an <code title=attr-xml-base><a href="#xmlbase">xml:base</a></code>
+   attribute changes, the attribute's element, and all descendant elements,
+   are <a href="#affected">affected by a base URL change</a>.
+
+  <p>When a document's <a href="#document0">document base URL</a> changes,
+   all elements in that document are <a href="#affected">affected by a base
+   URL change</a>.
+
+  <p>When an element is moved from one document to another, if the two
+   documents have different <a href="#document0" title="document base
+   URL">base URLs</a>, then that element and all its descendants are <a
+   href="#affected">affected by a base URL change</a>.
+
+  <p>When an element is <dfn id=affected>affected by a base URL change</dfn>,
+   it must act as described in the following list:
+
+  <dl class=switch>
+   <dt>If the element is a <a href="#hyperlinks" title=hyperlink>hyperlink
+    element</a>
+
+   <dd>
+    <p>If the <a href="#absolute">absolute URL</a> identified by the
+     hyperlink is being shown to the user, or if any data derived from that
+     URL is affecting the display, then the <code
+     title=attr-hyperlink-href><a href="#href6">href</a></code> attribute
+     should be <a href="#resolve" title="resolve a url">reresolved</a> and
+     the UI updated appropriately.</p>
+
+    <p class=example>For example, the CSS <code title="">:link</code>/<code
+     title="">:visited</code> pseudo-classes might have been affected.</p>
+
+    <p>If the hyperlink has a <code title=attr-hyperlink-ping><a
+     href="#ping">ping</a></code> attribute and its <a href="#absolute"
+     title="absolute URL">absolute URL(s)</a> are being shown to the user,
+     then the <code title=attr-hyperlink-ping><a href="#ping">ping</a></code>
+     attribute's tokens should be <a href="#resolve" title="resolve a
+     url">reresolved</a> and the UI updated appropriately.</p>
+
+   <dt>If the element is a <code><a href="#blockquote">blockquote</a></code>,
+    <code><a href="#q">q</a></code>, <code><a href="#ins">ins</a></code>, or
+    <code><a href="#del">del</a></code> element with a <code
+    title="">cite</code> attribute
+
+   <dd>
+    <p>If the <a href="#absolute">absolute URL</a> identified by the <code
+     title="">cite</code> attribute is being shown to the user, or if any
+     data derived from that URL is affecting the display, then the it should
+     be <a href="#resolve" title="resolve a url">reresolved</a> and the UI
+     updated appropriately.</p>
+
+   <dt>Otherwise
+
+   <dd>
+    <p>The element is not directly affected.</p>
+
+    <p class=example>Changing the base URL doesn't affect the image displayed
+     by <code><a href="#img">img</a></code> elements, although subsequent
+     accesses of the <code title=dom-img-src><a href="#src0">src</a></code>
+     DOM attribute from script will return a new <a href="#absolute">absolute
+     URL</a> that might no longer correspond to the image being shown.</p>
+  </dl>
+
+  <h4 id=interfaces><span class=secno>2.3.5 </span>Interfaces for URL
    manipulation</h4>
 
   <p>An interface that has a complement of <dfn id=url-decomposition>URL
@@ -6451,7 +6475,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   NodeList <a href="#getelementsbyname" title=dom-document-getElementsByName>getElementsByName</a>(in DOMString elementName);
   NodeList <a href="#getelementsbyclassname" title=dom-document-getElementsByClassName>getElementsByClassName</a>(in DOMString classNames);
 
-  // <a href="#dynamic2">dynamic markup insertion</a>
+  // <a href="#dynamic3">dynamic markup insertion</a>
            attribute DOMString <a href="#innerhtml" title=dom-innerHTML>innerHTML</a>;
   <a href="#htmldocument">HTMLDocument</a> <a href="#open" title=dom-document-open>open</a>();
   <a href="#htmldocument">HTMLDocument</a> <a href="#open" title=dom-document-open>open</a>(in DOMString type);
@@ -7027,7 +7051,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   // <a href="#dom-tree0">DOM tree accessors</a>
   NodeList <a href="#getelementsbyclassname0" title=dom-getElementsByClassName>getElementsByClassName</a>(in DOMString classNames);
 
-  // <a href="#dynamic2">dynamic markup insertion</a>
+  // <a href="#dynamic3">dynamic markup insertion</a>
            attribute DOMString <a href="#innerhtml" title=dom-innerHTML>innerHTML</a>;
 
   // <span>metadata attributes</span>
@@ -8041,8 +8065,8 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
      rename takes place.<!-- XXX xref --></p>
   </dl>
 
-  <h3 id=dynamic><span class=secno>3.7 </span><dfn id=dynamic2>Dynamic markup
-   insertion</dfn></h3>
+  <h3 id=dynamic0><span class=secno>3.7 </span><dfn id=dynamic3>Dynamic
+   markup insertion</dfn></h3>
 
   <p>The <code title=dom-document-write><a
    href="#document.write">document.write()</a></code> family of methods and
@@ -8239,7 +8263,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
    character</a> at the <a href="#insertion">insertion point</a> of the
    parser's <a href="#input0">input stream</a>.
 
-  <h4 id=dynamic0><span class=secno>3.7.2 </span>Dynamic markup insertion in
+  <h4 id=dynamic1><span class=secno>3.7.2 </span>Dynamic markup insertion in
    HTML</h4>
 
   <p>In HTML, the <dfn id=document.write...
@@ -8400,7 +8424,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
        http://trac.webkit.org/projects/webkit/browser/trunk/WebCore/html/HTMLTokenizer.cpp#L1742
    -->
 
-  <h4 id=dynamic1><span class=secno>3.7.3 </span>Dynamic markup insertion in
+  <h4 id=dynamic2><span class=secno>3.7.3 </span>Dynamic markup insertion in
    XML</h4>
 
   <p>In an XML context, the <dfn id=document.write0
@@ -9936,6 +9960,9 @@ people expect to have work and what is necessary.
      title=attr-link-href><a href="#href1">href</a></code> content attribute,
      or the empty string if that fails. For <code><a
      href="#style1">style</a></code> elements, there is no location.
+   </dd>
+   <!-- note that this might not match the style
+   sheet URL, if the base URL has changed for instance -->
 
    <dt>The intended destination media for style information (<code
     title=dom-stylesheet-media>media</code> DOM attribute)
@@ -15359,6 +15386,8 @@ The island of Shalott.&lt;/p></pre>
    that is more powerful than <code title="">alt=""</code>, should be
    included. This has not yet been considered.
 
+  <hr>
+
   <p><strong>User agent requirements</strong>: When the <code
    title=attr-img-alt><a href="#alt">alt</a></code> attribute is present and
    its value is the empty string, the image supplements the surrounding
@@ -15388,12 +15417,19 @@ The island of Shalott.&lt;/p></pre>
    <code title=attr-img-alt><a href="#alt">alt</a></code> attribute, if any,
    or nothing, if that attribute is empty or absent.
 
-  <p>The <code title=attr-img-src><a href="#src">src</a></code> attribute, on
-   setting, must cause the user agent to immediately begin to download the
-   specified resource<!-- XXX xref what fetching means -->, unless the user
-   agent cannot support images, or its support for images has been disabled.
+  <hr>
 
-  <p>The download of the image must <a href="#delays">delay the <code
+  <p>When an <code><a href="#img">img</a></code> is created with a <code
+   title=attr-img-src><a href="#src">src</a></code> attribute, and whenever
+   the <code title=attr-img-src><a href="#src">src</a></code> attribute is
+   set subsequently, the user agent must fetch the resource specifed by the
+   <code title=attr-img-src><a href="#src">src</a></code> attribute's value,
+   unless the user agent cannot support images, or its support for images has
+   been disabled.</p>
+  <!-- Note how this does NOT happen when the base URL
+  changes. -->
+
+  <p>Fetching the image must <a href="#delays">delay the <code
    title=event-load>load</code> event</a>.
 
   <p class=warning>This, unfortunately, can be used to perform a rudimentary
@@ -15403,12 +15439,13 @@ The island of Shalott.&lt;/p></pre>
    title=origin>cross-origin</a> access control policies that mitigate this
    attack.
 
-  <p>Once the download has completed, if the image is a valid image, the user
-   agent must <a href="#firing4">fire a <code title=event-load>load</code>
-   event</a> on the <code><a href="#img">img</a></code> element (this happens
-   after <code title=dom-img-complete><a href="#complete">complete</a></code>
-   starts returning true). If the download fails or it completes but the
-   image is not a valid or supported image, the user agent must <a
+  <p>Once the resource has been fetched, if the image is a valid image, the
+   user agent must <a href="#firing4">fire a <code
+   title=event-load>load</code> event</a> on the <code><a
+   href="#img">img</a></code> element (this happens after <code
+   title=dom-img-complete><a href="#complete">complete</a></code> starts
+   returning true). If the download fails or it completes but the image is
+   not a valid or supported image, the user agent must <a
    href="#firing5">fire an <code title=event-error>error</code> event</a> on
    the <code><a href="#img">img</a></code> element.
 
@@ -15421,6 +15458,8 @@ The island of Shalott.&lt;/p></pre>
 
   <p>User agents must not support non-image resources with the <code><a
    href="#img">img</a></code> element.
+
+  <hr>
 
   <p>The <code title=attr-hyperlink-usemap><a
    href="#usemap1">usemap</a></code> attribute, if present, can indicate that
@@ -15632,10 +15671,13 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
 
   <p>Whenever the <code title=attr-iframe-src><a href="#src1">src</a></code>
    attribute is set, the nested <a href="#browsing1">browsing context</a>
-   must be <a href="#navigate" title=navigate>navigated</a> to the given <a
-   href="#url">URL</a>, with the <code><a href="#iframe">iframe</a></code>
-   element's document's <a href="#browsing1">browsing context</a> as the <a
-   href="#source0">source browsing context</a>.
+   must be <a href="#navigate" title=navigate>navigated</a> to the <a
+   href="#url">URL</a> given by that attribute's value, with the <code><a
+   href="#iframe">iframe</a></code> element's document's <a
+   href="#browsing1">browsing context</a> as the <a href="#source0">source
+   browsing context</a>.</p>
+  <!-- It doesn't happen when the base
+  URL is changed, though. -->
 
   <p>If the <code title=attr-iframe-src><a href="#src1">src</a></code>
    attribute is not set when the element is created, the browsing context
@@ -16062,16 +16104,21 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
    attribute is present, and the element is not in a sandboxed browsing
    context:
 
-  <p>When the <code title=attr-embed-src><a href="#src3">src</a></code>
-   attribute is set, user agents are expected to find an appropriate <a
+  <p>When the element is created with a <code title=attr-embed-src><a
+   href="#src3">src</a></code> attribute, and whenever the <code
+   title=attr-embed-src><a href="#src3">src</a></code> attribute is
+   subsequently set, user agents are expected to find an appropriate <a
    href="#plugin">plugin</a> for the specified resource, based on the <a
    href="#type-of" title=concept-embed-type>content's type</a>, and hand that
-   <a href="#plugin">plugin</a> the content of the resource. If the <a
-   href="#plugin">plugin</a> supports a scriptable interface, the <code><a
+   <a href="#plugin">plugin</a> the content of the resource, fetching it if
+   necessary. If the <a href="#plugin">plugin</a> supports a scriptable
+   interface, the <code><a
    href="#htmlembedelement">HTMLEmbedElement</a></code> object representing
-   the element should expose that interfaces.
+   the element should expose that interfaces.</p>
+  <!-- Note that this
+  doesn't happen when the base URL changes. -->
 
-  <p>The download of the resource must <a href="#delays">delay the <code
+  <p>Fetching the resource must <a href="#delays">delay the <code
    title=event-load>load</code> event</a>.
 
   <p>The user agent should pass the names and values of all the attributes of
@@ -16214,7 +16261,9 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
    present, whenever the <code title=attr-object-type><a
    href="#type6">type</a></code> attribute changes, the user agent must run
    the following steps to determine what the <code><a
-   href="#object">object</a></code> element represents:
+   href="#object">object</a></code> element represents:</p>
+  <!-- Changing the base
+  URL doesn't trigger this. -->
 
   <ol>
    <li>
@@ -16653,7 +16702,12 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
   <p>The <dfn id=poster title=attr-video-poster><code>poster</code></dfn>
    attribute gives the address of an image file that the user agent can show
    while no video data is available. The attribute, if present, must contain
-   a <a href="#valid">valid URL</a>.
+   a <a href="#valid">valid URL</a>. If the specified resource is to be used,
+   it must be fetched when the element is created or when the <code
+   title=attr-video-poster><a href="#poster">poster</a></code> attribute is
+   set.</p>
+  <!-- So that it is unaffected by changes to the base URL.
+  -->
 
   <p class=note>The image given by the <code title=attr-video-poster><a
    href="#poster">poster</a></code> attribute is intended to be a <i>poster
@@ -17007,9 +17061,9 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
   <p>The <dfn id=type8 title=attr-source-type><code>type</code></dfn>
    attribute gives the type of the <a href="#media10">media resource</a>, to
    help the user agent determine if it can play this <a href="#media10">media
-   resource</a> before downloading it. Its value must be a MIME type. The
-   <code title="">codecs</code> parameter may be specified and might be
-   necessary to specify exactly how the resource is encoded. <a
+   resource</a> before fetching it. Its value must be a MIME type. The <code
+   title="">codecs</code> parameter may be specified and might be necessary
+   to specify exactly how the resource is encoded. <a
    href="#refsRFC2046">[RFC2046]</a> <a href="#refsRFC4281">[RFC4281]</a>
 
   <div class=example>
@@ -24831,7 +24885,9 @@ function AddCloud(data, x, y) { ... }</pre>
    title=attr-script-defer><a href="#defer">defer</a></code> attributes
    dynamically has no direct effect; these attribute are only used at
    specific times described below (namely, when the element is inserted into
-   the document).
+   the document).</p>
+  <!-- by implication, changes to the base URL also
+  have no effect -->
 
   <p><code><a href="#script1">script</a></code> elements have four associated
    pieces of metadata. The first is a flag indicating whether or not the
@@ -25443,7 +25499,8 @@ function AddCloud(data, x, y) { ... }</pre>
    href="#src11">src</a></code> attribute specified has its <code
    title=attr-event-source-src><a href="#src11">src</a></code> attribute
    removed, the user agent must run the <a href="#remove1">remove declared
-   event source</a> algorithm.
+   event source</a> algorithm.</p>
+  <!-- changing the base URL doesn't trigger these algorithms -->
 
   <p>When it is created, an <code><a
    href="#event-source">event-source</a></code> element must have its
@@ -26381,7 +26438,10 @@ https://www.google.com/base/settings
      first cell's element, if there is one and resolving its attribute is
      successful. Otherwise, the <a href="#url">URL</a> of the row's image is
      the empty string.</p>
-
+    <!-- note that if the base URL has changed,
+    this URL can be different than the one that the <img> element
+    fetched when it was created -->
+    
     <p><strong><code title=dom-provider-getRowMenu><a
      href="#getrowmenu">getRowMenu(<var
      title="">i</var>)</a></code></strong>: If the row's first cell's element
@@ -26635,7 +26695,11 @@ https://www.google.com/base/settings
      element in the filtered view that is a descendant of the row's element,
      if such an element exists and resolving its attribute is successful.
      Otherwise, it must return the empty string.</p>
-
+    <!--
+    note that if the base URL has changed, this URL can be different
+    than the one that the <img> element fetched when it was created
+    -->
+    
     <div class=example>
      <p>In the following example, the row with path "1,0" returns
       "http://example.com/a" as its image URL, and the other rows (including
@@ -27159,7 +27223,9 @@ https://www.google.com/base/settings
     href="#datagrid0">datagrid</a></code> element to obtain an <a
     href="#absolute">absolute URL</a> identifying the image that represents
     the row. If the method returns the empty string, null, or if the method
-    is not defined, then the row has no associated image.
+    is not defined, then the row has no associated image.</dd>
+   <!--
+   changing the base URL doesn't change the image used later -->
 
    <dt>To obtain a context menu appropriate for a particular row
 
@@ -28094,7 +28160,12 @@ XXX selection ranges -->
    <dd>Append the command to the menu. If the element is a <code><a
     href="#command0">command</a></code> element with a <code
     title=attr-command-default><a href="#default1">default</a></code>
-    attribute, mark the command as being a default command.
+    attribute, mark the command as being a default command.</dd>
+   <!-- XXX if there's an
+   Icon URL for the command, it should be fetched, and then that image
+   should be associated with the command, such that each command only
+   has its image fetched once, to prevent changes to the base URL from
+   having effects after the image has been fetched once. -->
 
    <dt>An <code><a href="#hr">hr</a></code> element
 
@@ -28282,7 +28353,9 @@ XXX selection ranges -->
    <dt><dfn id=icon1 title=command-facet-Icon>Icon</dfn>
 
    <dd>An <a href="#absolute">absolute URL</a> identifying a graphical image
-    that represents the action. A command might not have an Icon.
+    that represents the action. A command might not have an Icon.</dd>
+   <!--
+   changing base URLs might change the icon -->
 
    <dt><dfn id=hidden1 title=command-facet-HiddenState>Hidden State</dfn>
 
@@ -32315,7 +32388,7 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
       caching namespace</a> when they were fetched, and were therefore cached
       in the application cache.
 
-     <dt><dfn id=dynamic3 title=concept-appcache-dynamic>Dynamic
+     <dt><dfn id=dynamic4 title=concept-appcache-dynamic>Dynamic
       entries</dfn>
 
      <dd>Resources that were added to the cache by the <code
@@ -32895,7 +32968,7 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
    <li>
     <p>If this is an <a href="#upgrade"
      title=concept-appcache-upgrade>upgrade attempt</a>, then add all the
-     URLs of <a href="#dynamic3" title=concept-appcache-dynamic>dynamic
+     URLs of <a href="#dynamic4" title=concept-appcache-dynamic>dynamic
      entries</a> in <var title="">cache</var> to <var title="">file
      list</var>, each flagged with "dynamic entry".
 
@@ -32975,7 +33048,7 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
      <li>
       <p>If the URL being processed was flagged as an "dynamic entry" in <var
        title="">file list</var>, then categorize the entry as a <a
-       href="#dynamic3" title=concept-appcache-dynamic>dynamic entry</a>.
+       href="#dynamic4" title=concept-appcache-dynamic>dynamic entry</a>.
     </ol>
 
    <li>
@@ -33261,7 +33334,7 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
      entry</a>, <a href="#fallback0" title=concept-appcache-fallback>a
      fallback entry</a>, <a href="#opportunistically"
      title=concept-appcache-oppcache>an opportunistically cached entry</a>,
-     or a <a href="#dynamic3" title=concept-appcache-dynamic>dynamic
+     or a <a href="#dynamic4" title=concept-appcache-dynamic>dynamic
      entry</a> in the <a href="#application0">application cache</a>, then
      fetch the resource from the cache and abort these steps.
 
@@ -33409,14 +33482,14 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   </dl>
 
   <p>The <dfn id=length8 title=dom-appcache-length><code>length</code></dfn>
-   attribute must return the number of <a href="#dynamic3"
+   attribute must return the number of <a href="#dynamic4"
    title=concept-appcache-dynamic>dynamic entries</a> in the <a
    href="#application0">application cache</a> with which the <code><a
    href="#applicationcache">ApplicationCache</a></code> object is associated,
    if any, and zero if the object is not associated with any application
    cache.
 
-  <p>The <a href="#dynamic3" title=concept-appcache-dynamic>dynamic
+  <p>The <a href="#dynamic4" title=concept-appcache-dynamic>dynamic
    entries</a> in the <a href="#application0">application cache</a> are
    ordered in the same order as they were added to the cache by the <code
    title=dom-appcache-add><a href="#addurl">add()</a></code> method, with the
@@ -33426,7 +33499,7 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
 
   <p>The <dfn id=itemindex4 title=dom-appcache-item><code>item(<var
    title="">index</var>)</code></dfn> method must return the <a
-   href="#absolute">absolute URL</a> of the <a href="#dynamic3"
+   href="#absolute">absolute URL</a> of the <a href="#dynamic4"
    title=concept-appcache-dynamic>dynamic entry</a> with index <var
    title="">index</var> from the <a href="#application0">application
    cache</a>, if one is associated with the <code><a
@@ -33456,7 +33529,7 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
      href="#application0">application cache</a> with which the <code><a
      href="#applicationcache">ApplicationCache</a></code> object is
      associated that has the address <var title="">url</var>, then ensure
-     that entry is categorized as a <a href="#dynamic3"
+     that entry is categorized as a <a href="#dynamic4"
      title=concept-appcache-dynamic>dynamic entry</a> and return and abort
      these steps.
 
@@ -33485,7 +33558,7 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
      associated.</p>
 
     <p>Add the fetched resource to the <a href="#application0">application
-     cache</a> and categorize it as a <a href="#dynamic3"
+     cache</a> and categorize it as a <a href="#dynamic4"
      title=concept-appcache-dynamic>dynamic entry</a> before letting any such
      scripts resume.</p>
   </ol>
@@ -33501,7 +33574,7 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   <p>The <dfn id=remove2 title=dom-appcache-remove><code>remove(<var
    title="">url</var>)</code></dfn> method must <a href="#resolve"
    title="resolve a url">resolve</a> the <var title="">url</var> argument
-   and, if that is successful, remove the <a href="#dynamic3"
+   and, if that is successful, remove the <a href="#dynamic4"
    title=concept-appcache-dynamic>dynamic entry</a> categorization of any
    entry whose address is the resulting <a href="#absolute">absolute URL</a>
    in the <a href="#application0">application cache</a> with which the
@@ -36371,6 +36444,8 @@ interface <dfn id=sqlstatementerrorcallback>SQLStatementErrorCallback</dfn> {
    XXX need a better way to end that sentence. It's what I mean, but
    it sounds kooky. -->
    </div>
+  <!-- resolving ping urls happens at audit time, so base URL changes
+  affect the values of ping attributes -->
 
   <h4 id=linkTypes><span class=secno>5.11.3 </span>Link types</h4>
 
@@ -42903,7 +42978,7 @@ function receiver(e) {
    rest of the specification.
 
   <p>In the common case, the data handled by the tokenisation stage comes
-   from the network, but <a href="#dynamic2" title="dynamic markup
+   from the network, but <a href="#dynamic3" title="dynamic markup
    insertion">it can also come from script</a>, e.g. using the <code
    title=dom-document-write-HTML><a
    href="#document.write...">document.write()</a></code> API.
@@ -44147,7 +44222,7 @@ function receiver(e) {
    construction stage can affect the state of the <a href="#content3">content
    model flag</a>, and can insert additional characters into the stream. (For
    example, the <code><a href="#script1">script</a></code> element can result
-   in scripts executing and using the <a href="#dynamic2">dynamic markup
+   in scripts executing and using the <a href="#dynamic3">dynamic markup
    insertion</a> APIs to insert characters into the stream being tokenised.)
 
   <p>When a start tag token is emitted with its <i>self-closing flag</i> set,
@@ -46183,7 +46258,7 @@ function receiver(e) {
 
      <td> <code title="">base</code>
 
-     <td> <a href="#xml-namespace">XML namespace</a>
+     <td> <a href="#xml-namespace">XML namespace</a> <!-- attr-xml-base -->
 
     <tr>
      <td> <code title="">xml:lang</code>

@@ -925,52 +925,6 @@
   be compatible with Web content.</p>
 
 
-  <p class="big-issue">we still need to define a cheap, interoperable
-  mechanism for URL attributes and anything else that relies on
-  xml:base and the base element to handle dynamic changes to those
-  attributes and elements, possibly by defining some mechanism which
-  causes changes to be ignored in some reliable way.</p>
-
-<!--
-On Sat, 1 Mar 2008, Anne van Kesteren wrote:
->
-> Note that the new base URI would only take effect once you actually did
-> something with a potentially affected object. For instance, <img> would
-> not start loading a new image if the base URI changes. <img>.src =
-> <img>.getAttribute("src") could start loading a new resource however if
-> the base URI changed since the initial load.
-
-On Sat, 1 Mar 2008, Jonas Sicking wrote:
-> 
-> Well, that was my intention with the initial proposal. But Hixie pointed    
-> out that "did something" is a very hard thing to define. For example on 
-> a <a href="...">, does the user hovering the node count? Does resizing
-> the window count? Does removing the node from the DOM and reinserting it
-> count?
-
-On Sat, 1 Mar 2008, Maciej Stachowiak wrote:
-> 
-> How about requiring that the base used is the one in effect when a given
-> relative URI is resolved, and define that URIs for resource-loading 
-> elements are resolved at the time the relevant attribute is set or
-> parsed (but for hyperlinks, at the time it is dereferenced). That is        
-> easy to implement, interoperable, and reasonably predictable. It makes
-> sense that changing <base> would affect future loads but not trigger
-> reloads of already loaded or already in progress resources.
-
-possibly "in the event that the xml:base or base href attribute is
-changed, user agents may, whenever convenient, pretend, for the sake
-of url resolution, that it has not changed"
-
-possibly define "base uri change notification behaviour" for all
-elements with URI attributes, and then define changing base href and
-xml:base to activate that behaviour on all elements in the affected
-subtree. Also make this algorithm get called when a node from another
-document is inserted into an HTML document. (we could define that
-you're allowed to do that, in the absence of a DOM Core update)
--->
-
-
   <h4>Terminology</h4>
 
   <p>A <dfn>URL</dfn> is a string used to identify a resource. A
@@ -1191,7 +1145,7 @@ you're allowed to do that, in the absence of a DOM Core update)
    address</span><!-- XXXDOCURL --> as the <span>base URL</span>
    (thus, the <code>base</code> <code
    title="attr-base-href">href</code> attribute isn't affect by <code
-   title="">xml:base</code> attributes).</p></li>
+   title="attr-xml-base">xml:base</code> attributes).</p></li>
 
    <li><p>The <span>document base URL</span> is the result of the
    previous step if it was successful; otherwise it is <span>the
@@ -1331,6 +1285,83 @@ you're allowed to do that, in the absence of a DOM Core update)
   <p>A <span>URL</span> is an <dfn>absolute URL</dfn> if <span
   title="resolve a URL">resolving</span> it results in the same
   URL without an error.</p>
+
+
+  <h4>Dynamic changes to base URLs</h4>
+
+  <p>When an <code title="attr-xml-base">xml:base</code> attribute
+  changes, the attribute's element, and all descendant elements, are
+  <span>affected by a base URL change</span>.</p>
+
+  <p>When a document's <span>document base URL</span> changes, all
+  elements in that document are <span>affected by a base URL
+  change</span>.</p>
+
+  <p>When an element is moved from one document to another, if the two
+  documents have different <span title="document base URL">base
+  URLs</span>, then that element and all its descendants are
+  <span>affected by a base URL change</span>.</p>
+
+  <p>When an element is <dfn>affected by a base URL change</dfn>, it
+  must act as described in the following list:</p>
+
+  <dl class="switch">
+
+   <dt>If the element is a <span title="hyperlink">hyperlink
+   element</span></dt>
+
+   <dd>
+
+    <p>If the <span>absolute URL</span> identified by the hyperlink is
+    being shown to the user, or if any data derived from that URL is
+    affecting the display, then the <code
+    title="attr-hyperlink-href">href</code> attribute should be <span
+    title="resolve a url">reresolved</span> and the UI updated
+    appropriately.</p>
+
+    <p class="example">For example, the CSS <code
+    title="">:link</code>/<code title="">:visited</code>
+    pseudo-classes might have been affected.</p>
+
+    <p>If the hyperlink has a <code
+    title="attr-hyperlink-ping">ping</code> attribute and its <span
+    title="absolute URL">absolute URL(s)</span> are being shown to the
+    user, then the <code title="attr-hyperlink-ping">ping</code>
+    attribute's tokens should be <span title="resolve a
+    url">reresolved</span> and the UI updated appropriately.</p>
+
+   </dd>
+
+   <dt>If the element is a <code>blockquote</code>, <code>q</code>,
+   <code>ins</code>, or <code>del</code> element with a <code
+   title="">cite</code> attribute</dt>
+
+   <dd>
+
+    <p>If the <span>absolute URL</span> identified by the <code
+    title="">cite</code> attribute is being shown to the user, or if
+    any data derived from that URL is affecting the display, then the
+    it should be <span title="resolve a url">reresolved</span> and the
+    UI updated appropriately.</p>
+
+   </dd>
+
+   <dt>Otherwise</dt>
+
+   <dd>
+
+    <p>The element is not directly affected.</p>
+
+    <p class="example">Changing the base URL doesn't affect the image
+    displayed by <code>img</code> elements, although subsequent
+    accesses of the <code title="dom-img-src">src</code> DOM attribute
+    from script will return a new <span>absolute URL</span> that might
+    no longer correspond to the image being shown.</p>
+
+   </dd>
+
+  </dl>
+
 
 
 
@@ -8119,7 +8150,8 @@ people expect to have work and what is necessary.
    <span>URL</span> given by the element's <code
    title="attr-link-href">href</code> content attribute, or the empty
    string if that fails. For <code>style</code> elements, there is no
-   location.</p></dd>
+   location.</p></dd> <!-- note that this might not match the style
+   sheet URL, if the base URL has changed for instance -->
 
    <dt>The intended destination media for style information (<code title="dom-stylesheet-media">media</code> DOM attribute)</dt>
 
@@ -13159,6 +13191,7 @@ The island of Shalott.&lt;/p></pre>
   mechanism that is more powerful than <code title="">alt=""</code>,
   should be included. This has not yet been considered.</p>
 
+  <hr>
 
   <p><strong>User agent requirements</strong>: When the <code
   title="attr-img-alt">alt</code> attribute is present and its value
@@ -13185,21 +13218,23 @@ The island of Shalott.&lt;/p></pre>
   the same way as content of the <code title="attr-title">title</code>
   attribute.</p>
 
-
   <p>If the <code title="attr-img-src">src</code> attribute is
   omitted, the image represents whatever string is given by the
   element's <code title="attr-img-alt">alt</code> attribute, if any,
   or nothing, if that attribute is empty or absent.</p>
 
+  <hr>
 
+  <p>When an <code>img</code> is created with a <code
+  title="attr-img-src">src</code> attribute, and whenever the <code
+  title="attr-img-src">src</code> attribute is set subsequently, the
+  user agent must fetch the resource specifed by the <code
+  title="attr-img-src">src</code> attribute's value, unless the user
+  agent cannot support images, or its support for images has been
+  disabled.</p> <!-- Note how this does NOT happen when the base URL
+  changes. -->
 
-  <p>The <code title="attr-img-src">src</code> attribute, on setting,
-  must cause the user agent to immediately begin to download the
-  specified resource<!-- XXX xref what fetching means -->, unless the
-  user agent cannot support images, or its support for images has been
-  disabled.</p>
-
-  <p>The download of the image must <span>delay the <code
+  <p>Fetching the image must <span>delay the <code
   title="event-load">load</code> event</span>.</p>
 
   <p class="warning">This, unfortunately, can be used to perform a
@@ -13209,8 +13244,8 @@ The island of Shalott.&lt;/p></pre>
   <span title="origin">cross-origin</span> access control policies
   that mitigate this attack.</p>
 
-  <p>Once the download has completed, if the image is a valid image,
-  the user agent must <span>fire a <code
+  <p>Once the resource has been fetched, if the image is a valid
+  image, the user agent must <span>fire a <code
   title="event-load">load</code> event</span> on the <code>img</code>
   element (this happens after <code
   title="dom-img-complete">complete</code> starts returning true). If
@@ -13230,6 +13265,7 @@ The island of Shalott.&lt;/p></pre>
   <p>User agents must not support non-image resources with the
   <code>img</code> element.</p>
 
+  <hr>
 
   <p>The <code title="attr-hyperlink-usemap">usemap</code> attribute,
   if present, can indicate that the image has an associated
@@ -13427,9 +13463,11 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
 
   <p>Whenever the <code title="attr-iframe-src">src</code> attribute
   is set, the nested <span>browsing context</span> must be <span
-  title="navigate">navigated</span> to the given <span>URL</span>,
-  with the <code>iframe</code> element's document's <span>browsing
-  context</span> as the <span>source browsing context</span>.</p>
+  title="navigate">navigated</span> to the <span>URL</span> given by
+  that attribute's value, with the <code>iframe</code> element's
+  document's <span>browsing context</span> as the <span>source
+  browsing context</span>.</p> <!-- It doesn't happen when the base
+  URL is changed, though. -->
 
   <p>If the <code title="attr-iframe-src">src</code> attribute is not
   set when the element is created, the browsing context will remain at
@@ -13879,16 +13917,19 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
   is present, and the element is not in a sandboxed browsing
   context:</p>
 
-  <p>When the <code title="attr-embed-src">src</code> attribute is
-  set, user agents are expected to find an appropriate
-  <span>plugin</span> for the specified resource, based on the <span
+  <p>When the element is created with a <code
+  title="attr-embed-src">src</code> attribute, and whenever the <code
+  title="attr-embed-src">src</code> attribute is subsequently set,
+  user agents are expected to find an appropriate <span>plugin</span>
+  for the specified resource, based on the <span
   title="concept-embed-type">content's type</span>, and hand that
-  <span>plugin</span> the content of the resource. If the
-  <span>plugin</span> supports a scriptable interface, the
-  <code>HTMLEmbedElement</code> object representing the element should
-  expose that interfaces.</p>
+  <span>plugin</span> the content of the resource, fetching it if
+  necessary. If the <span>plugin</span> supports a scriptable
+  interface, the <code>HTMLEmbedElement</code> object representing the
+  element should expose that interfaces.</p> <!-- Note that this
+  doesn't happen when the base URL changes. -->
 
-  <p>The download of the resource must <span>delay the <code
+  <p>Fetching the resource must <span>delay the <code
   title="event-load">load</code> event</span>.</p>
 
   <p>The user agent should pass the names and values of all the
@@ -14016,7 +14057,8 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
   title="attr-object-data">data</code> attribute are present, whenever
   the <code title="attr-object-type">type</code> attribute changes,
   the user agent must run the following steps to determine what the
-  <code>object</code> element represents:</p>
+  <code>object</code> element represents:</p> <!-- Changing the base
+  URL doesn't trigger this. -->
 
   <ol>
 
@@ -14451,7 +14493,11 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
   <p>The <dfn title="attr-video-poster"><code>poster</code></dfn>
   attribute gives the address of an image file that the user agent can
   show while no video data is available. The attribute, if present,
-  must contain a <span>valid URL</span>.</p>
+  must contain a <span>valid URL</span>. If the specified resource is
+  to be used, it must be fetched when the element is created or when
+  the <code title="attr-video-poster">poster</code> attribute is
+  set.</p> <!-- So that it is unaffected by changes to the base URL.
+  -->
 
   <p class="note">The image given by the <code
   title="attr-video-poster">poster</code> attribute is intended to be
@@ -14783,9 +14829,9 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
   <p>The <dfn title="attr-source-type"><code>type</code></dfn>
   attribute gives the type of the <span>media resource</span>, to help
   the user agent determine if it can play this <span>media
-  resource</span> before downloading it. Its value must be a MIME
-  type. The <code title="">codecs</code> parameter may be specified and
-  might be necessary to specify exactly how the resource is
+  resource</span> before fetching it. Its value must be a MIME
+  type. The <code title="">codecs</code> parameter may be specified
+  and might be necessary to specify exactly how the resource is
   encoded. <a href="#refsRFC2046">[RFC2046]</a> <a
   href="#refsRFC4281">[RFC4281]</a></p>
 
@@ -22461,7 +22507,8 @@ function AddCloud(data, x, y) { ... }</pre>
   title="attr-script-defer">defer</code> attributes dynamically has no
   direct effect; these attribute are only used at specific times
   described below (namely, when the element is inserted into the
-  document).</p>
+  document).</p> <!-- by implication, changes to the base URL also
+  have no effect -->
 
   <p><code>script</code> elements have four associated pieces of
   metadata. The first is a flag indicating whether or not the script
@@ -23126,6 +23173,8 @@ function AddCloud(data, x, y) { ... }</pre>
   title="attr-event-source-src">src</code> attribute removed, the user
   agent must run the <span>remove declared event source</span>
   algorithm.</p>
+
+  <!-- changing the base URL doesn't trigger these algorithms -->
 
   <p>When it is created, an <code>event-source</code> element must
   have its <i>current declared event source</i> set to
@@ -23944,7 +23993,9 @@ https://www.google.com/base/settings
     <code>img</code> element child of the row's first cell's element,
     if there is one and resolving its attribute is
     successful. Otherwise, the <span>URL</span> of the row's image is
-    the empty string.</p>
+    the empty string.</p> <!-- note that if the base URL has changed,
+    this URL can be different than the one that the <img> element
+    fetched when it was created -->
 
     <p><strong><code title="dom-provider-getRowMenu">getRowMenu(<var
     title="">i</var>)</code></strong>: If the row's first cell's
@@ -24202,7 +24253,10 @@ https://www.google.com/base/settings
     the row's element, that is not also a descendant of another
     element in the filtered view that is a descendant of the row's
     element, if such an element exists and resolving its attribute is
-    successful. Otherwise, it must return the empty string.</p>
+    successful. Otherwise, it must return the empty string.</p> <!--
+    note that if the base URL has changed, this URL can be different
+    than the one that the <img> element fetched when it was created
+    -->
 
     <div class="example">
 
@@ -24746,7 +24800,8 @@ https://www.google.com/base/settings
    attribute of the <code>datagrid</code> element to obtain an
    <span>absolute URL</span> identifying the image that represents the
    row. If the method returns the empty string, null, or if the method
-   is not defined, then the row has no associated image.</dd>
+   is not defined, then the row has no associated image.</dd> <!--
+   changing the base URL doesn't change the image used later -->
 
    <dt>To obtain a context menu appropriate for a particular row</dt>
 
@@ -25626,7 +25681,11 @@ XXX selection ranges -->
    <dd>Append the command to the menu. If the element is a
    <code>command</code> element with a <code
    title="attr-command-default">default</code> attribute, mark the
-   command as being a default command.</dd>
+   command as being a default command.</dd> <!-- XXX if there's an
+   Icon URL for the command, it should be fetched, and then that image
+   should be associated with the command, such that each command only
+   has its image fetched once, to prevent changes to the base URL from
+   having effects after the image has been fetched once. -->
 
 
    <dt>An <code>hr</code> element</dt>
@@ -25820,7 +25879,8 @@ XXX selection ranges -->
    <dt><dfn title="command-facet-Icon">Icon</dfn></dt>
 
    <dd>An <span>absolute URL</span> identifying a graphical image that
-   represents the action. A command might not have an Icon.</dd>
+   represents the action. A command might not have an Icon.</dd> <!--
+   changing base URLs might change the icon -->
 
    <dt><dfn title="command-facet-HiddenState">Hidden State</dfn></dt>
 
@@ -34108,6 +34168,9 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
    it sounds kooky. -->
 
   </div>
+
+  <!-- resolving ping urls happens at audit time, so base URL changes
+  affect the values of ping attributes -->
 
 
 
@@ -43463,7 +43526,7 @@ function receiver(e) {
     <tr> <td> <code title="">xlink:show</code> <td> <code title="">xlink</code> <td> <code title="">show</code> <td> <span>XLink namespace</span>
     <tr> <td> <code title="">xlink:title</code> <td> <code title="">xlink</code> <td> <code title="">title</code> <td> <span>XLink namespace</span>
     <tr> <td> <code title="">xlink:type</code> <td> <code title="">xlink</code> <td> <code title="">type</code> <td> <span>XLink namespace</span>
-    <tr> <td> <code title="">xml:base</code> <td> <code title="">xml</code> <td> <code title="">base</code> <td> <span>XML namespace</span>
+    <tr> <td> <code title="">xml:base</code> <td> <code title="">xml</code> <td> <code title="">base</code> <td> <span>XML namespace</span> <!-- attr-xml-base -->
     <tr> <td> <code title="">xml:lang</code> <td> <code title="">xml</code> <td> <code title="">lang</code> <td> <span>XML namespace</span>
     <tr> <td> <code title="">xml:space</code> <td> <code title="">xml</code> <td> <code title="">space</code> <td> <span>XML namespace</span>
     <tr> <td> <code title="">xmlns</code> <td> (none) <td> <code title="">xmlns</code> <td> <span>XMLNS namespace</span>
