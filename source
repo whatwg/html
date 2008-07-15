@@ -27778,8 +27778,8 @@ never reset. This is nice and consistent.)
   <span>Window</span> <span title="dom-open">open</span>(in DOMString url, in DOMString target, in DOMString features, in DOMString replace);
 
   // <span>cross-document messaging</span>
-  void <span title="dom-window-postMessage">postMessage</span>(in DOMString message, in DOMString targetOrigin);
-  void <span title="dom-window-postMessage">postMessage</span>(in DOMString message, in <span>MessagePort</span> messagePort, in DOMString targetOrigin);
+  void <span title="dom-window-postMessage-2">postMessage</span>(in DOMString message, in DOMString targetOrigin);
+  void <span title="dom-window-postMessage-3">postMessage</span>(in DOMString message, in <span>MessagePort</span> messagePort, in DOMString targetOrigin);
 
   // <span>event handler DOM attributes</span>
            attribute <span>EventListener</span> <span title="handler-onabort">onabort</span>;
@@ -27866,8 +27866,11 @@ never reset. This is nice and consistent.)
 
    <li>The <code title="dom-location">location</code> object
 
-   <li>The <code title="dom-window-postMessage">postMessage()</code>
-   methods
+   <li>The <code title="dom-window-postMessage-2">postMessage()</code>
+   method with two arguments
+
+   <li>The <code title="dom-window-postMessage-3">postMessage()</code>
+   method with three arguments
 
    <li>The <code title="dom-window-frames">frames</code> attribute
 
@@ -39859,13 +39862,90 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
   attacks.</p>
 
 
-  <h4>Processing model</h4>
+  <h4>Introduction</h4>
+
+  <p><em>This section is non-normative.</em></p>
+
+  <div class="example">
+
+   <p>For example, if document A contains an <code>object</code>
+   element that contains document B, and script in document A calls
+   <code title="dom-window-postMessage-2">postMessage()</code> on
+   document B, then a message event will be fired on that element,
+   marked as originating from document A.  The script in document A
+   might look like:</p>
+
+   <pre>var o = document.getElementsByTagName('object')[0];
+o.contentWindow.postMessage('Hello world', 'http://b.example.org/');</pre>
+
+   <p>To register an event handler for incoming events, the script
+   would use <code title="">addEventListener()</code> (or similar
+   mechanisms).  For example, the script in document B might look
+   like:</p>
+
+   <pre>document.addEventListener('message', receiver, false);
+function receiver(e) {
+  if (e.origin == 'http://example.com') {
+    if (e.data == 'Hello world') {
+      e.source.postMessage('Hello', e.origin);
+    } else {
+      alert(e.data);
+    }
+  }
+}</pre>
+
+   <p>This script first checks the domain is the expected domain, and
+   then looks at the message, which it either displays to the user, or
+   responds to by sending a message back to the document which sent
+   the message in the first place.</p>
+
+  </div>
+
+
+  <h4>Security</h4>
+
+  <h5>Authors</h5>
+
+  <p class="warning">Use of this API requires extra care to protect
+  users from hostile entities abusing a site for their own
+  purposes.</p>
+
+  <p>Authors should check the <code
+  title="dom-MessageEvent-origin">origin</code> attribute to ensure
+  that messages are only accepted from domains that they expect to
+  receive messages from. Otherwise, bugs in the author's message
+  handling code could be exploited by hostile sites.</p>
+
+  <p>Authors should not use the wildcard keyword ("*") in the <var
+  title="">targetOrigin</var> argument in messages that contain any
+  confidential information, as otherwise there is no way to guarantee
+  that the message is only delivered to the recipient to which it was
+  intended.</p>
+
+
+  <h5>User agents</h5>
+
+  <p>The integrity of this API is based on the inability for scripts
+  of one <span>origin</span> to post arbitrary events (using <code
+  title="">dispatchEvent()</code> or otherwise) to objects in other
+  origins (those that are not the <span title="same
+  origin">same</span>).</p>
+
+  <p class="note">Implementors are urged to take extra care in the
+  implementation of this feature. It allows authors to transmit
+  information from one domain to another domain, which is normally
+  disallowed for security reasons. It also requires that UAs be
+  careful to allow access to certain properties but not others.</p>
+
+
+  <h4>Posting text</h4>
 
   <p>When a script invokes the <dfn
-  title="dom-window-postMessage"><code>postMessage(<var
+  title="dom-window-postMessage-2"><code>postMessage(<var
   title="">message</var>, <var
-  title="">targetOrigin</var>)</code></dfn> method on a
-  <code>Window</code> object, the user agent must follow these steps:
+  title="">targetOrigin</var>)</code></dfn> method (with only two
+  arguments) on a <code>Window</code> object, the user agent must
+  follow these steps:
 
   <ol>
 
@@ -39882,7 +39962,7 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
    <li>
 
     <p>Return from the <code
-    title="dom-window-postMessage">postMessage()</code> method, but
+    title="dom-window-postMessage-2">postMessage()</code> method, but
     asynchronously continue running these steps.</p>
 
    </li>
@@ -39917,7 +39997,7 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
     cancelable, and has no default action. The <code
     title="dom-MessageEvent-data">data</code> attribute must be set to
     the value passed as the <var title="">message</var> argument to
-    the <code title="dom-window-postMessage">postMessage()</code>
+    the <code title="dom-window-postMessage-2">postMessage()</code>
     method, the <code title="dom-MessageEvent-origin">origin</code>
     attribute must be set to the <span title="Unicode serialization of
     an origin">Unicode serialization</span> of the <span>origin</span>
@@ -39943,67 +40023,124 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
 
   </ol>
 
-  <p class="warning">Authors should check the <code
-  title="dom-MessageEvent-origin">origin</code> attribute to ensure
-  that messages are only accepted from domains that they expect to
-  receive messages from. Otherwise, bugs in the author's message
-  handling code could be exploited by hostile sites.</p>
 
-  <p class="warning">Authors should not use the wildcard keyword ("*")
-  in the <var title="">targetOrigin</var> argument in messages that
-  contain any confidential information, as otherwise there is no way
-  to guarantee that the message is only delivered to the recipient to
-  which it was intended.</p>
+  <h4>Posting message ports</h4>
 
-  <div class="example">
+  <p>When a script invokes the <dfn
+  title="dom-window-postMessage-3"><code>postMessage(<var
+  title="">message</var>, <var title="">messagePort</var>, <var
+  title="">targetOrigin</var>)</code></dfn> method (with three
+  arguments) on a <code>Window</code> object, the user agent must
+  follow these steps:
 
-   <p>For example, if document A contains an <code>object</code>
-   element that contains document B, and script in document A calls
-   <code title="dom-window-postMessage">postMessage()</code> on
-   document B, then a message event will be fired on that element,
-   marked as originating from document A.  The script in document A
-   might look like:</p>
+  <ol>
 
-   <pre>var o = document.getElementsByTagName('object')[0];
-o.contentWindow.postMessage('Hello world', 'http://b.example.org/');</pre>
+   <!-- EXCEPT WHERE NOTED, THESE STEPS ARE IDENTICAL TO THE PREVIOUS SECTION -->
+   <!-- one exception is the use of -3 instead of -2 in the xrefs -->
 
-   <p>To register an event handler for incoming events, the script
-   would use <code title="">addEventListener()</code> (or similar
-   mechanisms).  For example, the script in document B might look
-   like:</p>
+   <li>
 
-   <pre>document.addEventListener('message', receiver, false);
-function receiver(e) {
-  if (e.origin == 'http://example.com') {
-    if (e.data == 'Hello world') {
-      e.source.postMessage('Hello', e.origin);
-    } else {
-      alert(e.data);
-    }
-  }
-}</pre>
+    <p>If the value of the <var title="">targetOrigin</var> argument
+    is not a single U+002A ASTERISK character ("*"), and <span
+    title="parse a url">parsing</span> it as a <span>URL</span> fails,
+    then throw a <code>SYNTAX_ERR</code> exception and abort the
+    overall set of steps.</p>
 
-   <p>This script first checks the domain is the expected domain, and
-   then looks at the message, which it either displays to the user, or
-   responds to by sending a message back to the document which sent
-   the message in the first place.</p>
+   </li>
 
-  </div>
+   <li> <!-- NEW STEP -->
 
-  <p class="warning">The integrity of this API is based on the
-  inability for scripts of one <span>origin</span> to post arbitrary
-  events (using <code title="">dispatchEvent()</code> or otherwise) to
-  objects in other origins (those that are not the <span title="same
-  origin">same</span>).</p>
+    <p>Try to obtain a <var title="">new port</var> by <span
+    title="clone a port">cloning</span> the <var
+    title="">messagePort</var> argument with the <code>Window</code>
+    object on which the method was invoked as the owner of the
+    clone. If this returns an exception, then throw that exception and
+    abort these steps.</p>
 
-  <p class="note">Implementors are urged to take extra care in the
-  implementation of this feature. It allows authors to transmit
-  information from one domain to another domain, which is normally
-  disallowed for security reasons. It also requires that UAs be
-  careful to allow access to certain properties but not others.</p>
+   </li>
 
-  <p class="big-issue">postMessage() with a message port isn't yet
-  defined</p>
+   <li>
+
+    <p>Return from the <code
+    title="dom-window-postMessage-3">postMessage()</code> method, but
+    asynchronously continue running these steps.</p>
+
+   </li>
+
+   <li>
+
+    <p>Wait for all scripts in the <span>unit of related browsing
+    contexts</span> to which the the <code>Window</code> object on
+    which the method was invoked belongs to have finished executing
+    any pending scripts.</p> <!-- XXX define this in terms of the
+    event queue -->
+
+   </li>
+
+   <li>
+
+    <p>If the <var title="">targetOrigin</var> argument has a value
+    other than a single literal U+002A ASTERISK character ("*"), and
+    the <span>active document</span> of the <span>browsing
+    context</span> of the <code>Window</code> object on which the
+    method was invoked does not have the <span>same origin</span> as
+    <var title="">targetOrigin</var>, then abort these steps
+    silently.</p>
+
+   </li>
+
+   <li>
+
+    <p>Create an event that uses the <code>MessageEvent</code>
+    interface, with the event name <code
+    title="event-message">message</code>, which does not bubble, is
+    cancelable, and has no default action. The <code
+    title="dom-MessageEvent-data">data</code> attribute must be set to
+    the value passed as the <var title="">message</var> argument to
+    the <code title="dom-window-postMessage-3">postMessage()</code>
+    method, the <code title="dom-MessageEvent-origin">origin</code>
+    attribute must be set to the <span title="Unicode serialization of
+    an origin">Unicode serialization</span> of the <span>origin</span>
+    of the script that invoked the method, and the <code
+    title="dom-MessageEvent-source">source</code> attribute must be
+    set to the <code>Window</code> object of the <span>default
+    view</span> of the <span>browsing context</span> for which the
+    <code>Document</code> object with which the script is associated
+    is the <span>active document</span><!--, if there is one, or null
+    otherwise-->.</p><!-- I think there always is one, because scripts
+    can't run and see a Window without that being the case. -->
+
+   </li>
+
+   <li> <!-- NEW STEP -->
+ 
+    <p>Let the <code
+    title="dom-MessageEvent-messagePort">messagePort</code> attribute
+    of the event be the <var title="">new port</var>.</p>
+
+   </li>
+
+   <li>
+
+    <p>Dispatch the event created in the previous step at the
+    <code>Window</code> object on which the method was invoked.</p>
+    <!-- XXX define this in terms of the event queue -->
+    <!-- XXX apply any body/window dispatch decisions here -->
+
+   </li>
+
+  </ol>
+
+  <p class="note">These steps, with the exception of the second step
+  and the penultimate step, are identical to those in the previous
+  section.</p>
+
+  <!-- XXX merge this section and the previous section when
+  implementations have shipped postMessage(). Anne asked that these
+  sections be kept separate so that implementors can avoid getting
+  confused with the 'port' step. -->
+
+
 
 
 
