@@ -16823,9 +16823,9 @@ the time Marco had stuck his tongue out...&lt;/p></pre>
   <p>The <dfn title="dom-media-muted"><code>muted</code></dfn>
   attribute must return true if the audio channels are muted and false
   otherwise. On setting, the attribute must be set to the new value;
-  if the new value is true, audio playback for this <span>media resource</span>
-  must then be muted, and if false, audio playback must then be
-  enabled.</p>
+  if the new value is true, audio playback for this <span>media
+  resource</span> must then be muted, and if false, audio playback
+  must then be enabled.</p>
 
   <p>Whenever either the <code title="dom-media-muted">muted</code> or
   <code title="dom-media-volume">volume</code> attributes are changed,
@@ -27779,7 +27779,7 @@ never reset. This is nice and consistent.)
 
   // <span>cross-document messaging</span>
   void <span title="dom-window-postMessage">postMessage</span>(in DOMString message, in DOMString targetOrigin);
-  void <span title="dom-window-postMessage">postMessage</span>(in DOMString message, in <span>PipeEnd</span> pipeEnd, in DOMString targetOrigin);
+  void <span title="dom-window-postMessage">postMessage</span>(in DOMString message, in <span>MessagePort</span> messagePort, in DOMString targetOrigin);
 
   // <span>event handler DOM attributes</span>
            attribute <span>EventListener</span> <span title="handler-onabort">onabort</span>;
@@ -27830,11 +27830,20 @@ never reset. This is nice and consistent.)
   <p>The <code>Window</code> object also provides the scope for script
   execution. Each <code>Document</code> in a <span>browsing
   context</span> has an associated <dfn>list of added properties</dfn>
-  which, when a document is <span title="active
-  document">active</span>, are available on the <code>Document</code>'s
-  <span>default view</span> <code>Window</code> object. A
-  <code>Document</code> object's <span>list of added properties</span>
-  must be empty when the <code>Document</code> object is created.</p>
+  that, when a document is <span title="active
+  document">active</span>, are available on the
+  <code>Document</code>'s <span>default view</span>'s
+  <code>Window</code> object. A <code>Document</code> object's
+  <span>list of added properties</span> must be empty when the
+  <code>Document</code> object is created.</p>
+
+  <p>Each <code>Document</code> in a <span>browsing context</span>
+  also has an associated <dfn>list of message ports</dfn>, which must
+  be initially empty. The list is used during <span title="traverse
+  the history">history traversal</span> in much the same way as the
+  <span>list of added properties</span>, to keep track of message
+  ports that need to be reactivated if the <code>Document</code> is
+  made the <span>active document</span> again.</p>
 
   <p>Objects implementing the <code>Window</code> interface must also
   implement the <code>EventTarget</code> interface.</p>
@@ -31611,39 +31620,35 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   <code>Document</code> (and that are therefore merely different
   states of one particular document) are contiguous by definition.</p>
 
-  <p>User agents may <dfn>discard</dfn> the DOMs of entries other than
-  the <span>current entry</span> that are not referenced from any
-  script, reloading the pages afresh when the user or script navigates
-  back to such pages. This specification does not specify when user
-  agents should discard pages' DOMs and when they should cache
-  them. See the section on the <code title="event-load">load</code>
-  and <code title="event-unload">unload</code> events for more
-  details.</p> <!-- XXX crossref! XXXDISCARD -->
+  <p>User agents may <span title="discard a Document">discard</span>
+  the <code>Document</code> objects of entries other than the
+  <span>current entry</span> that are not referenced from any script,
+  reloading the pages afresh when the user or script navigates back to
+  such pages. This specification does not specify when user agents
+  should discard <code>Document</code> objects and when they should
+  cache them.</p>
 
-  <p>Entries that have had their DOM discarded must, for the purposes
-  of the algorithms given below, act as if they had not. When the user
-  or script navigates back or forwards to a page which has no
-  in-memory DOM objects, any other entries that shared the same
-  <code>Document</code> object with it must share the new object as
-  well.</p>
+  <p>Entries that have had their <code>Document</code> objects
+  discarded must, for the purposes of the algorithms given below, act
+  as if they had not. When the user or script navigates back or
+  forwards to a page which has no in-memory DOM objects, any other
+  entries that shared the same <code>Document</code> object with it
+  must share the new object as well.</p>
 
   <p>When state object entries are added, a URL can be provided. This
   URL is used to replace the state object entry if the
   <code>Document</code> is evicted.</p>
 
-  <p>When a user agent discards the DOM from an entry in the session
-  history, it must also discard all the entries that share that
-  <code>Document</code> but do not have an associated URL
-  (i.e. entries that only have a <span>state object</span>). Entries
-  that shared that <code>Document</code> object but had a state object
-  and have a different URL must then have their <em>state objects</em>
-  removed. Removed entries are not recreated if the user or script
-  navigates back to the page. If there are no state object entries for
-  that <code>Document</code> object then no entries are removed.</p>
-
-  <p class="big-issue"><!--XXXDISCARD--> when an entry is discarded,
-  any frozen timers, intervals, XMLHttpRequests, database
-  transactions, etc, must be killed </p>
+  <p>When a user agent discards the <code>Document</code> object from
+  an entry in the session history, it must also discard all the
+  entries that share that <code>Document</code> but do not have an
+  associated URL (i.e. entries that only have a <span>state
+  object</span>). Entries that shared that <code>Document</code>
+  object but had a state object and have a different URL must then
+  have their <em>state objects</em> removed. Removed entries are not
+  recreated if the user or script navigates back to the page. If there
+  are no state object entries for that <code>Document</code> object
+  then no entries are removed.</p>
 
 
   <h4>The <code>History</code> interface</h4>
@@ -32316,10 +32321,7 @@ user reload must be equivalent to .reload()
 
    <li><p class="big-issue">onunload, and if present set flag that we will kill document</p></li>
 
-   <li><p class="big-issue">if flag is set: reset timers, empty event
-   queue, kill any pending transactions, kill XMLHttpRequests, etc,
-   and set things up so that the document will be discarded asap
-   <!--XXXDISCARD--></p></li>
+   <li><p class="big-issue">if flag is set: <span title="discard a document">discard the <code>Document</code></span></p></li>
 
    <li>
 
@@ -32722,6 +32724,14 @@ user reload must be equivalent to .reload()
      <li class="big-issue">freeze any timers, intervals,
      XMLHttpRequests, database transactions, etc</li>
 
+     <li id="port-traversal-deactivation">If there are any
+     <code>MessagePort</code> objects whose owner is the browsing
+     context's default view's <code>Window</code> object and that are
+     entangled with another port, the user agent must <span
+     title="deactivate a port">deactivate</span> all such ports and
+     let the <code>Document</code>'s <span>list of message
+     ports</span> be a list of those ports.</li>
+
      <li>The user agent must move any properties that have been added
      to the browsing context's default view's <code>Window</code>
      object to the <span>active document</span>'s
@@ -32783,6 +32793,12 @@ user reload must be equivalent to .reload()
      <span>list of added properties</span> to browsing context's
      default view's <code>Window</code> object.</li>
 
+     <li id="port-traversal-reactivation">If the <span>active
+     document</span>'s <span>list of message ports</span> is not
+     empty, then the user agent must <span title="reactivate a
+     port">reactivate</span> all the ports in that list. Empty that
+     <span>list of message ports</span>.</li>
+
      <li class="big-issue">unfreeze any timers, intervals,
      XMLHttpRequests, database transactions, etc</li>
 
@@ -32826,6 +32842,28 @@ user reload must be equivalent to .reload()
   <p class="big-issue">how does the changing of the global attributes
   affect .watch() when seen from other Windows?</p>
 
+
+  <h4>Closing a browsing context</h4>
+
+  <p class="big-issue">Closing a browsing context and discarding it
+  (vs closing it and keeping it around in memory).</p>
+
+  <p class="big-issue">when a browsing context is closed, all session
+  history entries' <code>Document</code> objects must be
+  discarded.</p>
+
+  <p class="big-issue">When a user agent is to <dfn>discard a
+  <code>Document</code></dfn>, any frozen timers, intervals,
+  XMLHttpRequests, database transactions, etc, must be killed, and any
+  ports owned by the Window object that aren't in a <span>list of
+  message ports</span>, if the document is the <span>active
+  document</span>, or otherwise any ports in that document's
+  <span>list of message ports</span>, if the document is not the
+  <span>active document</span>, must be <span>deactivated</span> and
+  unentangled.</p>
+
+  <p class="big-issue">Also, <code title="event-unload">unload</code>
+  events should fire.</p>
 
 
 
@@ -38275,7 +38313,7 @@ XXX Once we resolve the style="" issue, address these:
 
   <p>Messages in <span>server-sent events</span>, <span>Web
   sockets</span>, <span>cross-document messaging</span>, and
-  <span>pipe messaging</span> use the <dfn
+  <span>channel messaging</span> use the <dfn
   title="event-message"><code>message</code></dfn> event.</p>
 
   <p>The following interface is defined for this event:</p>
@@ -38285,9 +38323,9 @@ XXX Once we resolve the style="" issue, address these:
   readonly attribute DOMString <span title="dom-MessageEvent-origin">origin</span>;
   readonly attribute DOMString <span title="dom-MessageEvent-lastEventId">lastEventId</span>;
   readonly attribute <span>Window</span> <span title="dom-MessageEvent-source">source</span>;
-  readonly attribute <span>PipeEnd</span> <span title="dom-MessageEvent-pipeEnd">pipeEnd</span>;
-  void <span title="dom-MessageEvent-initMessageEvent">initMessageEvent</span>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString originArg, in DOMString lastEventIdArg, in Window sourceArg, in <span>PipeEnd</span> pipeEndArg);
-  void <span title="dom-MessageEvent-initMessageEventNS">initMessageEventNS</span>(in DOMString namespaceURI, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString originArg, in DOMString lastEventIdArg, in Window sourceArg, in <span>PipeEnd</span> pipeEndArg);
+  readonly attribute <span>MessagePort</span> <span title="dom-MessageEvent-messagePort">messagePort</span>;
+  void <span title="dom-MessageEvent-initMessageEvent">initMessageEvent</span>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString originArg, in DOMString lastEventIdArg, in Window sourceArg, in <span>MessagePort</span> messagePortArg);
+  void <span title="dom-MessageEvent-initMessageEventNS">initMessageEventNS</span>(in DOMString namespaceURI, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString originArg, in DOMString lastEventIdArg, in Window sourceArg, in <span>MessagePort</span> messagePortArg);
 };</pre>
 
   <p>The <dfn
@@ -38321,10 +38359,10 @@ XXX Once we resolve the style="" issue, address these:
   <code>Window</code> from which the message came.</p>
 
   <p>The <dfn
-  title="dom-MessageEvent-pipeEnd"><code>pipeEnd</code></dfn>
+  title="dom-MessageEvent-messagePort"><code>messagePort</code></dfn>
   attribute represents, in <span>cross-document messaging</span> and
-  <span>pipe messaging</span> the <code>PipeEnd</code> being sent, if
-  any.</p>
+  <span>channel messaging</span> the <code>MessagePort</code> being
+  sent, if any.</p>
 
   <p>Unless otherwise specified, when the user agent creates and
   dispatches a <code title="event-message">message</code> event in the
@@ -38334,7 +38372,7 @@ XXX Once we resolve the style="" issue, address these:
   title="dom-MessageEvent-origin">origin</code> attribute must be the
   empty string, the <code
   title="dom-MessageEvent-source">source</code> attribute must be
-  null, and the <code title="dom-MessageEvent-pipeEnd">pipeEnd</code>
+  null, and the <code title="dom-MessageEvent-messagePort">messagePort</code>
   attribute must be null.</p>
 
 
@@ -39851,9 +39889,11 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
 
    <li>
 
-    <p>Wait for the <code>Window</code> object on which the method was
-    invoked to have finished executing any pending scripts.</p>
-    <!-- XXX define this in terms of the event queue -->
+    <p>Wait for all scripts in the <span>unit of related browsing
+    contexts</span> to which the the <code>Window</code> object on
+    which the method was invoked belongs to have finished executing
+    any pending scripts.</p> <!-- XXX define this in terms of the
+    event queue -->
 
    </li>
 
@@ -39962,88 +40002,408 @@ function receiver(e) {
   disallowed for security reasons. It also requires that UAs be
   careful to allow access to certain properties but not others.</p>
 
-  <p class="big-issue">postMessage() with a pipe isn't yet defined</p>
+  <p class="big-issue">postMessage() with a message port isn't yet
+  defined</p>
 
 
 
-  <h3><dfn>Pipe messaging</dfn></h3>
+  <h3><dfn>Channel messaging</dfn></h3>
 
   <h4>Introduction</h4>
 
   <p><em>This section is non-normative.</em></p>
 
-  <p class="big-issue">An introduction to the pipe APIs.</p>
+  <p class="big-issue">An introduction to the channel and port
+  APIs.</p>
 
 
 
-  <h4>Pipes</h4>
+  <h4>Message channels</h4>
 
-  <pre class="idl">[<span title="dom-Pipe">Constructor</span>] interface <dfn>Pipe</dfn> {
-  readonly attribute <span>PipeEnd</span> <span title="dom-pipe-end1">end1</span>;
-  readonly attribute <span>PipeEnd</span> <span title="dom-pipe-end2">end2</span>;
+  <pre class="idl">[<span title="dom-Pipe">Constructor</span>] interface <dfn>MessageChannel</dfn> {
+  readonly attribute <span>MessagePort</span> <span title="dom-channel-port1">port1</span>;
+  readonly attribute <span>MessagePort</span> <span title="dom-channel-port2">port2</span>;
 };</pre>
 
-  <p>When the <dfn title="dom-Pipe"><code>Pipe()</code></dfn>
+  <p>When the <dfn
+  title="dom-MessageChannel"><code>MessageChannel()</code></dfn>
   constructor is called, it must run the following algorithm:</p>
 
   <ol>
 
-   <li><p><span>Create a new <code>PipeEnd</code> object</span> owned
-   by the <span>script browsing context</span>, and let <var
-   title="">end1</var> be that object.</p></li>
+   <li><p><span>Create a new <code>MessagePort</code> object</span>
+   owned by the <span>script browsing context</span>, and let <var
+   title="">port1</var> be that object.</p></li>
 
-   <li><p><span>Create a new <code>PipeEnd</code> object</span> owned
-   by the <span>script browsing context</span>, and let <var
-   title="">end2</var> be that object.</p></li>
+   <li><p><span>Create a new <code>MessagePort</code> object</span>
+   owned by the <span>script browsing context</span>, and let <var
+   title="">port2</var> be that object.</p></li>
 
-   <li><p><span>Entangle</span> the <var title="">end1</var> and <var
-   title="">end2</var> objects.</p></li>
+   <li><p><span>Entangle</span> the <var title="">port1</var> and <var
+   title="">port2</var> objects.</p></li>
 
-   <li><p>Create a new <code>Pipe</code> object, and let <var
-   title="">pipe</var> be that object.</p></li>
+   <li><p>Set the <code title="dom-MessagePort-active">active</code>
+   attribute of the two ports to true.</p></li>
 
-   <li><p>Let the <code title="dom-pipe-end1">end1</code> attribute of
-   the <var title="">pipe</var> object be <var
-   title="">end1</var>.</p>
+   <li><p>Instantiate a new <code>MessageChannel</code> object, and
+   let <var title="">channel</var> be that object.</p></li>
 
-   <li><p>Let the <code title="dom-pipe-end2">end2</code> attribute of
-   the <var title="">pipe</var> object be <var
-   title="">end2</var>.</p>
+   <li><p>Let the <code title="dom-channel-port1">port1</code>
+   attribute of the <var title="">channel</var> object be <var
+   title="">port1</var>.</p>
 
-   <li><p>Return <var title="">pipe</var>.</p></li>
+   <li><p>Let the <code title="dom-channel-port2">port2</code>
+   attribute of the <var title="">channel</var> object be <var
+   title="">port2</var>.</p>
+
+   <li><p>Return <var title="">channel</var>.</p></li>
 
   </ol>
 
-  <p>The <dfn title="dom-pipe-end1"><code>end1</code></dfn> and <dfn
-  title="dom-pipe-end2"><code>end2</code></dfn> attributes must return
-  the values they were assigned when the <code>Pipe</code> object was
-  created.</p>
+  <p>The <dfn title="dom-channel-port1"><code>port1</code></dfn> and
+  <dfn title="dom-channel-port2"><code>port2</code></dfn> attributes
+  must return the values they were assigned when the
+  <code>MessageChannel</code> object was created.</p>
 
 
+  <h4>Message ports</h4>
 
-  <h4>Pipe ends</h4>
+  <p>Each channel has two message ports. Data sent through one port is
+  received by the other port, and vice versa.</p>
 
-  <p>Each pipe has two ends. Data sent down one end is received by the
-  other end, and vice versa.</p>
-
-  <pre class="idl">interface <dfn>PipeEnd</dfn> {
-  readonly attribute <span>Window</span> <span title="dom-owner">ownerWindow</span>;
-  readonly attribute boolean <span title="dom-endpipe">active</span>;
-  void <span title="dom-pipeend-postMessage">postMessage</span>(in DOMString message);
-  void <span title="dom-pipeend-postMessage">postMessage</span>(in DOMString message, in <span>PipeEnd</span> pipeEnd);
-  void <span title="dom-pipeend-close">close</span>();
+  <pre class="idl">interface <dfn>MessagePort</dfn> {
+  readonly attribute <span>Window</span> <span title="dom-MessagePort-ownerWindow">ownerWindow</span>;
+  readonly attribute boolean <span title="dom-MessagePort-active">active</span>;
+  boolean <span title="dom-MessagePort-postMessage">postMessage</span>(in DOMString message);
+  boolean <span title="dom-MessagePort-postMessage">postMessage</span>(in DOMString message, in <span>MessagePort</span> messagePort);
+  void <span title="dom-MessagePort-close">close</span>();
 
   // event handler attributes
-           attribute <span>EventListener</span> <span title="handler-endpipe-onmessage">onmessage</span>;
-           attribute <span>EventListener</span> <span title="handler-endpipe-onunload">onunload</span>;
+           attribute <span>EventListener</span> <span title="handler-MessagePort-onmessage">onmessage</span>;
+           attribute <span>EventListener</span> <span title="handler-MessagePort-onunload">onunload</span>;
 };</pre>
 
-  <p class="big-issue">When the user agent is to <dfn>create a new
-  <code>PipeEnd</code> object</dfn> owned by a <code>Window</code>
-  object <var title="">owner</var>, it must...</p>
+  <p>When the user agent is to <dfn>create a new
+  <code>MessagePort</code> object</dfn> owned by a <code>Window</code>
+  object <var title="">owner</var>, it must run the following
+  steps:</p>
 
-  <p class="big-issue">When the user agent is to <dfn>entangle</dfn>
-  two <code>PipeEnd</code> objects, it must...</p>
+  <ol>
+
+   <li><p>Instantiate a new <code>MessagePort</code> object, and let
+   <var title="">port</var> be that object.</p></li>
+
+   <li><p>Set the <code
+   title="dom-MessagePort-ownerWindow">ownerWindow</code> attribute of
+   <var title="">port</var> to <var title="">owner</var>.</p></li>
+
+   <li><p>Set the <code title="dom-MessagePort-active">active</code>
+   attribute of <var title="">port</var> be false.</p></li>
+
+  </ol>
+
+  <hr>
+
+  <p>When the user agent is to <dfn>entangle</dfn> two
+  <code>MessagePort</code> objects, it must run the following
+  steps:</p>
+
+  <ol>
+
+   <li><p>If either port is already entangled, then let <var
+   title="">port1</var> be that port, and run these substeps:</p>
+
+    <ol>
+
+     <li><p>Let <var title="">old port</var> be the port that <var
+     title="">port1</var> is entangled with.</p></li>
+
+     <li><p>Unentangle <var title="">old port</var>, so that it is no
+     longer entangled with any ports.</p></li>
+
+     <li><p>Set the <code title="dom-MessagePort-active">active</code>
+     attribute of <var title="">old port</var> to false.</p></li>
+
+     <li><p>Unentangle <var title="">port1</var>, so that it is no
+     longer entangled with any ports.</p></li>
+
+    </ol>
+
+    <p>If <var title="">port1</var> and <var title="">old port</var>
+    were the two ports of a <code>MessageChannel</code> object, then
+    that <code>MessageChannel</code> object no longer represents an
+    actual channel: the two ports in that object are no longer
+    entangled.</p>
+
+   </li>
+
+   <li><p>Associate the two ports to be entangled, so that they form
+   the two parts of a new channel. (There is no
+   <code>MessageChannel</code> object that represents this
+   channel.)</p></li>
+
+  </ol>
+
+  <hr>
+
+  <p>When the user agent is to <dfn>clone a port</dfn> <var
+  title="">original port</var>, with the clone being owned by <var
+  title="">owner</var>, it must run the following steps, which return
+  either a new <code>MessagePort</code> object or an exception for the
+  caller to raise:</p>
+
+  <ol>
+
+   <li><p>If the <var title="">original port</var> is not entangled
+   without another port, then return an <code>INVALID_STATE_ERR</code>
+   exception and abort all these steps.</p></li>
+
+   <li><p>Let the <var title="">remote port</var> be the port with
+   which the <var title="">original port</var> is entangled.</p></li>
+
+   <li><p>Let <var title="">original status</var> be the value of the
+   <code title="dom-MessagePort-active">active</code> attribute of the
+   <var title="">original port</var>.</p></li>
+
+   <li><p><span>Create a new <code>MessagePort</code> object</span>
+   owned by <var title="">owner</var>, and let <var title="">new
+   port</var> be that object.</p></li>
+
+   <li><p><span>Entangle</span> the <var title="">remote port</var>
+   and <var title="">new port</var> objects. The <var
+   title="">original port</var> object will have its <code
+   title="dom-MessagePort-active">active</code> attribute permanently
+   set to false by this process.</p></li>
+
+   <li><p>Let the <code title="dom-MessagePort-active">active</code>
+   attribute of the <var title="">new port</var> object have the same
+   value as <var title="">original status</var>.</p></li> <!-- we
+   don't throw if it's false, because it might become true again,
+   e.g. if you're sending a port that is entangled with a port that's
+   associated with a document that's currently not the active document
+   of its iframe, but which hasn't been discarded yet -->
+
+   <li><p>Return <var title="">new port</var>. It is the
+   clone.</p></li>
+
+  </ol>
+
+  <hr>
+
+  <p>The <dfn
+  title="dom-MessagePort-ownerWindow"><code>ownerWindow</code></dfn>
+  attribute must return the value it was assigned when the
+  <code>MessagePort</code> object was created.</p>
+
+  <p>The <dfn title="dom-MessagePort-active"><code>active</code></dfn>
+  attribute must return the last value that it was set to according to
+  the rules of this specification.</p>
+
+  <hr>
+
+  <p>The <dfn
+  title="dom-MessagePort-postMessage"><code>postMessage()</code></dfn>
+  method, when called on a port <var title="">source port</var>, must
+  cause the user agent to run the following steps:</p>
+
+  <ol>
+
+   <li><p>Let <var title="">message</var> be the method's first
+   argument.</p></li>
+
+   <li><p>Let <var title="">data port</var> be the method's second
+   argument, if any.</p></li>
+
+   <li><p>If the <var title="">source port</var>'s <code
+   title="dom-MessagePort-active">active</code> attribute is false,
+   then return false and abort these steps.</p></li> <!-- we don't
+   raise an exception because this attribute can become false at a
+   moment's notice, but we return false so that the caller can check
+   whether the port was active at time of calling without a race
+   condition. -->
+
+   <li><p>Let <var title="">target port</var> be the port with which
+   <var title="">source port</var> is entangled.</p></li>
+
+   <li><p>Create an event that uses the <code>MessageEvent</code>
+   interface, with the name <code
+   title="event-message">message</code>, which does not bubble, is
+   cancelable, and has no default action.</p></li>
+
+   <li><p>Let the <code title="dom-MessageEvent-data">data</code>
+   attribute of the event have the value of <var
+   title="">message</var>, the method's first argument.</p></li>
+
+   <li><p>If the method was called with a second argument <var
+   title="">data port</var> and that argument isn't null, then run the
+   following substeps:</p>
+
+    <ol>
+
+     <li><p>If the <var title="">data port</var> is the <var
+     title="">source port</var> or the <var title="">target
+     port</var>, then throw an <code>INVALID_ACCESS_ERR</code>
+     exception and abort all these steps.</p></li>
+
+     <li><p>Try to obtain a <var title="">new data port</var> by <span
+     title="clone a port">cloning</span> the <var title="">data
+     port</var> with the <span
+     title="dom-MessagePort-ownerWindow">owner</span> of the <var
+     title="">target port</var> as the owner of the clone. If this
+     returns an exception, then throw that exception and abort these
+     steps.</p></li>
+ 
+     <li><p>Let the <code
+     title="dom-MessageEvent-messagePort">messagePort</code> attribute
+     of the event be the <var title="">new data port</var>.</p></li>
+
+    </ol>
+
+   </li>
+
+   <li><p>Return true from the method, but continue with these
+   steps.</p></li>
+
+   <li><p>Wait for all scripts in the <span>unit of related browsing
+   contexts</span> to which the the <span
+   title="dom-MessagePort-ownerWindow">owner</span> of the <var
+   title="">target port</var> belongs to have executed to completion,
+   and then dispatch the event at the <var title="">target port</var>
+   object. If this never happens (e.g. the relevant <span>browsing
+   context</span> is closed by the user before the event can be
+   dispatched), then discard the event.</p></li><!-- XXX queue -->
+
+  </ol>
+
+  <hr>
+
+  <p>The <dfn title="dom-MessagePort-close"><code>close()</code></dfn>
+  method, when called on a port <var title="">local port</var>, must
+  cause the user agent to run the following steps:</p>
+
+  <ol>
+
+   <li>
+
+    <p>If <var title="">local port</var> is entangled with another
+    port, then let <var title="">remote port</var> be that port and
+    run these substeps:</p>
+
+    <ol>
+
+     <li><p>Unentangle <var title="">remote port</var>, so that it is
+     no longer entangled with any ports.</p></li>
+
+     <li><p>Set the <code title="dom-MessagePort-active">active</code>
+     attribute of <var title="">remote port</var> to false.</p></li>
+
+     <li><p>Unentangle <var title="">local port</var>, so that it is
+     no longer entangled with any ports.</p></li>
+
+    </ol>
+
+   </li>
+
+   <li><p>Set the <code title="dom-MessagePort-active">active</code>
+   attribute of <var title="">local port</var> to false.</p></li>
+
+  </ol>
+
+  <hr>
+
+  <p>The following are the <span>event handler DOM attributes</span>
+  that must be supported by objects implementing the
+  <code>MessagePort</code> interface:</p>
+
+  <dl>
+
+   <dt><dfn title="handler-MessagePort-onmessage"><code>onmessage</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever a <code
+   title="event-MessagePort-message">message</code> event is targeted
+   at or bubbles through the <code>MessagePort</code> object.</p></dd>
+
+   <dt><dfn title="handler-MessagePort-onunload"><code>onunload</code></dfn></dt>
+
+   <dd><p>Must be invoked whenever an <code
+   title="event-unload">unload</code> event is targeted at or bubbles
+   through the <code>MessagePort</code> object.</p></dd>
+
+  </dl>
+
+  <p class="note">Nothing in this specification causes an <code
+  title="event-unload">unload</code> event to be targetted at a
+  <code>MessagePort</code> object. This feature is intended for use
+  with Workers. <a href="#refsWORKERS">[WORKERS]</a></p>
+
+
+
+  <h5>Ports and browsing contexts</h5>
+
+  <p>During <span title="traverse the history">session history
+  traversal</span> (e.g. when a user <span
+  title="navigate">navigates</span> a <span>browsing context</span> to
+  another page, or goes back to a previous page), the user agent will
+  have to <a href="#port-traversal-deactivation">deactivate</a> and/or
+  <a href="#port-traversal-reactivation">reactivate</a> some
+  ports.</p>
+
+  <p>Ports are deactivated and unentangled when the
+  <code>Document</code> that was the <span>active document</span> of
+  the <span>browsing context</span> corresponding to the
+  <code>Window</code> object that <span
+  title="dom-MessagePort-ownerWindow">owns</span> them is <span
+  title="discard a document">discarded</span>.</p>
+
+  <p>To <dfn>deactivate a port</dfn> <var title="">local port</var>
+  that is entangled with a second port <var title="">remote
+  port</var>, the user agent must set the <code
+  title="dom-MessagePort-active">active</code> attribute of the <var
+  title="">remote port</var> to false.</p>
+
+  <p>To <dfn>reactivate a port</dfn> <var title="">local port</var>
+  that is entangled with a second port <var title="">remote
+  port</var>, the user agent must set the <code
+  title="dom-MessagePort-active">active</code> attribute of the <var
+  title="">remote port</var> to true.</p>
+
+  <p class="note">It's important to note that activating or
+  deactivating a port actually changes the <code
+  title="dom-MessagePort-active">active</code> attribute of the port's
+  entangled port, not its own attribute.</p>
+
+
+
+  <h5>Ports and garbage collection</h5>
+
+  <p>User agents must act as if <code>MessagePort</code> objects have
+  a strong reference to their entangled <code>MessagePort</code>
+  object so long as that other <code>MessagePort</code> object has any
+  <code title="event-message">message</code> or <code
+  title="event-unload">unload</code> event listeners registered.</p>
+
+  <div class="note">
+
+   <p>Thus, a message port can be received, given an event listener,
+   and then forgotten, and so long as that event listener could
+   receive a message, the channel will be maintained.</p>
+
+   <p>Of course, if this was to occur on both sides of the channel,
+   then both ports would be garbage collected, since they would not be
+   reachable from live code, despite having a strong reference to each
+   other.</p>
+
+  </div>
+
+  <p>When an entangled message port is about to be garbage collected,
+  it must be <span title="deactivate a port">deactivated</span> and
+  then unentangled, so that the two ports are no longer related and so
+  that the other port's <code
+  title="dom-MessagePort-active">active</code> attribute is set to
+  false.</p>
+
+
+
 
 
 

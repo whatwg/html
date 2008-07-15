@@ -25,7 +25,7 @@
 
    <h1 id=html-5>HTML 5</h1>
 
-   <h2 class="no-num no-toc" id=draft>Draft Recommendation &mdash; 13 July
+   <h2 class="no-num no-toc" id=draft>Draft Recommendation &mdash; 15 July
     2008</h2>
 
    <p>You can take part in this work. <a
@@ -1251,6 +1251,9 @@
 
        <li><a href="#history0"><span class=secno>5.9.9 </span>History
         traversal</a>
+
+       <li><a href="#closing"><span class=secno>5.9.10 </span>Closing a
+        browsing context</a>
       </ul>
 
      <li><a href="#structured"><span class=secno>5.10 </span>Structured
@@ -1603,8 +1606,8 @@
             </span>Data framing</a>
           </ul>
 
-         <li><a href="#closing"><span class=secno>7.3.4.3. </span>Closing the
-          connection</a>
+         <li><a href="#closing0"><span class=secno>7.3.4.3. </span>Closing
+          the connection</a>
         </ul>
       </ul>
 
@@ -1615,15 +1618,24 @@
         model</a>
       </ul>
 
-     <li><a href="#pipe-messaging"><span class=secno>7.5 </span>Pipe
+     <li><a href="#channel"><span class=secno>7.5 </span>Channel
       messaging</a>
       <ul class=toc>
        <li><a href="#introduction5"><span class=secno>7.5.1
         </span>Introduction</a>
 
-       <li><a href="#pipes"><span class=secno>7.5.2 </span>Pipes</a>
+       <li><a href="#message"><span class=secno>7.5.2 </span>Message
+        channels</a>
 
-       <li><a href="#pipe-ends"><span class=secno>7.5.3 </span>Pipe ends</a>
+       <li><a href="#message0"><span class=secno>7.5.3 </span>Message
+        ports</a>
+        <ul class=toc>
+         <li><a href="#ports"><span class=secno>7.5.3.1. </span>Ports and
+          browsing contexts</a>
+
+         <li><a href="#ports0"><span class=secno>7.5.3.2. </span>Ports and
+          garbage collection</a>
+        </ul>
       </ul>
     </ul>
 
@@ -1724,7 +1736,7 @@
          <li><a href="#creating"><span class=secno>8.2.5.1. </span>Creating
           and inserting elements</a>
 
-         <li><a href="#closing0"><span class=secno>8.2.5.2. </span>Closing
+         <li><a href="#closing1"><span class=secno>8.2.5.2. </span>Closing
           elements that have implied end tags</a>
 
          <li><a href="#foster"><span class=secno>8.2.5.3. </span>Foster
@@ -30261,7 +30273,7 @@ never reset. This is nice and consistent.)
 
   // <a href="#cross-document">cross-document messaging</a>
   void <a href="#postmessage" title=dom-window-postMessage>postMessage</a>(in DOMString message, in DOMString targetOrigin);
-  void <a href="#postmessage" title=dom-window-postMessage>postMessage</a>(in DOMString message, in <a href="#pipeend0">PipeEnd</a> pipeEnd, in DOMString targetOrigin);
+  void <a href="#postmessage" title=dom-window-postMessage>postMessage</a>(in DOMString message, in <a href="#messageport0">MessagePort</a> messagePort, in DOMString targetOrigin);
 
   // <a href="#event4">event handler DOM attributes</a>
            attribute <span>EventListener</span> <a href="#onabort" title=handler-onabort>onabort</a>;
@@ -30311,12 +30323,21 @@ never reset. This is nice and consistent.)
   <p>The <code><a href="#window">Window</a></code> object also provides the
    scope for script execution. Each <code>Document</code> in a <a
    href="#browsing1">browsing context</a> has an associated <dfn
-   id=list-of2>list of added properties</dfn> which, when a document is <a
+   id=list-of2>list of added properties</dfn> that, when a document is <a
    href="#active" title="active document">active</a>, are available on the
-   <code>Document</code>'s <a href="#default3">default view</a> <code><a
+   <code>Document</code>'s <a href="#default3">default view</a>'s <code><a
    href="#window">Window</a></code> object. A <code>Document</code> object's
    <a href="#list-of2">list of added properties</a> must be empty when the
    <code>Document</code> object is created.
+
+  <p>Each <code>Document</code> in a <a href="#browsing1">browsing
+   context</a> also has an associated <dfn id=list-of3>list of message
+   ports</dfn>, which must be initially empty. The list is used during <a
+   href="#traverse" title="traverse the history">history traversal</a> in
+   much the same way as the <a href="#list-of2">list of added properties</a>,
+   to keep track of message ports that need to be reactivated if the
+   <code>Document</code> is made the <a href="#active">active document</a>
+   again.
 
   <p>Objects implementing the <code><a href="#window">Window</a></code>
    interface must also implement the <code>EventTarget</code> interface.
@@ -31382,7 +31403,7 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
 
    <dd>
     <p>Must be invoked whenever a <code title=event-message><a
-     href="#message0">message</a></code> event is targeted at or bubbles
+     href="#message2">message</a></code> event is targeted at or bubbles
      through the element.
 
    <dt><dfn id=onmousedown
@@ -33950,39 +33971,33 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
    that are therefore merely different states of one particular document) are
    contiguous by definition.
 
-  <p>User agents may <dfn id=discard>discard</dfn> the DOMs of entries other
+  <p>User agents may <a href="#discard" title="discard a
+   Document">discard</a> the <code>Document</code> objects of entries other
    than the <a href="#current1">current entry</a> that are not referenced
    from any script, reloading the pages afresh when the user or script
    navigates back to such pages. This specification does not specify when
-   user agents should discard pages' DOMs and when they should cache them.
-   See the section on the <code title=event-load><a
-   href="#load0">load</a></code> and <code title=event-unload>unload</code>
-   events for more details.</p>
-  <!-- XXX crossref! XXXDISCARD -->
+   user agents should discard <code>Document</code> objects and when they
+   should cache them.
 
-  <p>Entries that have had their DOM discarded must, for the purposes of the
-   algorithms given below, act as if they had not. When the user or script
-   navigates back or forwards to a page which has no in-memory DOM objects,
-   any other entries that shared the same <code>Document</code> object with
-   it must share the new object as well.
+  <p>Entries that have had their <code>Document</code> objects discarded
+   must, for the purposes of the algorithms given below, act as if they had
+   not. When the user or script navigates back or forwards to a page which
+   has no in-memory DOM objects, any other entries that shared the same
+   <code>Document</code> object with it must share the new object as well.
 
   <p>When state object entries are added, a URL can be provided. This URL is
    used to replace the state object entry if the <code>Document</code> is
    evicted.
 
-  <p>When a user agent discards the DOM from an entry in the session history,
-   it must also discard all the entries that share that <code>Document</code>
-   but do not have an associated URL (i.e. entries that only have a <a
-   href="#state">state object</a>). Entries that shared that
-   <code>Document</code> object but had a state object and have a different
-   URL must then have their <em>state objects</em> removed. Removed entries
-   are not recreated if the user or script navigates back to the page. If
-   there are no state object entries for that <code>Document</code> object
-   then no entries are removed.
-
-  <p class=big-issue><!--XXXDISCARD--> when an entry is discarded, any frozen
-   timers, intervals, XMLHttpRequests, database transactions, etc, must be
-   killed
+  <p>When a user agent discards the <code>Document</code> object from an
+   entry in the session history, it must also discard all the entries that
+   share that <code>Document</code> but do not have an associated URL (i.e.
+   entries that only have a <a href="#state">state object</a>). Entries that
+   shared that <code>Document</code> object but had a state object and have a
+   different URL must then have their <em>state objects</em> removed. Removed
+   entries are not recreated if the user or script navigates back to the
+   page. If there are no state object entries for that <code>Document</code>
+   object then no entries are removed.
 
   <h4 id=the-history><span class=secno>5.8.2 </span>The <code><a
    href="#history2">History</a></code> interface</h4>
@@ -34661,9 +34676,8 @@ user reload must be equivalent to .reload()
      document
 
    <li>
-    <p class=big-issue>if flag is set: reset timers, empty event queue, kill
-     any pending transactions, kill XMLHttpRequests, etc, and set things up
-     so that the document will be discarded asap <!--XXXDISCARD-->
+    <p class=big-issue>if flag is set: <a href="#discard" title="discard a
+     document">discard the <code>Document</code></a>
 
    <li>
     <dl>
@@ -35057,6 +35071,15 @@ user reload must be equivalent to .reload()
      <li class=big-issue>freeze any timers, intervals, XMLHttpRequests,
       database transactions, etc
 
+     <li id=port-traversal-deactivation>If there are any <code><a
+      href="#messageport0">MessagePort</a></code> objects whose owner is the
+      browsing context's default view's <code><a
+      href="#window">Window</a></code> object and that are entangled with
+      another port, the user agent must <a href="#deactivate"
+      title="deactivate a port">deactivate</a> all such ports and let the
+      <code>Document</code>'s <a href="#list-of3">list of message ports</a>
+      be a list of those ports.
+
      <li>The user agent must move any properties that have been added to the
       browsing context's default view's <code><a
       href="#window">Window</a></code> object to the <a href="#active">active
@@ -35108,6 +35131,12 @@ user reload must be equivalent to .reload()
       href="#list-of2">list of added properties</a> to browsing context's
       default view's <code><a href="#window">Window</a></code> object.
 
+     <li id=port-traversal-reactivation>If the <a href="#active">active
+      document</a>'s <a href="#list-of3">list of message ports</a> is not
+      empty, then the user agent must <a href="#reactivate" title="reactivate
+      a port">reactivate</a> all the ports in that list. Empty that <a
+      href="#list-of3">list of message ports</a>.
+
      <li class=big-issue>unfreeze any timers, intervals, XMLHttpRequests,
       database transactions, etc
     </ol>
@@ -35150,6 +35179,27 @@ user reload must be equivalent to .reload()
 
   <p class=big-issue>how does the changing of the global attributes affect
    .watch() when seen from other Windows?
+
+  <h4 id=closing><span class=secno>5.9.10 </span>Closing a browsing context</h4>
+
+  <p class=big-issue>Closing a browsing context and discarding it (vs closing
+   it and keeping it around in memory).
+
+  <p class=big-issue>when a browsing context is closed, all session history
+   entries' <code>Document</code> objects must be discarded.
+
+  <p class=big-issue>When a user agent is to <dfn id=discard>discard a
+   <code>Document</code></dfn>, any frozen timers, intervals,
+   XMLHttpRequests, database transactions, etc, must be killed, and any ports
+   owned by the Window object that aren't in a <a href="#list-of3">list of
+   message ports</a>, if the document is the <a href="#active">active
+   document</a>, or otherwise any ports in that document's <a
+   href="#list-of3">list of message ports</a>, if the document is not the <a
+   href="#active">active document</a>, must be <span>deactivated</span> and
+   unentangled.
+
+  <p class=big-issue>Also, <code title=event-unload>unload</code> events
+   should fire.
 
   <h3 id=structured><span class=secno>5.10 </span>Structured client-side
    storage</h3>
@@ -35934,7 +35984,7 @@ interface <dfn id=sqlstatementerrorcallback>SQLStatementErrorCallback</dfn> {
 
   <pre class=idl>interface <dfn id=sqlerror>SQLError</dfn> {
   readonly attribute unsigned int <a href="#code1" title=dom-SQLError-code>code</a>;
-  readonly attribute DOMString <a href="#message" title=dom-SQLError-message>message</a>;
+  readonly attribute DOMString <a href="#message1" title=dom-SQLError-message>message</a>;
 };</pre>
 
   <p>The <dfn id=code1 title=dom-SQLError-code><code>code</code></dfn> DOM
@@ -36003,7 +36053,7 @@ interface <dfn id=sqlstatementerrorcallback>SQLStatementErrorCallback</dfn> {
   <p class=big-issue>We should define a more thorough list of codes.
    Implementation feedback is requested to determine what codes are needed.
 
-  <p>The <dfn id=message
+  <p>The <dfn id=message1
    title=dom-SQLError-message><code>message</code></dfn> DOM attribute must
    return an error message describing the error encountered. The message
    should be localized to the user's language.
@@ -40745,7 +40795,7 @@ XXX Once we resolve the style="" issue, address these:
   <p>Messages in <a href="#server-sent">server-sent events</a>, <a
    href="#web-sockets">Web sockets</a>, <a
    href="#cross-document">cross-document messaging</a>, and <a
-   href="#pipe-messaging0">pipe messaging</a> use the <dfn id=message0
+   href="#channel0">channel messaging</a> use the <dfn id=message2
    title=event-message><code>message</code></dfn> event.
 
   <p>The following interface is defined for this event:
@@ -40755,9 +40805,9 @@ XXX Once we resolve the style="" issue, address these:
   readonly attribute DOMString <a href="#origin1" title=dom-MessageEvent-origin>origin</a>;
   readonly attribute DOMString <a href="#lasteventid" title=dom-MessageEvent-lastEventId>lastEventId</a>;
   readonly attribute <a href="#window">Window</a> <a href="#source3" title=dom-MessageEvent-source>source</a>;
-  readonly attribute <a href="#pipeend0">PipeEnd</a> <a href="#pipeend" title=dom-MessageEvent-pipeEnd>pipeEnd</a>;
-  void <a href="#initmessageevent" title=dom-MessageEvent-initMessageEvent>initMessageEvent</a>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString originArg, in DOMString lastEventIdArg, in Window sourceArg, in <a href="#pipeend0">PipeEnd</a> pipeEndArg);
-  void <a href="#initmessageeventns" title=dom-MessageEvent-initMessageEventNS>initMessageEventNS</a>(in DOMString namespaceURI, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString originArg, in DOMString lastEventIdArg, in Window sourceArg, in <a href="#pipeend0">PipeEnd</a> pipeEndArg);
+  readonly attribute <a href="#messageport0">MessagePort</a> <a href="#messageport" title=dom-MessageEvent-messagePort>messagePort</a>;
+  void <a href="#initmessageevent" title=dom-MessageEvent-initMessageEvent>initMessageEvent</a>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString originArg, in DOMString lastEventIdArg, in Window sourceArg, in <a href="#messageport0">MessagePort</a> messagePortArg);
+  void <a href="#initmessageeventns" title=dom-MessageEvent-initMessageEventNS>initMessageEventNS</a>(in DOMString namespaceURI, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString originArg, in DOMString lastEventIdArg, in Window sourceArg, in <a href="#messageport0">MessagePort</a> messagePortArg);
 };</pre>
 
   <p>The <dfn id=initmessageevent
@@ -40789,22 +40839,23 @@ XXX Once we resolve the style="" issue, address these:
    represents, in <a href="#cross-document">cross-document messaging</a>, the
    <code><a href="#window">Window</a></code> from which the message came.
 
-  <p>The <dfn id=pipeend
-   title=dom-MessageEvent-pipeEnd><code>pipeEnd</code></dfn> attribute
-   represents, in <a href="#cross-document">cross-document messaging</a> and
-   <a href="#pipe-messaging0">pipe messaging</a> the <code><a
-   href="#pipeend0">PipeEnd</a></code> being sent, if any.
+  <p>The <dfn id=messageport
+   title=dom-MessageEvent-messagePort><code>messagePort</code></dfn>
+   attribute represents, in <a href="#cross-document">cross-document
+   messaging</a> and <a href="#channel0">channel messaging</a> the <code><a
+   href="#messageport0">MessagePort</a></code> being sent, if any.
 
   <p>Unless otherwise specified, when the user agent creates and dispatches a
-   <code title=event-message><a href="#message0">message</a></code> event in
+   <code title=event-message><a href="#message2">message</a></code> event in
    the algorithms described in the following sections, the <code
    title=dom-MessageEvent-lastEventId><a
    href="#lasteventid">lastEventId</a></code> attribute must be the empty
    string, the <code title=dom-MessageEvent-origin><a
    href="#origin1">origin</a></code> attribute must be the empty string, the
    <code title=dom-MessageEvent-source><a href="#source3">source</a></code>
-   attribute must be null, and the <code title=dom-MessageEvent-pipeEnd><a
-   href="#pipeend">pipeEnd</a></code> attribute must be null.
+   attribute must be null, and the <code
+   title=dom-MessageEvent-messagePort><a
+   href="#messageport">messagePort</a></code> attribute must be null.
 
   <h3 id=server-sent-events><span class=secno>7.2 </span><dfn
    id=server-sent>Server-sent events</dfn></h3>
@@ -40834,7 +40885,7 @@ XXX Once we resolve the style="" issue, address these:
    href="#resolve" title="resolve a url">resolve</a> the <a
    href="#url">URL</a> specified in <var title="">src</var>, and if that
    succeeds, add the resulting <a href="#absolute">absolute URL</a> to the <a
-   href="#list-of3" title=concept-eventsource-list>list of event sources</a>
+   href="#list-of4" title=concept-eventsource-list>list of event sources</a>
    for that object. The same URL can be registered multiple times. If the URL
    fails to resolve, then the user agent must raise a <code>SYNTAX_ERR</code>
    exception.
@@ -40845,7 +40896,7 @@ XXX Once we resolve the style="" issue, address these:
    href="#resolve" title="resolve a url">resolve</a> the <a
    href="#url">URL</a> specified in <var title="">src</var>, and if that
    succeeds, remove the resulting <a href="#absolute">absolute URL</a> from
-   the <a href="#list-of3" title=concept-eventsource-list>list of event
+   the <a href="#list-of4" title=concept-eventsource-list>list of event
    sources</a> for that object. If the same URI has been registered multiple
    times, removing it must remove only one instance of that URI for each
    invocation of the <code title=removeEventSource>removeEventSource()</code>
@@ -40856,7 +40907,7 @@ XXX Once we resolve the style="" issue, address these:
 
   <p>Each object implementing the <code>EventTarget</code> and <code><a
    href="#remoteeventtarget">RemoteEventTarget</a></code> interfaces has a
-   <dfn id=list-of3 title=concept-eventsource-list>list of event
+   <dfn id=list-of4 title=concept-eventsource-list>list of event
    sources</dfn> that are registered for that object.
 
   <p>When a new URI is added to this list, the user agent should, as soon as
@@ -41148,7 +41199,7 @@ XXX Once we resolve the style="" issue, address these:
    <li>
     <p>Otherwise, create an event that uses the <code><a
      href="#messageevent">MessageEvent</a></code> interface, with the event
-     name <code title=event-message><a href="#message0">message</a></code>,
+     name <code title=event-message><a href="#message2">message</a></code>,
      which does not bubble, is cancelable, and has no default action. The
      <code title=dom-MessageEvent-data><a href="#data4">data</a></code>
      attribute must be set to the value of the <var title="">data</var>
@@ -41189,7 +41240,7 @@ data: -2
 data: 10</pre>
 
    <p>...would cause an event <code title=event-message><a
-    href="#message0">message</a></code> with the interface <code><a
+    href="#message2">message</a></code> with the interface <code><a
     href="#messageevent">MessageEvent</a></code> to be dispatched on the
     <code><a href="#eventsource">eventsource</a></code> element, whose <code
     title=dom-MessageEvent-data><a href="#data4">data</a></code> attribute
@@ -41410,14 +41461,14 @@ data:&nbsp;test</pre>
   <p class=note>No information regarding why the connection was closed is
    passed to the application in this version of this specification.
 
-  <p>The <code title=event-message><a href="#message0">message</a></code>
+  <p>The <code title=event-message><a href="#message2">message</a></code>
    event is fired when when data is received for a connection.
 
   <p>Events that would be fired during script execution (e.g. between the
    <code><a href="#websocket0">WebSocket</a></code> object being created
    &mdash; and thus the connection being established &mdash; and the current
    script completing; or, during the execution of a <code
-   title=event-message><a href="#message0">message</a></code> event handler)
+   title=event-message><a href="#message2">message</a></code> event handler)
    must be buffered, and those events queued up and each one individually
    fired after the script has completed.</p>
   <!-- XXX make this more generic
@@ -41443,7 +41494,7 @@ data:&nbsp;test</pre>
 
    <dd>
     <p>Must be invoked whenever a <code title=event-message><a
-     href="#message0">message</a></code> event is targeted at or bubbles
+     href="#message2">message</a></code> event is targeted at or bubbles
      through the <code><a href="#websocket0">WebSocket</a></code> object.
 
    <dt><dfn id=onclose
@@ -41921,7 +41972,7 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
         <p>If <var title="">frame type</var> is 0x00, create an event that
          uses the <code><a href="#messageevent">MessageEvent</a></code>
          interface, with the event name <code title=event-message><a
-         href="#message0">message</a></code>, which does not bubble, is
+         href="#message2">message</a></code>, which does not bubble, is
          cancelable, has no default action, and whose <code
          title=dom-MessageEvent-data><a href="#data4">data</a></code>
          attribute is set to <var title="">data</var>, and dispatch it at the
@@ -42115,7 +42166,7 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
     <p>Send a 0xff byte to the client to indicate the end of the message.
   </ol>
 
-  <h5 id=closing><span class=secno>7.3.4.3. </span>Closing the connection</h5>
+  <h5 id=closing0><span class=secno>7.3.4.3. </span>Closing the connection</h5>
 
   <p>To <dfn id=close1>close the Web Socket connection</dfn>, either the user
    agent or the server closes the TCP/IP connection. There is no closing
@@ -42173,9 +42224,12 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
      continue running these steps.</p>
 
    <li>
-    <p>Wait for the <code><a href="#window">Window</a></code> object on which
-     the method was invoked to have finished executing any pending scripts.</p>
-    <!-- XXX define this in terms of the event queue -->
+    <p>Wait for all scripts in the <a href="#unit-of">unit of related
+     browsing contexts</a> to which the the <code><a
+     href="#window">Window</a></code> object on which the method was invoked
+     belongs to have finished executing any pending scripts.</p>
+    <!-- XXX define this in terms of the
+    event queue -->
 
    <li>
     <p>If the <var title="">targetOrigin</var> argument has a value other
@@ -42189,7 +42243,7 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
    <li>
     <p>Create an event that uses the <code><a
      href="#messageevent">MessageEvent</a></code> interface, with the event
-     name <code title=event-message><a href="#message0">message</a></code>,
+     name <code title=event-message><a href="#message2">message</a></code>,
      which does not bubble, is cancelable, and has no default action. The
      <code title=dom-MessageEvent-data><a href="#data4">data</a></code>
      attribute must be set to the value passed as the <var
@@ -42274,91 +42328,421 @@ function receiver(e) {
    security reasons. It also requires that UAs be careful to allow access to
    certain properties but not others.
 
-  <p class=big-issue>postMessage() with a pipe isn't yet defined
+  <p class=big-issue>postMessage() with a message port isn't yet defined
 
-  <h3 id=pipe-messaging><span class=secno>7.5 </span><dfn
-   id=pipe-messaging0>Pipe messaging</dfn></h3>
+  <h3 id=channel><span class=secno>7.5 </span><dfn id=channel0>Channel
+   messaging</dfn></h3>
 
   <h4 id=introduction5><span class=secno>7.5.1 </span>Introduction</h4>
 
   <p><em>This section is non-normative.</em>
 
-  <p class=big-issue>An introduction to the pipe APIs.
+  <p class=big-issue>An introduction to the channel and port APIs.
 
-  <h4 id=pipes><span class=secno>7.5.2 </span>Pipes</h4>
+  <h4 id=message><span class=secno>7.5.2 </span>Message channels</h4>
 
   <pre
-   class=idl>[<a href="#pipe0" title=dom-Pipe>Constructor</a>] interface <dfn id=pipe>Pipe</dfn> {
-  readonly attribute <a href="#pipeend0">PipeEnd</a> <a href="#end1" title=dom-pipe-end1>end1</a>;
-  readonly attribute <a href="#pipeend0">PipeEnd</a> <a href="#end2" title=dom-pipe-end2>end2</a>;
+   class=idl>[<span title=dom-Pipe>Constructor</span>] interface <dfn id=messagechannel>MessageChannel</dfn> {
+  readonly attribute <a href="#messageport0">MessagePort</a> <a href="#port1" title=dom-channel-port1>port1</a>;
+  readonly attribute <a href="#messageport0">MessagePort</a> <a href="#port2" title=dom-channel-port2>port2</a>;
 };</pre>
 
-  <p>When the <dfn id=pipe0 title=dom-Pipe><code>Pipe()</code></dfn>
-   constructor is called, it must run the following algorithm:
+  <p>When the <dfn id=messagechannel0
+   title=dom-MessageChannel><code>MessageChannel()</code></dfn> constructor
+   is called, it must run the following algorithm:
 
   <ol>
    <li>
-    <p><a href="#create">Create a new <code>PipeEnd</code> object</a> owned
-     by the <a href="#script3">script browsing context</a>, and let <var
-     title="">end1</var> be that object.
+    <p><a href="#create">Create a new <code>MessagePort</code> object</a>
+     owned by the <a href="#script3">script browsing context</a>, and let
+     <var title="">port1</var> be that object.
 
    <li>
-    <p><a href="#create">Create a new <code>PipeEnd</code> object</a> owned
-     by the <a href="#script3">script browsing context</a>, and let <var
-     title="">end2</var> be that object.
+    <p><a href="#create">Create a new <code>MessagePort</code> object</a>
+     owned by the <a href="#script3">script browsing context</a>, and let
+     <var title="">port2</var> be that object.
 
    <li>
-    <p><a href="#entangle">Entangle</a> the <var title="">end1</var> and <var
-     title="">end2</var> objects.
+    <p><a href="#entangle">Entangle</a> the <var title="">port1</var> and
+     <var title="">port2</var> objects.
 
    <li>
-    <p>Create a new <code><a href="#pipe">Pipe</a></code> object, and let
-     <var title="">pipe</var> be that object.
+    <p>Set the <code title=dom-MessagePort-active><a
+     href="#active0">active</a></code> attribute of the two ports to true.
 
    <li>
-    <p>Let the <code title=dom-pipe-end1><a href="#end1">end1</a></code>
-     attribute of the <var title="">pipe</var> object be <var
-     title="">end1</var>.</p>
+    <p>Instantiate a new <code><a
+     href="#messagechannel">MessageChannel</a></code> object, and let <var
+     title="">channel</var> be that object.
 
    <li>
-    <p>Let the <code title=dom-pipe-end2><a href="#end2">end2</a></code>
-     attribute of the <var title="">pipe</var> object be <var
-     title="">end2</var>.</p>
+    <p>Let the <code title=dom-channel-port1><a
+     href="#port1">port1</a></code> attribute of the <var
+     title="">channel</var> object be <var title="">port1</var>.</p>
 
    <li>
-    <p>Return <var title="">pipe</var>.
+    <p>Let the <code title=dom-channel-port2><a
+     href="#port2">port2</a></code> attribute of the <var
+     title="">channel</var> object be <var title="">port2</var>.</p>
+
+   <li>
+    <p>Return <var title="">channel</var>.
   </ol>
 
-  <p>The <dfn id=end1 title=dom-pipe-end1><code>end1</code></dfn> and <dfn
-   id=end2 title=dom-pipe-end2><code>end2</code></dfn> attributes must return
-   the values they were assigned when the <code><a
-   href="#pipe">Pipe</a></code> object was created.
+  <p>The <dfn id=port1 title=dom-channel-port1><code>port1</code></dfn> and
+   <dfn id=port2 title=dom-channel-port2><code>port2</code></dfn> attributes
+   must return the values they were assigned when the <code><a
+   href="#messagechannel">MessageChannel</a></code> object was created.
 
-  <h4 id=pipe-ends><span class=secno>7.5.3 </span>Pipe ends</h4>
+  <h4 id=message0><span class=secno>7.5.3 </span>Message ports</h4>
 
-  <p>Each pipe has two ends. Data sent down one end is received by the other
-   end, and vice versa.
+  <p>Each channel has two message ports. Data sent through one port is
+   received by the other port, and vice versa.
 
-  <pre class=idl>interface <dfn id=pipeend0>PipeEnd</dfn> {
-  readonly attribute <a href="#window">Window</a> <span title=dom-owner>ownerWindow</span>;
-  readonly attribute boolean <span title=dom-endpipe>active</span>;
-  void <span title=dom-pipeend-postMessage>postMessage</span>(in DOMString message);
-  void <span title=dom-pipeend-postMessage>postMessage</span>(in DOMString message, in <a href="#pipeend0">PipeEnd</a> pipeEnd);
-  void <span title=dom-pipeend-close>close</span>();
+  <pre class=idl>interface <dfn id=messageport0>MessagePort</dfn> {
+  readonly attribute <a href="#window">Window</a> <a href="#ownerwindow" title=dom-MessagePort-ownerWindow>ownerWindow</a>;
+  readonly attribute boolean <a href="#active0" title=dom-MessagePort-active>active</a>;
+  boolean <a href="#postmessage0" title=dom-MessagePort-postMessage>postMessage</a>(in DOMString message);
+  boolean <a href="#postmessage0" title=dom-MessagePort-postMessage>postMessage</a>(in DOMString message, in <a href="#messageport0">MessagePort</a> messagePort);
+  void <a href="#close2" title=dom-MessagePort-close>close</a>();
 
   // event handler attributes
-           attribute <span>EventListener</span> <span title=handler-endpipe-onmessage>onmessage</span>;
-           attribute <span>EventListener</span> <span title=handler-endpipe-onunload>onunload</span>;
+           attribute <span>EventListener</span> <a href="#onmessage1" title=handler-MessagePort-onmessage>onmessage</a>;
+           attribute <span>EventListener</span> <a href="#onunload0" title=handler-MessagePort-onunload>onunload</a>;
 };</pre>
 
-  <p class=big-issue>When the user agent is to <dfn id=create>create a new
-   <code>PipeEnd</code> object</dfn> owned by a <code><a
-   href="#window">Window</a></code> object <var title="">owner</var>, it
-   must...
+  <p>When the user agent is to <dfn id=create>create a new
+   <code>MessagePort</code> object</dfn> owned by a <code><a
+   href="#window">Window</a></code> object <var title="">owner</var>, it must
+   run the following steps:
 
-  <p class=big-issue>When the user agent is to <dfn
-   id=entangle>entangle</dfn> two <code><a
-   href="#pipeend0">PipeEnd</a></code> objects, it must...
+  <ol>
+   <li>
+    <p>Instantiate a new <code><a href="#messageport0">MessagePort</a></code>
+     object, and let <var title="">port</var> be that object.
+
+   <li>
+    <p>Set the <code title=dom-MessagePort-ownerWindow><a
+     href="#ownerwindow">ownerWindow</a></code> attribute of <var
+     title="">port</var> to <var title="">owner</var>.
+
+   <li>
+    <p>Set the <code title=dom-MessagePort-active><a
+     href="#active0">active</a></code> attribute of <var title="">port</var>
+     be false.
+  </ol>
+
+  <hr>
+
+  <p>When the user agent is to <dfn id=entangle>entangle</dfn> two <code><a
+   href="#messageport0">MessagePort</a></code> objects, it must run the
+   following steps:
+
+  <ol>
+   <li>
+    <p>If either port is already entangled, then let <var
+     title="">port1</var> be that port, and run these substeps:</p>
+
+    <ol>
+     <li>
+      <p>Let <var title="">old port</var> be the port that <var
+       title="">port1</var> is entangled with.
+
+     <li>
+      <p>Unentangle <var title="">old port</var>, so that it is no longer
+       entangled with any ports.
+
+     <li>
+      <p>Set the <code title=dom-MessagePort-active><a
+       href="#active0">active</a></code> attribute of <var title="">old
+       port</var> to false.
+
+     <li>
+      <p>Unentangle <var title="">port1</var>, so that it is no longer
+       entangled with any ports.
+    </ol>
+
+    <p>If <var title="">port1</var> and <var title="">old port</var> were the
+     two ports of a <code><a href="#messagechannel">MessageChannel</a></code>
+     object, then that <code><a
+     href="#messagechannel">MessageChannel</a></code> object no longer
+     represents an actual channel: the two ports in that object are no longer
+     entangled.</p>
+
+   <li>
+    <p>Associate the two ports to be entangled, so that they form the two
+     parts of a new channel. (There is no <code><a
+     href="#messagechannel">MessageChannel</a></code> object that represents
+     this channel.)
+  </ol>
+
+  <hr>
+
+  <p>When the user agent is to <dfn id=clone>clone a port</dfn> <var
+   title="">original port</var>, with the clone being owned by <var
+   title="">owner</var>, it must run the following steps, which return either
+   a new <code><a href="#messageport0">MessagePort</a></code> object or an
+   exception for the caller to raise:
+
+  <ol>
+   <li>
+    <p>If the <var title="">original port</var> is not entangled without
+     another port, then return an <code>INVALID_STATE_ERR</code> exception
+     and abort all these steps.
+
+   <li>
+    <p>Let the <var title="">remote port</var> be the port with which the
+     <var title="">original port</var> is entangled.
+
+   <li>
+    <p>Let <var title="">original status</var> be the value of the <code
+     title=dom-MessagePort-active><a href="#active0">active</a></code>
+     attribute of the <var title="">original port</var>.
+
+   <li>
+    <p><a href="#create">Create a new <code>MessagePort</code> object</a>
+     owned by <var title="">owner</var>, and let <var title="">new port</var>
+     be that object.
+
+   <li>
+    <p><a href="#entangle">Entangle</a> the <var title="">remote port</var>
+     and <var title="">new port</var> objects. The <var title="">original
+     port</var> object will have its <code title=dom-MessagePort-active><a
+     href="#active0">active</a></code> attribute permanently set to false by
+     this process.
+
+   <li>
+    <p>Let the <code title=dom-MessagePort-active><a
+     href="#active0">active</a></code> attribute of the <var title="">new
+     port</var> object have the same value as <var title="">original
+     status</var>.
+   </li>
+   <!-- we
+   don't throw if it's false, because it might become true again,
+   e.g. if you're sending a port that is entangled with a port that's
+   associated with a document that's currently not the active document
+   of its iframe, but which hasn't been discarded yet -->
+
+   <li>
+    <p>Return <var title="">new port</var>. It is the clone.
+  </ol>
+
+  <hr>
+
+  <p>The <dfn id=ownerwindow
+   title=dom-MessagePort-ownerWindow><code>ownerWindow</code></dfn> attribute
+   must return the value it was assigned when the <code><a
+   href="#messageport0">MessagePort</a></code> object was created.
+
+  <p>The <dfn id=active0
+   title=dom-MessagePort-active><code>active</code></dfn> attribute must
+   return the last value that it was set to according to the rules of this
+   specification.
+
+  <hr>
+
+  <p>The <dfn id=postmessage0
+   title=dom-MessagePort-postMessage><code>postMessage()</code></dfn> method,
+   when called on a port <var title="">source port</var>, must cause the user
+   agent to run the following steps:
+
+  <ol>
+   <li>
+    <p>Let <var title="">message</var> be the method's first argument.
+
+   <li>
+    <p>Let <var title="">data port</var> be the method's second argument, if
+     any.
+
+   <li>
+    <p>If the <var title="">source port</var>'s <code
+     title=dom-MessagePort-active><a href="#active0">active</a></code>
+     attribute is false, then return false and abort these steps.
+   </li>
+   <!-- we don't
+   raise an exception because this attribute can become false at a
+   moment's notice, but we return false so that the caller can check
+   whether the port was active at time of calling without a race
+   condition. -->
+
+   <li>
+    <p>Let <var title="">target port</var> be the port with which <var
+     title="">source port</var> is entangled.
+
+   <li>
+    <p>Create an event that uses the <code><a
+     href="#messageevent">MessageEvent</a></code> interface, with the name
+     <code title=event-message><a href="#message2">message</a></code>, which
+     does not bubble, is cancelable, and has no default action.
+
+   <li>
+    <p>Let the <code title=dom-MessageEvent-data><a
+     href="#data4">data</a></code> attribute of the event have the value of
+     <var title="">message</var>, the method's first argument.
+
+   <li>
+    <p>If the method was called with a second argument <var title="">data
+     port</var> and that argument isn't null, then run the following
+     substeps:</p>
+
+    <ol>
+     <li>
+      <p>If the <var title="">data port</var> is the <var title="">source
+       port</var> or the <var title="">target port</var>, then throw an
+       <code>INVALID_ACCESS_ERR</code> exception and abort all these steps.
+
+     <li>
+      <p>Try to obtain a <var title="">new data port</var> by <a
+       href="#clone" title="clone a port">cloning</a> the <var title="">data
+       port</var> with the <a href="#ownerwindow"
+       title=dom-MessagePort-ownerWindow>owner</a> of the <var
+       title="">target port</var> as the owner of the clone. If this returns
+       an exception, then throw that exception and abort these steps.
+
+     <li>
+      <p>Let the <code title=dom-MessageEvent-messagePort><a
+       href="#messageport">messagePort</a></code> attribute of the event be
+       the <var title="">new data port</var>.
+    </ol>
+
+   <li>
+    <p>Return true from the method, but continue with these steps.
+
+   <li>
+    <p>Wait for all scripts in the <a href="#unit-of">unit of related
+     browsing contexts</a> to which the the <a href="#ownerwindow"
+     title=dom-MessagePort-ownerWindow>owner</a> of the <var title="">target
+     port</var> belongs to have executed to completion, and then dispatch the
+     event at the <var title="">target port</var> object. If this never
+     happens (e.g. the relevant <a href="#browsing1">browsing context</a> is
+     closed by the user before the event can be dispatched), then discard the
+     event.
+   </li>
+   <!-- XXX queue -->
+  </ol>
+
+  <hr>
+
+  <p>The <dfn id=close2
+   title=dom-MessagePort-close><code>close()</code></dfn> method, when called
+   on a port <var title="">local port</var>, must cause the user agent to run
+   the following steps:
+
+  <ol>
+   <li>
+    <p>If <var title="">local port</var> is entangled with another port, then
+     let <var title="">remote port</var> be that port and run these substeps:</p>
+
+    <ol>
+     <li>
+      <p>Unentangle <var title="">remote port</var>, so that it is no longer
+       entangled with any ports.
+
+     <li>
+      <p>Set the <code title=dom-MessagePort-active><a
+       href="#active0">active</a></code> attribute of <var title="">remote
+       port</var> to false.
+
+     <li>
+      <p>Unentangle <var title="">local port</var>, so that it is no longer
+       entangled with any ports.
+    </ol>
+
+   <li>
+    <p>Set the <code title=dom-MessagePort-active><a
+     href="#active0">active</a></code> attribute of <var title="">local
+     port</var> to false.
+  </ol>
+
+  <hr>
+
+  <p>The following are the <a href="#event4">event handler DOM attributes</a>
+   that must be supported by objects implementing the <code><a
+   href="#messageport0">MessagePort</a></code> interface:
+
+  <dl>
+   <dt><dfn id=onmessage1
+    title=handler-MessagePort-onmessage><code>onmessage</code></dfn>
+
+   <dd>
+    <p>Must be invoked whenever a <code
+     title=event-MessagePort-message>message</code> event is targeted at or
+     bubbles through the <code><a href="#messageport0">MessagePort</a></code>
+     object.
+
+   <dt><dfn id=onunload0
+    title=handler-MessagePort-onunload><code>onunload</code></dfn>
+
+   <dd>
+    <p>Must be invoked whenever an <code title=event-unload>unload</code>
+     event is targeted at or bubbles through the <code><a
+     href="#messageport0">MessagePort</a></code> object.
+  </dl>
+
+  <p class=note>Nothing in this specification causes an <code
+   title=event-unload>unload</code> event to be targetted at a <code><a
+   href="#messageport0">MessagePort</a></code> object. This feature is
+   intended for use with Workers. <a href="#refsWORKERS">[WORKERS]</a>
+
+  <h5 id=ports><span class=secno>7.5.3.1. </span>Ports and browsing contexts</h5>
+
+  <p>During <a href="#traverse" title="traverse the history">session history
+   traversal</a> (e.g. when a user <a href="#navigate"
+   title=navigate>navigates</a> a <a href="#browsing1">browsing context</a>
+   to another page, or goes back to a previous page), the user agent will
+   have to <a href="#port-traversal-deactivation">deactivate</a> and/or <a
+   href="#port-traversal-reactivation">reactivate</a> some ports.
+
+  <p>Ports are deactivated and unentangled when the <code>Document</code>
+   that was the <a href="#active">active document</a> of the <a
+   href="#browsing1">browsing context</a> corresponding to the <code><a
+   href="#window">Window</a></code> object that <a href="#ownerwindow"
+   title=dom-MessagePort-ownerWindow>owns</a> them is <a href="#discard"
+   title="discard a document">discarded</a>.
+
+  <p>To <dfn id=deactivate>deactivate a port</dfn> <var title="">local
+   port</var> that is entangled with a second port <var title="">remote
+   port</var>, the user agent must set the <code
+   title=dom-MessagePort-active><a href="#active0">active</a></code>
+   attribute of the <var title="">remote port</var> to false.
+
+  <p>To <dfn id=reactivate>reactivate a port</dfn> <var title="">local
+   port</var> that is entangled with a second port <var title="">remote
+   port</var>, the user agent must set the <code
+   title=dom-MessagePort-active><a href="#active0">active</a></code>
+   attribute of the <var title="">remote port</var> to true.
+
+  <p class=note>It's important to note that activating or deactivating a port
+   actually changes the <code title=dom-MessagePort-active><a
+   href="#active0">active</a></code> attribute of the port's entangled port,
+   not its own attribute.
+
+  <h5 id=ports0><span class=secno>7.5.3.2. </span>Ports and garbage
+   collection</h5>
+
+  <p>User agents must act as if <code><a
+   href="#messageport0">MessagePort</a></code> objects have a strong
+   reference to their entangled <code><a
+   href="#messageport0">MessagePort</a></code> object so long as that other
+   <code><a href="#messageport0">MessagePort</a></code> object has any <code
+   title=event-message><a href="#message2">message</a></code> or <code
+   title=event-unload>unload</code> event listeners registered.
+
+  <div class=note>
+   <p>Thus, a message port can be received, given an event listener, and then
+    forgotten, and so long as that event listener could receive a message,
+    the channel will be maintained.</p>
+
+   <p>Of course, if this was to occur on both sides of the channel, then both
+    ports would be garbage collected, since they would not be reachable from
+    live code, despite having a strong reference to each other.</p>
+  </div>
+
+  <p>When an entangled message port is about to be garbage collected, it must
+   be <a href="#deactivate" title="deactivate a port">deactivated</a> and
+   then unentangled, so that the two ports are no longer related and so that
+   the other port's <code title=dom-MessagePort-active><a
+   href="#active0">active</a></code> attribute is set to false.
 
   <h2 id=syntax><span class=secno>8. </span>The HTML syntax</h2>
 
@@ -44228,7 +44612,7 @@ function receiver(e) {
 
    <dd>
     <p>The following HTML elements are those that end up in the <a
-     href="#list-of4">list of active formatting elements</a>: <code><a
+     href="#list-of5">list of active formatting elements</a>: <code><a
      href="#a">a</a></code>, <code><a href="#b">b</a></code>,
      <code>big</code>, <code><a href="#em">em</a></code>, <code>font</code>,
      <code><a href="#i">i</a></code>, <code>nobr</code>, <code>s</code>,
@@ -44343,7 +44727,7 @@ function receiver(e) {
   <h5 id=the-list><span class=secno>8.2.3.3. </span>The list of active
    formatting elements</h5>
 
-  <p>Initially the <dfn id=list-of4>list of active formatting elements</dfn>
+  <p>Initially the <dfn id=list-of5>list of active formatting elements</dfn>
    is empty. It is used to handle mis-nested <a href="#formatting"
    title=formatting>formatting element tags</a>.
 
@@ -44360,32 +44744,32 @@ function receiver(e) {
    steps:
 
   <ol>
-   <li>If there are no entries in the <a href="#list-of4">list of active
+   <li>If there are no entries in the <a href="#list-of5">list of active
     formatting elements</a>, then there is nothing to reconstruct; stop this
     algorithm.
 
    <li>If the last (most recently added) entry in the <a
-    href="#list-of4">list of active formatting elements</a> is a marker, or
+    href="#list-of5">list of active formatting elements</a> is a marker, or
     if it is an element that is in the <a href="#stack">stack of open
     elements</a>, then there is nothing to reconstruct; stop this algorithm.
 
    <li>Let <var title="">entry</var> be the last (most recently added)
-    element in the <a href="#list-of4">list of active formatting
+    element in the <a href="#list-of5">list of active formatting
     elements</a>.
 
    <li>If there are no entries before <var title="">entry</var> in the <a
-    href="#list-of4">list of active formatting elements</a>, then jump to
+    href="#list-of5">list of active formatting elements</a>, then jump to
     step 8.
 
    <li>Let <var title="">entry</var> be the entry one earlier than <var
-    title="">entry</var> in the <a href="#list-of4">list of active formatting
+    title="">entry</var> in the <a href="#list-of5">list of active formatting
     elements</a>.
 
    <li>If <var title="">entry</var> is neither a marker nor an element that
     is also in the <a href="#stack">stack of open elements</a>, go to step 4.
 
    <li>Let <var title="">entry</var> be the element one later than <var
-    title="">entry</var> in the <a href="#list-of4">list of active formatting
+    title="">entry</var> in the <a href="#list-of5">list of active formatting
     elements</a>.
 
    <li>Perform a shallow clone of the element <var title="">entry</var> to
@@ -44399,7 +44783,7 @@ function receiver(e) {
     entry for <var title="">clone</var>.
 
    <li>If the entry for <var title="">clone</var> in the <a
-    href="#list-of4">list of active formatting elements</a> is not the last
+    href="#list-of5">list of active formatting elements</a> is not the last
     entry in the list, return to step 7.
   </ol>
 
@@ -44408,7 +44792,7 @@ function receiver(e) {
    haven't been explicitly closed.
 
   <p class=note>The way this specification is written, the <a
-   href="#list-of4">list of active formatting elements</a> always consists of
+   href="#list-of5">list of active formatting elements</a> always consists of
    elements in chronological order with the least recently added element
    first and the most recently added element last (except for while steps 8
    to 11 of the above algorithm are being executed, of course).
@@ -44419,9 +44803,9 @@ function receiver(e) {
 
   <ol>
    <li>Let <var title="">entry</var> be the last (most recently added) entry
-    in the <a href="#list-of4">list of active formatting elements</a>.
+    in the <a href="#list-of5">list of active formatting elements</a>.
 
-   <li>Remove <var title="">entry</var> from the <a href="#list-of4">list of
+   <li>Remove <var title="">entry</var> from the <a href="#list-of5">list of
     active formatting elements</a>.
 
    <li>If <var title="">entry</var> was a marker, then stop the algorithm at
@@ -44620,7 +45004,7 @@ function receiver(e) {
 
      <dd>
       <p>Consume the <a href="#next-input">next input character</a>. If it is
-       a U+002F SOLIDUS (/) character, switch to the <a href="#close2">close
+       a U+002F SOLIDUS (/) character, switch to the <a href="#close3">close
        tag open state</a>. Otherwise, emit a U+003C LESS-THAN SIGN character
        token and reconsume the current input character in the <a
        href="#data-state">data state</a>.</p>
@@ -44638,7 +45022,7 @@ function receiver(e) {
 
        <dt>U+002F SOLIDUS (/)
 
-       <dd>Switch to the <a href="#close2">close tag open state</a>.
+       <dd>Switch to the <a href="#close3">close tag open state</a>.
 
        <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL
         LETTER Z
@@ -44675,7 +45059,7 @@ function receiver(e) {
       </dl>
     </dl>
 
-   <dt><dfn id=close2>Close tag open state</dfn>
+   <dt><dfn id=close3>Close tag open state</dfn>
 
    <dd>
     <p>If the <a href="#content3">content model flag</a> is set to the RCDATA
@@ -46610,7 +46994,7 @@ function receiver(e) {
      this is a <a href="#parse2">parse error</a>.
   </ol>
 
-  <h5 id=closing0><span class=secno>8.2.5.2. </span>Closing elements that
+  <h5 id=closing1><span class=secno>8.2.5.2. </span>Closing elements that
    have implied end tags</h5>
 
   <p>When the steps below require the UA to <dfn id=generate>generate implied
@@ -47982,12 +48366,12 @@ function receiver(e) {
    <dt>A start tag whose tag name is "a"
 
    <dd>
-    <p>If the <a href="#list-of4">list of active formatting elements</a>
+    <p>If the <a href="#list-of5">list of active formatting elements</a>
      contains an element whose tag name is "a" between the end of the list
      and the last marker on the list (or the start of the list if there is no
      marker on the list), then this is a <a href="#parse2">parse error</a>;
      act as if an end tag with the tag name "a" had been seen, then remove
-     that element from the <a href="#list-of4">list of active formatting
+     that element from the <a href="#list-of5">list of active formatting
      elements</a> and the <a href="#stack">stack of open elements</a> if the
      end tag didn't already remove it (it might not have if the element is
      not <a href="#have-an0" title="has an element in table scope">in table
@@ -48006,7 +48390,7 @@ function receiver(e) {
      if any.</p>
 
     <p><a href="#insert0">Insert an HTML element</a> for the token. Add that
-     element to the <a href="#list-of4">list of active formatting
+     element to the <a href="#list-of5">list of active formatting
      elements</a>.</p>
 
    <dt>A start tag whose tag name is one of: "b", "big", "em", "font", "i",
@@ -48017,7 +48401,7 @@ function receiver(e) {
      if any.</p>
 
     <p><a href="#insert0">Insert an HTML element</a> for the token. Add that
-     element to the <a href="#list-of4">list of active formatting
+     element to the <a href="#list-of5">list of active formatting
      elements</a>.</p>
 
    <dt>A start tag whose tag name is "nobr"
@@ -48034,7 +48418,7 @@ function receiver(e) {
      any.</p>
 
     <p><a href="#insert0">Insert an HTML element</a> for the token. Add that
-     element to the <a href="#list-of4">list of active formatting
+     element to the <a href="#list-of5">list of active formatting
      elements</a>.</p>
 
    <dt id=adoptionAgency>An end tag whose tag name is one of: "a", "b",
@@ -48047,7 +48431,7 @@ function receiver(e) {
     <ol>
      <li>
       <p>Let the <var title="">formatting element</var> be the last element
-       in the <a href="#list-of4">list of active formatting elements</a>
+       in the <a href="#list-of5">list of active formatting elements</a>
        that:</p>
 
       <ul>
@@ -48088,7 +48472,7 @@ function receiver(e) {
        bottom of the <a href="#stack">stack of open elements</a>, from the <a
        href="#current5">current node</a> up to and including the <var
        title="">formatting element</var>, and remove the <var
-       title="">formatting element</var> from the <a href="#list-of4">list of
+       title="">formatting element</var> from the <a href="#list-of5">list of
        active formatting elements</a>.
 
      <li>
@@ -48102,7 +48486,7 @@ function receiver(e) {
 
      <li>
       <p>Let a bookmark note the position of the <var title="">formatting
-       element</var> in the <a href="#list-of4">list of active formatting
+       element</var> in the <a href="#list-of5">list of active formatting
        elements</a> relative to the elements on either side of it in the
        list.
 
@@ -48115,7 +48499,7 @@ function receiver(e) {
         title="">node</var> in the <a href="#stack">stack of open
         elements</a>.
 
-       <li>If <var title="">node</var> is not in the <a href="#list-of4">list
+       <li>If <var title="">node</var> is not in the <a href="#list-of5">list
         of active formatting elements</a>, then remove <var
         title="">node</var> from the <a href="#stack">stack of open
         elements</a> and then go back to step 1.
@@ -48127,11 +48511,11 @@ function receiver(e) {
        <li>Otherwise, if <var title="">last node</var> is the <var
         title="">furthest block</var>, then move the aforementioned bookmark
         to be immediately after the <var title="">node</var> in the <a
-        href="#list-of4">list of active formatting elements</a>.
+        href="#list-of5">list of active formatting elements</a>.
 
        <li>If <var title="">node</var> has any children, perform a shallow
         clone of <var title="">node</var>, replace the entry for <var
-        title="">node</var> in the <a href="#list-of4">list of active
+        title="">node</var> in the <a href="#list-of5">list of active
         formatting elements</a> with an entry for the clone, replace the
         entry for <var title="">node</var> in the <a href="#stack">stack of
         open elements</a> with an entry for the clone, and let <var
@@ -48172,8 +48556,8 @@ function receiver(e) {
 
      <li>
       <p>Remove the <var title="">formatting element</var> from the <a
-       href="#list-of4">list of active formatting elements</a>, and insert
-       the clone into the <a href="#list-of4">list of active formatting
+       href="#list-of5">list of active formatting elements</a>, and insert
+       the clone into the <a href="#list-of5">list of active formatting
        elements</a> at the position of the aforementioned bookmark.
 
      <li>
@@ -48223,7 +48607,7 @@ function receiver(e) {
      pointed to by the <a href="#form-element"><code title="">form</code>
      element pointer</a>.</p>
 
-    <p>Insert a marker at the end of the <a href="#list-of4">list of active
+    <p>Insert a marker at the end of the <a href="#list-of5">list of active
      formatting elements</a>.</p>
 
    <dt>A start tag token whose tag name is one of: "applet", "marquee",
@@ -48235,7 +48619,7 @@ function receiver(e) {
 
     <p><a href="#insert0">Insert an HTML element</a> for the token.</p>
 
-    <p>Insert a marker at the end of the <a href="#list-of4">list of active
+    <p>Insert a marker at the end of the <a href="#list-of5">list of active
      formatting elements</a>.</p>
 
    <dt>An end tag token whose tag name is one of: "applet", "button",
@@ -48706,7 +49090,7 @@ function receiver(e) {
     <p><a href="#clear2">Clear the stack back to a table context</a>. (See
      below.)</p>
 
-    <p>Insert a marker at the end of the <a href="#list-of4">list of active
+    <p>Insert a marker at the end of the <a href="#list-of5">list of active
      formatting elements</a>.</p>
 
     <p><a href="#insert0">Insert an HTML element</a> for the token, then
@@ -49108,7 +49492,7 @@ function receiver(e) {
      switch the <span>insertion mode</span> to "<a href="#in-cell"
      title="insertion mode: in cell">in cell</a>".</p>
 
-    <p>Insert a marker at the end of the <a href="#list-of4">list of active
+    <p>Insert a marker at the end of the <a href="#list-of5">list of active
      formatting elements</a>.</p>
 
    <dt>An end tag whose tag name is "tr"
@@ -49225,7 +49609,7 @@ function receiver(e) {
      is a <a href="#parse2">parse error</a>; ignore the token. (<a
      href="#fragment">fragment case</a>)</p>
 
-    <p>Otherwise, <a href="#close3">close the cell</a> (see below) and
+    <p>Otherwise, <a href="#close4">close the cell</a> (see below) and
      reprocess the current token.</p>
 
    <dt>An end tag whose tag name is one of: "body", "caption", "col",
@@ -49245,7 +49629,7 @@ function receiver(e) {
      href="#fragment">fragment case</a>), then this is a <a
      href="#parse2">parse error</a> and the token must be ignored.</p>
 
-    <p>Otherwise, <a href="#close3">close the cell</a> (see below) and
+    <p>Otherwise, <a href="#close4">close the cell</a> (see below) and
      reprocess the current token.</p>
 
    <dt>Anything else
@@ -49256,7 +49640,7 @@ function receiver(e) {
      <span>insertion mode</span>.</p>
   </dl>
 
-  <p>Where the steps above say to <dfn id=close3>close the cell</dfn>, they
+  <p>Where the steps above say to <dfn id=close4>close the cell</dfn>, they
    mean to run the following algorithm:
 
   <ol>
