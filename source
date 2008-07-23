@@ -48089,6 +48089,149 @@ http://lxr.mozilla.org/seamonkey/search?string=nested
 /parser/htmlparser/src/nsElementTable.cpp, line 1901 - // Ex: <H1><LI><H1><LI>. Inner LI has the potential of getting nested
 -->
 
+
+  <h4>Coercing an HTML DOM into an infoset</h4>
+
+  <p>When an application uses an <span>HTML parser</span> in
+  conjunction with an XML pipeline, it is possible that the
+  constructed DOM is not compatible with the XML tool chain in certain
+  subtle ways. For example, an XML toolchain might not be able to
+  represent attributes with the name <code title="">xmlns</code>,
+  since they conflict with the Namespaces in XML syntax. <a
+  href="#refsXMLNS">[XMLNS]</a></p>
+
+  <p>There is also some data that the <span>HTML parser</span>
+  generates that isn't included in the DOM itself.</p>
+
+  <p>To allow tools to apply a consistent set of adjustments to the
+  output of their <span>HTML parser</span> to allow for compatibility
+  with the rest of their XML toolchain, this section documents a set
+  of mutations and conventions that will convert the output of the
+  <span>HTML parser</span> for any arbitrary input into an XML Infoset
+  that doesn't have any problematic characteristics.</p>
+
+  <p>Tools that cannot convey the out-of-band information using
+  out-of-band mechanisms, or that cannot convey the DOM exact as
+  prescribed by this specification, may either ignore the offending
+  information or DOM feature, or may represent it internally in the
+  DOM using the conventions described below.</p>
+
+  <p>These conventions are not conforming HTML, and user agents must
+  not output such syntax outside of their XML pipeline.</p>
+
+  <dl>
+
+   <dt>The <code>DocumentType</code> node's <code
+   title="">name</code>, <code title="">publicId</code>, and <code
+   title="">systemId</code> attributes</dt>
+
+   <dd>If the XML API being used doesn't support DOCTYPEs, tools may
+   drop DOCTYPEs altogether or create a set of three attributes on the
+   root element, named <code title="">__doctype_name__</code>, <code
+   title="">__doctype_publicid__</code>, and <code
+   title="">__doctype_systemid__</code>, respectively, whose values
+   are the values that would have been put on the
+   <code>DocumentType</code> node.</dd>
+
+
+   <dt>The document being set to <i>no quirks mode</i>, <i>limited
+   quirks mode</i>, or <i>quirks mode</i></dt>
+
+   <dd>To convey this information, create an attribute <code
+   title="">__mode__</code> on the root element, with values
+   "noquirks", "limitedquirks", or "quirks" respectively.</dd>
+
+
+   <dt>Elements that have a namespace without appropriate <code
+   title="">xmlns</code> attributes being in scope</dt>
+
+   <dd>Construct the DOM as if appropriate namespace declarations were
+   in scope.</dd>
+
+
+   <dt>Elements whose names contain U+003A COLON (:) characters or
+   characters that cannot be represented in XML element names</dt>
+
+   <dd>Drop the element and all its children, or replace any offending
+   characters with a U+005F LOW LINE (_) character.</dd>
+
+
+   <dt>Attributes named <code title="">xmlns</code> whose values match
+   the namespace of the element node</dt>
+
+   <dd>Construct the DOM as if these were default namespace
+   declarations.</dd>
+
+
+   <dt>Attributes named <code title="">xmlns:xlink</code> whose values
+   match the <span>XLink namespace</span>, on elements whose namespace
+   is not the <span>HTML namespace</span></dt>
+
+   <dd>Construct the DOM as if these were namespace prefix
+   declarations.</dd>
+
+
+   <dt>Other attributes whose names are <code title="">xmlns</code> or
+   start with <code title="">xmlns:</code></dt>
+
+   <dd>Drop the attributes or add two U+005F LOW LINE (_) characters
+   to the start of the attributes' names and replace any U+003A COLON
+   (:) characters with a U+005F LOW LINE (_) character.</dd>
+
+
+   <dt>Other attributes in no namespace whose names contain U+003A
+   COLON (:) characters</dt>
+   <dt>Attributes whose names contain characters that cannot be
+   represented in XML attribute names</dt>
+
+   <dd>Drop the attributes or replace any offending characters with a
+   U+005F LOW LINE (_) character, dropping any attributes where doing
+   this would cause an attribute name clash.</dd>
+
+
+   <dt>Form controls being associated with forms that aren't their
+   nearest ancestor (use of the <span><code>form</code> element
+   pointer</span)</dt>
+
+   <dd>Create an attribute <code title="">__formid__</code> on the
+   form, with a value unique amongst <code title="">__formid__</code>
+   attributes in the document, and create an attribute <code
+   title="">__form__</code> on the form control, whose value matches
+   the unique identifier given to the form.</dd>
+
+
+   <dt>Any U+000C FORM FEED (FF) character</dt>
+
+   <dd>Replace the character with a U+0020 SPACE character.</dd>
+
+
+   <dt>Any other literal non-XML character</dt>
+
+   <dd>Replace the character with a U+FFFD REPLACEMENT CHARACTER.</dd>
+
+
+   <dt>A comment that contains two adjacent U+002D HYPHEN-MINUS
+   characters (--).</dt>
+
+   <dd>Insert a U+0020 SPACE character between them.</dd>
+
+  </dl>
+
+  <p>Tools that use these conventions should guard against documents
+  that include markup that clashes with them by always dropping all
+  attributes in the document that start with two U+005F LOW LINE (_)
+  characters.</p>
+
+  <p class="note">These conventions apply <em>after</em> the
+  <span>HTML parser</span>'s rules have been applied. For example, a
+  <code title="">&lt;a::></code> start tag will be closed by a <code
+  title="">&lt;/a::></code> end tag, and never by a <code
+  title="">&lt;/a__></code> end tag, even if the user agent is using
+  the rules above to then generate an actual element in the DOM with
+  the name <code title="">a__</code> for that start tag.</p>
+
+
+
   <h3>Namespaces</h3>
 
   <p>The <dfn>HTML namespace</dfn> is: <code>http://www.w3.org/1999/xhtml</code></p>
