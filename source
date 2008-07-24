@@ -4234,7 +4234,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
    <li>
 
     <p>If <var title="">n</var> is 4 or more, and the first bytes of
-    the file match one of the following byte sets:</p>
+    the resource match one of the following byte sets:</p>
 
     <table>
      <thead>
@@ -4268,39 +4268,52 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 -->
     </table>
 
-    <p>...then the sniffed type of the resource is "text/plain".</p>
+    <p>...then the sniffed type of the resource is "text/plain". Abort
+    these steps.</p>
 
    </li>
 
-   <li><p>Otherwise, if any of the first <var title="">n</var> bytes
-   of the resource are in one of the following byte ranges:</p>
+   <li><p>If none of the first <var title="">n</var> bytes of the
+   resource are <span>binary data bytes</span> then the sniffed type
+   of the resource is "text/plain". Abort these steps.</p></li>
 
-    <!-- This byte list is based on RFC 2046 Section 4.1.2. Characters
-    in the range 0x00-0x1F, with the exception of 0x09, 0x0A, 0x0C,
-    0x0D (ASCII for TAB, LF, FF, and CR), and character 0x1B
-    (reportedly used by some encodings as a shift escape), are
-    invalid. Thus, if we see them, we assume it's not text. -->
+   <li>
 
-    <ul class="brief">
-     <li> 0x00 - 0x08 </li>
-     <li> 0x0B </li>
-     <li> 0x0E - 0x1A </li>
-     <li> 0x1C - 0x1F </li>
-    </ul>
+    <p>If the first bytes of the resource match one of the byte
+    sequences in the "pattern" column of the table in the <i
+    title="content-type sniffing: unknown type">unknown type</i>
+    section below, ignoring any rows whose cell in the "security"
+    column says "scriptable" (or "n/a"), then the sniffed type of the
+    resource is the type given in the corresponding cell in the
+    "sniffed type" column on that row; abort these steps.</p>
 
-   <p>...then the sniffed type of the resource is
-   "application/octet-stream".</p>
-
-   <p class="big-issue">maybe we should invoke the "Content-Type
-   sniffing: image" section now, falling back on
-   "application/octet-stream".</p>
+    <p class="warning">It is critical that this step not ever return a
+    scriptable type (e.g. text/html), as otherwise that would allow a
+    privilege escalation attack.</p>
 
    </li>
 
    <li><p>Otherwise, the sniffed type of the resource is
-   "text/plain".</p></li>
+   "application/octet-stream".</p></li>
 
   </ol>
+
+  <p>Bytes covered by the following ranges are <dfn>binary data
+  bytes</dfn>:</p>
+
+  <!-- This byte list is based on RFC 2046 Section 4.1.2. Characters
+  in the range 0x00-0x1F, with the exception of 0x09, 0x0A, 0x0C, 0x0D
+  (ASCII for TAB, LF, FF, and CR), and character 0x1B (reportedly used
+  by some encodings as a shift escape), are invalid. Thus, if we see
+  them, we assume it's not text. -->
+
+  <ul class="brief">
+   <li> 0x00 - 0x08 </li>
+   <li> 0x0B </li>
+   <li> 0x0E - 0x1A </li>
+   <li> 0x1C - 0x1F </li>
+  </ul>
+
 
 
   <h4><dfn>Content-Type sniffing: unknown type</dfn></h4>
@@ -4433,17 +4446,23 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
    </li>
 
-   <li><p>As a last-ditch effort, jump to the <span
-   title="content-type sniffing: text or binary">text or binary</span>
-   section.</p></li>
+   <li><p>If none of the first <var title="">n</var> bytes of the
+   resource are <span>binary data bytes</span> then the sniffed type
+   of the resource is "text/plain". Abort these steps.</p></li>
+
+   <li><p>Otherwise, the sniffed type of the resource is
+   "application/octet-stream".</p></li>
 
   </ol>
+
+  <p>The table used by the above algorithm is:</p>
 
   <table>
    <thead>
     <tr>
      <th colspan="2">Bytes in Hexadecimal
      <th rowspan="2">Sniffed type
+     <th rowspan="2">Security
      <th rowspan="2">Comment
     <tr>
      <th>Mask
@@ -4453,66 +4472,103 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
      <td>FF FF DF DF DF DF DF DF DF FF DF DF DF DF
      <td>3C 21 44 4F 43 54 59 50 45 20 48 54 4D 4C <!-- "<!DOCTYPE HTML" --> <!-- common in static data -->
      <td>text/html
+     <td>Scriptable
      <td>The string "<code title="">&lt;!DOCTYPE HTML</code>" in US-ASCII or compatible encodings, case-insensitively.
     <tr>
      <td>FF FF DF DF DF DF
      <td><em>WS</em> 3C 48 54 4D 4C <!-- "<HTML" --> <!-- common in static data -->
      <td>text/html
+     <td>Scriptable
      <td>The string "<code title="">&lt;HTML</code>" in US-ASCII or compatible encodings, case-insensitively, possibly with leading spaces.
     <tr>
      <td>FF FF DF DF DF DF
      <td><em>WS</em> 3C 48 45 41 44 <!-- "<HEAD" --> <!-- common in static data -->
      <td>text/html
+     <td>Scriptable
      <td>The string "<code title="">&lt;HEAD</code>" in US-ASCII or compatible encodings, case-insensitively, possibly with leading spaces.
     <tr>
      <td>FF FF DF DF DF DF DF DF
      <td><em>WS</em> 3C 53 43 52 49 50 54 <!-- "<SCRIPT" --> <!-- common in dynamic data -->
      <td>text/html
+     <td>Scriptable
      <td>The string "<code title="">&lt;SCRIPT</code>" in US-ASCII or compatible encodings, case-insensitively, possibly with leading spaces.
     <tr>
      <td>FF FF FF FF FF
      <td>25 50 44 46 2D <!-- "%PDF-" (from http://lxr.mozilla.org/seamonkey/source/netwerk/streamconv/converters/nsUnknownDecoder.cpp#321) -->
      <td>application/pdf
+     <td>Scriptable
      <td>The string "<code title="">%PDF-</code>", the PDF signature.
     <tr>
      <td>FF FF FF FF FF FF FF FF FF FF FF
      <td>25 21 50 53 2D 41 64 6F 62 65 2D <!-- "%!PS-Adobe-" (from http://lxr.mozilla.org/seamonkey/source/netwerk/streamconv/converters/nsUnknownDecoder.cpp#321) -->
      <td>application/postscript
+     <td>Safe
      <td>The string "<code title="">%!PS-Adobe-</code>", the PostScript signature.
 
-   <!-- copied from the section below -->
+   <!-- copied from the text or binary section above -->
+   <tbody>
+    <tr>
+     <td>FF FF 00 00
+     <td>FE FF 00 00
+     <td>text/plain
+     <td>n/a
+     <td>UTF-16BE BOM <!-- followed by at least one character -->
+    <tr>
+     <td>FF FF 00 00
+     <td>FF FF 00 00
+     <td>text/plain
+     <td>n/a
+     <td>UTF-16LE BOM <!-- followed by at least one character -->
+    <tr>
+     <td>FF FF FF 00
+     <td>EF BB BF 00
+     <td>text/plain
+     <td>n/a
+     <td>UTF-8 BOM <!-- followed by at least one character -->
+
+   <!-- based on the table in the image section below -->
    <tbody>
     <tr>
      <td>FF FF FF FF FF FF
      <td>47 49 46 38 37 61 <!-- GIF87a -->
      <td>image/gif
+     <td>Safe
      <td>The string "<code title="">GIF87a</code>", a GIF signature.
     <tr>
      <td>FF FF FF FF FF FF
      <td>47 49 46 38 39 61 <!-- GIF89a -->
      <td>image/gif
+     <td>Safe
      <td>The string "<code title="">GIF89a</code>", a GIF signature.
     <tr>
      <td>FF FF FF FF FF FF FF FF
      <td>89 50 4E 47 0D 0A 1A 0A <!-- [TAB]PNG[CR][LF][EOF][LF]; 137 80 78 71 13 10 26 10 -->
      <td>image/png
+     <td>Safe
      <td>The PNG signature.
     <tr>
      <td>FF FF FF
      <td>FF D8 FF <!-- SOI marker followed by the first byte of another marker -->
      <td>image/jpeg
+     <td>Safe
      <td>A JPEG SOI marker followed by the first byte of another marker.
     <tr>
      <td>FF FF
      <td>42 4D
      <td>image/bmp
+     <td>Safe
      <td>The string "<code title="">BM</code>", a BMP signature.
     <tr>
      <td>FF FF FF FF
      <td>00 00 01 00
      <td>image/vnd.microsoft.icon
+     <td>Safe
      <td>A 0 word following by a 1 word, a Windows Icon file format signature.
+
   </table>
+
+  <p class="big-issue">I'd like to add types like MPEG, AVI, Flash,
+  Java, etc, to the above table.</p>
 
   <p>User agents may support further types if desired, by implicitly
   adding to the above table. However, user agents should not use any
@@ -4522,13 +4578,18 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   and thus safe from XSS attacks, but then a user agent detects it as
   HTML anyway and allows script to execute).</p>
 
+  <p>The column marked "security" is used by the algorithm in the
+  "text or binary" section, to avoid sniffing <code
+  title="">text/plain</code> content as a type that can be used for a
+  privilege escalation attack.</p>
+
 
   <h4><dfn>Content-Type sniffing: image</dfn></h4>
 
-  <p>If the first bytes of the file match one of the byte sequences in
-  the first columns of the following table, then the sniffed type of
-  the resource is the type given in the corresponding cell in the
-  second column on the same row:</p>
+  <p>If the first bytes of the resource match one of the byte
+  sequences in the first column of the following table, then the
+  sniffed type of the resource is the type given in the corresponding
+  cell in the second column on the same row:</p>
 
   <table>
    <thead>
