@@ -24,7 +24,7 @@
 
    <h1 id=html-5>HTML 5</h1>
 
-   <h2 class="no-num no-toc" id=draft>Draft Recommendation &mdash; 1 August
+   <h2 class="no-num no-toc" id=draft>Draft Recommendation &mdash; 2 August
     2008</h2>
 
    <p>You can take part in this work. <a
@@ -146,12 +146,7 @@
    issues given in this document are not the only known issues! Also, firing
    of events needs to be unified (right now some bubble, some don't, they all
    use different text to fire events, we don't have an official queueing
-   mechanism, etc). It would also be nice to unify the rules on
-   fetching/downloading content when attributes change (e.g. <code
-   title="">src</code> attributes) - should they initiate downloads when the
-   element immediately, is inserted in the document, when active scripts end,
-   etc. This matters e.g. if an attribute is set twice in a row (does it hit
-   the network twice).
+   mechanism, etc).
 
   <h2 class="no-num no-toc" id=contents>Table of contents</h2>
   <!--begin-toc-->
@@ -1220,8 +1215,8 @@
        <li><a href="#processing2"><span class=secno>5.7.5 </span>Processing
         model</a>
         <ul class=toc>
-         <li><a href="#changes"><span class=secno>5.7.5.1. </span>Changes to
-          the networking model</a>
+         <li><a href="#changesToNetworkingModel"><span class=secno>5.7.5.1.
+          </span>Changes to the networking model</a>
         </ul>
 
        <li><a href="#application"><span class=secno>5.7.6 </span>Application
@@ -5322,20 +5317,57 @@
 
   <h3 id=fetching><span class=secno>2.6 </span>Fetching resources</h3>
 
-  <p class=big-issue>replace all instances of the word 'fetch' or 'download'
-   with a reference to this section, and put something here that talks about
-   caching, that redirects to the offline storage stuff when appropriate,
-   that defines that before fetching a URL you have to resolve the URL, so
-   that every case of fetching doesn't have to independently say to resolve
-   the URL, etc; "once fetched, a resource might have to have its type
-   determined", pointing to the next section but also explicitly saying that
-   it's up to the part of the spec doing the fetching to determine how the
-   type is established</p>
-  <!-- XXX make sure to say that fetching can delay the actual load,
-  so long as it resolves the URL first. This is important because some
-  UAs want to prioritise downloads of certain resources over others
-  (e.g. not loading video poster frames until the video is on the
-  screen) -->
+  <p>When a user agent is to <dfn id=fetch>fetch</dfn> a resource, the
+   following steps must be run:
+
+  <ol>
+   <li>
+    <p>If the resource is identified by a <a href="#url">URL</a>, then
+     immediately <a href="#resolve" title="resolve a URL">resolve that
+     URL</a>.
+
+   <li>
+    <p>If the resulting <a href="#absolute">absolute URL</a> is <dfn
+     id=aboutblank><code>about:blank</code></dfn>, then return the empty
+     string and abort these steps.
+
+   <li>
+    <p>If the resulting <a href="#absolute">absolute URL</a> is a <a
+     href="#the-javascript" title="javascript protocol"><code
+     title="">javascript:</code> URL</a>, then <a href="#dereferenced"
+     title=concept-js-deref>dereference the URL</a> synchronously, and abort
+     these steps.
+
+   <li>
+    <p>Perform the remaining steps asynchronously.
+   </li>
+   <!-- XXX queue interaction -->
+
+   <li>
+    <p>If the resource identified by the resulting <a
+     href="#absolute">absolute URL</a> is already being downloaded for other
+     reasons (e.g. another invocation of this algorithm), then the results of
+     that existing download process may be used for the purposes of this one,
+     in which case the following step must be skipped.
+
+   <li>
+    <p>At a time convenient to the user and the user agent, download the
+     resource, applying the semantics of the relevant specifications (e.g.
+     performing an HTTP GET or POST operation, or reading the file from disk,
+     following redirects, etc).
+  </ol>
+
+  <p class=note>The <span>offline application cache</span> processing model
+   introduces some <a href="#changesToNetworkingModel">changes to the
+   networking model</a> to handle the returning of cached resources.
+
+  <p class=note>The <a href="#navigate" title=navigate>navigation</a>
+   processing model handles redirects itself, overriding the redirection
+   handling that would be done by the fetching algorithm.
+
+  <p class=note>Whether the <a href="#content-type-sniffing">type sniffing
+   rules</a> apply to the fetched resource depends on the algorithm that
+   invokes the rules &mdash; they are not always applicable.
 
   <h3 id=content-type-sniffing><span class=secno>2.7 </span>Determining the
    type of a resource</h3>
@@ -5353,7 +5385,8 @@
 
   <p>What explicit <dfn id=content-type5 title=Content-Type>Content-Type
    metadata</dfn> is associated with the resource (the resource's type
-   information) depends on the protocol that was used to fetch the resource.
+   information) depends on the protocol that was used to <a
+   href="#fetch">fetch</a> the resource.
 
   <p>For HTTP resources, only the first Content-Type HTTP header, if any,
    contributes any type information; the explicit type of the resource is
@@ -6963,8 +6996,8 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
   <p class=note>In the case of HTTP, the <code title=dom-document-referrer><a
    href="#referrer">referrer</a></code> DOM attribute will match the <code
-   title="">Referer</code> (sic) header that was sent when fetching the
-   current page.
+   title="">Referer</code> (sic) header that was sent when <a href="#fetch"
+   title=fetch>fetching</a> the current page.
 
   <p class=note>Typically user agents are configured to not report referrers
    in the case where the referrer uses an encrypted protocol and the current
@@ -6985,8 +7018,8 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
    href="#browsing1">browsing context</a> of the document, the user agent
    must raise a <a href="#security10">security exception</a>. Otherwise, it
    must return the same string as the value of the <code
-   title="">Cookie</code> HTTP header it would include if fetching the
-   resource indicated by <span>the document's
+   title="">Cookie</code> HTTP header it would include if <a href="#fetch"
+   title=fetch>fetching</a> the resource indicated by <span>the document's
    address</span><!-- XXXDOCURL --> over HTTP, as per RFC 2109 section 4.3.4
    or later specifications. <a href="#refsRFC2109">[RFC2109]</a> <a
    href="#refsRFC2965">[RFC2965]</a>
@@ -6995,12 +7028,13 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
    context flag</a> is set on the <a href="#browsing1">browsing context</a>
    of the document, the user agent must raise a <a
    href="#security10">security exception</a>. Otherwise, the user agent must
-   act as it would when processing cookies if it had just attempted to fetch
-   <span>the document's address</span><!-- XXXDOCURL --> over HTTP, and had
-   received a response with a <code>Set-Cookie</code> header whose value was
-   the specified value, as per RFC 2109 sections 4.3.1, 4.3.2, and 4.3.3 or
-   later specifications. <a href="#refsRFC2109">[RFC2109]</a> <a
-   href="#refsRFC2965">[RFC2965]</a>
+   act as it would when processing cookies if it had just attempted to <a
+   href="#fetch">fetch</a> <span>the document's address</span><!-- XXXDOCURL
+  -->
+   over HTTP, and had received a response with a <code>Set-Cookie</code>
+   header whose value was the specified value, as per RFC 2109 sections
+   4.3.1, 4.3.2, and 4.3.3 or later specifications. <a
+   href="#refsRFC2109">[RFC2109]</a> <a href="#refsRFC2965">[RFC2965]</a>
 
   <p class=note>Since the <code title=dom-document-cookie><a
    href="#cookie0">cookie</a></code> attribute is accessible across frames,
@@ -8753,8 +8787,8 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
      href="#insertion">insertion point</a>.</p>
 
    <li>
-    <p>If there is a <a href="#pending">pending external script</a>, then the
-     method must now return without further processing of the <a
+    <p>If there is a <span>pending external script</span>, then the method
+     must now return without further processing of the <a
      href="#input0">input stream</a>.</p>
 
    <li>
@@ -9380,12 +9414,13 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
    (as defined below). For external resources that are represented in the DOM
    (for example, style sheets), the DOM representation must be made available
    even if the resource is not applied. (However, user agents may opt to only
-   fetch such resources when they are needed, instead of pro-actively
-   downloading all the external resources that are not applied.)
+   <a href="#fetch">fetch</a> such resources when they are needed, instead of
+   pro-actively <a href="#fetch" title=fetch>fetching</a> all the external
+   resources that are not applied.)
 
-  <p>HTTP semantics must be followed when fetching external resources. (For
-   example, redirects must be followed and 404 responses must cause the
-   external resource to not be applied.)
+  <p>The semantics of the protocol used (e.g. HTTP) must be followed when
+   fetching external resources. (For example, redirects must be followed and
+   404 responses must cause the external resource to not be applied.)
 
   <p>Interactive user agents should provide users with a means to <a
    href="#following0" title="following hyperlinks">follow the hyperlinks</a>
@@ -9462,19 +9497,19 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
 
   <p>For <a href="#links1" title="external resource link">external resource
    links</a>, the <code title=attr-link-type><a href="#type">type</a></code>
-   attribute is used as a hint to user agents so that they can avoid
-   downloading resources they do not support. If the attribute is present,
-   then the user agent must assume that the resource is of the given type. If
-   the attribute is omitted, but the external resource link type has a
-   default type defined, then the user agent must assume that the resource is
-   of that type. If the UA does not support the given MIME type for the given
-   link relationship, then the UA should not download the resource; if the UA
-   does support the given MIME type for the given link relationship, then the
-   UA should download the resource. If the attribute is omitted, and the
-   external resource link type does not have a default type defined, but the
-   user agent would fetch the resource if the type was known and supported,
-   then the user agent should fetch the resource under the assumption that it
-   will be supported.
+   attribute is used as a hint to user agents so that they can avoid fetching
+   resources they do not support. If the attribute is present, then the user
+   agent must assume that the resource is of the given type. If the attribute
+   is omitted, but the external resource link type has a default type
+   defined, then the user agent must assume that the resource is of that
+   type. If the UA does not support the given MIME type for the given link
+   relationship, then the UA should not fetch the resource; if the UA does
+   support the given MIME type for the given link relationship, then the UA
+   should <a href="#fetch">fetch</a> the resource. If the attribute is
+   omitted, and the external resource link type does not have a default type
+   defined, but the user agent would fetch the resource if the type was known
+   and supported, then the user agent should <a href="#fetch">fetch</a> the
+   resource under the assumption that it will be supported.
 
   <p>User agents must not consider the <code title=attr-link-type><a
    href="#type">type</a></code> attribute authoritative &mdash; upon fetching
@@ -10393,7 +10428,7 @@ people expect to have work and what is necessary.
    <code title=rel-stylesheet><a href="#stylesheet">stylesheet</a></code>
    keyword in their <code title=attr-link-rel><a href="#rel">rel</a></code>
    attribute), and <code><a href="#link">link</a></code> elements whose
-   specified resource has not yet been downloaded, or is not in a supported
+   specified resource has not yet been fetched, or is not in a supported
    styling language, must have their <code>LinkStyle</code> interface's <code
    title=dom-LinkStyle-sheet>sheet</code> attribute return null.
 
@@ -15522,10 +15557,11 @@ interface <dfn id=htmlimageelement>HTMLImageElement</dfn> : <a href="#htmlelemen
   <p>When an <code><a href="#img">img</a></code> is created with a <code
    title=attr-img-src><a href="#src">src</a></code> attribute, and whenever
    the <code title=attr-img-src><a href="#src">src</a></code> attribute is
-   set subsequently, the user agent must fetch the resource specifed by the
-   <code title=attr-img-src><a href="#src">src</a></code> attribute's value,
-   unless the user agent cannot support images, or its support for images has
-   been disabled, or the user agent only fetches elements on demand.</p>
+   set subsequently, the user agent must <a href="#fetch">fetch</a> the
+   resource specifed by the <code title=attr-img-src><a
+   href="#src">src</a></code> attribute's value, unless the user agent cannot
+   support images, or its support for images has been disabled, or the user
+   agent only fetches elements on demand.</p>
   <!-- Note how this does NOT happen when the base URL changes. -->
 
   <p>Fetching the image must <a href="#delays">delay the <code
@@ -15543,9 +15579,9 @@ interface <dfn id=htmlimageelement>HTMLImageElement</dfn> : <a href="#htmlelemen
    title=event-load>load</code> event</a> on the <code><a
    href="#img">img</a></code> element (this happens after <code
    title=dom-img-complete><a href="#complete">complete</a></code> starts
-   returning true). If the download fails without a response from the remote
-   server, or it completes but the image is not a valid or supported image,
-   the user agent must <a href="#firing5">fire an <code
+   returning true). If the fetching process fails without a response from the
+   remote server, or it completes but the image is not a valid or supported
+   image, the user agent must <a href="#firing5">fire an <code
    title=event-error>error</code> event</a> on the <code><a
    href="#img">img</a></code> element.
 
@@ -15656,7 +15692,7 @@ interface <dfn id=htmlimageelement>HTMLImageElement</dfn> : <a href="#htmlelemen
 
   <p>The DOM attribute <dfn id=complete
    title=dom-img-complete><code>complete</code></dfn> must return true if the
-   user agent has downloaded the image specified in the <code
+   user agent has fetched the image specified in the <code
    title=attr-img-src><a href="#src">src</a></code> attribute, and it is a
    valid image, and false otherwise.
 
@@ -16228,7 +16264,8 @@ The island of Shalott.&lt;/p></pre>
 
   <p>If the <code title=attr-iframe-src><a href="#src1">src</a></code>
    attribute is not set when the element is created, the browsing context
-   will remain at the initial <code>about:blank</code><!-- XXX xref --> page.
+   will remain at the initial <code><a
+   href="#aboutblank">about:blank</a></code><!-- XXX xref --> page.
 
   <p>The <dfn id=name1 title=attr-iframe-name><code>name</code></dfn>
    attribute, if present, must be a <a href="#valid9">valid browsing context
@@ -16684,10 +16721,10 @@ The island of Shalott.&lt;/p></pre>
    href="#type4">type</a></code> attribute is set or removed while the
    element has a <code title=attr-embed-src><a href="#src3">src</a></code>
    attribute, if the element is not in a sandboxed browsing context, user
-   agents should fetch the specified resource, find and instantiate an
-   appropriate <a href="#plugin">plugin</a> based on the <a href="#type-of"
-   title=concept-embed-type>content's type</a>, and hand that <a
-   href="#plugin">plugin</a> the content of the resource, replacing any
+   agents should <a href="#fetch">fetch</a> the specified resource, find and
+   instantiate an appropriate <a href="#plugin">plugin</a> based on the <a
+   href="#type-of" title=concept-embed-type>content's type</a>, and hand that
+   <a href="#plugin">plugin</a> the content of the resource, replacing any
    previously instantiated plugin for the element. <!-- Note that this
   doesn't happen when the base URL changes. -->
 
@@ -16916,15 +16953,14 @@ The island of Shalott.&lt;/p></pre>
        attribute is present and its value is not a type that the user agent
        supports, and is not a type that the user agent can find a <a
        href="#plugin">plugin</a> for, then the user agent may jump to the
-       last step in the overall set of steps (fallback) without downloading
-       the content to examine its real type.
+       last step in the overall set of steps (fallback) without fetching the
+       content to examine its real type.
 
      <li>
-      <p>Fetch<!-- XXX define that; xref --> the resource specified by the
-       <code title=attr-object-data><a href="#data">data</a></code>
-       attribute.</p>
+      <p><a href="#fetch">Fetch</a> the resource specified by the <code
+       title=attr-object-data><a href="#data">data</a></code> attribute.</p>
 
-      <p>The download of the resource must <a href="#delays">delay the <code
+      <p>The fetching of the resource must <a href="#delays">delay the <code
        title=event-load>load</code> event</a>.</p>
 
      <li>
@@ -17322,12 +17358,13 @@ The island of Shalott.&lt;/p></pre>
    attribute gives the address of an image file that the user agent can show
    while no video data is available. The attribute, if present, must contain
    a <a href="#valid8">valid URL</a>. If the specified resource is to be
-   used, it must be fetched when the element is created or when the <code
-   title=attr-video-poster><a href="#poster">poster</a></code> attribute is
-   set. The <dfn id=poster0>poster frame</dfn> is then the image obtained
-   from that resource, if any.</p>
-  <!-- So that it is unaffected by changes
-  to the base URL.  -->
+   used, it must be <a href="#fetch" title=fetch>fetched</a> when the element
+   is created or when the <code title=attr-video-poster><a
+   href="#poster">poster</a></code> attribute is set. The <dfn
+   id=poster0>poster frame</dfn> is then the image obtained from that
+   resource, if any.</p>
+  <!-- So that it is unaffected by changes to
+  the base URL.  -->
 
   <p class=note>The image given by the <code title=attr-video-poster><a
    href="#poster">poster</a></code> attribute, the <i><a
@@ -17857,9 +17894,9 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href="#htmlmediae
   <p>The <dfn id=media5 title=attr-source-media><code>media</code></dfn>
    attribute gives the intended media type of the <a href="#media10">media
    resource</a>, to help the user agent determine if this <a
-   href="#media10">media resource</a> is useful to the user before
-   downloading it. Its value must be a valid <a href="#mq">media query</a>.
-   <a href="#refsMQ">[MQ]</a>
+   href="#media10">media resource</a> is useful to the user before fetching
+   it. Its value must be a valid <a href="#mq">media query</a>. <a
+   href="#refsMQ">[MQ]</a>
 
   <p>Either the <code title=attr-source-type><a href="#type8">type</a></code>
    attribute, the <code title=attr-source-media><a
@@ -18052,15 +18089,15 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href="#htmlmediae
     title=dom-MediaError-MEDIA_ERR_ABORTED><code>MEDIA_ERR_ABORTED</code></dfn>
     (numeric value 1)
 
-   <dd>The download of the <a href="#media10">media resource</a> was aborted
-    by the user agent at the user's request.
+   <dd>The fetching process for the <a href="#media10">media resource</a> was
+    aborted by the user agent at the user's request.
 
    <dt><dfn id=mediaerrnetwork
     title=dom-MediaError-MEDIA_ERR_NETWORK><code>MEDIA_ERR_NETWORK</code></dfn>
     (numeric value 2)
 
    <dd>A network error of some description caused the user agent to stop
-    downloading the <a href="#media10">media resource</a>.
+    fetching the <a href="#media10">media resource</a>.
 
    <dt><dfn id=mediaerrdecode
     title=dom-MediaError-MEDIA_ERR_DECODE><code>MEDIA_ERR_DECODE</code></dfn>
@@ -18386,11 +18423,11 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href="#htmlmediae
      resource</a> for this element stops.
 
    <li>
-    <p>If a download is in progress for the <a href="#media7">media
-     element</a>, the user agent should stop the download.
+    <p>If a fetching process is in progress for the <a href="#media7">media
+     element</a>, the user agent should stop it.
 
    <li>
-    <p>The user agent must then begin to download the <a
+    <p>The user agent must then begin to <a href="#fetch">fetch</a> the <a
      href="#chosen">chosen media resource</a>. The rate of the download may
      be throttled, however, in response to user preferences (including
      throttling it to zero until the user indicates that the download can
@@ -18398,7 +18435,7 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href="#htmlmediae
      same bandwidth.
 
    <li>
-    <p>While the download is progressing, the user agent must <a
+    <p>While the fetching process is progressing, the user agent must <a
      href="#firing6">fire a progress event</a> called <code
      title=event-progress><a href="#progress0">progress</a></code> at the
      element every 350ms (&#xB1;200ms) or for every byte received, whichever
@@ -18414,17 +18451,17 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href="#htmlmediae
      element</a>'s download has been blocked, the user agent must act as if
      it was stalled (as opposed to acting as if the connection was closed).</p>
 
-    <p>The user agent may use whatever means necessary to download the
-     resource (within the constraints put forward by this and other
-     specifications); for example, reconnecting to the server in the face of
-     network errors, using HTTP partial range requests, or switching to a
-     streaming protocol. The user agent must consider a resource erroneous
-     only if it has given up trying to download it.</p>
+    <p>The user agent may use whatever means necessary to fetch the resource
+     (within the constraints put forward by this and other specifications);
+     for example, reconnecting to the server in the face of network errors,
+     using HTTP partial range requests, or switching to a streaming protocol.
+     The user agent must consider a resource erroneous only if it has given
+     up trying to fetch it.</p>
 
     <dl class=switch>
-     <dt>If the <a href="#media9">media data</a> cannot be downloaded at all,
+     <dt>If the <a href="#media9">media data</a> cannot be fetched at all,
       due to network errors, causing the user agent to give up trying to
-      download the resource
+      fetch the resource
 
      <dd>
       <p>DNS errors and HTTP 4xx and 5xx errors (and equivalents in other
@@ -18433,7 +18470,7 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href="#htmlmediae
        errors of similar severity.</p>
 
       <ol>
-       <li>The user agent should cancel the download.
+       <li>The user agent should cancel the fetching process.
 
        <li>The <code title=dom-media-error><a href="#error0">error</a></code>
         attribute must be set to a new <code><a
@@ -18458,7 +18495,7 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href="#htmlmediae
       </ol>
 
      <dt id=fatal-decode-error>If the <a href="#media9">media data</a> can be
-      downloaded but is in an unsupported format, or can otherwise not be
+      fetched but is in an unsupported format, or can otherwise not be
       rendered at all
 
      <dd>
@@ -18472,7 +18509,7 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href="#htmlmediae
        agent can provide in real time.</p>
 
       <ol>
-       <li>The user agent should cancel the download.
+       <li>The user agent should cancel the fetching process.
 
        <li>The <code title=dom-media-error><a href="#error0">error</a></code>
         attribute must be set to a new <code><a
@@ -18496,18 +18533,18 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href="#htmlmediae
        <li>These steps must be aborted.
       </ol>
 
-     <dt>If the <a href="#media9">media data</a> download is aborted by the
-      user
+     <dt>If the <a href="#media9">media data</a> fetching process is aborted
+      by the user
 
      <dd>
-      <p>The download is aborted by the user, e.g. because the user navigated
-       the browsing context to another page, the user agent must execute the
-       following steps. These steps are not followed if the <code
+      <p>The fetching process is aborted by the user, e.g. because the user
+       navigated the browsing context to another page, the user agent must
+       execute the following steps. These steps are not followed if the <code
        title=dom-media-load><a href="#load">load()</a></code> method itself
        is reinvoked, as the steps above handle that particular kind of abort.</p>
 
       <ol>
-       <li>The user agent should cancel the download.
+       <li>The user agent should cancel the fetching process.
 
        <li>The <code title=dom-media-error><a href="#error0">error</a></code>
         attribute must be set to a new <code><a
@@ -18541,8 +18578,8 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href="#htmlmediae
       </ol>
 
      <dt id=non-fatal-media-error>If the <a href="#media9">media data</a> can
-      be downloaded but has non-fatal errors or uses, in part, codecs that
-      are unsupported, preventing the user agent from rendering the content
+      be fetched but has non-fatal errors or uses, in part, codecs that are
+      unsupported, preventing the user agent from rendering the content
       completely correctly but not preventing playback altogether
 
      <dd>
@@ -18555,9 +18592,9 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href="#htmlmediae
         flag to 'MEDIA_ERR_SUBOPTIMAL' or something?
       </ol>
 
-     <dt>Once enough of the <a href="#media9">media data</a> has been
-      downloaded to determine the duration of the <a href="#media10">media
-      resource</a>, its dimensions, and other metadata
+     <dt>Once enough of the <a href="#media9">media data</a> has been fetched
+      to determine the duration of the <a href="#media10">media resource</a>,
+      its dimensions, and other metadata
 
      <dd>
       <p>The user agent must follow these substeps:</p>
@@ -18594,9 +18631,9 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href="#htmlmediae
       </ol>
 
      <dt id=handling-first-frame-available>Once enough of the <a
-      href="#media9">media data</a> has been downloaded to enable the user
-      agent to display the frame at the <a href="#effective">effective
-      start</a> of the <a href="#media10">media resource</a>
+      href="#media9">media data</a> has been fetched to enable the user agent
+      to display the frame at the <a href="#effective">effective start</a> of
+      the <a href="#media10">media resource</a>
 
      <dd>
       <p>The user agent must follow these substeps:</p>
@@ -18632,12 +18669,13 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href="#htmlmediae
       </ol>
     </dl>
 
-    <p>When the user agent has completed the download of the entire <a
+    <p>When the user agent has completely fetched of the entire <a
      href="#media10">media resource</a>, it must move on to the next step.</p>
 
    <li>
-    <p>If the download completes without errors, the <a href="#begun">begun
-     flag</a> must be set to false, the <code title=dom-media-networkState><a
+    <p>If the fetching process completes without errors, the <a
+     href="#begun">begun flag</a> must be set to false, the <code
+     title=dom-media-networkState><a
      href="#networkstate">networkState</a></code> attribute must be set to
      <code title=dom-media-LOADED><a href="#loaded">LOADED</a></code>, and
      the user agent must <a href="#firing6">fire a progress event</a> called
@@ -18960,9 +18998,9 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href="#htmlmediae
     little without immediately reverting to the <code
     title=dom-media-DATA_UNAVAILABLE><a
     href="#dataunavailable">DATA_UNAVAILABLE</a></code> state, and, in
-    addition, the user agent estimates that data is being downloaded at a
-    rate where the <a href="#current0">current playback position</a>, if it
-    were to advance at the rate given by the <code
+    addition, the user agent estimates that data is being fetched at a rate
+    where the <a href="#current0">current playback position</a>, if it were
+    to advance at the rate given by the <code
     title=dom-media-defaultPlaybackRate><a
     href="#defaultplaybackrate">defaultPlaybackRate</a></code> attribute,
     would not overtake the available data before playback reaches the <a
@@ -19919,8 +19957,8 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
      <td><code>ProgressEvent</code> <a href="#refsPROGRESS">[PROGRESS]</a>
 
-     <td>The user agent finishes downloading the entire <a
-      href="#media10">media resource</a>.
+     <td>The user agent finishes fetching the entire <a href="#media10">media
+      resource</a>.
 
      <td><code title=dom-media-networkState><a
       href="#networkstate">networkState</a></code> equals <code
@@ -25592,9 +25630,9 @@ function AddCloud(data, x, y) { ... }</pre>
    present but the <code title=attr-script-defer><a
    href="#defer">defer</a></code> attribute is present, then the script is
    executed when the page has finished parsing. If neither attribute is
-   present, then the script is downloaded and executed immediately, before
-   the user agent continues parsing the page. The exact processing details
-   for these attributes is described below.
+   present, then the script is fetched and executed immediately, before the
+   user agent continues parsing the page. The exact processing details for
+   these attributes is described below.
 
   <p>The <code title=attr-script-defer><a href="#defer">defer</a></code>
    attribute may be specified even if the <code title=attr-script-async><a
@@ -25705,21 +25743,24 @@ function AddCloud(data, x, y) { ... }</pre>
 
    <li>
     <p>If the element has a <code title=attr-script-src><a
-     href="#src9">src</a></code> attribute, then a load for the specified
-     content must be started.</p>
+     href="#src9">src</a></code> attribute, then the specified resource must
+     be <a href="#fetch" title=fetch>fetched</a>.</p>
 
-    <p class=note>Later, once the load has completed, the user agent will
-     have to complete <a href="#when-a" title="when a script completes
-     loading">the steps described below</a>.</p>
+    <p>Once the fetching process has completed, and the script has <dfn
+     id=completed>completed loading</dfn>, the user agent will have to
+     complete <a href="#when-a" title="when a script completes loading">the
+     steps described below</a>. (If the parser is still active at that time,
+     those steps defer to the parser to handle the execution of pending
+     scripts.)</p>
 
-    <p>For performance reasons, user agents may start loading the script as
+    <p>For performance reasons, user agents may start fetching the script as
      soon as the attribute is set, instead, in the hope that the element will
      be inserted into the document. Either way, once the element is inserted
      into the document, the load must have started. If the UA performs such
      prefetching, but the element is never inserted in the document, or the
      <code title=attr-script-src><a href="#src9">src</a></code> attribute is
      dynamically changed, then the user agent will not execute the script,
-     and the load will have been effectively wasted.</p>
+     and the fetching process will have been effectively wasted.</p>
 
    <li>
     <p>Then, the first of the following options that describes the situation
@@ -25733,12 +25774,10 @@ function AddCloud(data, x, y) { ... }</pre>
 
      <dd>The element must be added to the end of the <a href="#list-of">list
       of scripts that will execute when the document has finished
-      parsing</a>. The user agent must begin <a href="#when-a" title="when a
-      script completes loading">the next set of steps</a> when the script is
-      ready. <span class=big-issue>This isn't compatible with IE for inline
-      deferred scripts, but then what IE does is pretty hard to pin down
-      exactly. Do we want to keep this like it is? Be more compatible?</span>
-      <!--XXX  
+      parsing</a>. <span class=big-issue>This isn't compatible with IE for
+      inline deferred scripts, but then what IE does is pretty hard to pin
+      down exactly. Do we want to keep this like it is? Be more
+      compatible?</span> <!--XXX  
      http://www.websiteoptimization.com/speed/tweak/defer/test/
      internal deferred scripts execute before any external scripts execute, or before the LOAD if there are none
      external deferred scripts execute before the LOAD
@@ -25750,9 +25789,7 @@ function AddCloud(data, x, y) { ... }</pre>
       title=attr-script-src><a href="#src9">src</a></code> attribute
 
      <dd>The element must be added to the end of the <a href="#list-of0">list
-      of scripts that will execute asynchronously</a>. The user agent must
-      jump to <a href="#when-a" title="when a script completes loading">the
-      next set of steps</a> once the script is ready.
+      of scripts that will execute asynchronously</a>.
 
      <dt>If the element has an <code title=attr-script-async><a
       href="#async">async</a></code> attribute but no <code
@@ -25767,16 +25804,14 @@ function AddCloud(data, x, y) { ... }</pre>
       href="#src9">src</a></code> attribute and has been flagged as <a
       href="#parser-inserted">"parser-inserted"</a>
 
-     <dd>The element is the <a href="#pending">pending external script</a>.
-      (There can only be one such script at a time.)
+     <dd>The element is the <span>pending external script</span>. (There can
+      only be one such script at a time.)
 
      <dt>If the element has a <code title=attr-script-src><a
       href="#src9">src</a></code> attribute
 
      <dd>The element must be added to the end of the <a href="#list-of1">list
-      of scripts that will execute as soon as possible</a>. The user agent
-      must jump to <a href="#when-a" title="when a script completes
-      loading">the next set of steps</a> when the script is ready.
+      of scripts that will execute as soon as possible</a>.
 
      <dt>Otherwise
 
@@ -25786,12 +25821,12 @@ function AddCloud(data, x, y) { ... }</pre>
     </dl>
   </ol>
 
-  <p><dfn id=when-a title="when a script completes loading">When a script
-   completes loading</dfn>: If a script whose element was added to one of the
-   lists mentioned above completes loading while the document is still being
-   parsed, then the parser handles it. Otherwise, when a script completes
-   loading, the UA must run the following steps as soon as as any other
-   scripts that may be executing have finished executing:
+  <p><dfn id=when-a>When a script completes loading</dfn>: If the script's
+   element was added to one of the lists mentioned above and the document is
+   still being parsed, then the parser handles it. Otherwise, the UA must run
+   the following steps as soon as as any other scripts that may be executing
+   have finished executing:</p>
+  <!-- XXX queue -->
 
   <dl class=switch>
    <dt>If the script's element was added to the <dfn id=list-of>list of
@@ -25855,16 +25890,10 @@ function AddCloud(data, x, y) { ... }</pre>
      <li>
       <p>Remove the script's element from the list.</p>
     </ol>
-
-   <dt>If the script is the <dfn id=pending>pending external script</dfn>:
-
-   <dd>
-    <p>The script will be handled <a href="#scriptTagParserResumes">when the
-     parser resumes</a>.</p>
   </dl>
 
-  <p>The download of an external script must <a href="#delays">delay the
-   <code title=event-load>load</code> event</a>.
+  <p>Fetching an external script must <a href="#delays">delay the <code
+   title=event-load>load</code> event</a>.
 
   <p><dfn id=executing0 title="executing a script block">Executing a script
    block</dfn>: When the steps above require that the script be executed, the
@@ -29085,10 +29114,11 @@ menu li:not(:first-child)::before { content: ' | '; }</pre>
     title=attr-command-default><a href="#default2">default</a></code>
     attribute, mark the command as being a default command.</dd>
    <!-- XXX if there's an
-   Icon URL for the command, it should be fetched, and then that image
-   should be associated with the command, such that each command only
-   has its image fetched once, to prevent changes to the base URL from
-   having effects after the image has been fetched once. -->
+   Icon URL for the command, it should be <span
+   title="fetch">fetched</span>, and then that image should be
+   associated with the command, such that each command only has its
+   image fetched once, to prevent changes to the base URL from having
+   effects after the image has been fetched once. -->
 
    <dt>An <code><a href="#hr">hr</a></code> element
 
@@ -30046,13 +30076,13 @@ menu li:not(:first-child)::before { content: ' | '; }</pre>
    <a href="#html-elements" title="HTML elements">HTML element</a> without a
    <code title=attr-template><a href="#template">template</a></code>
    attribute has its <code title=attr-template><a
-   href="#template">template</a></code> attribute set, the user agent must
-   fetch the specified file<!-- XXX or queue it up to be fetched,
-  or something -->
-   and parse it (without a <a href="#browsing1">browsing context</a>) to
-   obtain a DOM. If the <a href="#url">URL</a>, when <a href="#resolve"
-   title="resolve a url">resolved</a>, is the same as <span>the document's
-   address</span><!-- XXXDOCURL xref -->, then the current document's DOM
+   href="#template">template</a></code> attribute set, the user agent must <a
+   href="#fetch">fetch</a> the specified file and parse it (without a <a
+   href="#browsing1">browsing context</a>) to obtain a DOM. If the <a
+   href="#url">URL</a>, when <a href="#resolve" title="resolve a
+   url">resolved</a>, is the same as <span>the document's
+   address</span><!-- XXXDOCURL
+  xref -->, then the current document's DOM
    must be assumed to be that parsed DOM. While this loading and parsing is
    in progress, the element is said to be <em>busy loading the template rules
    or data</em>.
@@ -30173,12 +30203,12 @@ menu li:not(:first-child)::before { content: ' | '; }</pre>
    href="#html-elements" title="HTML elements">HTML element</a> without a
    <code title=attr-ref><a href="#ref">ref</a></code> attribute has its <code
    title=attr-ref><a href="#ref">ref</a></code> attribute set, the user agent
-   must fetch the specified file<!-- XXX or queue it up to be fetched, or
-  something -->
-   and parse it (without a <a href="#browsing1">browsing context</a>) to
-   obtain a DOM. If the <a href="#url">URL</a>, when <a href="#resolve"
-   title="resolve a url">resolved</a>, is the same as <span>the document's
-   address</span><!-- XXXDOCURL xref -->, then the current document's DOM
+   must <a href="#fetch">fetch</a> the specified file and parse it (without a
+   <a href="#browsing1">browsing context</a>) to obtain a DOM. If the <a
+   href="#url">URL</a>, when <a href="#resolve" title="resolve a
+   url">resolved</a>, is the same as <span>the document's
+   address</span><!-- XXXDOCURL
+  xref -->, then the current document's DOM
    must be assumed to be that parsed DOM. While this loading and parsing is
    in progress, the element is said to be <em>busy loading the template rules
    or data</em>.
@@ -30807,46 +30837,48 @@ never reset. This is nice and consistent.)
    must be created with a single <code>Document</code> in its session
    history, whose <span title="the document's address">address</span><!--
   XXXDOCURL -->
-   is <code>about:blank</code><!-- XXX xref -->, which is marked as being an
-   <a href="#html-" title="HTML documents">HTML document</a>, and whose <a
-   href="#character3" title="document's character encoding">character
-   encoding</a> is UTF-8. The <code>Document</code> must have a single child
-   <code><a href="#html">html</a></code> node, which itself has a single
-   child <code><a href="#body0">body</a></code> node. If the <a
-   href="#browsing1">browsing context</a> is created specifically to be
-   immediately navigated, then that initial navigation will have <a
+   is <code><a href="#aboutblank">about:blank</a></code><!-- XXX xref -->,
+   which is marked as being an <a href="#html-" title="HTML documents">HTML
+   document</a>, and whose <a href="#character3" title="document's character
+   encoding">character encoding</a> is UTF-8. The <code>Document</code> must
+   have a single child <code><a href="#html">html</a></code> node, which
+   itself has a single child <code><a href="#body0">body</a></code> node. If
+   the <a href="#browsing1">browsing context</a> is created specifically to
+   be immediately navigated, then that initial navigation will have <a
    href="#replacement">replacement enabled</a>.
 
-  <p id=about-blank-origin>The <a href="#origin0">origin</a> of the
-   <code>about:blank</code> <code>Document</code> is set when the
-   <code>Document</code> is created, in a manner dependent on whether the <a
-   href="#browsing1">browsing context</a> created is a <a
+  <p id=about-blank-origin>The <a href="#origin0">origin</a> of the <code><a
+   href="#aboutblank">about:blank</a></code> <code>Document</code> is set
+   when the <code>Document</code> is created, in a manner dependent on
+   whether the <a href="#browsing1">browsing context</a> created is a <a
    href="#nested0">nested browsing context</a>, as follows:
 
   <dl class=switch>
    <dt>If the new <a href="#browsing1">browsing context</a> is a <a
     href="#nested0">nested browsing context</a>
 
-   <dd>The <a href="#origin0">origin</a> of the <code>about:blank</code>
-    <code>Document</code> is the <a href="#origin0">origin</a> of the <a
-    href="#active">active document</a> of the new <a
-    href="#browsing1">browsing context</a>'s <a href="#parent">parent
-    browsing context</a> at the time of its creation.
+   <dd>The <a href="#origin0">origin</a> of the <code><a
+    href="#aboutblank">about:blank</a></code> <code>Document</code> is the <a
+    href="#origin0">origin</a> of the <a href="#active">active document</a>
+    of the new <a href="#browsing1">browsing context</a>'s <a
+    href="#parent">parent browsing context</a> at the time of its creation.
 
    <dt>If the new <a href="#browsing1">browsing context</a> is an <a
     href="#auxiliary0">auxiliary browsing context</a>
 
-   <dd>The <a href="#origin0">origin</a> of the <code>about:blank</code>
-    <code>Document</code> is the <a href="#origin0">origin</a> of the <a
-    href="#active">active document</a> of the new <a
-    href="#browsing1">browsing context</a>'s <a href="#opener">opener
-    browsing context</a> at the time of the new browsing context's creation.
+   <dd>The <a href="#origin0">origin</a> of the <code><a
+    href="#aboutblank">about:blank</a></code> <code>Document</code> is the <a
+    href="#origin0">origin</a> of the <a href="#active">active document</a>
+    of the new <a href="#browsing1">browsing context</a>'s <a
+    href="#opener">opener browsing context</a> at the time of the new
+    browsing context's creation.
 
    <dt>Otherwise
 
-   <dd>The <a href="#origin0">origin</a> of the <code>about:blank</code>
-    <code>Document</code> is a globally unique identifier assigned when the
-    new <a href="#browsing1">browsing context</a> is created.
+   <dd>The <a href="#origin0">origin</a> of the <code><a
+    href="#aboutblank">about:blank</a></code> <code>Document</code> is a
+    globally unique identifier assigned when the new <a
+    href="#browsing1">browsing context</a> is created.
   </dl>
 
   <h4 id=nested><span class=secno>5.1.1 </span>Nested browsing contexts</h4>
@@ -31317,9 +31349,9 @@ never reset. This is nice and consistent.)
   <p>The first argument, <var title="">url</var>, must be a <a
    href="#valid8">valid URL</a> for a page to load in the browsing context.
    If no arguments are provided, or if the first argument is the empty
-   string, then the <var title="">url</var> argument defaults to
-   "<code>about:blank</code><!-- XXX xref -->". The argument must be <a
-   href="#resolve" title="resolve a url">resolved</a> to an <a
+   string, then the <var title="">url</var> argument defaults to "<code><a
+   href="#aboutblank">about:blank</a></code><!-- XXX xref -->". The argument
+   must be <a href="#resolve" title="resolve a url">resolved</a> to an <a
    href="#absolute">absolute URL</a> (or an error) when the method is
    invoked.
 
@@ -31628,7 +31660,8 @@ never reset. This is nice and consistent.)
       which the <code title="">data:</code> URL was found.
 
      <dt>If a <code>Document</code> has the <span title="the document's
-      address">address</span><!-- XXXDOCURL --> "<code>about:blank</code>"
+      address">address</span><!-- XXXDOCURL --> "<code><a
+      href="#aboutblank">about:blank</a></code>"
 
      <dd>The <a href="#origin0">origin</a> of the <code>Document</code> is <a
       href="#about-blank-origin">the <span>origin</span> it was assigned when
@@ -31944,12 +31977,12 @@ never reset. This is nice and consistent.)
   <h4 id=javascript-protocol><span class=secno>5.4.3 </span><dfn
    id=the-javascript title="javascript protocol">The <code
    title="">javascript:</code> protocol</dfn></h4>
-  <!-- XXX maybe this should be merged into the 'fetch' section -->
 
   <p>A URL using the <code title="">javascript:</code> protocol must, if and
-   when dereferenced, be evaluated by executing the script obtained using the
-   content retrieval operation defined for <code title="">javascript:</code>
-   URLs. <a href="#refsJSURL">[JSURL]</a></p>
+   when <dfn id=dereferenced title=concept-js-deref>dereferenced</dfn>, be
+   evaluated by executing the script obtained using the content retrieval
+   operation defined for <code title="">javascript:</code> URLs. <a
+   href="#refsJSURL">[JSURL]</a></p>
   <!--
 JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.txt and
        http://www.websitedev.de/ietf/draft-hoehrmann-javascript-scheme-00.txt should be as stable as it gets,
@@ -33097,8 +33130,8 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
      href="#registercontenthandler">registerContentHandler()</a></code> or
      <code title=dom-navigator-registerProtocolHandler><a
      href="#registerprotocolhandler">registerProtocolHandler()</a></code>
-     method), and then fetch the resulting URL using the GET method (or
-     equivalent for non-HTTP URLs).</p>
+     method), and then <a href="#fetch">fetch</a> the resulting URL using the
+     GET method (or equivalent for non-HTTP URLs).</p>
 
     <p>To get the escaped version of the URL of the content in question, the
      user agent must <a href="#resolve" title="resolve a URL">resolve</a> the
@@ -33390,7 +33423,7 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
      <dd>The resource corresponding to the URL that was given in an implicit
       entry's <code><a href="#html">html</a></code> element's <code
       title=attr-html-manifest><a href="#manifest">manifest</a></code>
-      attribute. The manifest is downloaded and processed during the <a
+      attribute. The manifest is fetched and processed during the <a
       href="#application1">application cache update process</a>. All the <a
       href="#implicit" title=concept-appcache-implicit>implicit entries</a>
       have the <a href="#same-origin" title="same origin">same origin</a> as
@@ -33810,11 +33843,11 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   </ol>
 
   <p class=note>If a resource is listed in both the online whitelist and in
-   the explicit section, then that resource will be downloaded and cached,
-   but when the page tries to use this resource, the user agent will ignore
-   the cached copy and attempt to fetch the file from the network. Indeed,
-   the cached copy will only be used if it is opened from a top-level
-   browsing context.
+   the explicit section, then that resource will be fetched and cached, but
+   when the page tries to use this resource, the user agent will ignore the
+   cached copy and attempt to fetch the file from the network. Indeed, the
+   cached copy will only be used if it is opened from a top-level browsing
+   context.
 
   <h4 id=updating1><span class=secno>5.7.4 </span>Updating an application
    cache</h4>
@@ -33884,8 +33917,8 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
      availability of updates.</p>
 
    <li>
-    <p>Fetch the resource from <var title="">manifest URL</var>, and let <var
-     title="">manifest</var> be that resource.</p>
+    <p><a href="#fetch">Fetch</a> the resource from <var title="">manifest
+     URL</var>, and let <var title="">manifest</var> be that resource.</p>
 
     <p>If the resource is labeled with the MIME type <code
      title="">text/cache-manifest</code>, parse <var title="">manifest</var>
@@ -34030,22 +34063,26 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
      progress information -->
 
      <li>
-      <p>Fetch the resource. If this is an <a href="#upgrade"
-       title=concept-appcache-upgrade>upgrade attempt</a>, then use <var
-       title="">cache</var> as an HTTP cache, and honor HTTP caching
-       semantics (such as expiration, ETags, and so forth) with respect to
-       that cache. User agents may also have other caches in place that are
-       also honored. If the resource in question is already being downloaded
-       for other reasons then the existing download process may be used for
-       the purposes of this step.</p>
+      <p><a href="#fetch">Fetch</a> the resource. If this is an <a
+       href="#upgrade" title=concept-appcache-upgrade>upgrade attempt</a>,
+       then use <var title="">cache</var> as an HTTP cache, and honor HTTP
+       caching semantics (such as expiration, ETags, and so forth) with
+       respect to that cache. User agents may also have other caches in place
+       that are also honored.</p>
+
+      <p class=note>If the resource in question is already being downloaded
+       for other reasons then the existing download process can be used for
+       the purposes of this step, as defined by the <a href="#fetch"
+       title=fetch>fetching</a> algorithm.</p>
 
       <p class=example>An example of a resource that might already be being
        downloaded is a large image on a Web page that is being seen for the
        first time. The image would get downloaded to satisfy the <code><a
        href="#img">img</a></code> element on the page, as well as being
-       listed in the cache manifest. According to the previous paragraph,
-       that image only need be downloaded once, and it can be used both for
-       the cache and for the rendered Web page.</p>
+       listed in the cache manifest. According to the rules for <a
+       href="#fetch" title=fetch>fetching</a> that image only need be
+       downloaded once, and it can be used both for the cache and for the
+       rendered Web page.</p>
 
      <li>
       <p>If the previous steps fails (e.g. the server returns a 4xx or 5xx
@@ -34340,8 +34377,8 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
    update process</a> for that cache; otherwise, nothing special happens with
    respect to application caches.
 
-  <h5 id=changes><span class=secno>5.7.5.1. </span>Changes to the networking
-   model</h5>
+  <h5 id=changesToNetworkingModel><span class=secno>5.7.5.1. </span>Changes
+   to the networking model</h5>
 
   <p>When a browsing context is associated with an <a
    href="#application0">application cache</a>, any and all resource loads
@@ -34351,13 +34388,15 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   <ol>
    <li>
     <p>If the resource is not to be fetched using the HTTP GET mechanism or
-     equivalent, then fetch the resource normally and abort these steps.
+     equivalent, then <a href="#fetch">fetch</a> the resource normally and
+     abort these steps.
 
    <li>
     <p>If the resource's URL, ignoring its fragment identifier if any, is
      listed in the <a href="#application0">application cache</a>'s <a
      href="#online" title=concept-appcache-onlinewhitelist>online
-     whitelist</a>, then fetch the resource normally and abort these steps.
+     whitelist</a>, then <a href="#fetch">fetch</a> the resource normally and
+     abort these steps.
 
    <li>
     <p>If the resource's URL is <a href="#implicit"
@@ -34368,8 +34407,9 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
      fallback entry</a>, <a href="#opportunistically"
      title=concept-appcache-oppcache>an opportunistically cached entry</a>,
      or a <a href="#dynamic4" title=concept-appcache-dynamic>dynamic
-     entry</a> in the <a href="#application0">application cache</a>, then
-     fetch the resource from the cache and abort these steps.
+     entry</a> in the <a href="#application0">application cache</a>, then get
+     the resource from the cache (instead of fetching it), and abort these
+     steps.
 
    <li>
     <p>If the resource's URL has the <a href="#same-origin">same origin</a>
@@ -34379,12 +34419,13 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
      title=concept-appcache-oppcache-ns>opportunistic caching namespace</a>
      in the <a href="#application0">application cache</a>, then:
 
-    <p>Fetch the resource normally. If this results 4xx or 5xx status codes
-     or equivalent, or if there were network errors (but not if the user
-     canceled the download), then instead fetch, from the cache, the resource
-     of the <a href="#fallback0" title=concept-appcache-fallback>fallback
-     entry</a> corresponding to the namespace with the longest matching
-     &lt;path&gt; component. Abort these steps.</p>
+    <p><a href="#fetch">Fetch</a> the resource normally. If this results 4xx
+     or 5xx status codes or equivalent, or if there were network errors (but
+     not if the user canceled the download), then instead get, from the
+     cache, the resource of the <a href="#fallback0"
+     title=concept-appcache-fallback>fallback entry</a> corresponding to the
+     namespace with the longest matching &lt;path&gt; component. Abort these
+     steps.</p>
 
    <li>
     <p>Fail the resource load.
@@ -34575,7 +34616,8 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
     <p>Return, but do not abort these steps.
 
    <li>
-    <p>Fetch the resource referenced by <var title="">url</var>.
+    <p><a href="#fetch">Fetch</a> the resource referenced by <var
+     title="">url</var>.
 
    <li>
     <p>If this results 4xx or 5xx status codes or equivalent, or if there
@@ -35379,26 +35421,13 @@ user reload must be equivalent to .reload()
      href="#foreign" title=concept-appcache-foreign>foreign</a>), and that
      already contain their manifest, categorized as a <a href="#the-manifest"
      title=concept-appcache-manifest>manifest</a>. If so, then the user agent
-     must then fetch the resource from the <a href="#select0"
+     must then get the resource from the <a href="#select0"
      title=concept-appcache-selection>most appropriate application cache</a>
      of those that match.</p>
 
-    <p>Otherwise, start fetching<!-- XXX xref --> the new resource in the
-     appropriate manner (e.g. performing an HTTP GET or POST operation, or
-     reading the file from disk, or executing script in the case of a <a
-     href="#the-javascript" title="javascript protocol"><code
-     title="">javascript:</code> URL</a>). If this results in a redirect,
-     return to <a href="#navigate-fragid-step">the step labeled "fragment
-     identifiers"</a> with the new resource.</p>
-
-    <p>If fetching the resource is instantaneous, as it should be for <a
-     href="#the-javascript" title="javascript protocol"><code
-     title="">javascript:</code> URLs</a> and <code>about:blank</code>, then
-     this must be synchronous, but if fetching the resource depends on
-     external resources, as it usually does for URLs that use HTTP or other
-     networking protocols, then at this point the user agents must yield to
-     whatever script invoked the navigation steps, if they were invoked by
-     script.</p>
+    <p>Otherwise, <a href="#fetch">fetch</a> the new resource. If this
+     results in a redirect, return to <a href="#navigate-fragid-step">the
+     step labeled "fragment identifiers"</a> with the new resource.</p>
 
     <p class=example>For example, imagine an HTML page with an associated
      application cache displaying an image and a form, where the image is
@@ -35410,6 +35439,16 @@ user reload must be equivalent to .reload()
      form, and the form does a POST submission, then the user agent will not
      use an application cache at all; the submission will be made to the
      network.</p>
+
+   <li>
+    <p>If fetching the resource is synchronous (i.e. for <a
+     href="#the-javascript" title="javascript protocol"><code
+     title="">javascript:</code> URLs</a> and <code><a
+     href="#aboutblank">about:blank</a></code>), then this must be
+     synchronous, but if fetching the resource depends on external resources,
+     as it usually does for URLs that use HTTP or other networking protocols,
+     then at this point the user agents must yield to whatever script invoked
+     the navigation steps, if they were invoked by script.</p>
 
    <li>
     <p>Wait for one or more bytes to be available or for the user agent to
@@ -37442,13 +37481,13 @@ interface <dfn id=sqlstatementerrorcallback>SQLStatementErrorCallback</dfn> {
    either <a href="#ignored">ignore</a> the <code
    title=attr-hyperlink-ping><a href="#ping">ping</a></code> attribute
    altogether, or selectively ignore URLs in the list (e.g. ignoring any
-   third-party URLs).</p>
-  <!-- XXX fetching -->
+   third-party URLs).
 
-  <p>For URLs that are HTTP URLs, the requests must be performed using the
-   POST method (with an empty entity body in the request). All relevant
-   cookie and HTTP authentication headers must be included in the request.
-   Which other headers are required depends on the URls involved.
+  <p>For URLs that are HTTP URLs, the requests must be performed by <a
+   href="#fetch" title=fetch>fetching</a> the specified URLs using the POST
+   method, with an empty entity body in the request. All relevant cookie and
+   HTTP authentication headers must be included in the request. Which other
+   headers are required depends on the URLs involved.
 
   <dl class=switch>
    <dt>If both the <span title="the document's
@@ -37491,6 +37530,10 @@ interface <dfn id=sqlstatementerrorcallback>SQLStatementErrorCallback</dfn> {
    must ignore any entity bodies returned in the responses. User agents may
    close the connection prematurely once they start receiving an entity body.
    <a href="#refsRFC2109">[RFC2109]</a> <a href="#refsRFC2965">[RFC2965]</a>
+
+  <p>For URLs that are not HTTP URLs, the requests must be performed by <a
+   href="#fetch" title=fetch>fetching</a> the specified URL normally, and
+   discarding the results.
 
   <p>When the <code title=attr-hyperlink-ping><a href="#ping">ping</a></code>
    attribute is present, user agents should clearly indicate to the user that
@@ -41814,7 +41857,8 @@ XXX Once we resolve the style="" issue, address these:
   <p>When a new URI is added to this list, the user agent should, as soon as
    all currently executing scripts (if any) have finished
    executing<!-- XXX queue -->, and if the specified URL isn't removed from
-   the list before they do so, fetch the resource identified by that URL.
+   the list before they do so, <a href="#fetch">fetch</a> the resource
+   identified by that URL.
 
   <p>When an event source is removed from the list of event sources for an
    object, if that resource is still being fetched, then the relevant
@@ -45949,8 +45993,8 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
    either one of the scripts in the <a href="#list-of1">list of scripts that
    will execute as soon as possible</a> or the first script in the <a
    href="#list-of0">list of scripts that will execute asynchronously</a>, has
-   <span>completed loading</span><!-- XXX xref -->. If one has, then it must
-   be <a href="#executing0" title="executing a script block">executed</a> and
+   <a href="#completed">completed loading</a>. If one has, then it must be <a
+   href="#executing0" title="executing a script block">executed</a> and
    removed from its list.
 
   <p>The tokeniser state machine consists of the states defined in the
@@ -48663,9 +48707,9 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
      href="#html-fragment0">HTML fragment parsing algorithm</a>, then mark
      the <code><a href="#script1">script</a></code> element as <a
      href="#already">"already executed"</a>, and skip the rest of the
-     processing described for this token (including the part below where "<a
-     href="#pending" title="pending external script">pending external
-     scripts</a>" are executed). (<a href="#fragment">fragment case</a>)</p>
+     processing described for this token (including the part below where
+     "<span title="pending external script">pending external scripts</span>"
+     are executed). (<a href="#fragment">fragment case</a>)</p>
 
     <p class=note>Marking the <code><a href="#script1">script</a></code>
      element as "already executed" prevents it from executing when it is
@@ -48691,8 +48735,8 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
      href="#insertion">insertion point</a> to the value it had before the
      previous paragraph. This value might be the "undefined" value.)</p>
 
-    <p id=scriptTagParserResumes>At this stage, if there is a <a
-     href="#pending">pending external script</a>, then:</p>
+    <p id=scriptTagParserResumes>At this stage, if there is a <span>pending
+     external script</span>, then:</p>
 
     <dl class=switch>
      <dt>If the tree construction stage is <a href="#nestedParsing">being
@@ -48712,13 +48756,13 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
 
       <ol>
        <li>
-        <p>Let <var title="">the script</var> be the <a
-         href="#pending">pending external script</a>. There is no longer a <a
-         href="#pending">pending external script</a>.
+        <p>Let <var title="">the script</var> be the <span>pending external
+         script</span>. There is no longer a <span>pending external
+         script</span>.
 
        <li>
-        <p><a href="#pause">Pause</a> until the script has <span>completed
-         loading</span><!-- XXX xref fetch? -->.
+        <p><a href="#pause">Pause</a> until the script has <a
+         href="#completed">completed loading</a>.
 
        <li>
         <p>Let the <a href="#insertion">insertion point</a> be just before
@@ -48733,8 +48777,8 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
          again.
 
        <li>
-        <p>If there is once again a <a href="#pending">pending external
-         script</a>, then repeat these steps from step 1.
+        <p>If there is once again a <span>pending external script</span>,
+         then repeat these steps from step 1.
       </ol>
     </dl>
 
@@ -51351,20 +51395,18 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
    parser).
 
   <p>If any of the scripts in the <a href="#list-of1">list of scripts that
-   will execute as soon as possible</a> have <span>completed
-   loading</span><!-- XXX xref -->, or if the <a href="#list-of0">list of
-   scripts that will execute asynchronously</a> is not empty and the first
-   script in that list has <span>completed loading</span><!-- XXX xref
-  -->,
-   then the user agent must act as if those scripts just completed loading,
-   following the rules given for that in the <code><a
-   href="#script1">script</a></code> element definition.
+   will execute as soon as possible</a> have <a href="#completed">completed
+   loading</a>, or if the <a href="#list-of0">list of scripts that will
+   execute asynchronously</a> is not empty and the first script in that list
+   has <a href="#completed">completed loading</a>, then the user agent must
+   act as if those scripts just completed loading, following the rules given
+   for that in the <code><a href="#script1">script</a></code> element
+   definition.
 
   <p>Then, if the <a href="#list-of">list of scripts that will execute when
    the document has finished parsing</a> is not empty, and the first item in
-   this list has already <span>completed loading</span><!--XXX
-  xref -->,
-   then the user agent must act as if that script just finished loading.
+   this list has already <a href="#completed">completed loading</a>, then the
+   user agent must act as if that script just finished loading.
 
   <p>By this point, there will be no scripts that have loaded but have not
    yet been executed.
