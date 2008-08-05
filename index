@@ -13,6 +13,7 @@
    .bad { color: gray; }
    table.matrix, table.matrix td { border: none; text-align: right; }
    table.matrix { margin-left: 2em; }
+   #updatesStatus.relevant { position: fixed; top: 1em; left: 1em; padding: 0.5em; font-weight: bold normal sans-serif; width: 40%; height: auto; border: ridge 4px gray; background: #EEEEEE; color: black; }
   </style>
   <link href=status.css rel=stylesheet>
   <script src=status.js></script>
@@ -24,7 +25,7 @@
 
    <h1 id=html-5>HTML 5</h1>
 
-   <h2 class="no-num no-toc" id=draft>Draft Recommendation &mdash; 4 August
+   <h2 class="no-num no-toc" id=draft>Draft Recommendation &mdash; 5 August
     2008</h2>
 
    <p>You can take part in this work. <a
@@ -112,7 +113,71 @@
    on a daily if not hourly basis in response to comments and as a general
    part of its development process. Comments are very welcome, please send
    them to <a href="mailto:whatwg@whatwg.org">whatwg@whatwg.org</a>. Thank
-   you.
+   you.</p>
+  <script>
+   function getCookie(name) {
+     var cookies = document.cookie.split("; ");
+     for (var index = 0; index < cookies.length; index++) {
+       var data = cookies[index].split("=");
+       if (data[0] == name)
+         return unescape(data[1]);
+     }
+     return null;
+   }
+   var current_revision = "r" + "$Revision$".substr(11);
+   current_revision = current_revision.substr(0, current_revision.length - 2);
+   function getRemoteString(url, callback) {
+     var x = new XMLHttpRequest();
+     x.open('GET', url + "?" + new Date());
+     x.onreadystatechange = function () {
+       if (x.readyState == 4) {
+         if (x.status == 200)
+           callback(x.responseText);
+         else
+           throw 'network error ' + x.status + ': "' + x.statusText + '" while loading ' + url;
+       }
+     };
+     x.send(null);
+   }
+   function doUpdate() {
+     getRemoteString('revision.dat', function (data) {
+       if (data != current_revision) {
+         getRemoteString('revision-message.dat', function (message) {
+           var status = document.getElementById('updatesStatus');
+           status.textContent = 'This specification has been updated. You are reading ' + current_revision + ' but the latest revision is ' + data + ' ("' +
+                                message + '") ';
+           var a = document.createElement('a');
+           a.href = '';
+           a.onclick = function () { location.reload(); return false; };
+           a.textContent = "Reload...";
+           status.appendChild(a);
+           status.className = 'relevant';
+         });
+       }
+     });
+   }
+   var updater;
+   function configureUpdates(on) {
+     var date = new Date();
+     date.setFullYear(date.getFullYear() + 1);
+     document.cookie = 'updatesEnabled=' + encodeURIComponent(on?'1':'0') + '; expires=' + date.toGMTString();
+     if (updater && !on)
+       clearInterval(updater);
+     if (!updater && on)
+       updater = setInterval(doUpdate, 6000);
+   }
+  </script>
+
+  <p>If you wish to see notifications whenever a change is committed, you can
+   <label><input id=updatesEnabled onchange="configureUpdates(this.checked)"
+   type=checkbox> enable automatic updates</label>. <span
+   id=updatesStatus></span></p>
+  <script>
+   if (getCookie('updatesEnabled') == '1') {
+     document.getElementById('updatesEnabled').checked = true;
+     configureUpdates(true);
+   }
+  </script>
 
   <p>The current focus is in responding to the <a
    href="http://www.whatwg.org/issues/">outstanding feedback</a>. (There is
