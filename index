@@ -44002,6 +44002,17 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
    href="#messageport0">MessagePort</a></code> object, and remove the event
    from the queue.
 
+  <p>If the <code><a href="#messageport0">MessagePort</a></code> is owned by
+   a <code><a href="#window">Window</a></code> object and the
+   <code>Document</code> that was the <a href="#active">active document</a>
+   in that <a href="#browsing1">browsing context</a> when the <code><a
+   href="#messageport0">MessagePort</a></code> was created is not <a
+   href="#fully">fully active</a>, then an opportunity doesn't exist &mdash;
+   events in such cases must only be dispatched once the
+   <code>Document</code> in question becomes <a href="#fully">fully
+   active</a>. If that doesn't happen before that <code>Document</code> is
+   discarded, then the events are lost.
+
   <hr>
 
   <p>The <dfn id=close3
@@ -44080,11 +44091,42 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
 
   <h5 id=ports><span class=secno>7.5.3.1. </span>Ports and browsing contexts</h5>
 
-  <p>Ports are unentangled when the <code>Document</code> that was the <a
-   href="#active">active document</a> of the <a href="#browsing1">browsing
-   context</a> corresponding to the <code><a href="#window">Window</a></code>
-   object that owns them is <a href="#discard" title="discard a
-   document">discarded</a>.
+  <p>When a <code>Document</code> is <a href="#discard" title="discard a
+   document">discarded</a>, if there are any <code><a
+   href="#messageport0">MessagePort</a></code> objects that:
+
+  <ul class=brief>
+   <li>are entangled, and
+
+   <li>are owned by the <a href="#browsing1">browsing context</a> that
+    contained that <code>Document</code>, and
+
+   <li>were created while that <code>Document</code> was the <a
+    href="#active">active document</a> of that <a href="#browsing1">browsing
+    context</a>, and
+
+   <li>are entangled with a port that is either not owned by that <a
+    href="#browsing1">browsing context</a> or was not created while that
+    <code>Document</code> was the <a href="#active">active document</a> of
+    that <a href="#browsing1">browsing context</a>,
+  </ul>
+
+  <p>...then the user agent must run the following steps for each such port:
+
+  <ol>
+   <li>
+    <p>Let <var title="">surviving port</var> be the port with which the
+     <code><a href="#messageport0">MessagePort</a></code> object in question
+     is entangled.
+
+   <li>
+    <p>Unentangle the two ports.</p>
+
+   <li>At the next available opportunity, after any scripts have finished
+    executing<!-- XXX queue -->, <a href="#firing2">fire a simple event</a>
+    called <code title=event-unload>unload</code> at <var title="">surviving
+    port</var>.
+  </ol>
 
   <h5 id=ports0><span class=secno>7.5.3.2. </span>Ports and garbage
    collection</h5>
@@ -44103,12 +44145,6 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
     ports would be garbage collected, since they would not be reachable from
     live code, despite having a strong reference to each other.</p>
   </div>
-
-  <p>When an entangled message port is about to be garbage collected, it must
-   be unentangled. Because of the aforementioned strong reference, this can
-   only happen if either both ports are about to be garbage collected as a
-   pair, or if the entire <a href="#script2">script execution context</a> of
-   the port is being discarded.
 
   <h2 id=syntax><span class=secno>8. </span>The HTML syntax</h2>
 

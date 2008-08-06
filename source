@@ -41406,6 +41406,16 @@ interface <dfn>MessageChannel</dfn> {
   <code>MessagePort</code> object, and remove the event from the
   queue.</p>
 
+  <p>If the <code>MessagePort</code> is owned by a <code>Window</code>
+  object and the <code>Document</code> that was the <span>active
+  document</span> in that <span>browsing context</span> when the
+  <code>MessagePort</code> was created is not <span>fully
+  active</span>, then an opportunity doesn't exist &mdash; events in
+  such cases must only be dispatched once the <code>Document</code> in
+  question becomes <span>fully active</span>. If that doesn't happen
+  before that <code>Document</code> is discarded, then the events are
+  lost.</p>
+
   <hr>
 
   <p>The <dfn title="dom-MessagePort-close"><code>close()</code></dfn>
@@ -41486,10 +41496,34 @@ interface <dfn>MessageChannel</dfn> {
 
   <h5>Ports and browsing contexts</h5>
 
-  <p>Ports are unentangled when the <code>Document</code> that was the
-  <span>active document</span> of the <span>browsing context</span>
-  corresponding to the <code>Window</code> object that owns them is
-  <span title="discard a document">discarded</span>.</p>
+  <p>When a <code>Document</code> is <span title="discard a
+  document">discarded</span>, if there are any
+  <code>MessagePort</code> objects that:</p>
+
+  <ul class="brief">
+   <li>are entangled, and</li>
+   <li>are owned by the <span>browsing context</span> that contained that <code>Document</code>, and</li>
+   <li>were created while that <code>Document</code> was the <span>active document</span> of that <span>browsing context</span>, and</li>
+   <li>are entangled with a port that is either not owned by that <span>browsing context</span> or was not created while that <code>Document</code> was the <span>active document</span> of that <span>browsing context</span>,</li>
+  </ul>
+
+  <p>...then the user agent must run the following steps for each such
+  port:</p>
+
+  <ol>
+
+   <li><p>Let <var title="">surviving port</var> be the port with
+   which the <code>MessagePort</code> object in question is
+   entangled.</p></li>
+
+   <li><p>Unentangle the two ports.</p></p>
+
+   <li>At the next available opportunity, after any scripts have
+   finished executing<!-- XXX queue -->, <span>fire a simple
+   event</span> called <code title="event-unload">unload</code> at
+   <var title="">surviving port</var>.</p>
+
+  </ol>
 
 
 
@@ -41511,16 +41545,6 @@ interface <dfn>MessageChannel</dfn> {
    other.</p>
 
   </div>
-
-  <p>When an entangled message port is about to be garbage collected,
-  it must be unentangled. Because of the aforementioned strong
-  reference, this can only happen if either both ports are about to be
-  garbage collected as a pair, or if the entire <span>script execution
-  context</span> of the port is being discarded.</p>
-
-
-
-
 
 
 
