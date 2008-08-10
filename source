@@ -6612,7 +6612,8 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
 
   <p>The <code title="dom-document-write">document.write()</code>
   family of methods and the <code
-  title="dom-innerHTML">innerHTML</code> family of DOM attributes
+  title="dom-innerHTML">innerHTML</code>/<code
+  title="dom-outerHTML">outerHTML</code> family of DOM attributes
   enable script authors to dynamically insert markup into the
   document.</p>
 
@@ -6627,20 +6628,25 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
    <thead>
     <tr>
      <td></td>
-     <th><dfn title="dom-document-write"><code>document.write()</code></dfn></th>
-     <th><dfn title="dom-innerHTML"><code>innerHTML</code></dfn></th>
+     <th>For documents that are <span>HTML documents</span></th>
+     <th>For documents that are <span>XML documents</span></th>
     </tr>
    </thead>
    <tbody>
     <tr>
-     <th>For documents that are <span>HTML documents</span></th>
+     <th><dfn title="dom-document-write"><code>document.write()</code></dfn></th>
      <td><span title="dom-document-write-HTML"><code>document.write()</code> in HTML</span></td>
-     <td><span title="dom-innerHTML-HTML"><code>innerHTML</code> in HTML</span></td>
+     <td><span title="dom-document-write-XML"><code>document.write()</code> in XML</span></td>
     </tr>
     <tr>
-     <th>For documents that are <span>XML documents</span></th>
-     <td><span title="dom-document-write-XML"><code>document.write()</code> in XML</span></td>
+     <th><dfn title="dom-innerHTML"><code>innerHTML</code></dfn></th>
+     <td><span title="dom-innerHTML-HTML"><code>innerHTML</code> in HTML</span></td>
      <td><span title="dom-innerHTML-XML"><code>innerHTML</code> in XML</span></td>
+    </tr>
+    <tr>
+     <th><dfn title="dom-outerHTML"><code>outerHTML</code></dfn></th>
+     <td><span title="dom-outerHTML-HTML"><code>outerHTML</code> in HTML</span></td>
+     <td><span title="dom-outerHTML-XML"><code>outerHTML</code> in XML</span></td>
     </tr>
    </tbody>
   </table>
@@ -6851,20 +6857,14 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
 
   </ol>
 
-  <p>In HTML, the <dfn
+  <hr>
+
+  <p>On getting, the <dfn
   title="dom-innerHTML-HTML"><code>innerHTML</code></dfn> DOM
-  attribute of all <code>HTMLElement</code> and
-  <code>HTMLDocument</code> nodes returns a serialization of the
-  node's children using the <span>HTML syntax</span><!-- XXX xref
-  -->. On setting, it replaces the node's children with new nodes that
-  result from parsing the given value. The formal definitions
-  follow.</p>
+  attribute must return the result of running the <span>HTML fragment
+  serialization algorithm</span> on the node.</p>
 
-  <p>On getting, the <code title="dom-innerHTML-HTML">innerHTML</code>
-  DOM attribute must return the result of running the <span>HTML
-  fragment serialization algorithm</span> on the node.</p>
-
-  <p>On setting, if the node is a document, the <code
+  <p>On setting, <strong>if the node is a document</strong>, the <code
   title="dom-innerHTML-HTML">innerHTML</code> DOM attribute must run
   the following algorithm:</p>
 
@@ -6979,8 +6979,92 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
 
   </ol>
 
+  <hr>
+
+  <p>On getting, the <dfn
+  title="dom-outerHTML-HTML"><code>outerHTML</code></dfn> DOM
+  attribute must return the result of running the <span>HTML fragment
+  serialization algorithm</span> on a fictional node whose only child
+  is the node on which the attribute was invoked.</p>
+
+  <p>On setting, the <code title="dom-outerHTML-HTML">outerHTML</code>
+  DOM attribute must cause the following algorithm to run:</p>
+
+  <ol>
+
+   <li>
+
+    <p>Let <var title="">target</var> be the element whose <code
+    title="dom-innerHTML-HTML">outerHTML</code> attribute is being
+    set.</p>
+
+   </li>
+
+   <li>
+
+    <p>If <var title="">target</var> has no parent node, then abort
+    these steps. There would be no way to obtain a reference to the
+    nodes created even if the remaining steps were run.</p>
+
+   </li>
+
+   <li>
+
+    <p>If <var title="">target</var>'s parent node is a
+    <code>Document</code> object, throw a
+    <code>NO_MODIFICATION_ALLOWED_ERR</code> exception and abort these
+    steps.</p>
+
+   </li>
+
+   <li>
+
+    <p>Invoke the <span>HTML fragment parsing algorithm</span>, with
+    <var title="">target</var>'s parent element as the <var
+    title="">context</var> element and the string being assigned into
+    the <code title="dom-outerHTML-HTML">outerHTML</code> attribute as
+    the <var title="">input</var>. Let <var title="">new
+    children</var> be the result of this algorithm.</p>
+
+   </li>
+
+   <li>
+
+    <p>Let <var title="">target document</var> be the <code
+    title="">ownerDocument</code> of <var title="">target</var>.</p>
+
+   </li>
+
+   <li>
+
+    <p>Set the <code title="">ownerDocument</code> of all the nodes in
+    <var title="">new children</var> to the <var title="">target
+    document</var>.</p>
+
+   </li>
+
+   <li>
+
+    <p>Remove <var title="">target</var> from its parent node and
+    insert in its place all the <var title="">new children</var>
+    nodes, preserving their order.</p>
+
+   </li>
+
+  </ol>
+
+  <hr>
+
+  <p class="note">The <code
+  title="dom-innerHTML-HTML">innerHTML</code> attribute applies to
+  both <code>Element</code> nodes as well as <code>Document</code>
+  nodes. The <code title="dom-outerHTML-HTML">outerHTML</code>
+  attribute, on the other hand, only applies to <code>Element</code>
+  nodes.</p>
+
   <p class="note"><code>script</code> elements inserted using <code
-  title="dom-innerHTML-HTML">innerHTML</code> do not execute when they
+  title="dom-innerHTML-HTML">innerHTML</code> and <code
+  title="dom-outerHTML-HTML">outerHTML</code> do not execute when they
   are inserted.</p>
 
   <!-- XXX must make sure we spec that innerHTML causes mutation
@@ -6998,25 +7082,6 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
 
 
   <h4>Dynamic markup insertion in XML</h4>
-
-  <p>In an XML context, the <dfn
-  title="dom-document-write-XML"><code>document.write()</code></dfn>
-  method must raise an <code>INVALID_ACCESS_ERR</code> exception.</p>
-
-<!--
-  For XHTML: content must be well-formed. Where does
-  it insert? Immediately after the script that called document.write()?</p>
-  how do we handle async scripts vs sync scripts?
-
-Consider:
-data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ document.write('<foo>Test</foo>'); ]]></script>
-data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test'); alert(document.write); try { document.write('<foo>Test</foo>'); alert(document.childNodes.length); } catch (e) { alert(e); } ]]></script>
-
--->
-
-  <p>On the other hand, however, the <dfn
-  title="dom-innerHTML-XML"><code>innerHTML</code></dfn> attribute is
-  indeed usable in an XML context.</p>
 
   <p>In an XML context, the <code
   title="dom-innerHTML-XML">innerHTML</code> DOM attribute on
@@ -7189,6 +7254,18 @@ data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ alert('test
   <p class="note"><code>script</code> elements inserted using <code
   title="dom-innerHTML-XML">innerHTML</code> do not execute when they
   are inserted.</p>
+
+  <p>In an XML context, the <dfn
+  title="dom-document-write-XML"><code>document.write()</code></dfn>
+  method, and the <dfn
+  title="dom-outerHTML-XML"><code>outerHTML</code></dfn> attribute on
+  both getting and setting, must raise an
+  <code>INVALID_ACCESS_ERR</code> exception.</p>
+
+<!--
+Where would document.write() insert?
+Consider: data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ document.write('<foo>Test</foo>'); ]]></script>
+-->
 
 
 
@@ -23449,12 +23526,12 @@ function AddCloud(data, x, y) { ... }</pre>
     the processing of the <code
     title="dom-innerHTML-XML">innerHTML</code> attribute's setter<!--
     no need to worry about the innerHTML-HTML case, as the HTML parser
-    handles that for us-->, or if the user agent does not
-    <span>support the scripting language</span> given by <var>the
-    script's type</var> for this <code>script</code> element, or if
-    the <code>script</code> element has its <span>"already
-    executed"</span> flag set, then the user agent must abort these
-    steps at this point. The script is not executed.</p>
+    handles that for us, and outerHTML-XML doesn't work-->, or if the
+    user agent does not <span>support the scripting language</span>
+    given by <var>the script's type</var> for this <code>script</code>
+    element, or if the <code>script</code> element has its
+    <span>"already executed"</span> flag set, then the user agent must
+    abort these steps at this point. The script is not executed.</p>
 
    </li>
 
@@ -43229,14 +43306,14 @@ interface <dfn>MessageChannel</dfn> {
    here for now in case people think that the spec accidentally
    omitted it and try to "fix" it. Note that noscript-in-head is also
    handled this way. This is all intentional. The only thing it
-   doesn't handle is the scripting-enabled fragment parsing case for a
-   <head> element containing a <noscript> which itself contains
+   doesn't handle is the scripting-disabled fragment parsing case for
+   a <head> element containing a <noscript> which itself contains
    something other than a <link> or a <style> element; you'd expect
    that to break out of the <noscript> but it doesn't. This is an edge
    case that doesn't affect the spec, since the algorithm for fragment
-   parsing is only used for innerHTML, where we know scripting is
-   enabled. (XXX except maybe if innerHTML is set from another
-   browsing context on a document with designMode set?) -->
+   parsing is only used for innerHTML/outerHTML, where we know
+   scripting is enabled. (XXX except maybe if innerHTML is set from
+   another browsing context on a document with designMode set?) -->
 
    <li>If <var title="">node</var> is a <code>body</code> element,
    then switch the <span>insertion mode</span> to "<span
@@ -45822,11 +45899,11 @@ interface <dfn>MessageChannel</dfn> {
     executed). (<span>fragment case</span>)</p>
 
     <p class="note">Marking the <code>script</code> element as
-    "already executed" prevents it from executing when it is
-    inserted into the document a few paragraphs below. Thus,
-    scripts missing their end tags and scripts that were inserted
-    using <code title="dom-innerHTML-HTML">innerHTML</code> aren't
-    executed.</p>
+    "already executed" prevents it from executing when it is inserted
+    into the document a few paragraphs below. Thus, scripts missing
+    their end tags and scripts that were inserted using <code
+    title="dom-innerHTML-HTML">innerHTML</code>/<code
+    title="dom-outerHTML-HTML">outerHTML</code> aren't executed.</p>
 
     <p>Let the <var title="">old insertion point</var> have the
     same value as the current <span>insertion point</span>. Let
@@ -48351,7 +48428,8 @@ interface <dfn>MessageChannel</dfn> {
     <p>If the parser was originally created as part of the <span>HTML
     fragment parsing algorithm</span>, this is a <span>parse
     error</span>; ignore the token.  (<span>fragment case</span>)</p>
-    <!-- can only happen for <html>'s own innerHTML -->
+    <!-- can only happen for <html>'s own innerHTML or its children's
+    outerHTML -->
 
     <p>Otherwise, switch the <span>insertion mode</span> to "<span
     title="insertion mode: after after body">after after
@@ -48962,7 +49040,7 @@ http://lxr.mozilla.org/seamonkey/search?string=nested
         <code>plaintext</code> element, then append the value of <var
         title="">current node</var>'s <code title="">data</code> DOM
         attribute literally.</p> <!-- note about noscript: we're
-        assuming here that scripting is disabled. If this algorithm is
+        assuming here that scripting is enabled. If this algorithm is
         used with scripting disabled, this won't work right. XXX This
         might affect calling innerHTML on nodes in a document that is
         being designMode'd -->
