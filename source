@@ -3444,21 +3444,36 @@
    and abort these steps.</p></li>
 
    <li><p>Perform the remaining steps asynchronously.</p></li>
-   <!-- XXX queue interaction -->
 
-   <li><p>If the resource identified by the resulting <span>absolute
-   URL</span> is already being downloaded for other reasons
-   (e.g. another invocation of this algorithm), then the results of
-   that existing download process may be used for the purposes of this
-   one, in which case the following step must be skipped.</p></li>
+   <li>
 
-   <li><p>At a time convenient to the user and the user agent,
-   download the resource, applying the semantics of the relevant
-   specifications (e.g. performing an HTTP GET or POST operation, or
-   reading the file from disk, following redirects, <span
-   title="concept-js-deref">dereferencing <span title="javascript
-   protocol"><code title="">javascript:</code> URLs</span></span>,
-   etc).</p></li>
+    <p>If the resource identified by the resulting <span>absolute
+    URL</span> is already being downloaded for other reasons
+    (e.g. another invocation of this algorithm), and the resource is
+    to be obtained using a idempotent action (such as an HTTP GET or
+    equivalent), and the user agent is configured such that it is to
+    reuse the data from the existing download instead of initiating a
+    new one, then use the results of the existing download instead of
+    starting a new one.</p>
+
+    <p>Otherwise, at a time convenient to the user and the user agent,
+    download the resource, applying the semantics of the relevant
+    specifications (e.g. performing an HTTP GET or POST operation, or
+    reading the file from disk, following redirects, <span
+    title="concept-js-deref">dereferencing <span title="javascript
+    protocol"><code title="">javascript:</code> URLs</span></span>,
+    etc).</p>
+
+   </li>
+
+   <li><p>When the resource is available, <span>queue a task</span>
+   that uses the resource as appropriate. If the resource can be
+   processed incrementally, as, for instance, with a progressively
+   interlaced JPEG or an HTML file, multiple tasks may be queued to
+   process the data as it is downloaded. The <span>task source</span>
+   for these tasks is the <dfn>networking task source</dfn>.</p>
+   <!-- XXX make sure each use of 'fetch' defines what the appropriate
+   task is -->
 
   </ol>
 
@@ -6412,8 +6427,6 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
   href="#refsWF2">[WF2]</a></p> <!-- XXX WF2: when this is merged into
   this spec, update xrefs -->
 
-  <p class="note">Most interactive elements have content models that
-  disallow nesting interactive elements.</p>
 
 
   <h4>Transparent content models</h4>
@@ -10815,7 +10828,7 @@ first matching case):&lt;/p&gt;
   <p class="note">One way that a user agent can enable users to follow
   hyperlinks is by allowing <code>a</code> elements to be clicked, or
   focussed and activated by the keyboard. This <span
-  title="interactive elements">will cause</span> the aforementioned
+  title="interactive content">will cause</span> the aforementioned
   <span>activation behavior</span> to be invoked.</p>
 
   <p>The DOM attributes <dfn
@@ -10838,7 +10851,7 @@ first matching case):&lt;/p&gt;
 
    <p>The <code>a</code> element may be wrapped around entire
    paragraphs, lists, tables, and so forth, even entire sections, so
-   long as there are no interactive elements within (e.g. buttons or
+   long as there is no interactive content within (e.g. buttons or
    other links). This example shows how this can be used to make an
    entire advertising block into a link:</p>
 
@@ -15798,7 +15811,6 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
   <hr>
 
   <!-- XXX
-   make it an interactive element
    default activation behavior is to do the play() if paused, pause()
    otherwise
   -->
@@ -21113,7 +21125,7 @@ function AddCloud(data, x, y) { ... }</pre>
   <p class="note">One way that a user agent can enable users to follow
   hyperlinks is by allowing <code>area</code> elements to be clicked,
   or focussed and activated by the keyboard. This <span
-  title="interactive elements">will cause</span> the aforementioned
+  title="interactive content">will cause</span> the aforementioned
   <span>activation behavior</span> to be invoked.</p>
 
   <p>The DOM attributes <dfn
@@ -24535,7 +24547,7 @@ https://www.google.com/base/settings
   <dl class="element">
    <dt>Categories</dt>
    <dd><span>Flow content</span>.</dd>
-   <dd><span>Interactive element</span>.</dd>
+   <dd><span>Interactive content</span>.</dd>
    <dd><span>Sectioning root</span>.</dd>
    <dt>Contexts in which this element may be used:</dt>
    <dd>Where <span>flow content</span> is expected.</dd>
@@ -28891,7 +28903,7 @@ never reset. This is nice and consistent.)
 
    <li><p>If the <span>parent browsing context</span>'s <span>active
    document</span> does not have the <span>same</span> <span>effective
-   origin</span> as the script that is accessing the <code
+   script origin</span> as the script that is accessing the <code
    title="dom-frameElement">frameElement</code> attribute, then throw
    a <span>security exception</span>.</p></li>
 
@@ -29000,6 +29012,15 @@ never reset. This is nice and consistent.)
   context">browsing contexts</span> that are <span>directly reachable
   browsing contexts</span> forms a <dfn>unit of related browsing
   contexts</dfn>.</p>
+
+  <p>Each <span>unit of related browsing contexts</span> is then
+  further divided into the smallest number of groups such that every
+  member of each group has an <span>effective script origin</span>
+  that, through appropriate manipulation of the <code
+  title="dom-document-domain">document.domain</code> attribute, could
+  be made to be the same as other members of the group, but could not
+  be made the same as members of any other group. Each such group is a
+  <dfn>unit of related similar-origin browsing contexts</dfn>.</p>
 
 
 
@@ -29969,7 +29990,99 @@ never reset. This is nice and consistent.)
 
   <h4>Event loops</h4>
 
-  <p class="big-issue">...</p><!-- XXXqueue-->
+  <p>To coordinate events, user interaction, scripts, rendering,
+  networking, and so forth, user agents must use <dfn title="event
+  loop">event loops</dfn> as described in this section.</p>
+
+  <p>There must be at least one <span>event loop</span> per user
+  agent, and at most one <span>event loop</span> per <span>unit of
+  related similar-origin browsing contexts</span>.</p>
+
+  <p>An <span>event loop</span> always has at least one <span>browsing
+  context</span>. If an <span>event loop</span>'s <span
+  title="browsing context">browsing contexts</span> all go away, then
+  the <span>event loop</span> goes away as well. A <span>browsing
+  context</span> always has an <span>event loop</span> coordinating
+  its activities.</p>
+
+  <p>An <span>event loop</span> has one or more <dfn title="task
+  queue">task queues</dfn>. A <span>task queue</span> is an ordered
+  list of:</p>
+
+  <dl>
+
+   <dt>Events</dt>
+
+   <dd>
+
+    <p>Asynchronously dispatching an <code>Event</code> object at a
+    particular <code>EventTarget</code> object is a task.</p>
+
+    <p class="note">Not all events are dispatched using the <span>task
+    queue</span>, many are dispatched synchronously during other
+    tasks.</p>
+
+   </dd>
+
+
+   <dt>Parsing</dt>
+
+   <dd><p>The <span>HTML parser</span> tokenising a single byte, and
+   then processing any resulting tokens, is a task.</p></dd>
+
+
+   <dt>Callbacks</dt>
+
+   <dd><p>Calling a callback asynchronously is a task.</p></dd>
+
+
+   <dt>Using a resource</dt>
+
+   <dd><p>When an algorithm <span title="fetch">fetches</span> a
+   resource, if the fetching occurs asynchronously then the processing
+   of the resource once some or all of the resource is available is a
+   task.</p></dd>
+
+  </dl>
+
+  <p>When a user agent is to <dfn>queue a task</dfn>, it must add the
+  given task to one of the <span title="task queue">task queues</span>
+  of the relevant <span>event loop</span>. All the tasks from one
+  particular <dfn>task source</dfn> (e.g. the callbacks generated by
+  timers, the events dispatched for mouse movements, the tasks queued
+  for the parser) must always be added to the same <span>task
+  queue</span>, but tasks from different <span title="task
+  source">task sources</span> may be placed in different <span
+  title="task queue">task queues</span>.</p>
+
+  <p class="example">For example, a user agent could have one
+  <span>task queue</span> for mouse and key events (the <span>user
+  interaction task source</span><!-- XXX xref -->), and another for
+  everything else. The user agent could then give keyboard and mouse
+  events preference over other tasks three quarters of the time,
+  keeping the interface responsive but not starving other task queues,
+  and never processing events from any one <span>task source</span>
+  out of order.</p>
+
+  <p>An <span>event loop</span> must continually run through the
+  following steps for as long as it exists:</p>
+
+  <ol>
+
+   <li><p>Run the oldest task on one of the <span>event loop</span>'s
+   <span title="task queue">task queues</span>. The user agent may
+   pick any <span>task queue</span>.</p></li>
+
+   <li><p>Remove that task from its <span>task queue</span>.</p></li>
+
+   <li><p>If necessary, update the rendering or user interface of any
+   <code>Document</code> or <span>browsing context</span> to reflect
+   the current state.</p></li>
+
+   <li><p>Return to the first step of the <span>event
+   loop</span>.</p></li>
+
+  </ol>
 
 
 
