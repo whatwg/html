@@ -18825,10 +18825,10 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href="#htmlmediae
    href="#task-queues" title="task queue">task queues</a>, the <dfn
    id=media11>media element event task source</dfn> for asynchronous events
    and callbacks, and the <dfn id=media12>media element new resource task
-   source</dfn> for handling implicit loads. Unless otherwise specified, all
-   the tasks <a href="#queue" title="queue a task">queued</a> in this section
-   and its subsections use the <a href="#media11">media element event task
-   source</a>.
+   source</dfn> for handling implicit loads. Unless otherwise specified, the
+   <a href="#task-source">task source</a> for all the tasks <a href="#queue"
+   title="queue a task">queued</a> in this section and its subsections is the
+   <a href="#media11">media element event task source</a>.
 
   <h5 id=error><span class=secno>4.7.10.1. </span>Error codes</h5>
 
@@ -26560,9 +26560,9 @@ function AddCloud(data, x, y) { ... }</pre>
      href="#the-javascript" title="javascript protocol"><code
      title="">javascript:</code> URL</a>, then the user agent must not,
      despite the requirements in the definition of the <a href="#fetch"
-     title=fetch>fetching</a> algorithm, actually execute the given script,
-     and instead the user agent must act as if it had received an empty HTTP
-     400 response.</p>
+     title=fetch>fetching</a> algorithm, actually execute the given script;
+     instead the user agent must act as if it had received an empty HTTP 400
+     response.</p>
 
     <p>Once the fetching process has completed, and the script has <dfn
      id=completed>completed loading</dfn>, the user agent will have to
@@ -26642,9 +26642,9 @@ function AddCloud(data, x, y) { ... }</pre>
   <p><dfn id=when-a>When a script completes loading</dfn>: If the script's
    element was added to one of the lists mentioned above and the document is
    still being parsed, then the parser handles it. Otherwise, the UA must run
-   the following steps as soon as as any other scripts that may be executing
-   have finished executing:</p>
-  <!-- XXX queue -->
+   the following steps as the <a href="#tasks" title=concept-task>task</a>
+   that the <a href="#networking">networking task source</a> places on the <a
+   href="#task-queues">task queue</a>:
 
   <dl class=switch>
    <dt>If the script's element was added to the <dfn id=list-of>list of
@@ -30850,6 +30850,11 @@ menu li:not(:first-child)::before { content: ' | '; }</pre>
   <h4 id=processing1><span class=secno>4.12.6 </span>Processing model</h4>
   <!-- ua side -->
 
+  <p>The <span>event source</span> for all <a href="#tasks"
+   title=concept-task>tasks</a> <a href="#queue" title="queue a
+   task">queued</a> by algorithms in this section and its subsections is the
+   <dfn id=template1>template event source</dfn>.
+
   <h5 id=the-originalcontent><span class=secno>4.12.6.1. </span>The <code
    title=dom-originalContent><a
    href="#originalcontent">originalContent</a></code> DOM attribute</h5>
@@ -30895,10 +30900,8 @@ menu li:not(:first-child)::before { content: ' | '; }</pre>
    steps below.
 
   <p>Once the DOM in question has been parsed, assuming that it indeed can be
-   parsed and does so successfully, the user agent must wait for no scripts
-   to be executing, and as soon as that opportunity
-   arises<!-- XXX queue; xref to a strict definition of this -->, run the
-   following algorithm:
+   parsed and does so successfully, the user agent must <a
+   href="#queue">queue a task</a> to run the following algorithm:
 
   <ol><!-- precondition: the originalContent is null and the element
         contains its original content. -->
@@ -31021,10 +31024,8 @@ menu li:not(:first-child)::before { content: ' | '; }</pre>
    below.
 
   <p>Once the DOM in question has been parsed, assuming that it indeed can be
-   parsed and does so successfully, the user agent must wait for no scripts
-   to be executing, and as soon as that opportunity
-   arises<!-- XXX; queue xref to a strict definition of this -->, run the
-   following algorithm:
+   parsed and does so successfully, the user agent must <a
+   href="#queue">queue a task</a> to run the following algorithm:
 
   <ol>
    <li>
@@ -31128,21 +31129,21 @@ menu li:not(:first-child)::before { content: ' | '; }</pre>
 
   <p>An element with a non-null <code title=dom-templateElement><a
    href="#templateelement">templateElement</a></code> is also said to be a
-   <dfn id=template1>template tree user</dfn> of the node identified by the
+   <dfn id=template2>template tree user</dfn> of the node identified by the
    element's <code title=dom-templateElement><a
    href="#templateelement">templateElement</a></code> attribute, as well as
    all of that node's children.
 
-  <p>Nodes that have one or more <a href="#template1" title="template tree
+  <p>Nodes that have one or more <a href="#template2" title="template tree
    user">template tree users</a> associated with them (as per the previous
-   paragraph) are themselves termed <dfn id=template2 title="template tree
+   paragraph) are themselves termed <dfn id=template3 title="template tree
    component node">template tree component nodes</dfn>.
 
-  <p>Whenever a <a href="#template2">template tree component node</a> changes
+  <p>Whenever a <a href="#template3">template tree component node</a> changes
    its name or value, or has one of its attributes change name or value, or
    has an attribute added or removed, or has a child added or removed, the
    user agent must <span>update the generated content</span> of all of that
-   node's <a href="#template1" title="template tree user">template tree
+   node's <a href="#template2" title="template tree user">template tree
    users</a>.
 
   <p class=note>In other words, user agents update the content generated from
@@ -37632,19 +37633,16 @@ user reload must be equivalent to .reload()
    href="#storage0">Storage</a></code> object never changes while a script is
    executing, other than in a way that is predictable by the script itself.
 
-  <p>There are various ways of implementing this requirement. One is that if
-   a script running in one browsing context accesses a local storage area,
-   the UA blocks scripts in other browsing contexts when they try to access
-   the local storage area for the <a href="#same-origin">same origin</a>
-   until the first script has executed to completion <!--
-  xxx queue -->.
-   (Similarly, when a script in one browsing context accesses its session
-   storage area, any scripts that have the same top level browsing context
-   and the <a href="#same-origin">same origin</a> would block when accessing
-   their session storage area until the first script has executed to
-   completion.) Another (potentially more efficient but probably more
-   complex) implementation strategy is to use optimistic transactional script
-   execution. This specification does not require any particular
+  <p class=note>There are various ways of implementing this requirement. One
+   is to just have one <a href="#event3">event loop</a> for all <a
+   href="#browsing1" title="browsing context">browsing contexts</a>. Another
+   is that if a script running in one browsing context accesses a storage
+   area, the user agent blocks scripts in other browsing contexts when they
+   try to access the same storage area until the <a href="#event3">event
+   loop</a> running the first script has completed running the task that
+   started that script. Another (potentially more efficient but certainly
+   more complex) implementation strategy is to use optimistic transactional
+   script execution. This specification does not require any particular
    implementation strategy, so long as the requirement above is met.
 
   <h4 id=sql><span class=secno>5.10.2 </span>Database storage</h4>
@@ -38087,9 +38085,10 @@ interface <dfn id=sqlstatementerrorcallback>SQLStatementErrorCallback</dfn> {
      href="#changeversion">changeVersion()</a></code> method.)
 
    <li>
-    <p><!-- XXX queue --> Invoke the <i>transaction callback</i> with the
-     aforementioned <code><a href="#sqltransaction">SQLTransaction</a></code>
-     object as its only argument.
+    <p><a href="#queue">Queue a task</a> to invoke the <i>transaction
+     callback</i> with the aforementioned <code><a
+     href="#sqltransaction">SQLTransaction</a></code> object as its only
+     argument, and wait for that task to be run.
 
    <li>
     <p>If the callback couldn't be called (e.g. it was null), or if the
@@ -38124,12 +38123,12 @@ interface <dfn id=sqlstatementerrorcallback>SQLStatementErrorCallback</dfn> {
        object that represents the result of the statement.
 
      <li>
-      <p><!-- XXX queue --> If the statement has a result set callback,
-       invoke it with the <code><a
+      <p>If the statement has a result set callback, <a href="#queue">queue a
+       task</a> to invoke it with the <code><a
        href="#sqltransaction">SQLTransaction</a></code> object as its first
        argument and the new <code><a
        href="#sqlresultset">SQLResultSet</a></code> object as its second
-       argument.
+       argument, and wait for that task to be run.
 
      <li>
       <p>If the callback was invoked and raised an exception, jump to the
@@ -38145,12 +38144,12 @@ interface <dfn id=sqlstatementerrorcallback>SQLStatementErrorCallback</dfn> {
 
     <ol>
      <li>
-      <p>If the statement had an associated error callback, then invoke that
-       error callback with the <code><a
-       href="#sqltransaction">SQLTransaction</a></code> object and a newly
-       constructed <code><a href="#sqlerror">SQLError</a></code> object that
-       represents the error that caused these substeps to be run as the two
-       arguments, respectively.
+      <p>If the statement had an associated error callback, then <a
+       href="#queue">queue a task</a> to invoke that error callback with the
+       <code><a href="#sqltransaction">SQLTransaction</a></code> object and a
+       newly constructed <code><a href="#sqlerror">SQLError</a></code> object
+       that represents the error that caused these substeps to be run as the
+       two arguments, respectively, and wait for the task to be run.
 
      <li>
       <p>If the error callback returns false, then move on to the next
@@ -38178,16 +38177,18 @@ interface <dfn id=sqlstatementerrorcallback>SQLStatementErrorCallback</dfn> {
      last step.
 
    <li>
-    <p>Invoke the <i>success callback</i>.
+    <p><a href="#queue">Queue a task</a> to invoke the <i>success
+     callback</i>.
 
    <li>
     <p>End these steps. The next step is only used when something goes wrong.
 
    <li>
-    <p>Call the <i>error callback</i> with a newly constructed <code><a
-     href="#sqlerror">SQLError</a></code> object that represents the last
-     error to have occurred in this transaction. Rollback the transaction.
-     Any still-pending statements in the transaction are discarded.
+    <p><a href="#queue">Queue a task</a> to invoke the <i>error callback</i>
+     with a newly constructed <code><a href="#sqlerror">SQLError</a></code>
+     object that represents the last error to have occurred in this
+     transaction. Rollback the transaction. Any still-pending statements in
+     the transaction are discarded.
   </ol>
 
   <h4 id=disk-space><span class=secno>5.10.3 </span>Disk space</h4>
@@ -42927,11 +42928,23 @@ XXX Once we resolve the style="" issue, address these:
    <dfn id=list-of3 title=concept-eventsource-list>list of event
    sources</dfn> that are registered for that object.
 
-  <p>When a new URI is added to this list, the user agent should, as soon as
-   all currently executing scripts (if any) have finished
-   executing<!-- XXX queue -->, and if the specified URL isn't removed from
-   the list before they do so, <a href="#fetch">fetch</a> the resource
-   identified by that URL.
+  <p>When a new <a href="#absolute">absolute URL</a> is added to this list,
+   the user agent should <a href="#queue">queue a task</a> to run the
+   following steps with the new <a href="#absolute">absolute URL</a>:
+
+  <ol>
+   <li>
+    <p>If the entry for the new <a href="#absolute">absolute URL</a> has been
+     removed from the list, then abort these steps.
+
+   <li>
+    <p><a href="#fetch">Fetch</a> the resource identified by that <a
+     href="#absolute">absolute URL</a>.</p>
+
+    <p>As data is received, the <a href="#tasks" title=concept-task>tasks</a>
+     queued by the <span>networking event source</span> to handle the data
+     must consist of following the rules given in the following sections.</p>
+  </ol>
 
   <p>When an event source is removed from the list of event sources for an
    object, if that resource is still being fetched, then the relevant
@@ -43239,9 +43252,12 @@ XXX Once we resolve the style="" issue, address these:
      name</var> buffer to the empty string.
 
    <li>
-    <p>Dispatch the newly created event at the <code><a
-     href="#remoteeventtarget">RemoteEventTarget</a></code> object to which
-     the event stream is registered.
+    <p><a href="#queue">Queue a task</a> to dispatch the newly created event
+     at the <code><a href="#remoteeventtarget">RemoteEventTarget</a></code>
+     object to which the event stream is registered. The <a
+     href="#task-source">task source</a> for this <a href="#tasks"
+     title=concept-task>task</a> is the <dfn id=remote>remote event task
+     source</dfn>.
   </ol>
 
   <p class=note>If an event doesn't have an "id" field, but an earlier event
