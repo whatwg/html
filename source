@@ -17639,12 +17639,12 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
    <li><p>The method must then return.</p></li>
 
    <li><p>If the second step above changed the value of <code
-   title="dom-media-paused">paused</code>, then, after any running
-   scripts have finished executing, the user agent must first
-   <span>fire a simple event</span> called <code
-   title="event-timeupdate">timeupdate</code> at the element, and then
-   <span>fire a simple event</span> called <code
-   title="event-pause">pause</code> at the element.</p></li><!-- xxx queue -->
+   title="dom-media-paused">paused</code>, then the user agent must
+   <span>queue a task</span> to <span>fire a simple event</span>
+   called <code title="event-timeupdate">timeupdate</code> at the
+   element, and <span>queue a task</span> to <span>fire a simple
+   event</span> called <code title="event-pause">pause</code> at the
+   element.</p></li>
 
   </ol>
 
@@ -17737,29 +17737,31 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
    <li><p>The <code title="dom-media-seeking">seeking</code> DOM
    attribute must be set to true.</p></li>
 
-   <li><p>If the seek was in response to a DOM method call or setting
-   of a DOM attribute, then continue the script. The remainder of
-   these steps must be run asynchronously.</p></li>
-
-   <li id="seekUpdate"><p>Once any running scripts have finished
-   executing, the user agent must <span>fire a simple event</span>
-   called <code title="event-timeupdate">timeupdate</code> at the
-   element.</p></li><!-- xxx queue -->
+   <li id="seekUpdate"><p>The user agent must <span>queue a
+   task</span> to <span>queue a task</span> to <span>fire a simple
+   event</span> called <code
+   title="event-timeupdate">timeupdate</code> at the element.</p></li>
 
    <li><p>If the <span>media element</span> was <span>actively
    playing</span> immediately before it started seeking, but seeking
    caused its <code title="dom-media-readyState">readyState</code>
    attribute to change to a value lower than <code
    title="dom-media-CAN_PLAY">CAN_PLAY</code>, the user agent must
-   <span>fire a simple event</span> called <code
-   title="event-waiting">waiting</code> at the element.</p></li>
+   <span>queue a task</span> to <span>fire a simple event</span>
+   called <code title="event-waiting">waiting</code> at the
+   element.</p></li>
 
    <li><p>If, when it reaches this step, the user agent has still not
    established whether or not the <span>media data</span> for the <var
    title="">new playback position</var> is available, and, if it is,
    decoded enough data to play back that position, the user agent must
-   <span>fire a simple event</span> called <code
-   title="event-seeking">seeking</code> at the element.</p></li>
+   <span>queue a task</span> to <span>fire a simple event</span>
+   called <code title="event-seeking">seeking</code> at the
+   element.</p></li>
+
+   <li><p>If the seek was in response to a DOM method call or setting
+   of a DOM attribute, then continue the script. The remainder of
+   these steps must be run asynchronously.</p></li>
 
    <li><p>The user agent must wait until it has established whether or
    not the <span>media data</span> for the <var title="">new playback
@@ -17769,9 +17771,9 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
    <li><p>The <code title="dom-media-seeking">seeking</code> DOM
    attribute must be set to false.</p></li>
 
-   <li><p>Once any running scripts have finished executing, the user
-   agent must <span>fire a simple event</span> called <code
-   title="event-seeked">seeked</code> at the element.</p></li><!-- xxx queue -->
+   <li><p>The user agent must <span>queue a task</span> to <span>fire
+   a simple event</span> called <code
+   title="event-seeked">seeked</code> at the element.</p></li>
 
   </ol>
 
@@ -17892,12 +17894,13 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
    steps.</p></li>
 
    <li><p>If the time was reached through the usual monotonic increase
-   of the current playback position during normal playback, the
-   user agent must then <span>fire a simple event</span> called <code
+   of the current playback position during normal playback, the user
+   agent must then <span>queue a task</span> to <span>fire a simple
+   event</span> called <code
    title="event-timeupdate">timeupdate</code> at the element. (In the
    other cases, such as explicit seeks, relevant events get fired as
    part of the overall process of changing the current playback
-   position.)</p></li><!-- xxx queue -->
+   position.)</p></li>
 
    <li><p>If the time was reached through the usual monotonic increase
    of the current playback position during normal playback, and there
@@ -17905,21 +17908,26 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
    title="">other ranges</var> that have both their "active" boolean
    and their "pause" boolean set to "true", then immediately act as if
    the element's <code title="dom-media-pause">pause()</code> method
-   had been invoked.  (In the other cases, such as explicit seeks,
-   playback is not paused by exiting a cue range, even if that cue
-   range has its "pause" boolean set to "true".)</p></li>
+   had been invoked. <!-- pause() can in theory call load(), but never
+   can it do so as part of this invokation, since we wouldn't be in
+   this algorithm if the media element was empty. So, no need to couch
+   all this in a task. --> (In the other cases, such as explicit
+   seeks, playback is not paused by exiting a cue range, even if that
+   cue range has its "pause" boolean set to "true".)</p></li>
 
-   <li><p>Invoke all the non-null "exit" callbacks for all of the
-   <span title="cue range">cue ranges</span> in <var title="">other
+   <li><p>For each non-null "exit" callback of the <span
+   title="cue range">cue ranges</span> in <var title="">other
    ranges</var> that have their "active" boolean set to "true"
-   (active), in list order, passing their identifier as the callback's
-   only argument.</p></li> <!-- XXX queue -->
+   (active), in list order, <span>queue a task</span> that invokes the
+   callback, passing the cue range's identifier as the callback's only
+   argument.</p></li>
 
-   <li><p>Invoke all the non-null "enter" callbacks for all of the
-   <span title="cue range">cue ranges</span> in <var title="">current
-   ranges</var> that have their "active" boolean set to "false"
-   (inactive), in list order, passing their identifier as the
-   callback's only argument.</p></li> <!-- XXX queue -->
+   <li><p>For each non-null "enter" callback of the <span title="cue
+   range">cue ranges</span> in <var title="">current ranges</var> that
+   have their "active" boolean set to "false" (inactive), in list
+   order, <span>queue a task</span> that invokes the callback, passing
+   the cue range's identifier as the callback's only
+   argument.</p></li>
 
    <li><p>Set the "active" boolean of all the <span title="cue
    range">cue ranges</span> in the <var title="">current ranges</var>
@@ -18013,10 +18021,10 @@ interface <dfn>CueRangeCallback</dfn> {
 
   <p>Whenever either the <code title="dom-media-muted">muted</code> or
   <code title="dom-media-volume">volume</code> attributes are changed,
-  after any running scripts have finished executing, the user agent
-  must <span>fire a simple event</span> called <code
+  the user agent must <span>queue a task</span> to <span>fire a simple
+  event</span> called <code
   title="event-volumechange">volumechange</code> at the <span>media
-  element</span>.</p><!-- queue xxx -->
+  element</span>.</p>
 
 
 
