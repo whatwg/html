@@ -42306,8 +42306,8 @@ interface <dfn>MessageChannel</dfn> {
 
   <pre class="idl">interface <dfn>MessagePort</dfn> {
   readonly attribute boolean <span title="dom-MessagePort-active">active</span>;
-  boolean <span title="dom-MessagePort-postMessage">postMessage</span>(in DOMString message);
-  boolean <span title="dom-MessagePort-postMessage">postMessage</span>(in DOMString message, in <span>MessagePort</span> messagePort);
+  void <span title="dom-MessagePort-postMessage">postMessage</span>(in DOMString message);
+  void <span title="dom-MessagePort-postMessage">postMessage</span>(in DOMString message, in <span>MessagePort</span> messagePort);
   <span>MessagePort</span> <span title="dom-MessagePort-startConversation">startConversation</span>(in DOMString message);
   void <span title="dom-MessagePort-start">start</span>();
   void <span title="dom-MessagePort-close">close</span>();
@@ -42418,11 +42418,11 @@ interface <dfn>MessageChannel</dfn> {
    argument, if any.</p></li>
 
    <li><p>If the <var title="">source port</var> is not entangled with
-   another port, then return false and abort these steps.</p></li>
+   another port, then return and abort these steps.</p></li>
    <!-- we don't raise an exception because this can happen moment's
-   notice, but we return false so that the caller can check whether
-   the port was active at time of calling without a race
-   condition. -->
+   notice. listen to onclose if you want to know when things start
+   going wonky. (We don't return false because if the port is _about_
+   to be closed, the message might not be listened for anyway.) -->
 
    <li><p>Let <var title="">target port</var> be the port with which
    <var title="">source port</var> is entangled.</p></li>
@@ -42461,7 +42461,7 @@ interface <dfn>MessageChannel</dfn> {
 
    </li>
 
-   <li><p>Return true from the method, but continue with these
+   <li><p>Return from the method, but continue with these
    steps.</p></li>
 
    <li><p>Add the event to the <span>port message queue</span> of <var
@@ -42489,15 +42489,28 @@ interface <dfn>MessageChannel</dfn> {
    <li><p>Let <var title="">message</var> be the method's first
    argument.</p></li>
 
+   <li><p><span>Create a new <code>MessagePort</code> object</span>
+   owned by the <span>script execution context</span>, and let <var
+   title="">port1</var> be that object.</p></li>
+
    <li><p>If the <var title="">source port</var> is not entangled with
-   another port, then return null and abort these steps.</p></li> <!--
-   we don't raise an exception because this can happen moment's
-   notice, but we return false so that the caller can check whether
-   the port was active at time of calling without a race
-   condition. -->
+   another port, then return <var title="">port1</var> and abort these
+   steps.</p></li>
+   <!-- we don't raise an exception because this can happen moment's
+   notice. listen to onclose if you want to know when things start
+   going wonky. (We don't return null because then we'd end up with
+   null derefs. better to just let the likely next postMessage call
+   fall on the floor) -->
 
    <li><p>Let <var title="">target port</var> be the port with which
    <var title="">source port</var> is entangled.</p></li>
+
+   <li><p><span>Create a new <code>MessagePort</code> object</span>
+   owned by the owner of the <var title="">target port</var>, and let
+   <var title="">port2</var> be that object.</p></li>
+
+   <li><p><span>Entangle</span> the <var title="">port1</var> and <var
+   title="">port2</var> objects.</p></li>
 
    <li><p>Create an event that uses the <code>MessageEvent</code>
    interface, with the name <code
@@ -42507,17 +42520,6 @@ interface <dfn>MessageChannel</dfn> {
    <li><p>Let the <code title="dom-MessageEvent-data">data</code>
    attribute of the event have the value of <var
    title="">message</var>, the method's first argument.</p></li>
-
-   <li><p><span>Create a new <code>MessagePort</code> object</span>
-   owned by the <span>script execution context</span>, and let <var
-   title="">port1</var> be that object.</p></li>
-
-   <li><p><span>Create a new <code>MessagePort</code> object</span>
-   owned by the owner of the <var title="">target port</var>, and let
-   <var title="">port2</var> be that object.</p></li>
-
-   <li><p><span>Entangle</span> the <var title="">port1</var> and <var
-   title="">port2</var> objects.</p></li>
  
    <li><p>Let the <code
    title="dom-MessageEvent-messagePort">messagePort</code> attribute
