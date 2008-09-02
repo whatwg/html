@@ -24107,9 +24107,25 @@ function AddCloud(data, x, y) { ... }</pre>
   encoding</var></dfn>. They are determined when the script is run,
   based on the attributes on the element at that time.</p>
 
+  <p>When an <span>XML parser</span> creates a <code>script</code>
+  element, it must be marked as being
+  <span>"parser-inserted"</span>. When the element's end tag is
+  parsed, the user agent must <span title="running a
+  script">run</span> the <code>script</code> element.</p>
+
+  <p class="note">Equivalent requirements exist for the <span>HTML
+  parser</span>, but they are detailed in that section instead.</p>
+
+  <p>When a <code>script</code> element that is marked as neither
+  having <span>"already executed"</span> nor being
+  <span>"parser-inserted"</span> is <span>inserted into a
+  document</span><!-- XXX xref -->, the user agent must <span
+  title="running a script">run</span> the <code>script</code>
+  element.</p>
+
   <p><dfn title="running a script">Running a script</dfn>: When a
-  script block is <span>inserted into a document</span>, the user
-  agent must act as follows:</p>
+  <code>script</code> element is to be run, the user agent must act as
+  follows:</p>
 
   <ol>
 
@@ -24179,10 +24195,8 @@ function AddCloud(data, x, y) { ... }</pre>
     no need to worry about the HTML case, as the HTML parser handles
     that for us -->, or if the user agent does not <span>support the
     scripting language</span> given by <var>the script's type</var>
-    for this <code>script</code> element, or if the
-    <code>script</code> element has its <span>"already
-    executed"</span> flag set, then the user agent must abort these
-    steps at this point. The script is not executed.</p>
+    for this <code>script</code> element, then the user agent must
+    abort these steps at this point. The script is not executed.</p>
 
    </li>
 
@@ -44313,7 +44327,8 @@ interface <dfn>MessageChannel</dfn> {
   title="insertion mode: in head noscript">in head noscript</span>",
   "<span title="insertion mode: after head">after head</span>", "<span
   title="insertion mode: in body">in body</span>", "<span
-  title="insertion mode: in table">in table</span>", "<span
+  title="insertion mode: in CDATA/RCDATA">in CDATA/RCDATA</span>",
+  "<span title="insertion mode: in table">in table</span>", "<span
   title="insertion mode: in caption">in caption</span>", "<span
   title="insertion mode: in column group">in column group</span>",
   "<span title="insertion mode: in table body">in table body</span>",
@@ -44335,7 +44350,8 @@ interface <dfn>MessageChannel</dfn> {
 
   <p>Seven of these modes, namely "<span title="insertion mode: in
   head">in head</span>", "<span title="insertion mode: in body">in
-  body</span>", "<span title="insertion mode: in table">in
+  body</span>", "<span title="insertion mode: in CDATA/RCDATA">in
+  CDATA/RCDATA</span>", "<span title="insertion mode: in table">in
   table</span>", "<span title="insertion mode: in table body">in table
   body</span>", "<span title="insertion mode: in row">in row</span>",
   "<span title="insertion mode: in cell">in cell</span>", and "<span
@@ -44351,12 +44367,19 @@ interface <dfn>MessageChannel</dfn> {
   to a new value.</p>
 
   <p>When the insertion mode is switched to "<span title="insertion
+  mode: in CDATA/RCDATA">in CDATA/RCDATA</span>", the <dfn>original
+  insertion mode</dfn> is also set. This is the insertion mode to
+  which the tree construction stage will return when the corresponding
+  end tag is parsed.</p>
+
+  <p>When the insertion mode is switched to "<span title="insertion
   mode: in foreign content">in foreign content</span>", the
   <dfn>secondary insertion mode</dfn> is also set. This secondary mode
   is used within the rules for the "<span title="insertion mode: in
   foreign content">in foreign content</span>" mode to handle HTML
   (i.e. not foreign) content.</p>
 
+  <hr>
 
   <p>When the steps below require the UA to <dfn>reset the insertion
   mode appropriately</dfn>, it means the UA must follow these
@@ -46466,11 +46489,7 @@ interface <dfn>MessageChannel</dfn> {
 
   <ol>
 
-   <li><p><span>Create an element for the token</span> in the
-   <span>HTML namespace</span>.</p></li>
-
-   <li><p>Append the new element to the <span>current
-   node</span>.</p></li>
+   <li><p><span>Insert an HTML element</span> for the token.</p></li>
 
    <li><p>If the algorithm that was invoked is the <span>generic CDATA
    element parsing algorithm</span>, switch the tokeniser's
@@ -46479,21 +46498,12 @@ interface <dfn>MessageChannel</dfn> {
    algorithm</span>, switch the tokeniser's <span>content model
    flag</span> to the RCDATA state.</p></li>
 
-   <li><p>Then, collect all the character tokens that the tokeniser
-   returns until it returns a token that is not a character token, or
-   until it stops tokenizing.</p></li>
+   <li><p>Let the <span>original insertion mode</span> be the current
+   <span>insertion mode</span>.</p>
 
-   <li><p>If this process resulted in a collection of character
-   tokens, append a single <code>Text</code> node, whose contents is
-   the concatenation of all those tokens' characters, to the new
-   element node.</p></li>
-
-   <li><p>The tokeniser's <span>content model flag</span> will have
-   switched back to the PCDATA state.</p></li>
-
-   <li><p>If the next token is an end tag token with the same tag name
-   as the start tag token, ignore it. Otherwise, it's an end-of-file
-   token, and this is a <span>parse error</span>.</p></li>
+   <li><p>Then, switch the <span>insertion mode</span> to "<span
+   title="insertion mode: in CDATA/RCDATA">in
+   CDATA/RCDATA</span>".</p></li>
 
   </ol>
 
@@ -46985,119 +46995,41 @@ interface <dfn>MessageChannel</dfn> {
    <dt id="scriptTag">A start tag whose tag name is "script"</dt>
    <dd>
 
-    <p><span>Create an element for the token</span> in the <span>HTML
-    namespace</span>.</p>
+    <ol>
 
-    <p>Mark the element as being
-    <span>"parser-inserted"</span>. This ensures that, if the
-    script is external, any <code
-    title="dom-document-write-HTML">document.write()</code> calls
-    in the script will execute in-line, instead of blowing the
-    document away, as would happen in most other cases.</p>
+     <li><p><span>Create an element for the token</span> in the
+     <span>HTML namespace</span>.</p></li>
 
-    <p>Switch the tokeniser's <span>content model flag</span> to
-    the CDATA state.</p>
+     <li>
 
-    <p>Then, collect all the character tokens that the tokeniser
-    returns until it returns a token that is not a character
-    token, or until it stops tokenizing.</p>
+      <p>Mark the element as being <span>"parser-inserted"</span>.</p>
 
-    <p>If this process resulted in a collection of character
-    tokens, append a single <code>Text</code> node to the
-    <code>script</code> element node whose contents is the
-    concatenation of all those tokens' characters.</p>
+      <p class="note">This ensures that, if the script is external, any
+      <code title="dom-document-write-HTML">document.write()</code>
+      calls in the script will execute in-line, instead of blowing the
+      document away, as would happen in most other cases. It also
+      prevents the script from executing until the end tag is seen.</p>
 
-    <p>The tokeniser's <span>content model flag</span> will have
-    switched back to the PCDATA state.</p>
+     </li>
 
-    <p>If the next token is not an end tag token with the tag name
-    "script", then this is a <span>parse error</span>; mark the
-    <code>script</code> element as <span>"already
-    executed"</span>. Otherwise, the token is the
-    <code>script</code> element's end tag, so ignore it.</p>
+     <li><p>If the parser was originally created for the <span>HTML
+     fragment parsing algorithm</span>, then mark the
+     <code>script</code> element as <span>"already
+     executed"</span>. (<span>fragment case</span>)</p></li>
 
-    <p>If the parser was originally created for the <span>HTML
-    fragment parsing algorithm</span>, then mark the
-    <code>script</code> element as <span>"already executed"</span>,
-    and skip the rest of the processing described for this token
-    (including the part below where "<span title="pending external
-    script">pending external scripts</span>" are
-    executed). (<span>fragment case</span>)</p>
+     <li><p>Append the new element to the <span>current node</span>.</p>
 
-    <p class="note">Marking the <code>script</code> element as
-    "already executed" prevents it from executing when it is inserted
-    into the document a few paragraphs below. Thus, scripts missing
-    their end tags and scripts that were inserted using <code
-    title="dom-innerHTML-HTML">innerHTML</code>, <code
-    title="dom-outerHTML-HTML">outerHTML</code>, or <code
-    title="dom-insertAdjacentHTML-HTML">insertAdjacentHTML()</code>
-    aren't executed.</p>
+     <li><p>Switch the tokeniser's <span>content model flag</span> to
+     the CDATA state.</p></li>
 
-    <p>Let the <var title="">old insertion point</var> have the
-    same value as the current <span>insertion point</span>. Let
-    the <span>insertion point</span> be just before the <span>next
-    input character</span>.</p>
+     <li><p>Let the <span>original insertion mode</span> be the current
+     <span>insertion mode</span>.</p>
 
-    <p>Append the new element to the <span>current node</span>.
-    <span title="running a script">Special processing occurs when
-    a <code>script</code> element is inserted into a
-    document</span> that might cause some script to execute, which
-    might cause <span title="dom-document-write-HTML">new
-    characters to be inserted into the tokeniser</span>.</p>
+     <li><p>Switch the <span>insertion mode</span> to "<span
+     title="insertion mode: in CDATA/RCDATA">in
+     CDATA/RCDATA</span>".</p></li>
 
-    <p>Let the <span>insertion point</span> have the value of the
-    <var title="">old insertion point</var>. (In other words,
-    restore the <span>insertion point</span> to the value it had
-    before the previous paragraph. This value might be the
-    "undefined" value.)</p>
-
-    <p id="scriptTagParserResumes">At this stage, if there is a
-    <span>pending external script</span>, then:</p>
-
-    <dl class="switch">
-
-     <dt>If the tree construction stage is <a
-     href="#nestedParsing">being called reentrantly</a>, say from
-     a call to <code
-     title="dom-document-write-HTML">document.write()</code>:</dt>
-
-     <dd><p>Abort the processing of any nested invocations of the
-     tokeniser, yielding control back to the caller. (Tokenization
-     will resume when the caller returns to the "outer" tree
-     construction stage.)</p></dd>
-
-     <dt>Otherwise:</dt>
-
-     <dd>
-
-      <p>Follow these steps:</p>
-
-      <ol>
-
-       <li><p>Let <var title="">the script</var> be the <span>pending
-       external script</span>. There is no longer a <span>pending
-       external script</span>.</p></li>
-
-       <li><p><span>Pause</span> until the script has <span>completed
-       loading</span>.</p></li>
-
-       <li><p>Let the <span>insertion point</span> be just before the
-       <span>next input character</span>.</p></li>
-
-       <li><p><span title="executing a script block">Execute the
-       script</span>.</p></li>
-
-       <li><p>Let the <span>insertion point</span> be undefined
-       again.</p></li>
-
-       <li><p>If there is once again a <span>pending external
-       script</span>, then repeat these steps from step 1.</p></li>
-
-      </ol>
-
-     </dd>
-
-    </dl>
+    </ol>
 
    </dd>
 
@@ -48530,6 +48462,136 @@ interface <dfn>MessageChannel</dfn> {
      <li><p>Return to step 2.</p></li>
 
     </ol>
+
+   </dd>
+
+  </dl>
+
+
+
+  <h5 id="parsing-main-incdata">The "<dfn title="insertion mode: in CDATA/RCDATA">in CDATA/RCDATA</dfn>" insertion mode</h5>
+
+  <p>When the <span>insertion mode</span> is "<span title="insertion
+  mode: in CDATA/RCDATA">in CDATA/RCDATA</span>", tokens must be
+  handled as follows:</p>
+
+  <dl class="switch">
+
+   <dt>A character token</dt>
+   <dd>
+
+    <p><span title="insert a character">Insert the token's
+    character</span> into the <span>current node</span>.</p>
+
+   </dd>
+
+   <dt>An end-of-file token</dt>
+   <dd>
+
+    <!-- can't be the fragment case -->
+    <p><span>Parse error</span>.</p>
+
+    <p>If the <span>current node</span> is a <code>script</code>
+    element, mark the <code>script</code> element as <span>"already
+    executed"</span>.</p>
+
+    <p>Pop the <span>current node</span> off the <span>stack of open
+    elements</span>.</p>
+
+    <p>Switch the <span>insertion mode</span> to the <span>original
+    insertion mode</span> and reprocess the current token.</p>
+
+   </dd>
+
+   <dt>An end tag whose tag name is "script"</dt>
+   <dd>
+
+    <p>Let <var title="">script</var> be the <span>current node</span>
+    (which will be a <code>script</code> element).</p>
+
+    <p>Pop the <span>current node</span> off the <span>stack of open
+    elements</span>.</p>
+
+    <p>Switch the <span>insertion mode</span> to the <span>original
+    insertion mode</span>.</p>
+
+    <p>Let the <var title="">old insertion point</var> have the
+    same value as the current <span>insertion point</span>. Let
+    the <span>insertion point</span> be just before the <span>next
+    input character</span>.</p>
+
+    <p><span title="running a script">Run</span> the <var
+    title="">script</var>. This might cause some script to execute,
+    which might cause <span title="dom-document-write-HTML">new
+    characters to be inserted into the tokeniser</span>, and might
+    cause the tokeniser to output more tokens, resulting in a <a
+    href="#nestedParsing">reentrant invocation of the parser</a>.</p>
+
+    <p>Let the <span>insertion point</span> have the value of the
+    <var title="">old insertion point</var>. (In other words,
+    restore the <span>insertion point</span> to the value it had
+    before the previous paragraph. This value might be the
+    "undefined" value.)</p>
+
+    <p id="scriptTagParserResumes">At this stage, if there is a
+    <span>pending external script</span>, then:</p>
+
+    <dl class="switch">
+
+     <dt>If the tree construction stage is <a
+     href="#nestedParsing">being called reentrantly</a>, say from a
+     call to <code
+     title="dom-document-write-HTML">document.write()</code>:</dt>
+
+     <dd><p>Abort the processing of any nested invocations of the
+     tokeniser, yielding control back to the caller. (Tokenization
+     will resume when the caller returns to the "outer" tree
+     construction stage.)</p></dd>
+
+
+     <dt>Otherwise:</dt>
+
+     <dd>
+
+      <p>Follow these steps:</p>
+
+      <ol>
+
+       <li><p>Let <var title="">the script</var> be the <span>pending
+       external script</span>. There is no longer a <span>pending
+       external script</span>.</p></li>
+
+       <li><p><span>Pause</span> until the script has <span>completed
+       loading</span>.</p></li>
+
+       <li><p>Let the <span>insertion point</span> be just before the
+       <span>next input character</span>.</p></li>
+
+       <li><p><span title="executing a script block">Execute the
+       script</span>.</p></li>
+
+       <li><p>Let the <span>insertion point</span> be undefined
+       again.</p></li>
+
+       <li><p>If there is once again a <span>pending external
+       script</span>, then repeat these steps from step 1.</p></li>
+
+      </ol>
+
+     </dd>
+
+    </dl>
+
+   </dd>
+
+   <dt>Any other end tag</dt>
+   <dd>
+
+    <p>Pop the <span>current node</span> off the <span>stack of open
+    elements</span>.</p>
+
+    <p>Switch the <span>insertion mode</span> to the <span>original
+    insertion mode</span>.</p>
 
    </dd>
 
