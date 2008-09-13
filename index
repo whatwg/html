@@ -26630,7 +26630,7 @@ function AddCloud(data, x, y) { ... }</pre>
 
   void <a href="#submit" title=dom-form-submit>submit</a>();
   void <a href="#reset" title=dom-form-reset>reset</a>();
-  boolean <span title=dom-form-checkValidity>checkValidity</span>();
+  boolean <a href="#checkvalidity" title=dom-form-checkValidity>checkValidity</a>();
 
   void <span title=dom-form-dispatchFormInput>dispatchFormInput</span>();
   void <span title=dom-form-dispatchFormChange>dispatchFormChange</span>();
@@ -26714,6 +26714,13 @@ function AddCloud(data, x, y) { ... }</pre>
    method, when invoked, must <a href="#reset1"
    title=concept-form-reset>reset</a> the <code><a
    href="#form">form</a></code> element.
+
+  <p>If the <dfn id=checkvalidity
+   title=dom-form-checkValidity>checkValidity()</dfn> method is invoked, the
+   user agent must <a href="#statically">statically validate the
+   constraints</a> of the <code><a href="#form">form</a></code> element, and
+   return true if the constraint validation return a <i>positive</i> result,
+   and false if it returned a <i>negative</i> result.
 
   <p class=big-issue>...
 
@@ -27550,7 +27557,118 @@ interface <dfn id=htmloptionelement>HTMLOptionElement</dfn> : <a href="#htmlelem
 
   <h4 id=constraint><span class=secno>4.9.15 </span>Constraint validation</h4>
 
-  <p class=big-issue>...
+  <p>An element is a <dfn id=candidate>candidate for constraint
+   validation</dfn> if the following conditions apply for that element:
+
+  <ul>
+   <li class=big-issue>...
+  </ul>
+
+  <p class=big-issue>An element <dfn id=satisfies
+   title=concept-fv-valid>satisfies its constraints</dfn> if ...
+
+  <hr>
+
+  <p>When the user agent is required to <dfn id=statically>statically
+   validate the constraints</dfn> of <code><a href="#form">form</a></code>
+   element <var title="">form</var>, it must run the following steps, which
+   return either a <i>positive</i> result (all the controls in the form are
+   valid) or a <i>negative</i> result (there are invalid controls) along with
+   a (possibly empty) list of elements that are invalid and for which no
+   script has claimed responsibility:
+
+  <ol>
+   <li>
+    <p>Let <var title="">controls</var> be a list of all the <a
+     href="#submittable" title=category-submit>submittable</a> elements whose
+     <a href="#form-owner">form owner</a> is <var title="">form</var>, in <a
+     href="#tree-order">tree order</a>.
+
+   <li>
+    <p>Let <var title="">invalid controls</var> be an initially empty list of
+     elements.</p>
+
+   <li>
+    <p>For each element <var title="">field</var> in <var
+     title="">controls</var>, in <a href="#tree-order">tree order</a>, run
+     the following substeps:</p>
+
+    <ol>
+     <li>
+      <p>If <var title="">field</var> is not a <a href="#candidate">candidate
+       for constraint validation</a>, then move on to the next element.
+
+     <li>
+      <p>Otherwise, if <var title="">field</var> <a href="#satisfies"
+       title=concept-fv-valid>satisfies its constaints</a>, then move on to
+       the next element.
+
+     <li>
+      <p>Otherwise, add <var title="">field</var> to <var title="">invalid
+       controls</var>.
+    </ol>
+
+   <li>
+    <p>If <var title="">invalid controls</var> is empty, then return a
+     <i>positive</i> result and abort these steps.
+
+   <li>
+    <p>Let <var title="">unhandled invalid controls</var> be an initially
+     empty list of elements.</p>
+
+   <li>
+    <p>For each element <var title="">field</var> in <var title="">invalid
+     controls</var>, if any, in <a href="#tree-order">tree order</a>, run the
+     following substeps:</p>
+
+    <ol>
+     <li>
+      <p><a href="#firing2">Fire a simple event</a> named <code
+       title=event-invalid>invalid</code> at <var title="">field</var> that
+       is cancelable.
+
+     <li>
+      <p>If the event was not canceled, then add <var title="">field</var> to
+       <var title="">unhandled invalid controls</var>.
+    </ol>
+
+   <li>
+    <p>Return a <i>negative</i> result with the list of elements in the <var
+     title="">unhandled invalid controls</var> list.
+  </ol>
+
+  <hr>
+
+  <p>If a user agent is to <dfn id=interactively>interactively validate the
+   constraints</dfn> of <code><a href="#form">form</a></code> element <var
+   title="">form</var>, then the user agent must run the following steps:
+
+  <ol>
+   <li>
+    <p><a href="#statically">Statically validate the constraints</a> of <var
+     title="">form</var>, and let <var title="">unhandled invalid
+     controls</var> be the list of elements returned if the result was
+     <i>negative</i>.
+
+   <li>
+    <p>If the result was <i>positive</i>, then return that result and abort
+     these steps.
+
+   <li>
+    <p>Report the problems with the constraints of at last one of the
+     elements given in <var title="">unhandled invalid controls</var> to the
+     user. User agents may focus one of those elements in the process. User
+     agents may report more than one constraint violation. User agents may
+     coalesce related constraint violation reports if appropriate (e.g. if
+     multiple radio buttons in a set are marked as required, only one error
+     need be reported). If one of the controls is not visible to the user
+     (e.g. it has the <code title=attr-hidden><a
+     href="#hidden1">hidden</a></code> attribute set) then user agents may
+     report a script error.
+
+   <li>
+    <p>Return a <i>negative</i> result.
+  </ol>
 
   <h4 id=form-submission><span class=secno>4.9.16 </span>Form submission</h4>
 
@@ -27569,11 +27687,11 @@ interface <dfn id=htmloptionelement>HTMLOptionElement</dfn> : <a href="#htmlelem
 
    <li>
     <p>If the <var title="">submitter</var> is anything but a <code><a
-     href="#form">form</a></code> element, then <span>validate the
-     constraints</span> of <var title="">form</var> and examine the result:
-     if the result is negative (the constraint validation concluded that
-     there were invalid fields and informed the user of this) then abort
-     these steps.
+     href="#form">form</a></code> element, then <a
+     href="#interactively">interactively validate the constraints</a> of <var
+     title="">form</var> and examine the result: if the result is negative
+     (the constraint validation concluded that there were invalid fields and
+     probably informed the user of this) then abort these steps.
 
    <li>
     <p>If the <var title="">submitter</var> is anything but a <code><a
