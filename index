@@ -1763,11 +1763,17 @@
 
      <li><a href="#focus"><span class=secno>6.5 </span>Focus</a>
       <ul class=toc>
-       <li><a href="#focus-management"><span class=secno>6.5.1 </span>Focus
+       <li><a href="#sequential0"><span class=secno>6.5.1 </span>Sequential
+        focus navigation</a>
+
+       <li><a href="#focus-management"><span class=secno>6.5.2 </span>Focus
         management</a>
 
-       <li><a href="#sequential0"><span class=secno>6.5.2 </span>Sequential
-        focus navigation</a>
+       <li><a href="#document-level"><span class=secno>6.5.3
+        </span>Document-level focus APIs</a>
+
+       <li><a href="#element-level"><span class=secno>6.5.4
+        </span>Element-level focus APIs</a>
       </ul>
 
      <li><a href="#selection"><span class=secno>6.6 </span>The text selection
@@ -44520,6 +44526,18 @@ at the first element with the given ID must be treated as if it was cloned and r
   <!-- http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C!DOCTYPE%20html%3E%0A...%3Cform%3E%0A%3Ctextarea%20name%3Dt%20cols%3D100%20rows%3D3%3E%3C%2Ftextarea%3E%3Cp%3E%0A%3Cinput%20name%3Da%20onfocus%3D%22t.value%2B%3D%27af1%20%27%3Bb.focus()%3Balert(document.activeElement.name)%3Bt.value%2B%3D%27af2%20%27%3B%22%20onblur%3D%22t.value%2B%3D%27ab%20%27%3B%22%3E%0A%3Cinput%20name%3Db%20onfocus%3D%22t.value%2B%3D%27bf1%20%27%3Bc.focus()%3Bt.value%2B%3D%27bf2%20%27%3B%22%20onblur%3D%22t.value%2B%3D%27bb%20%27%3B%22%3E%0A%3Cinput%20name%3Dc%20onfocus%3D%22t.value%2B%3D%27cf1%20%27%3Bc.focus()%3Bt.value%2B%3D%27cf2%20%27%3B%22%20onblur%3D%22t.value%2B%3D%27cb%20%27%3B%22%3E%0A -->
   <!-- http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C!DOCTYPE%20html%3E%3Cbody%20onload%3D%22document.forms%5B0%5D.a.focus()%22%3E%0A...%3Cform%3E%0A%3Ctextarea%20name%3Dt%20cols%3D100%20rows%3D3%3E%3C%2Ftextarea%3E%3Cp%3E%0A%3Cinput%20name%3Da%20onblur%3D%22t.value%2B%3D'ab%20'%3B%20b.focus()%3B%22%3E%0A%3Cinput%20name%3Db%20onfocus%3D%22t.value%2B%3D'bf1%20'%3Ba.focus()%3Bt.value%2B%3D'bf2%20'%3B%22%20onblur%3D%22t.value%2B%3D'bb%20'%3B%22%3E -->
   <!-- http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C!DOCTYPE%20html%3E%3Cbody%3E...%3Cform%3E%0A%3Ctextarea%20name%3Dt%20cols%3D100%20rows%3D3%3E%3C%2Ftextarea%3E%3Cp%3E%0A%3Cinput%20name%3Da%20onfocus%3D%22t.value%2B%3D%27af%20%27%3B%22%20onblur%3D%22t.value%2B%3D%27ab1%20%27%3Bb.focus()%3Bt.value%2B%3D%27ab2%20%27%3B%22%3E%0A%3Cinput%20name%3Db%20onfocus%3D%22t.value%2B%3D%27bf1%20%27%3Ba.focus()%3Bt.value%2B%3D%27bf2%20%27%3B%22%20onblur%3D%22t.value%2B%3D%27bb%20%27%3B%22%3E -->
+  <!-- XXX
+   - define onfocus/onblur behaviour for Window
+   - Other things to look at are IE's focus APIs (document.activeElement,
+     document.hasFocus, HTMLElement.setActive(), onBeforeActivate,
+     onActivate, onBeforeDeactivate, onDeactivate, document.hasFocus):
+       https://bugzilla.mozilla.org/show_bug.cgi?id=296471
+       https://bugzilla.mozilla.org/show_bug.cgi?id=296469
+       http://msdn.microsoft.com/workshop/author/dhtml/reference/properties/activeelement.asp
+       http://msdn.microsoft.com/workshop/author/dhtml/reference/methods/setactive.asp
+       http://msdn.microsoft.com/workshop/author/dhtml/reference/events/onbeforeactivate.asp
+       http://msdn.microsoft.com/workshop/author/dhtml/reference/methods/focus.asp
+  -->
 
   <p>When an element is <em>focused</em>, key events received by the document
    must be targeted at that element. There may be no element focused; when no
@@ -44536,98 +44554,10 @@ at the first element with the given ID must be treated as if it was cloned and r
    <a href="#top-level">top-level browsing context</a> itself has the
    <em>system focus</em>.
 
-  <h4 id=focus-management><span class=secno>6.5.1 </span>Focus management</h4>
+  <p class=note>When an element is focused, the element matches the CSS
+   <code>:focus</code> pseudo-class.
 
-  <p>The <dfn id=focusing>focusing steps</dfn> are as follows:
-
-  <ol>
-   <li>
-    <p>If focusing the element will remove the focus from another element,
-     then run the <a href="#unfocusing">unfocusing steps</a> for that
-     element.
-
-   <li>
-    <p>Make the element the currently focused element in its <a
-     href="#top-level">top-level browsing context</a>.</p>
-
-    <p>Some elements, most notably <code><a href="#area">area</a></code>, can
-     correspond to more than one distinct focusable area. If a particular
-     area was indicated when the element was focused, then that is the area
-     that must get focus; otherwise, e.g. when using the <code
-     title=dom-focus><a href="#focus0">focus()</a></code> method, the first
-     such region in tree order is the one that must be focused.</p>
-
-   <li>
-    <p><a href="#firing2">Fire a simple event</a> that doesn't bubble called
-     <code title=event-focus>focus</code> at the element.
-  </ol>
-
-  <p>User agents must run the <a href="#focusing">focusing steps</a> for an
-   element whenever the user moves the focus to a <a
-   href="#focusable">focusable</a> element.
-
-  <p>The <dfn id=unfocusing>unfocusing steps</dfn> are as follows:
-
-  <ol><!-- XXX onchange event for input controls -->
-
-   <li>
-    <p>Unfocus the element.
-
-   <li>
-    <p><a href="#firing2">Fire a simple event</a> that doesn't bubble called
-     <code title=event-blur>blur</code> at the element.
-  </ol>
-
-  <p>User agents should run the <a href="#unfocusing">unfocusing steps</a>
-   for an element whenever the user moves the focus away from any <a
-   href="#focusable">focusable</a> element.
-
-  <hr>
-
-  <p>The <dfn id=focus0 title=dom-focus><code>focus()</code></dfn> method,
-   when invoked, must run the following algorithm:
-
-  <ol>
-   <li>
-    <p>If the element is marked as <i><a href="#locked">locked for
-     focus</a></i>, then abort these steps.
-
-   <li>
-    <p>If the element is not <a href="#focusable">focusable</a>, then abort
-     these steps.
-
-   <li>
-    <p>Mark the element as <dfn id=locked>locked for focus</dfn>.
-
-   <li>
-    <p>If the element is not already focused, run the <a
-     href="#focusing">focusing steps</a> for the element.
-
-   <li>
-    <p>Unmark the element as <i><a href="#locked">locked for focus</a></i>.
-  </ol>
-
-  <p>The <dfn id=blur title=dom-blur><code>blur()</code></dfn> method, when
-   invoked, should run the <a href="#unfocusing">unfocusing steps</a> for the
-   element. User agents may selectively or uniformly ignore calls to this
-   method for usability reasons.</p>
-  <!-- XXX define onfocus/onblur behaviour for Window -->
-
-  <hr>
-
-  <p>The <dfn id=activeelement
-   title=dom-document-activeElement><code>activeElement</code></dfn>
-   attribute must return the element in the document that is focused. If no
-   element in the <code>Document</code> is focused, this must return <a
-   href="#the-body1">the <code>body</code> element</a>.
-
-  <p>The <dfn id=hasfocus
-   title=dom-document-hasFocus><code>hasFocus()</code></dfn> method must
-   return true if the document, one of its nested <a href="#browsing1"
-   title="browsing context">browsing contexts</a>, or any element in the
-   document or its browsing contexts currently has the system focus.
-
-  <h4 id=sequential0><span class=secno>6.5.2 </span>Sequential focus
+  <h4 id=sequential0><span class=secno>6.5.1 </span>Sequential focus
    navigation</h4>
 
   <p>The <dfn id=tabindex title=attr-tabindex><code>tabindex</code></dfn>
@@ -44719,78 +44649,104 @@ at the first element with the given ID must be treated as if it was cloned and r
    rendered</span><!-- XXX xref, define display:none as not
   being rendered, off-screen as being rendered? -->.
 
-  <p>When an element is focused, the element matches the CSS
-   <code>:focus</code> pseudo-class and key events are dispatched on that
-   element in response to keyboard input.
-
   <p>The <dfn id=tabindex0 title=dom-tabIndex><code>tabIndex</code></dfn> DOM
    attribute must <a href="#reflect">reflect</a> the value of the <code
    title=attr-tabindex><a href="#tabindex">tabindex</a></code> content
    attribute. If the attribute is not present, or parsing its value returns
    an error, then the DOM attribute must return 0 for elements that are
-   focusable and &#x2212;1 for elements that are not focusable.</p>
-  <!--XXX
-  <h4>The <dfn><code>DocumentFocus</code></dfn> interface</h4>
+   focusable and &#x2212;1 for elements that are not focusable.
 
-  <p>The <code>DocumentFocus</code> interface contains methods for
-  moving focus around the document. It can be obtained from objects
-  that implement the <code>Document</code> interface using
-  binding-specific casting methods.</p>
+  <h4 id=focus-management><span class=secno>6.5.2 </span>Focus management</h4>
 
-  <p class="big-issue">Actually even better would be to just mix it
-  straight into those interfaces somehow.</p>
+  <p>The <dfn id=focusing>focusing steps</dfn> are as follows:
 
-  <pre class="idl">[NoInterfaceObject] interface <dfn>DocumentFocus</dfn> {
-  void moveFocusForward();
-  void moveFocusBackward();
-  void moveFocusUp();
-  void moveFocusRight();
-  void moveFocusDown();
-  void moveFocusLeft();
-};</pre>
+  <ol>
+   <li>
+    <p>If focusing the element will remove the focus from another element,
+     then run the <a href="#unfocusing">unfocusing steps</a> for that
+     element.
 
-  <p>The <dfn><code>currentFocus</code></dfn> attribute returns the
-  element to which key events will be sent when the document receives
-  key events.</p>
+   <li>
+    <p>Make the element the currently focused element in its <a
+     href="#top-level">top-level browsing context</a>.</p>
 
-  <p>The <dfn><code>moveFocusForward</code></dfn> method uses the
-  <code>'nav-index'</code> property and the <code
-  title="attr-tabindex">tabindex</code> attribute to find the next
-  focusable element and focuses it.</p>
+    <p>Some elements, most notably <code><a href="#area">area</a></code>, can
+     correspond to more than one distinct focusable area. If a particular
+     area was indicated when the element was focused, then that is the area
+     that must get focus; otherwise, e.g. when using the <code
+     title=dom-focus><a href="#focus0">focus()</a></code> method, the first
+     such region in tree order is the one that must be focused.</p>
 
-  <p>The <dfn><code>moveFocusBackward</code></dfn> method uses the
-  <code>'nav-index'</code> property and the <code
-  title="attr-tabindex>tabindex</code> attribute to find the previous
-  focusable element and focuses it.</p>
+   <li>
+    <p><a href="#firing2">Fire a simple event</a> that doesn't bubble called
+     <code title=event-focus>focus</code> at the element.
+  </ol>
 
-  <p>The <dfn><code>moveFocusUp</code></dfn> method uses the
-  <code>'nav-up'</code> property and the <code
-  title="attr-tabindex>tabindex</code> attribute to find an
-  appropriate focusable element and focuses it.</p>
+  <p>User agents must run the <a href="#focusing">focusing steps</a> for an
+   element whenever the user moves the focus to a <a
+   href="#focusable">focusable</a> element.
 
-  <p>In a similar manner, the <dfn><code>moveFocusRight</code></dfn>,
-  <dfn><code>moveFocusDown</code></dfn>, and
-  <dfn><code>moveFocusLeft</code></dfn> methods use the
-  <code>'nav-right'</code>, <code>'nav-down'</code>, and
-  <code>'nav-left'</code> properties (respectively), and the <code
-  title="attr-tabindex>tabindex</code> attribute, to find an
-  appropriate focusable element and focus it.</p>
+  <p>The <dfn id=unfocusing>unfocusing steps</dfn> are as follows:
 
-  <p>The <code>'nav-index'</code>, <code>'nav-up'</code>,
-  <code>'nav-right'</code>, <code>'nav-down'</code>, and
-  <code>'nav-left'</code> properties are defined in <a
-  href="#refsCSS3UI">[CSS3UI]</a>.</p>
+  <ol><!-- XXX onchange event for input controls -->
 
-Other things to look at are IE's focus APIs (document.activeElement,
-document.hasFocus, HTMLElement.setActive(), onBeforeActivate,
-onActivate, onBeforeDeactivate, onDeactivate, document.hasFocus):
-   https://bugzilla.mozilla.org/show_bug.cgi?id=296471
-   https://bugzilla.mozilla.org/show_bug.cgi?id=296469
-   http://msdn.microsoft.com/workshop/author/dhtml/reference/properties/activeelement.asp
-   http://msdn.microsoft.com/workshop/author/dhtml/reference/methods/setactive.asp
-   http://msdn.microsoft.com/workshop/author/dhtml/reference/events/onbeforeactivate.asp
-   http://msdn.microsoft.com/workshop/author/dhtml/reference/methods/focus.asp
--->
+   <li>
+    <p>Unfocus the element.
+
+   <li>
+    <p><a href="#firing2">Fire a simple event</a> that doesn't bubble called
+     <code title=event-blur>blur</code> at the element.
+  </ol>
+
+  <p>User agents should run the <a href="#unfocusing">unfocusing steps</a>
+   for an element whenever the user moves the focus away from any <a
+   href="#focusable">focusable</a> element.
+
+  <h4 id=document-level><span class=secno>6.5.3 </span>Document-level focus
+   APIs</h4>
+
+  <p>The <dfn id=activeelement
+   title=dom-document-activeElement><code>activeElement</code></dfn>
+   attribute must return the element in the document that is focused. If no
+   element in the <code>Document</code> is focused, this must return <a
+   href="#the-body1">the <code>body</code> element</a>.
+
+  <p>The <dfn id=hasfocus
+   title=dom-document-hasFocus><code>hasFocus()</code></dfn> method must
+   return true if the document, one of its nested <a href="#browsing1"
+   title="browsing context">browsing contexts</a>, or any element in the
+   document or its browsing contexts currently has the system focus.
+
+  <h4 id=element-level><span class=secno>6.5.4 </span>Element-level focus
+   APIs</h4>
+
+  <p>The <dfn id=focus0 title=dom-focus><code>focus()</code></dfn> method,
+   when invoked, must run the following algorithm:
+
+  <ol>
+   <li>
+    <p>If the element is marked as <i><a href="#locked">locked for
+     focus</a></i>, then abort these steps.
+
+   <li>
+    <p>If the element is not <a href="#focusable">focusable</a>, then abort
+     these steps.
+
+   <li>
+    <p>Mark the element as <dfn id=locked>locked for focus</dfn>.
+
+   <li>
+    <p>If the element is not already focused, run the <a
+     href="#focusing">focusing steps</a> for the element.
+
+   <li>
+    <p>Unmark the element as <i><a href="#locked">locked for focus</a></i>.
+  </ol>
+
+  <p>The <dfn id=blur title=dom-blur><code>blur()</code></dfn> method, when
+   invoked, should run the <a href="#unfocusing">unfocusing steps</a> for the
+   element. User agents may selectively or uniformly ignore calls to this
+   method for usability reasons.
 
   <h3 id=selection><span class=secno>6.6 </span>The text selection APIs</h3>
 
