@@ -1263,11 +1263,45 @@
   <h5>Real numbers</h5>
 
   <p>A string is a <dfn>valid floating point number</dfn> if it
-  consists of one of more characters in the range U+0030 DIGIT ZERO
-  (0) to U+0039 DIGIT NINE (9), optionally with a single U+002E FULL
-  STOP (".") character somewhere (either before these numbers, in
-  between two numbers, or after the numbers), all optionally prefixed
-  with a U+002D HYPHEN-MINUS ("-") character.</p>
+  consists of:</p>
+
+  <ol class="brief">
+
+   <li>Optionally, a U+002D HYPHEN-MINUS ("-") character.</li>
+
+   <li>A series of one or more characters in the range U+0030 DIGIT
+   ZERO (0) to U+0039 DIGIT NINE (9).</li>
+
+   <li>Optionally:
+
+    <ol>
+
+     <li>A single U+002E FULL STOP (".") character.</li>
+
+     <li>A series of one or more characters in the range U+0030 DIGIT
+     ZERO (0) to U+0039 DIGIT NINE (9).</li>
+
+    </ol>
+
+   </li>
+
+   <li>Optionally:
+
+    <ol>
+
+     <li>Either a U+0065 LATIN SMALL LETTER E character or a U+0045
+     LATIN CAPITAL LETTER E character.</li>
+
+     <li>Optionally, a U+002D HYPHEN-MINUS ("-") character.</li>
+
+     <li>A series of characters in the range U+0030 DIGIT ZERO (0) to
+     U+0039 DIGIT NINE (9).</li>
+
+    </ol>
+
+   </li>
+
+  </ol>
 
   <p>The <dfn>rules for parsing floating point number values</dfn> are
   as given in the following algorithm. As with the previous
@@ -1286,23 +1320,26 @@
    title="">input</var>, initially pointing at the start of the
    string.</p></li>
 
-   <li><p>Let <var title="">value</var> have the value 0.</li>
+   <li><p>Let <var title="">value</var> have the value 1.</li>
 
-   <li><p>Let <var title="">sign</var> have the value "positive".</li>
+   <li><p>Let <var title="">divisor</var> have the value 1.</p></li>
+
+   <li><p>Let <var title="">exponent</var> have the value 1.</p></li>
 
    <li><p><span>Skip whitespace</span>.</p></li>
 
    <li><p>If <var title="">position</var> is past the end of <var
-    title="">input</var>, return an error.</p></li>
+   title="">input</var>, return an error.</p></li>
 
    <li>
 
-    <p>If the character indicated by <var title="">position</var> (the
-    first character) is a U+002D HYPHEN-MINUS ("-") character:</p>
+    <p>If the character indicated by <var title="">position</var> is a
+    U+002D HYPHEN-MINUS ("-") character:</p>
 
     <ol>
 
-     <li>Let <var title="">sign</var> be "negative".</li>
+     <li>Change <var title="">value</var> and <var
+     title="">divisor</var> to &#x2212;1.</li>
 
      <li>Advance <var title="">position</var> to the next
      character.</li>
@@ -1314,88 +1351,110 @@
 
    </li>
 
-   <li><p>If the next character is not one of U+0030 DIGIT ZERO (0)
-   .. U+0039 DIGIT NINE (9) or U+002E FULL STOP ("."), then return an
-   error.</p></li>
-
-   <li><p>If the next character is U+002E FULL STOP ("."), but either
-   that is the last character or the character after that one is not
-   one of U+0030 DIGIT ZERO (0) .. U+0039 DIGIT NINE (9), then return
-   an error.</p></li>
+   <li><p>If the character indicated by <var title="">position</var>
+   is not one of U+0030 DIGIT ZERO (0) .. U+0039 DIGIT NINE (9), then
+   return an error.</p></li>
 
    <!-- Ok. At this point we know we have a number. It might have
    trailing garbage which we'll ignore, but it's a number, and we
    won't return an error. -->
 
-   <li>
+   <li><p><span>Collect a sequence of characters</span> in the range
+   U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9), and interpret the
+   resulting sequence as a base-ten integer. Multiply <var
+   title="">value</var> by that integer.</p></li>
 
-    <p>If the next character is one of U+0030 DIGIT ZERO (0) .. U+0039
-    DIGIT NINE (9):</p>
+   <li>If <var title="">position</var> is past the end of <var
+   title="">input</var>, return <var title="">value</var> and abort
+   these steps.</li>
+
+   <li><p>If the character indicated by <var title="">position</var>
+   is a U+002E FULL STOP ("."), run these substeps:</p>
 
     <ol>
 
-     <li>Multiply <var title="">value</var> by ten.</li>
+     <li><p>Advance <var title="">position</var> to the next
+     character.</p></li>
 
-     <li>Add the value of the current character (0..9) to <var
-     title="">value</var>.</li>
+     <li><p>If <var title="">position</var> is past the end of <var
+     title="">input</var>, or if the character indicated by <var
+     title="">position</var> is not one of U+0030 DIGIT ZERO (0)
+     .. U+0039 DIGIT NINE (9), then return <var title="">value</var>
+     and abort these steps.</li>
 
-     <li>Advance <var title="">position</var> to the next
-     character.</li>
+     <li><p><i>Fraction loop</i>: Multiply <var title="">divisor</var>
+     by ten.</p></li>
 
-     <li>If <var title="">position</var> is past the end of <var
-     title="">input</var>, then if <var title="">sign</var> is
-     "positive", return <var title="">value</var>, otherwise return
-     0-<var title="">value</var>.</li>
+     <li>Add the value of the current character interpreted as a
+     base-ten digit (0..9) divided by <var title="">divisor</var>, to
+     <var title="">value</var>.</li>
 
-     <li>Otherwise return to the top of step 10 in the overall
-     algorithm (that's the step within which these substeps find
-     themselves).</li>
+     <li><p>Advance <var title="">position</var> to the next
+     character.</p></li>
+
+     <li><p>If <var title="">position</var> is past the end of <var
+     title="">input</var>, then return <var title="">value</var> and
+     abort these steps.</li>
+
+     <li><p>If the character indicated by <var title="">position</var>
+     is one of U+0030 DIGIT ZERO (0) .. U+0039 DIGIT NINE (9), return
+     to the step labeled <i>fraction loop</i> in these
+     substeps.</p></li>
 
     </ol>
 
    </li>
 
-   <li><p>Otherwise, if the next character is not a U+002E FULL STOP
-   ("."), then if <var title="">sign</var> is "positive", return <var
-   title="">value</var>, otherwise return 0-<var
-   title="">value</var>.</p></li>
-
-   <li><p>The next character is a U+002E FULL STOP ("."). Advance <var
-   title="">position</var> to the character after that.</p></li>
-
-   <li><p>Let <var title="">divisor</var> be 1.</p></li>
-
-   <li>
-
-    <p>If the next character is one of U+0030 DIGIT ZERO (0) .. U+0039
-    DIGIT NINE (9):</p>
+   <li><p>If the character indicated by <var title="">position</var>
+   is a U+0065 LATIN SMALL LETTER E character or a U+0045 LATIN
+   CAPITAL LETTER E character, run these substeps:</p>
 
     <ol>
 
-     <li>Multiply <var title="">divisor</var> by ten.</li>
+     <li><p>Advance <var title="">position</var> to the next
+     character.</p></li>
 
-     <li>Add the value of the current character (0..9) divided by <var
-     title="">divisor</var>, to <var title="">value</var>.</li>
+     <li><p>If <var title="">position</var> is past the end of <var
+     title="">input</var>, then return <var title="">value</var> and
+     abort these steps.</li>
 
-     <li>Advance <var title="">position</var> to the next
-     character.</li>
+     <li>
 
-     <li>If <var title="">position</var> is past the end of <var
-     title="">input</var>, then if <var title="">sign</var> is
-     "positive", return <var title="">value</var>, otherwise return
-     0-<var title="">value</var>.</li>
+      <p>If the character indicated by <var title="">position</var> is
+      a U+002D HYPHEN-MINUS ("-") character:</p>
 
-     <li>Otherwise return to the top of step 14 in the overall
-     algorithm (that's the step within which these substeps find
-     themselves).</li>
+      <ol>
+
+       <li>Change <var title="">exponent</var> to &#x2212;1.</li>
+
+       <li>Advance <var title="">position</var> to the next
+       character.</li>
+
+       <li><p>If <var title="">position</var> is past the end of <var
+       title="">input</var>, then return <var title="">value</var> and
+       abort these steps.</li>
+
+      </ol>
+
+     </li>
+
+     <li><p>If the character indicated by <var title="">position</var>
+     is not one of U+0030 DIGIT ZERO (0) .. U+0039 DIGIT NINE (9),
+     then return <var title="">value</var> and abort these steps.</li>
+
+     <li><p><span>Collect a sequence of characters</span> in the range
+     U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9), and interpret the
+     resulting sequence as a base-ten integer. Multiply <var
+     title="">exponent</var> by that integer.</p></li>
+
+     <li><p>Multiply <var title="">value</var> by ten raised to the
+     <var title="">exponent</var>th power.</p></li>
 
     </ol>
 
    </li>
 
-   <li><p>Otherwise, if <var title="">sign</var> is "positive", return
-   <var title="">value</var>, otherwise return 0-<var
-   title="">value</var>.</p></li>
+   <li><p>Return <var title="">value</var>.</p></li>
 
   </ol>
 
@@ -26335,7 +26394,7 @@ function AddCloud(data, x, y) { ... }</pre>
   should allow the user to change the URL represented by its <span
   title="concept-fe-value">value</span>. User agents may allow the
   user to set the <span title="concept-fe-value">value</span> to a
-  string that is not a <span>value URL</span>. User agents should
+  string that is not a <span>valid URL</span>. User agents should
   allow the user to set the <span
   title="concept-fe-value">value</span> to the empty string. User
   agents must not allow users to insert U+000A LINE FEED (LF) or
@@ -26502,8 +26561,8 @@ function AddCloud(data, x, y) { ... }</pre>
   <p><strong>Constraint validation:</strong> When there is both a
   <span title="concept-input-value-datetime">selected UTC date and
   time</span> and a <span title="concept-input-min-datetime">minimum
-  UTC date and time</span>, if the former is less than the latter, the
-  element is <span>suffering from an underflow</span>.</p>
+  UTC date and time</span>, if the former is earlier than the latter,
+  the element is <span>suffering from an underflow</span>.</p>
 
   <p>The <code title="attr-input-max">max</code> attribute, if
   specified, must have a value that is a <span>valid UTC date and
@@ -26518,10 +26577,18 @@ function AddCloud(data, x, y) { ... }</pre>
   <p><strong>Constraint validation:</strong> When there is both a
   <span title="concept-input-value-datetime">selected UTC date and
   time</span> and a <span title="concept-input-max-datetime">maximum
-  UTC date and time</span>, if the former is more than the latter, the
-  element is <span>suffering from an overflow</span>.</p>
+  UTC date and time</span>, if the former is later than the latter,
+  the element is <span>suffering from an overflow</span>.</p>
 
-  <p class="big-issue">... <code title="attr-input-step">step</code></p>
+  <p class="big-issue">The <code title="attr-input-step">step</code>
+  attribute, if specified, must have a value that is a ...</p>
+
+  <!-- values: positive non-zero floating point, or "any" -->
+  <!-- units: seconds -->
+  <!-- default: 60 -->
+  <!-- zero point: min, or 1970-01-01T00:00:00.0Z -->
+  <!-- allow rounding -->
+  <!-- <span>suffering from a step mismatch</span> -->
 
   <p>The following common <code>input</code> element content
   attributes, DOM attributes, and methods apply to the element:
