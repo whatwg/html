@@ -936,12 +936,6 @@
   <p>The interface <dfn><code>DOMTimeStamp</code></dfn> is defined in
   DOM3 Core. <a href="#refsDOM3CORE">[DOM3CORE]</a></p>
 
-  <p>The term <dfn>activation behavior</dfn> is used as defined in the
-  DOM3 Events specification. <a
-  href="#refsDOM3EVENTS">[DOM3EVENTS]</a> <span class="XXX">At
-  the time of writing, DOM3 Events hadn't yet been updated to define
-  that phrase.</span></p>
-
   <p id="alternate-style-sheets">The rules for handling alternative
   style sheets are defined in the CSS object model specification. <a
   href="#refsCSSOM">[CSSOM]</a></p>
@@ -6620,13 +6614,6 @@ background: transparent">blue&lt;/span>.&lt;/p></pre>
 
   <h5>Interactive content</h5>
 
-  <!-- Don't change the above <dfn> or the text below without checking
-  all cross-references. Some of them refer specifically to the
-  activation behavior stuff. -->
-
-  <p class="XXX">Parts of this section should eventually be
-  moved to DOM3 Events.</p> <!-- but see comment above -->
-
 <!--
 TESTS:
 http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E%0A%3Cp%20tabindex%3D1%3Etest%20%3Ca%20href%3D%22%22%3E%20%3Cem%3Etest%3C/em%3E%20%3C/a%3E%0A%3Cscript%3E%0A%20function%20test%20%28e%29%20%7B%20w%28e.type%20+%20%27%20on%20%27%20+%20e.target.tagName%20+%20%27%20through%20%27%20+%20e.currentTarget.tagName%29%3B%20%7D%0A%20document.getElementsByTagName%28%27a%27%29%5B0%5D.addEventListener%28%27click%27%2C%20test%2C%20false%29%3B%0A%20document.getElementsByTagName%28%27a%27%29%5B0%5D.addEventListener%28%27DOMActivate%27%2C%20test%2C%20false%29%3B%0A%20document.getElementsByTagName%28%27p%27%29%5B0%5D.addEventListener%28%27click%27%2C%20test%2C%20false%29%3B%0A%20document.getElementsByTagName%28%27p%27%29%5B0%5D.addEventListener%28%27DOMActivate%27%2C%20test%2C%20false%29%3B%0A%3C/script%3E%0A
@@ -6638,43 +6625,104 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
   <p><dfn>Interactive content</dfn> is content that is specifically
   intended for user interaction.</p>
 
-  <p>Certain elements in HTML can be activated, for instance
-  <code>a</code> elements, <code>button</code> elements, or
-  <code>input</code> elements when their <code
-  title="attr-input-type">type</code> attribute is in the <span
-  title="attr-input-type-radio">Radio Button</span> state. Activation
-  of those elements can happen in various (UA-defined) ways, for
-  instance via the mouse or keyboard.</p>
+  <p>Certain elements in HTML have an <span>activation
+  behavior</span>, which means the user agent should allow the user to
+  manually trigger them in some way, for instance using keyboard or
+  voice input (though not mouse clicks, which are handled above). When
+  the user triggers an element with a defined <span>activation
+  behavior</span>, the default action of the interaction event<!-- XXX
+  --> must be to <span>run synthetic click activation steps</span> on
+  the element.</p>
 
-  <p>When activation is performed via some method other than clicking
-  the pointing device, the default action of the event that triggers
-  the activation must, instead of being activating the element
-  directly, be to <span>fire a <code title="">click</code>
-  event</span> on the same element.</p>
+  <p>When a user agent is to <dfn>run synthetic click activation
+  steps</dfn> on an element, the user agent must <span>run pre-click
+  activation steps</span> on the element, then <span>fire a <code
+  title="event-click">click</code> event</span> at the element. The
+  default action of this <span title="event-click">click</span> event
+  must be to <span>run post-click activation steps</span> on the
+  element. If the event is canceled, the user agent must <span>run
+  canceled activation steps</span> on the element instead.</p>
 
-  <p>The default action of this <code title="event-click">click</code>
-  event, or of the real <code title="event-click">click</code> event
-  if the element was activated by clicking a pointing device, must be
-  to <span title="fire a DOMActivate event">fire a further <code
-  title="event-DOMActivate">DOMActivate</code> event</span> at the
-  same element, whose own default action is to go through all the
-  elements the <code title="event-DOMActivate">DOMActivate</code>
-  event bubbled through (starting at the target node and going towards
-  the <code>Document</code> node), looking for an element with an
-  <span>activation behavior</span>; the first element, in reverse tree
-  order, to have one, must have its activation behavior executed.</p>
+  <p>Given an element <var title="">target</var>, the <dfn>nearest
+  activatable element</dfn> is the element returned by the following
+  algorithm:</p>
+
+  <ol>
+
+   <li><p>If <var title="">target</var> has a defined <span>activation
+   behavior</span>, then return <var title="">target</var> and abort
+   these steps.</p></li>
+
+   <li><p>If <var title="">target</var> has a parent element, then set
+   <var title="">target</var> to that parent element and return to the
+   first step.</p></li>
+
+   <li><p>Otherwise, there is no <span>nearest activatable
+   element</span>.</p></li>
+
+  </ol>
+
+  <p>When a pointing device is clicked, the user agent must run these
+  steps:</p>
+
+  <ol>
+
+   <li><p>Let <var title="">e</var> be the <span title="">nearest
+   activatable element</span> of the element designated by the user,
+   if any.</p></li>
+
+   <li><p>If there is an element <var title="">e</var>, <span>run
+   pre-click activation steps</span> on it.</p></li>
+
+   <li>
+
+    <p>Dispatching the required <code title="event-click">click</code>
+    event.</p>
+
+    <p class="XXX">Another specification presumably requires the
+    firing of the <span title="event-click">click</span> event?</p>
+
+    <p>If there is an element <var title="">e</var>, then the default
+    action of the <span title="event-click">click</span> event must be
+    to <span>run post-click activation steps</span> on element <var
+    title="">e</var>.</p>
+
+    <p>If there is an element <var title="">e</var> but the event is
+    canceled, the user agent must <span>run canceled activation
+    steps</span> on element <var title="">e</var>.</p>
+
+   </li>
+
+  </ol>  
 
   <p class="note">The above doesn't happen for arbitrary synthetic
   events dispatched by author script. However, the <code
   title="dom-click">click()</code> method can be used to make it
   happen programmatically.</p>
 
-  <p>For certain form controls, this process is complicated further by
-  <a
-  href="http://www.whatwg.org/specs/web-forms/current-work/#the-click">changes
-  that must happen around the click event</a>. <a
-  href="#refsWF2">[WF2]</a></p> <!-- XXX WF2: when this is merged into
-  this spec, update xrefs -->
+  <p>When a user agent is to <dfn>run post-click activation
+  steps</dfn> on an element, the user agent must <span>fire a simple
+  event</span> called <code
+  title="event-DOMActivate">DOMActivate</code> at that element. The
+  default action of this event must be to <span>run final activation
+  steps</span> on that element. If the event is canceled, the user
+  agent must <span>run canceled activation steps</span> on the element
+  instead.</p>
+
+  <p>When a user agent is to <dfn>run pre-click activation steps</dfn>
+  on an element, it must run the <dfn>pre-click activation steps</dfn>
+  defined for that element, if any.</p>
+
+  <p>When a user agent is to <dfn>run canceled activation steps</dfn>
+  on an element, it must run the <dfn>canceled activation steps</dfn>
+  defined for that element, if any.</p>
+
+  <p>When a user agent is to <dfn>run final activation steps</dfn> on
+  an element, it must run the <dfn>activation behavior</dfn> defined
+  for that element. Activation behaviors can refer to the <code
+  title="event-click">click</code> and <code
+  title="event-DOMActivate">DOMActivate</code> events that were fired
+  by the steps above leading up to this point.</p>
 
 
 
@@ -11949,9 +11997,8 @@ first matching case):&lt;/p&gt;
    <code>INVALID_ACCESS_ERR</code> exception and abort these
    steps.</p></li>
 
-   <li><p>If the target of the <code
-   title="event-DOMActivate">DOMActivate</code> event is an
-   <code>img</code> element with an <code
+   <li><p>If the target of the <code title="event-click">click</code>
+   event is an <code>img</code> element with an <code
    title="attr-img-ismap">ismap</code> attribute specified, then
    server-side image map processing must be performed, as follows:</p>
 
@@ -11987,12 +12034,6 @@ first matching case):&lt;/p&gt;
    hyperlink.</p></li>
 
   </ol>
-
-  <p class="note">One way that a user agent can enable users to follow
-  hyperlinks is by allowing <code>a</code> elements to be clicked, or
-  focussed and activated by the keyboard. This <span
-  title="interactive content">will cause</span> the aforementioned
-  <span>activation behavior</span> to be invoked.</p>
 
   <p>The DOM attributes <dfn
   title="dom-a-href"><code>href</code></dfn>, <dfn
@@ -22556,12 +22597,6 @@ function AddCloud(data, x, y) { ... }</pre>
 
   </ol>
 
-  <p class="note">One way that a user agent can enable users to follow
-  hyperlinks is by allowing <code>area</code> elements to be clicked,
-  or focussed and activated by the keyboard. This <span
-  title="interactive content">will cause</span> the aforementioned
-  <span>activation behavior</span> to be invoked.</p>
-
   <p>The DOM attributes <dfn
   title="dom-area-alt"><code>alt</code></dfn>, <dfn
   title="dom-area-coords"><code>coords</code></dfn>, <dfn
@@ -25331,6 +25366,26 @@ function AddCloud(data, x, y) { ... }</pre>
   descendant in <span>tree order</span> is the <code>label</code>
   element's <span>labeled control</span>.</p>
 
+  <p>The <code>label</code> element's exact default presentation and
+  behavior, in particular what its <span>activation behavior</span>
+  might be, if anything, should match the platform's label
+  behavior.</p>
+
+  <div class="example">
+
+   <p>For example, on platforms where clicking a checkbox label checks
+   the checkbox, clicking the <code>label</code> in the following
+   snippet could trigger the user agent to <span>run synthetic click
+   activation steps</psna> on the <code>input</code> element, as if
+   the element itself had been triggered by the user:</p>
+
+   <pre>&lt;label>&lt;input type=checkbox name=lost> Lost&lt;/label></pre>
+
+   <p>On other platforms, the behavior might be just to focus the
+   control, or do nothing.</p>
+
+  </div>
+
   <p>The <code title="attr-fae-form">form</code> attribute is used to
   explicitly associate the <code>label</code> element with its
   <span>form owner</span>.</p>
@@ -25354,14 +25409,6 @@ function AddCloud(data, x, y) { ... }</pre>
   <span title="labelable form-associated element">labelable
   form-associated elements</span>, on getting, must return that
   <code>NodeList</code> object.</p>
-
-  <!-- The label element's exact default presentation and behaviour
-  should match the platform's label behaviour. For example, on
-  platforms where clicking a checkbox label checks the checkbox,
-  clicking a label element should cause a click event to be
-  synthesised and fired at the checkbox. XXX should define activation
-  behaviour here; clicking on nested link? nested label? label when it
-  has a checkbox? etc -->
 
 
   <h4>The <dfn><code>input</code></dfn> element</h4>
@@ -42946,16 +42993,11 @@ at the first element with the given ID must be treated as if it was cloned and r
 
   <h3>Activation</h3>
 
-  <p>The <dfn title="dom-click">click()</dfn> method must <span>fire a
-  <code>click</code> event</span> at the element, whose default action
-  is the <span title="fire a DOMActivate event">firing of a further
-  <code title="event-DOMActivate">DOMActivate</code> event</span> at
-  the same element, whose own default action is to go through all the
-  elements the <code title="event-DOMActivate">DOMActivate</code>
-  event bubbled through (starting at the target node and going towards
-  the <code>Document</code> node), looking for an element with an
-  <span>activation behavior</span>; the first element, in reverse tree
-  order, to have one, must have its activation behavior executed.</p>
+  <p>The <dfn title="dom-click">click()</dfn> method must, if the
+  element has a defined <span>activation behavior</span>, <span>run
+  synthetic click activation steps</span> on the element. Otherwise,
+  the user agent must <span>fire a <code>click</code> event</span> at
+  the element.</p>
 
 
 
