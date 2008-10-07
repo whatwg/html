@@ -16,7 +16,7 @@
   <div class=head>
    <p><a class=logo href=http://www.whatwg.org/ rel=home><img alt=WHATWG src=/images/logo></a></p>
    <h1>HTML 5</h1>
-   <h2 class="no-num no-toc" id=draft-recommendation-&mdash;-date:-01-jan-1901>Draft Recommendation &mdash; 6 October 2008</h2>
+   <h2 class="no-num no-toc" id=draft-recommendation-&mdash;-date:-01-jan-1901>Draft Recommendation &mdash; 7 October 2008</h2>
    <p>You can take part in this work. <a href=http://www.whatwg.org/mailing-list>Join the working group's discussion list.</a></p>
    <p><strong>Web designers!</strong> We have a <a href=http://blog.whatwg.org/faq/>FAQ</a>, a <a href=http://forums.whatwg.org/>forum</a>, and a <a href=http://www.whatwg.org/mailing-list#help>help mailing list</a> for you!</p>
    <dl><dt>Multiple-page version:</dt>
@@ -5065,13 +5065,18 @@
 http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E...%0A%3Cform%20name%3D%22a%22%3E%3Cinput%20id%3D%22x%22%20name%3D%22y%22%3E%3Cinput%20name%3D%22x%22%20id%3D%22y%22%3E%3C/form%3E%0A%3Cscript%3E%0A%20%20var%20x%3B%0A%20%20w%28x%20%3D%20document.forms%5B%27a%27%5D%5B%27x%27%5D%29%3B%0A%20%20w%28x.length%29%3B%0A%20%20x%5B0%5D.parentNode.removeChild%28x%5B0%5D%29%3B%0A%20%20w%28x.length%29%3B%0A%20%20w%28x%20%3D%3D%20document.forms%5B%27a%27%5D%5B%27x%27%5D%29%3B%0A%3C/script%3E%0A
 --><h5 id=htmloptionscollection><span class=secno>2.8.2.3 </span>HTMLOptionsCollection</h5>
 
-  <p>The <code><a href=#htmloptionscollection-0>HTMLOptionsCollection</a></code> interface represents
-  a list of <code><a href=#the-option-element>option</a></code> elements.</p>
+  <p>The <code><a href=#htmloptionscollection-0>HTMLOptionsCollection</a></code> interface represents a
+  list of <code><a href=#the-option-element>option</a></code> elements. It is always rooted on a
+  <code><a href=#the-select-element>select</a></code> element and has attributes and methods that
+  manipulate that element's descendants.</p>
 
   <pre class=idl>interface <dfn id=htmloptionscollection-0>HTMLOptionsCollection</dfn> {
            attribute unsigned long <a href=#dom-htmloptionscollection-length title=dom-HTMLOptionsCollection-length>length</a>;
   [IndexGetter] <a href=#htmloptionelement>HTMLOptionElement</a> <a href=#dom-htmloptionscollection-item title=dom-HTMLOptionsCollection-item>item</a>(in unsigned long index);
   [NameGetter] Object <a href=#dom-htmloptionscollection-nameditem title=dom-HTMLOptionsCollection-namedItem>namedItem</a>(in DOMString name);
+  void <a href=#dom-htmloptionscollection-add title=dom-HTMLOptionsCollection-add>add</a>(in <a href=#htmlelement>HTMLElement</a> element, in <a href=#htmlelement>HTMLElement</a> before);
+  void <a href=#dom-htmloptionscollection-add title=dom-HTMLOptionsCollection-add>add</a>(in <a href=#htmlelement>HTMLElement</a> element, in long before);
+  void <a href=#dom-htmloptionscollection-remove title=dom-HTMLOptionsCollection-remove>remove</a>(in long index);
 };</pre>
 
   <p>On getting, the <dfn id=dom-htmloptionscollection-length title=dom-HTMLOptionsCollection-length><code>length</code></dfn>
@@ -5120,13 +5125,51 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
    <li>Return that <code>NodeList</code> object.</li>
 
-  </ol><!-- see also http://ln.hixie.ch/?start=1161042744&count=1 --><p class=XXX>We may want to add <code>add()</code> and
-  <code>remove()</code> methods here too because IE implements
-  HTMLSelectElement and HTMLOptionsCollection on the same object, and
-  so people use them almost interchangeably in the wild.</p>
+  </ol><p>The <dfn id=dom-htmloptionscollection-add title=dom-HTMLOptionsCollection-add><code>add(<var title="">element</var>, <var title="">before</var>)</code></dfn>
+  method must act according to the following algorithm:</p>
 
+  <ol><li><p>If <var title="">element</var> is not an <code><a href=#the-option-element>option</a></code>
+   or <code><a href=#the-optgroup-element>optgroup</a></code> element, then return and abort these
+   steps.</li>
 
-  <h4 id=domtokenlist><span class=secno>2.8.3 </span>DOMTokenList</h4>
+   <li><p>If <var title="">element</var> is an ancestor of the
+   <code><a href=#the-select-element>select</a></code> element element on which the
+   <code><a href=#htmloptionscollection-0>HTMLOptionsCollection</a></code> is rooted, then throw a
+   <code>HIERARCHY_REQUEST_ERR</code> exception.</li>
+
+   <li><p>If <var title="">before</var> is an element, but that
+   element isn't a descendant of the <code><a href=#the-select-element>select</a></code> element
+   element on which the <code><a href=#htmloptionscollection-0>HTMLOptionsCollection</a></code> is rooted,
+   then throw a <code>NOT_FOUND_ERR</code> exception.</li>
+
+   <li><p>If <var title="">element</var> and <var title="">before</var> are the same element, then return and abort
+   these steps.</li>
+
+   <li><p>If <var title="">before</var> is a node, then let <var title="">reference</var> be that node. Otherwise, if <var title="">before</var> is an integer, and there is a <var title="">before</var>th node in the collection, let <var title="">reference</var> be that node. Otherwise, let <var title="">reference</var> be null.</li>
+
+   <li><p>If <var title="">reference</var> is not null, let <var title="">parent</var> be the parent node of <var title="">reference</var>. Otherwise, let <var title="">parent</var>
+   be the <code><a href=#the-select-element>select</a></code> element element on which the
+   <code><a href=#htmloptionscollection-0>HTMLOptionsCollection</a></code> is rooted.</li>
+
+   <li><p>Act as if the DOM Core <code title=dom-insertBefore>insertBefore()</code> method was invoked
+   on the <var title="">parent</var> node, with <var title="">element</var> as the first argument and <var title="">reference</var> as the second argument.</p>
+
+  </ol><p>The <dfn id=dom-htmloptionscollection-remove title=dom-HTMLOptionsCollection-remove><code>remove(<var title="">index</var>)</code></dfn> method must act according to
+  the following algorithm:</p>
+
+  <ol><li><p>If the number of nodes <a href=#represented-by-the-collection>represented by the
+   collection</a> is zero, abort these steps.</li>
+
+   <li><p>If <var title="">index</var> is not a number greater than or
+   equal to 0 and less than the number of nodes <a href=#represented-by-the-collection>represented by
+   the collection</a>, let <var title="">element</var> be the first
+   element in the collection. Otherwise, let <var title="">element</var> be the <var title="">index</var>th element
+   in the collection.</li>
+
+   <li><p>Remove <var title="">element</var> from its parent
+   node.</li>
+
+  </ol><!-- see also http://ln.hixie.ch/?start=1161042744&count=1 --><h4 id=domtokenlist><span class=secno>2.8.3 </span>DOMTokenList</h4>
 
   <p>The <code><a href=#domtokenlist-0>DOMTokenList</a></code> interface represents an interface
   to an underlying string that consists of an <a href=#unordered-set-of-unique-space-separated-tokens>unordered set of
@@ -26282,15 +26325,15 @@ function AddCloud(data, x, y) { ... }</pre>
   readonly attribute DOMString <a href=#dom-select-type title=dom-select-type>type</a>;
 
   readonly attribute <a href=#htmloptionscollection-0>HTMLOptionsCollection</a> <a href=#dom-select-options title=dom-select-options>options</a>;
-           attribute unsigned long <span title=dom-select-length>length</span>;
+           attribute unsigned long <a href=#dom-select-length title=dom-select-length>length</a>;
   [IndexGetter] <a href=#htmlelement>HTMLElement</a> <span title=dom-select-XXX9>XXX9</span>(in unsigned long index);
+  void <a href=#dom-select-add title=dom-select-add>add</a>(in <a href=#htmlelement>HTMLElement</a> element, in <a href=#htmlelement>HTMLElement</a> before);
+  void <a href=#dom-select-add title=dom-select-add>add</a>(in <a href=#htmlelement>HTMLElement</a> element, in long before);
+  void <a href=#dom-select-remove title=dom-select-remove>remove</a>(in long index);
 
   readonly attribute <a href=#htmloptionscollection-0>HTMLOptionsCollection</a> <span title=dom-select-selectedOptions>selectedOptions</span>;
            attribute long <span title=dom-select-selectedIndex>selectedIndex</span>;
            attribute DOMString <span title=dom-select-value>value</span>;
-
-  void <span title=dom-select-add>add</span>(in <a href=#htmlelement>HTMLElement</a> element, in <a href=#htmlelement>HTMLElement</a> before);
-  void <span title=dom-select-remove>remove</span>(in long index);
 
   readonly attribute boolean <a href=#dom-cva-willvalidate title=dom-cva-willValidate>willValidate</a>;
   readonly attribute <span>ValidityState</span> <a href=#dom-cva-validity title=dom-cva-validity>validity</a>;
@@ -26345,27 +26388,30 @@ function AddCloud(data, x, y) { ... }</pre>
   submitted. The <code title=attr-fe-autofocus><a href=#attr-fe-autofocus>autofocus</a></code>
   attribute controls focus.</p>
 
-  <p>The <dfn id=dom-select-type title=dom-select-type><code>type</code></dfn>
+  <p>The <dfn id=dom-select-type title=dom-select-type><code>type</code></dfn> DOM
   attribute, on getting, must return the string "<code title="">select-one</code>" if the <code title=attr-select-multiple><a href=#attr-select-multiple>multiple</a></code> attribute is absent,
   and the string "<code title="">select-multiple</code>" if the <code title=attr-select-multiple><a href=#attr-select-multiple>multiple</a></code> attribute is
   present.</p>
 
   <p>The <dfn id=dom-select-options title=dom-select-options><code>options</code></dfn>
-  attribute must return an <code><a href=#htmloptionscollection-0>HTMLOptionsCollection</a></code> rooted
-  at the <code><a href=#the-select-element>select</a></code> node, whose filter matches the elements
-  in the <a href=#concept-select-option-list title=concept-select-option-list>list of
+  DOM attribute must return an <code><a href=#htmloptionscollection-0>HTMLOptionsCollection</a></code>
+  rooted at the <code><a href=#the-select-element>select</a></code> node, whose filter matches the
+  elements in the <a href=#concept-select-option-list title=concept-select-option-list>list of
   options</a>.</p>
 
-  <!-- XXX
-           attribute unsigned long <span title="dom-select-length">length</span>;
-  [IndexGetter] <span>HTMLElement</span> <span title="dom-select-XXX9">XXX9</span>(in unsigned long index);
+  <p>The <dfn id=dom-select-length title=dom-select-length><code>length</code></dfn> DOM
+  attribute, on getting and setting, must act like the <code title=dom-HTMLOptionsCollection-length><a href=#dom-htmloptionscollection-length>length</a></code> attribute on
+  the <code><a href=#htmloptionscollection-0>HTMLOptionsCollection</a></code> object return by the <code title=dom-select-options><a href=#dom-select-options>options</a></code> attribute. Similarly, the
+  <dfn id=dom-select-add title=dom-select-add><code>add()</code></dfn> and <dfn id=dom-select-remove title=dom-select-remove><code>remove()</code></dfn> methods must
+  act like their namesake methods on that same
+  <code><a href=#htmloptionscollection-0>HTMLOptionsCollection</a></code> object.</p>
 
+  <!-- XXX9 is blocked on WebIDL -->
+
+  <!-- XXX
   readonly attribute <span>HTMLOptionsCollection</span> <span title="dom-select-selectedOptions">selectedOptions</span>;
            attribute long <span title="dom-select-selectedIndex">selectedIndex</span>;
            attribute DOMString <span title="dom-select-value">value</span>;
-
-  void <span title="dom-select-add">add</span>(in <span>HTMLElement</span> element, in <span>HTMLElement</span> before);
-  void <span title="dom-select-remove">remove</span>(in long index);
   -->
 
   <p class=XXX>...</p>

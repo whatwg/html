@@ -4824,13 +4824,18 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
   <h5>HTMLOptionsCollection</h5>
 
-  <p>The <code>HTMLOptionsCollection</code> interface represents
-  a list of <code>option</code> elements.</p>
+  <p>The <code>HTMLOptionsCollection</code> interface represents a
+  list of <code>option</code> elements. It is always rooted on a
+  <code>select</code> element and has attributes and methods that
+  manipulate that element's descendants.</p>
 
   <pre class="idl">interface <dfn>HTMLOptionsCollection</dfn> {
            attribute unsigned long <span title="dom-HTMLOptionsCollection-length">length</span>;
   [IndexGetter] <span>HTMLOptionElement</span> <span title="dom-HTMLOptionsCollection-item">item</span>(in unsigned long index);
   [NameGetter] Object <span title="dom-HTMLOptionsCollection-namedItem">namedItem</span>(in DOMString name);
+  void <span title="dom-HTMLOptionsCollection-add">add</span>(in <span>HTMLElement</span> element, in <span>HTMLElement</span> before);
+  void <span title="dom-HTMLOptionsCollection-add">add</span>(in <span>HTMLElement</span> element, in long before);
+  void <span title="dom-HTMLOptionsCollection-remove">remove</span>(in long index);
 };</pre>
 
   <p>On getting, the <dfn
@@ -4895,12 +4900,75 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 
   </ol>
 
+  <p>The <dfn title="dom-HTMLOptionsCollection-add"><code>add(<var
+  title="">element</var>, <var title="">before</var>)</code></dfn>
+  method must act according to the following algorithm:</p>
+
+  <ol>
+
+   <li><p>If <var title="">element</var> is not an <code>option</code>
+   or <code>optgroup</code> element, then return and abort these
+   steps.</li>
+
+   <li><p>If <var title="">element</var> is an ancestor of the
+   <code>select</code> element element on which the
+   <code>HTMLOptionsCollection</code> is rooted, then throw a
+   <code>HIERARCHY_REQUEST_ERR</code> exception.</li>
+
+   <li><p>If <var title="">before</var> is an element, but that
+   element isn't a descendant of the <code>select</code> element
+   element on which the <code>HTMLOptionsCollection</code> is rooted,
+   then throw a <code>NOT_FOUND_ERR</code> exception.</p></li>
+
+   <li><p>If <var title="">element</var> and <var
+   title="">before</var> are the same element, then return and abort
+   these steps.</li>
+
+   <li><p>If <var title="">before</var> is a node, then let <var
+   title="">reference</var> be that node. Otherwise, if <var
+   title="">before</var> is an integer, and there is a <var
+   title="">before</var>th node in the collection, let <var
+   title="">reference</var> be that node. Otherwise, let <var
+   title="">reference</var> be null.</p></li>
+
+   <li><p>If <var title="">reference</var> is not null, let <var
+   title="">parent</var> be the parent node of <var
+   title="">reference</var>. Otherwise, let <var title="">parent</var>
+   be the <code>select</code> element element on which the
+   <code>HTMLOptionsCollection</code> is rooted.</p></li>
+
+   <li><p>Act as if the DOM Core <code
+   title="dom-insertBefore">insertBefore()</code> method was invoked
+   on the <var title="">parent</var> node, with <var
+   title="">element</var> as the first argument and <var
+   title="">reference</var> as the second argument.</p>
+
+  </ol>
+
+  <p>The <dfn
+  title="dom-HTMLOptionsCollection-remove"><code>remove(<var
+  title="">index</var>)</code></dfn> method must act according to
+  the following algorithm:</p>
+
+  <ol>
+
+   <li><p>If the number of nodes <span>represented by the
+   collection</span> is zero, abort these steps.</li>
+
+   <li><p>If <var title="">index</var> is not a number greater than or
+   equal to 0 and less than the number of nodes <span>represented by
+   the collection</span>, let <var title="">element</var> be the first
+   element in the collection. Otherwise, let <var
+   title="">element</var> be the <var title="">index</var>th element
+   in the collection.</p></li>
+
+   <li><p>Remove <var title="">element</var> from its parent
+   node.</p></li>
+
+  </ol>
+
   <!-- see also http://ln.hixie.ch/?start=1161042744&count=1 -->
 
-  <p class="XXX">We may want to add <code>add()</code> and
-  <code>remove()</code> methods here too because IE implements
-  HTMLSelectElement and HTMLOptionsCollection on the same object, and
-  so people use them almost interchangeably in the wild.</p>
 
 
   <h4>DOMTokenList</h4>
@@ -29387,13 +29455,13 @@ function AddCloud(data, x, y) { ... }</pre>
   readonly attribute <span>HTMLOptionsCollection</span> <span title="dom-select-options">options</span>;
            attribute unsigned long <span title="dom-select-length">length</span>;
   [IndexGetter] <span>HTMLElement</span> <span title="dom-select-XXX9">XXX9</span>(in unsigned long index);
+  void <span title="dom-select-add">add</span>(in <span>HTMLElement</span> element, in <span>HTMLElement</span> before);
+  void <span title="dom-select-add">add</span>(in <span>HTMLElement</span> element, in long before);
+  void <span title="dom-select-remove">remove</span>(in long index);
 
   readonly attribute <span>HTMLOptionsCollection</span> <span title="dom-select-selectedOptions">selectedOptions</span>;
            attribute long <span title="dom-select-selectedIndex">selectedIndex</span>;
            attribute DOMString <span title="dom-select-value">value</span>;
-
-  void <span title="dom-select-add">add</span>(in <span>HTMLElement</span> element, in <span>HTMLElement</span> before);
-  void <span title="dom-select-remove">remove</span>(in long index);
 
   readonly attribute boolean <span title="dom-cva-willValidate">willValidate</span>;
   readonly attribute <span>ValidityState</span> <span title="dom-cva-validity">validity</span>;
@@ -29456,7 +29524,7 @@ function AddCloud(data, x, y) { ... }</pre>
   submitted. The <code title="attr-fe-autofocus">autofocus</code>
   attribute controls focus.</p>
 
-  <p>The <dfn title="dom-select-type"><code>type</code></dfn>
+  <p>The <dfn title="dom-select-type"><code>type</code></dfn> DOM
   attribute, on getting, must return the string "<code
   title="">select-one</code>" if the <code
   title="attr-select-multiple">multiple</code> attribute is absent,
@@ -29465,21 +29533,27 @@ function AddCloud(data, x, y) { ... }</pre>
   present.</p>
 
   <p>The <dfn title="dom-select-options"><code>options</code></dfn>
-  attribute must return an <code>HTMLOptionsCollection</code> rooted
-  at the <code>select</code> node, whose filter matches the elements
-  in the <span title="concept-select-option-list">list of
+  DOM attribute must return an <code>HTMLOptionsCollection</code>
+  rooted at the <code>select</code> node, whose filter matches the
+  elements in the <span title="concept-select-option-list">list of
   options</span>.</p>
 
-  <!-- XXX
-           attribute unsigned long <span title="dom-select-length">length</span>;
-  [IndexGetter] <span>HTMLElement</span> <span title="dom-select-XXX9">XXX9</span>(in unsigned long index);
+  <p>The <dfn title="dom-select-length"><code>length</code></dfn> DOM
+  attribute, on getting and setting, must act like the <code
+  title="dom-HTMLOptionsCollection-length">length</code> attribute on
+  the <code>HTMLOptionsCollection</code> object return by the <code
+  title="dom-select-options">options</code> attribute. Similarly, the
+  <dfn title="dom-select-add"><code>add()</code></dfn> and <dfn
+  title="dom-select-remove"><code>remove()</code></dfn> methods must
+  act like their namesake methods on that same
+  <code>HTMLOptionsCollection</code> object.</p>
 
+  <!-- XXX9 is blocked on WebIDL -->
+
+  <!-- XXX
   readonly attribute <span>HTMLOptionsCollection</span> <span title="dom-select-selectedOptions">selectedOptions</span>;
            attribute long <span title="dom-select-selectedIndex">selectedIndex</span>;
            attribute DOMString <span title="dom-select-value">value</span>;
-
-  void <span title="dom-select-add">add</span>(in <span>HTMLElement</span> element, in <span>HTMLElement</span> before);
-  void <span title="dom-select-remove">remove</span>(in long index);
   -->
 
   <p class="XXX">...</p>
