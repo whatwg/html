@@ -442,10 +442,18 @@
   if the node is not currently part of the document tree, the root
   element will be an orphaned node.</p>
 
+  <p>The <code>Document</code> of a <code>Node</code> (such as an
+  element) is the <code>Document</code> that the <code>Node</code>'s
+  <code title="">ownerDocument</code> DOM attribute returns.</p>
+
   <p>An element is said to have been <dfn title="insert an element
   into a document">inserted into a document</dfn> when its <span>root
   element</span> changes and is now the document's <span>root
-  element</span>.</p>
+  element</span>. If a <code>Node</code> is in a <code>Document</code>
+  then that <code>Document</code> is always the <code>Node</code>'s
+  <code>Document</code>, and the <code>Node</code>'s <code
+  title="">ownerDocument</code> DOM attribute thus always returns that
+  <code>Document</code>.</p>
 
   <p>The term <dfn>tree order</dfn> means a pre-order, depth-first
   traversal of DOM nodes involved (through the <code
@@ -18845,6 +18853,70 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
 
 
 
+  <h5>Cue ranges</h5>
+
+  <p><span title="media element">Media elements</span> have a set of
+  <dfn title="cue range">cue ranges</dfn>. Each cue range is made up
+  of the following information:</p>
+
+  <dl>
+
+   <dt>A class name</dt>
+   <dd>A group of related ranges can be given the same class name so
+   that they can all be removed at the same time.</dd>
+
+   <dt>An identifier<dt>
+   <dd>A string can be assigned to each cue range for identification
+   by script. The string need not be unique and can contain any
+   value.</dd>
+
+   <dt>A start time</dt>
+   <dt>An end time</dt>
+   <dd>The actual time range, using the same timeline as the
+   <span>media resource</span> itself.</dd>
+
+   <dt>A "pause" boolean</dt>
+   <dd>A flag indicating whether to pause playback on exit.</dd>
+
+   <dt>An "enter" callback</dt>
+   <dd>A callback that is called when the <span>current playback
+   position</span> enters the range.</dd>
+
+   <dt>An "exit" callback</dt>
+   <dd>A callback that is called when the <span>current playback
+   position</span> exits the range.</dd>
+
+   <dt>An "active" boolean</dt>
+   <dd>A flag indicating whether the range is active or not.</dd>
+
+  </dl>
+
+  <p>The <dfn title="dom-media-addCueRange"><code>addCueRange(<var
+  title="">className</var>, <var title="">id</var>, <var
+  title="">start</var>, <var title="">end</var>, <var
+  title="">pauseOnExit</var>, <var title="">enterCallback</var>, <var
+  title="">exitCallback</var>)</code></dfn> method must, when called,
+  add a <span>cue range</span> to the <span>media element</span>, that
+  cue range having the class name <var title="">className</var>, the
+  identifier <var title="">id</var>, the start time <var
+  title="">start</var> (in seconds), the end time <var
+  title="">end</var> (in seconds), the "pause" boolean with the same
+  value as <var title="">pauseOnExit</var>, the "enter" callback <var
+  title="">enterCallback</var>, the "exit" callback <var
+  title="">exitCallback</var>, and an "active" boolean that is true if
+  the <span>current playback position</span> is equal to or greater
+  than the start time and less than the end time, and false
+  otherwise.</p>
+
+  <p>The <dfn
+  title="dom-media-removeCueRanges"><code>removeCueRanges(<var
+  title="">className</var>)</code></dfn> method must, when called,
+  remove all the <span title="cue range">cue ranges</span> of the
+  <span>media element</span> which have the class name <var
+  title="">className</var>.</p>
+
+
+
   <h5>Playing the media resource</h5>
 
   <p>The <dfn title="dom-media-paused"><code>paused</code></dfn>
@@ -18871,6 +18943,10 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
   equal to <span><code
   title="dom-media-playCount">playCount</code>-1</span>.</p>
 
+  <p>The <dfn title="dom-media-ended"><code>ended</code></dfn>
+  attribute must return true if the <span>media element</span> has
+  <span>ended playback</span>, and false otherwise.</p>
+
   <p>A <span>media element</span> is said to have <dfn>stopped due to
   errors</dfn> when the element's <code
   title="dom-media-networkState">networkState</code> attribute is
@@ -18895,32 +18971,11 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
   <span>ended playback</span> and <span>paused for user
   interaction</span> at the same time.</p>
 
-  <p id="media-playback">When a <span>media element</span> is
-  <span>actively playing</span> and its <span
-  title="dom-ownerDocument">owner <code>Document</code></span><!-- XXX
-  xref --> is an <span>active document</span>, its <span>current
-  playback position</span> must increase monotonically at <code
-  title="dom-media-playbackRate">playbackRate</code> units of media
-  time per unit time of wall clock time. If this value is not 1, the
-  user agent may apply pitch adjustments to any audio component of the
-  <span>media resource</span>.</p>
-
-  <p class="note">This specification doesn't define how the user agent
-  achieves the appropriate playback rate &mdash; depending on the
-  protocol and media available, it is plausible that the user agent
-  could negotiate with the server to have the server provide the media
-  data at the appropriate rate, so that (except for the period between
-  when the rate is changed and when the server updates the stream's
-  playback rate) the client doesn't actually have to drop or
-  interpolate any frames.</p>
-
-  <p><span title="media resource">Media resources</span> might be
-  internally scripted or interactive. Thus, a <span>media
-  element</span> could play in a non-linear fashion. If this happens,
-  the user agent must act as if the algorithm for <span
-  title="dom-media-seek">seeking</span> was used whenever the
-  <span>current playback position</span> changes in a discontinuous
-  fashion (so that the relevant events fire).</p>
+  <p>When a <span>media element</span> that is <span>actively
+  playing</span> stops playing because it has <span>paused for user
+  interaction</span>, the user agent must <span>queue a task</span> to
+  <span>fire a simple event</span> called <code
+  title="event-timeupdate">timeupdate</code> at the element.</p>
 
   <p id="fire-waiting-when-waiting">When a <span>media element</span>
   that is <span>actively playing</span> stops playing because its
@@ -18935,12 +18990,6 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
   title="event-timeupdate">timeupdate</code> at the element, and
   <span>queue a task</span> to <span>fire a simple event</span> called
   <code title="event-waiting">waiting</code> at the element.</p>
-
-  <p>When a <span>media element</span> that is <span>actively
-  playing</span> stops playing because it has <span>paused for user
-  interaction</span>, the user agent must <span>queue a task</span> to
-  <span>fire a simple event</span> called <code
-  title="event-timeupdate">timeupdate</code> at the element.</p>
 
   <p>When <code title="dom-media-currentLoop">currentLoop</code> is
   less than <span><code
@@ -19006,6 +19055,31 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
   event</span> called <code title="event-ratechange">ratechange</code>
   at the <span>media element</span>.</p>
 
+  <p>The <dfn title="dom-media-played"><code>played</code></dfn>
+  attribute must return a static <span>normalized
+  <code>TimeRanges</code> object</span> that represents the ranges of
+  the <span>media resource</span>, if any, that the user agent has so
+  far rendered, at the time the attribute is evaluated.</p>
+
+  <hr>
+
+  <p id="media-playback">When a <span>media element</span> is
+  <span>actively playing</span> and its <code>Document</code> is an
+  <span>active document</span>, its <span>current playback
+  position</span> must increase monotonically at <code
+  title="dom-media-playbackRate">playbackRate</code> units of media
+  time per unit time of wall clock time. If this value is not 1, the
+  user agent may apply pitch adjustments to any audio component of the
+  <span>media resource</span>.</p>
+
+  <p class="note">This specification doesn't define how the user agent
+  achieves the appropriate playback rate &mdash; depending on the
+  protocol and media available, it is plausible that the user agent
+  could negotiate with the server to have the server provide the media
+  data at the appropriate rate, so that (except for the period between
+  when the rate is changed and when the server updates the stream's
+  playback rate) the client doesn't actually have to drop or
+  interpolate any frames.</p>
 
   <hr>
 
@@ -19072,6 +19146,7 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
 
   </ol>
 
+  <hr>
 
   <p>When the <dfn title="dom-media-pause"><code>pause()</code></dfn>
   method is invoked, the user agent must run the following steps:</p>
@@ -19105,7 +19180,85 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
 
   </ol>
 
+  <hr>
 
+  <p>When the <span>current playback position</span> of a <span>media
+  element</span> changes (e.g. due to playback or seeking), the user
+  agent must run the following steps. If the <span>current playback
+  position</span> changes while the steps are running, then the user
+  agent must wait for the steps to complete, and then must immediately
+  rerun the steps. (These steps are thus run as often as possible or
+  needed &mdash; if one iteration takes a long time, this can cause
+  certain ranges to be skipped over as the user agent rushes ahead to
+  "catch up".)</p>
+
+  <ol>
+
+   <li><p>Let <var title="">current ranges</var> be an ordered list of
+   <span title="cue range">cue ranges</span>, initialized to contain
+   all the <span title="cue range">cue ranges</span> of the
+   <span>media element</span> whose start times are less than or equal
+   to the <span>current playback position</span> and whose end times
+   are greater than the <span>current playback position</span>, in the
+   order they were added to the element.</p></li>
+
+   <li><p>Let <var title="">other ranges</var> be an ordered list of
+   <span title="cue range">cue ranges</span>, initialized to contain
+   all the <span title="cue range">cue ranges</span> of the
+   <span>media element</span> that are not present in <var
+   title="">current ranges</var>, in the order they were added to the
+   element.</p></li>
+
+   <li><p>If none of the <span title="cue range">cue ranges</span> in
+   <var title="">current ranges</var> have their "active" boolean set
+   to "false" (inactive) and none of the <span title="cue range">cue
+   ranges</span> in <var title="">other ranges</var> have their
+   "active" boolean set to "true" (active), then abort these
+   steps.</p></li>
+
+   <li><p>If the time was reached through the usual monotonic increase
+   of the current playback position during normal playback, the user
+   agent must then <span>queue a task</span> to <span>fire a simple
+   event</span> called <code
+   title="event-timeupdate">timeupdate</code> at the element. (In the
+   other cases, such as explicit seeks, relevant events get fired as
+   part of the overall process of changing the current playback
+   position.)</p></li>
+
+   <li><p>If the time was reached through the usual monotonic increase
+   of the current playback position during normal playback, and there
+   are <span title="cue range">cue ranges</span> in <var
+   title="">other ranges</var> that have both their "active" boolean
+   and their "pause" boolean set to "true", then immediately act as if
+   the element's <code title="dom-media-pause">pause()</code> method
+   had been invoked. <!-- pause() can in theory call load(), but never
+   can it do so as part of this invokation, since we wouldn't be in
+   this algorithm if the media element was empty. So, no need to couch
+   all this in a task. --> (In the other cases, such as explicit
+   seeks, playback is not paused by exiting a cue range, even if that
+   cue range has its "pause" boolean set to "true".)</p></li>
+
+   <li><p>For each non-null "exit" callback of the <span
+   title="cue range">cue ranges</span> in <var title="">other
+   ranges</var> that have their "active" boolean set to "true"
+   (active), in list order, <span>queue a task</span> that invokes the
+   callback, passing the cue range's identifier as the callback's only
+   argument.</p></li>
+
+   <li><p>For each non-null "enter" callback of the <span title="cue
+   range">cue ranges</span> in <var title="">current ranges</var> that
+   have their "active" boolean set to "false" (inactive), in list
+   order, <span>queue a task</span> that invokes the callback, passing
+   the cue range's identifier as the callback's only
+   argument.</p></li>
+
+   <li><p>Set the "active" boolean of all the <span title="cue
+   range">cue ranges</span> in the <var title="">current ranges</var>
+   list to "true" (active), and the "active" boolean of all the <span
+   title="cue range">cue ranges</span> in the <var title="">other
+   ranges</var> list to "false" (inactive).</p></li>
+
+  </ol>
 
   <p>When a <span>media element</span> is <span>removed from a
   <code>Document</code><!-- XXX xref removed --></span>, if the
@@ -19126,21 +19279,10 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
   has been reached) may the element be <span>garbage
   collected</span><!-- XXX xref -->.</p>
 
-  <p class="note">If the <span>media element</span>'s <code
-  title="dom-ownerDocument">ownerDocument</code> stops being an active
-  document, then the playback will <a href="#media-playback">stop</a>
-  until the document is active again.</p>
-
-
-  <p>The <dfn title="dom-media-ended"><code>ended</code></dfn>
-  attribute must return true if the <span>media element</span> has
-  <span>ended playback</span>, and false otherwise.</p>
-
-  <p>The <dfn title="dom-media-played"><code>played</code></dfn>
-  attribute must return a static <span>normalized
-  <code>TimeRanges</code> object</span> that represents the ranges of
-  the <span>media resource</span>, if any, that the user agent has so
-  far rendered, at the time the attribute is evaluated.</p>
+  <p class="note">If the <span>media element</span>'s
+  <code>Document</code> stops being an active document, then the
+  playback will <a href="#media-playback">stop</a> until the document
+  is active again.</p>
 
 
 
@@ -19251,150 +19393,13 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
   title="dom-media-duration">duration</code> attribute's value (which
   would equal the time of the last frame).</p>
 
-
-
-  <h5>Cue ranges</h5>
-
-  <p><span title="media element">Media elements</span> have a set of
-  <dfn title="cue range">cue ranges</dfn>. Each cue range is made up
-  of the following information:</p>
-
-  <dl>
-
-   <dt>A class name</dt>
-   <dd>A group of related ranges can be given the same class name so
-   that they can all be removed at the same time.</dd>
-
-   <dt>An identifier<dt>
-   <dd>A string can be assigned to each cue range for identification
-   by script. The string need not be unique and can contain any
-   value.</dd>
-
-   <dt>A start time</dt>
-   <dt>An end time</dt>
-   <dd>The actual time range, using the same timeline as the
-   <span>media resource</span> itself.</dd>
-
-   <dt>A "pause" boolean</dt>
-   <dd>A flag indicating whether to pause playback on exit.</dd>
-
-   <dt>An "enter" callback</dt>
-   <dd>A callback that is called when the <span>current playback
-   position</span> enters the range.</dd>
-
-   <dt>An "exit" callback</dt>
-   <dd>A callback that is called when the <span>current playback
-   position</span> exits the range.</dd>
-
-   <dt>An "active" boolean</dt>
-   <dd>A flag indicating whether the range is active or not.</dd>
-
-  </dl>
-
-  <p>The <dfn title="dom-media-addCueRange"><code>addCueRange(<var
-  title="">className</var>, <var title="">id</var>, <var
-  title="">start</var>, <var title="">end</var>, <var
-  title="">pauseOnExit</var>, <var title="">enterCallback</var>, <var
-  title="">exitCallback</var>)</code></dfn> method must, when called,
-  add a <span>cue range</span> to the <span>media element</span>, that
-  cue range having the class name <var title="">className</var>, the
-  identifier <var title="">id</var>, the start time <var
-  title="">start</var> (in seconds), the end time <var
-  title="">end</var> (in seconds), the "pause" boolean with the same
-  value as <var title="">pauseOnExit</var>, the "enter" callback <var
-  title="">enterCallback</var>, the "exit" callback <var
-  title="">exitCallback</var>, and an "active" boolean that is true if
-  the <span>current playback position</span> is equal to or greater
-  than the start time and less than the end time, and false
-  otherwise.</p>
-
-  <p>The <dfn
-  title="dom-media-removeCueRanges"><code>removeCueRanges(<var
-  title="">className</var>)</code></dfn> method must, when called,
-  remove all the <span title="cue range">cue ranges</span> of the
-  <span>media element</span> which have the class name <var
-  title="">className</var>.</p>
-
-
-  <h5>Playback processing model</h5>
-
-  <p>When the <span>current playback position</span> of a <span>media
-  element</span> changes (e.g. due to playback or seeking), the user
-  agent must run the following steps. If the <span>current playback
-  position</span> changes while the steps are running, then the user
-  agent must wait for the steps to complete, and then must immediately
-  rerun the steps. (These steps are thus run as often as possible or
-  needed &mdash; if one iteration takes a long time, this can cause
-  certain ranges to be skipped over as the user agent rushes ahead to
-  "catch up".)</p>
-
-  <ol>
-
-   <li><p>Let <var title="">current ranges</var> be an ordered list of
-   <span title="cue range">cue ranges</span>, initialized to contain
-   all the <span title="cue range">cue ranges</span> of the
-   <span>media element</span> whose start times are less than or equal
-   to the <span>current playback position</span> and whose end times
-   are greater than the <span>current playback position</span>, in the
-   order they were added to the element.</p></li>
-
-   <li><p>Let <var title="">other ranges</var> be an ordered list of
-   <span title="cue range">cue ranges</span>, initialized to contain
-   all the <span title="cue range">cue ranges</span> of the
-   <span>media element</span> that are not present in <var
-   title="">current ranges</var>, in the order they were added to the
-   element.</p></li>
-
-   <li><p>If none of the <span title="cue range">cue ranges</span> in
-   <var title="">current ranges</var> have their "active" boolean set
-   to "false" (inactive) and none of the <span title="cue range">cue
-   ranges</span> in <var title="">other ranges</var> have their
-   "active" boolean set to "true" (active), then abort these
-   steps.</p></li>
-
-   <li><p>If the time was reached through the usual monotonic increase
-   of the current playback position during normal playback, the user
-   agent must then <span>queue a task</span> to <span>fire a simple
-   event</span> called <code
-   title="event-timeupdate">timeupdate</code> at the element. (In the
-   other cases, such as explicit seeks, relevant events get fired as
-   part of the overall process of changing the current playback
-   position.)</p></li>
-
-   <li><p>If the time was reached through the usual monotonic increase
-   of the current playback position during normal playback, and there
-   are <span title="cue range">cue ranges</span> in <var
-   title="">other ranges</var> that have both their "active" boolean
-   and their "pause" boolean set to "true", then immediately act as if
-   the element's <code title="dom-media-pause">pause()</code> method
-   had been invoked. <!-- pause() can in theory call load(), but never
-   can it do so as part of this invokation, since we wouldn't be in
-   this algorithm if the media element was empty. So, no need to couch
-   all this in a task. --> (In the other cases, such as explicit
-   seeks, playback is not paused by exiting a cue range, even if that
-   cue range has its "pause" boolean set to "true".)</p></li>
-
-   <li><p>For each non-null "exit" callback of the <span
-   title="cue range">cue ranges</span> in <var title="">other
-   ranges</var> that have their "active" boolean set to "true"
-   (active), in list order, <span>queue a task</span> that invokes the
-   callback, passing the cue range's identifier as the callback's only
-   argument.</p></li>
-
-   <li><p>For each non-null "enter" callback of the <span title="cue
-   range">cue ranges</span> in <var title="">current ranges</var> that
-   have their "active" boolean set to "false" (inactive), in list
-   order, <span>queue a task</span> that invokes the callback, passing
-   the cue range's identifier as the callback's only
-   argument.</p></li>
-
-   <li><p>Set the "active" boolean of all the <span title="cue
-   range">cue ranges</span> in the <var title="">current ranges</var>
-   list to "true" (active), and the "active" boolean of all the <span
-   title="cue range">cue ranges</span> in the <var title="">other
-   ranges</var> list to "false" (inactive).</p></li>
-
-  </ol>
+  <p><span title="media resource">Media resources</span> might be
+  internally scripted or interactive. Thus, a <span>media
+  element</span> could play in a non-linear fashion. If this happens,
+  the user agent must act as if the algorithm for <span
+  title="dom-media-seek">seeking</span> was used whenever the
+  <span>current playback position</span> changes in a discontinuous
+  fashion (so that the relevant events fire).</p>
 
 
 
@@ -44309,18 +44314,18 @@ at the first element with the given ID must be treated as if it was cloned and r
   exactly one range and its <code title="">collapsed</code> attribute
   is itself true. Otherwise it must return false.</p>
 
-  <p>The <dfn
-  title="dom-selection-collapse"><code>collapse(<var title="">parentNode</var>,
-  <var title="">offset</var>)</code></dfn> method must raise a
-  <code>WRONG_DOCUMENT_ERR</code> DOM exception if
-  <var title="">parentNode</var>'s <code title="">ownerDocument</code> is not
-  the <code>HTMLDocument</code> object with which the
+  <p>The <dfn title="dom-selection-collapse"><code>collapse(<var
+  title="">parentNode</var>, <var title="">offset</var>)</code></dfn>
+  method must raise a <code>WRONG_DOCUMENT_ERR</code> DOM exception if
+  <var title="">parentNode</var>'s <code>Document</code> is not the
+  <code>HTMLDocument</code> object with which the
   <code>Selection</code> object is associated. Otherwise it is, and
   the method must remove all the ranges in the <code>Selection</code>
   list, then create a new <code>Range</code> object, add it to the
   list, and invoke its <code title="">setStart()</code> and <code
-  title="">setEnd()</code> methods with the <var title="">parentNode</var> and
-  <var title="">offset</var> values as their arguments.</p>
+  title="">setEnd()</code> methods with the <var
+  title="">parentNode</var> and <var title="">offset</var> values as
+  their arguments.</p>
 
   <p>The <dfn
   title="dom-selection-collapseToStart"><code>collapseToStart()</code></dfn>
