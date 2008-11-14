@@ -16967,6 +16967,7 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href=#htmlmediael
   const unsigned short <a href=#dom-mediaerror-media_err_aborted title=dom-MediaError-MEDIA_ERR_ABORTED>MEDIA_ERR_ABORTED</a> = 1;
   const unsigned short <a href=#dom-mediaerror-media_err_network title=dom-MediaError-MEDIA_ERR_NETWORK>MEDIA_ERR_NETWORK</a> = 2;
   const unsigned short <a href=#dom-mediaerror-media_err_decode title=dom-MediaError-MEDIA_ERR_DECODE>MEDIA_ERR_DECODE</a> = 3;
+  const unsigned short <a href=#dom-mediaerror-media_err_decode title=dom-MediaError-MEDIA_ERR_DECODE>MEDIA_ERR_NONE_SUPPORTED</a> = 4;
   readonly attribute unsigned short <a href=#dom-mediaerror-code title=dom-MediaError-code>code</a>;
 };</pre>
 
@@ -16982,12 +16983,18 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href=#htmlmediael
    <dt><dfn id=dom-mediaerror-media_err_network title=dom-MediaError-MEDIA_ERR_NETWORK><code>MEDIA_ERR_NETWORK</code></dfn> (numeric value 2)</dt>
 
    <dd>A network error of some description caused the user agent to
-   stop fetching the <a href=#media-resource>media resource</a>.</dd>
+   stop fetching the <a href=#media-resource>media resource</a>, after the resource
+   was established to be usable.</dd>
 
    <dt><dfn id=dom-mediaerror-media_err_decode title=dom-MediaError-MEDIA_ERR_DECODE><code>MEDIA_ERR_DECODE</code></dfn> (numeric value 3)</dt>
 
    <dd>An error of some description occurred while decoding the
-   <a href=#media-resource>media resource</a>.</dd>
+   <a href=#media-resource>media resource</a>, after the resource was established to
+   be usable.</dd>
+
+   <dt><dfn id=dom-mediaerror-media_err_none_supported title=dom-MediaError-MEDIA_ERR_NONE_SUPPORTED><code>MEDIA_ERR_NONE_SUPPORTED</code></dfn> (numeric value 4)</dt>
+
+   <dd>No suitable <a href=#media-resource>media resource</a> could be found.</dd>
 
   </dl><h5 id=location-of-the-media-resource><span class=secno>4.8.10.2 </span>Location of the media resource</h5>
 
@@ -17017,60 +17024,89 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href=#htmlmediael
   <a href=#reflect>reflect</a> the respective content attribute of the same
   name.</p>
 
-  <p>To <dfn id=pick-a-media-resource>pick a media resource</dfn> for a <a href=#media-element>media
-  element</a>, a user agent must use the following steps:</p>
+  <p>The <dfn id=dom-media-currentsrc title=dom-media-currentSrc><code>currentSrc</code></dfn> DOM
+  attribute is initially the empty string. Its value is changed by the
+  algorithm for the <code title=dom-media-load><a href=#dom-media-load>load()</a></code> method
+  defined below.</p>
 
-  <ol><li><p>Let the <var title="">chosen resource's pixel ratio
-   override</var> be <i>none</i>.</li>
+  <p>The <dfn id=pixel-ratio-override>pixel ratio override</dfn> of a <a href=#media-element>media
+  element</a> is initially <i>none</i>. Its value is changed by the
+  algorithm for the <code title=dom-media-load><a href=#dom-media-load>load()</a></code> method
+  defined below.</p>
 
-   <li><p>If the <a href=#media-element>media element</a> has a <code title=attr-media-src><a href=#attr-media-src>src</a></code> attribute, then <a href=#resolve-a-url title="resolve a url">resolve</a> the <a href=#url>URL</a> given in
-   that attribute. If that is successful, then the resulting
-   <a href=#absolute-url>absolute URL</a> is the address of the <a href=#media-resource>media
-   resource</a>; jump to the last step.</li>
+  <p>To <dfn id=generate-the-list-of-potential-media-resources>generate the list of potential media resources</dfn> for
+  a <a href=#media-element>media element</a>, a user agent must use the following
+  steps. These steps return a list of items, each consisting of an
+  <a href=#absolute-url>absolute URL</a> giving a resource's address, and the
+  resource's pixel ratio override (either a number or
+  <i>none</i>).</p>
 
-   <li><p>Otherwise, let <var title="">candidate</var> be the first
+  <ol><li>
+
+    <p>If the <a href=#media-element>media element</a> has a <code title=attr-media-src><a href=#attr-media-src>src</a></code> attribute, then run these
+    substeps:</p>
+
+    <ol><li><p><a href=#resolve-a-url title="resolve a url">Resolve</a> the
+     <a href=#url>URL</a> given in that attribute.</p>
+
+     <li><p>If that is successful, then return a list consisting of
+     only one entry, with the resulting <a href=#absolute-url>absolute URL</a> as
+     the resource's address, and with the resource's pixel ratio
+     override being <i>none</i>.</li>
+
+     <li><p>Otherwise, return the empty list.</li>
+
+     <li><p>Abort the algorithm.</li>
+
+    </ol><p>Otherwise, the <code><a href=#the-source-element>source</a></code> elements will be used.</p>
+
+   </li>
+
+   <li><p>If the <a href=#media-element>media element</a> has no <code><a href=#the-source-element>source</a></code>
+   element children, then return the empty the list and abort these
+   steps.</li>
+
+   <li><p>Let <var title="">result</var> be an empty list.</li>
+
+   <li><p>Let <var title="">candidate</var> be the first
    <code><a href=#the-source-element>source</a></code> element child in the <a href=#media-element>media
-   element</a>, or null if there is no such child.</li>
+   element</a>.</li>
 
    <li><p><i>Loop</i>: this is the start of the loop that looks at the
    <code><a href=#the-source-element>source</a></code> elements.</li>
 
-   <li><p>If <var title="">candidate</var> is not null and it has a
-   <code title=attr-source-pixelratio><a href=#attr-source-pixelratio>pixelratio</a></code> attribute,
-   and the result of applying the <a href=#rules-for-parsing-floating-point-number-values>rules for parsing floating
-   point number values</a> to the value of that attribute is not an
-   error, then let the <var title="">chosen resource's pixel ratio
-   override</var> be that result; otherwise, reset it back to
+   <li><p>If <var title="">candidate</var> has a <code title=attr-source-pixelratio><a href=#attr-source-pixelratio>pixelratio</a></code> attribute, and the
+   result of applying the <a href=#rules-for-parsing-floating-point-number-values>rules for parsing floating point
+   number values</a> to the value of that attribute is not an
+   error, then let the <var title="">candidate pixel ratio
+   override</var> be that result. Otherwise, let it be
    <i>none</i>.</li>
 
    <li>
 
-    <p>If either:</p>
+    <p>If all the following conditions are true:</p>
 
-    <ul><li><var title="">candidate</var> is null, or</li>
+    <ul><li>The <var title="">candidate</var> element has a <code title=attr-source-src><a href=#attr-source-src>src</a></code> attribute</li>
 
-     <li>the <var title="">candidate</var> element has no <code title=attr-source-src><a href=#attr-source-src>src</a></code> attribute, or</li>
-
-     <li><a href=#resolve-a-url title="resolve a url">resolving</a> the
+     <li><a href=#resolve-a-url title="resolve a url">Resolving</a> the
      <a href=#url>URL</a> given by the <var title="">candidate</var>
-     element's <code title=attr-source-src><a href=#attr-source-src>src</a></code> attribute
-     fails, or</li>
+     element's <code title=attr-source-src><a href=#attr-source-src>src</a></code> attribute does
+     not fail</li>
 
-     <li>the <var title="">candidate</var> element has a <code title=attr-source-type><a href=#attr-source-type>type</a></code> attribute and that
-     attribute's value, when parsed as a MIME type, does not represent
-     a type that the user agent can render (including any codecs
-     described by the <code title="">codec</code> parameter), or <a href=#refsRFC2046>[RFC2046]</a> <a href=#refsRFC4281>[RFC4281]</a></li>
+     <li>The <var title="">candidate</var> element has a <code title=attr-source-type><a href=#attr-source-type>type</a></code> attribute and that
+     attribute's value, when parsed as a MIME type (including any
+     codecs described by the <code title="">codec</code> parameter),
+     does not represent a type that the user agent knows it cannot
+     render <a href=#refsRFC2046>[RFC2046]</a> <a href=#refsRFC4281>[RFC4281]</a></li>
 
-     <li>the <var title="">candidate</var> element has a <code title=attr-source-media><a href=#attr-source-media>media</a></code> attribute and that
-     attribute's value, when processed according to the rules for <a href=#mq>media queries</a>, does not match the current
-     environment, <a href=#refsMQ>[MQ]</a></li>
+     <li>The <var title="">candidate</var> element has a <code title=attr-source-media><a href=#attr-source-media>media</a></code> attribute and that
+     attribute's value, when processed according to the rules for <a href=#mq>media queries</a>, matches the current environment <a href=#refsMQ>[MQ]</a></li>
 
-    </ul><p>...then the <var title="">candidate</var> is not suitable; go
-    to the next step.</p>
-
-    <p>Otherwise, the result of <a href=#resolve-a-url title="resolve a
-    url">resolving</a> the <a href=#url>URL</a> given in that <var title="">candidate</var> element's <code title=attr-source-src><a href=#attr-source-src>src</a></code> attribute is the address of the
-    <a href=#media-resource>media resource</a>; jump to the last step.</p>
+    </ul><p>...then append an item to the <var title="">result</var> list
+    consisting of the <a href=#absolute-url>absolute URL</a> resulting from <a href=#resolve-a-url title="resolve a url">resolving</a> the <a href=#url>URL</a> given
+    in that <var title="">candidate</var> element's <code title=attr-source-src><a href=#attr-source-src>src</a></code> attribute as the resource's
+    address, and the <var title="">candidate pixel ratio
+    override</var> as the resource's pixel ratio override.</p>
 
    </li>
 
@@ -17082,25 +17118,9 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href=#htmlmediael
    <li><p>If <var title="">candidate</var> is not null, return to the
    step labeled <i>loop</i>.</li>
 
-   <li><p>There is no <a href=#media-resource>media resource</a>. Abort these
-   steps.</li>
+   <li><p>Return <var title="">result</var>.</li>
 
-   <li><p>Let the address of the <dfn id=chosen-media-resource>chosen media resource</dfn> be
-   the <a href=#absolute-url>absolute URL</a> that was found before jumping to this
-   step, and let its <dfn id=pixel-ratio-override>pixel ratio override</dfn> be the value of
-   the <var title="">chosen resource's pixel ratio
-   override</var>.</li>
-
-  </ol><p>The <dfn id=dom-media-currentsrc title=dom-media-currentSrc><code>currentSrc</code></dfn> DOM
-  attribute must return the empty string if the <a href=#media-element>media
-  element</a>'s <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> has the value
-  <code title=dom-media-NETWORK_EMPTY><a href=#dom-media-network_empty>NETWORK_EMPTY</a></code>, and the
-  <a href=#absolute-url>absolute URL</a> that is the address of the <a href=#chosen-media-resource>chosen
-  media resource</a> otherwise.</p>
-
-
-
-  <h5 id=network-states><span class=secno>4.8.10.3 </span>Network states</h5>
+  </ol><h5 id=network-states><span class=secno>4.8.10.3 </span>Network states</h5>
 
   <p>As <a href=#media-element title="media element">media elements</a> interact
   with the network, their current network activity is represented by
@@ -17115,14 +17135,13 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href=#htmlmediael
 
    <dt><dfn id=dom-media-network_idle title=dom-media-NETWORK_IDLE><code>NETWORK_IDLE</code></dfn> (numeric value 1)</dt>
 
-   <dd>The element has a <a href=#chosen-media-resource>chosen media resource</a>, but the
-   user agent is not using the network to obtain any more of the
-   resource than is already obtained at this time.</dd>
+   <dd>The element's <code title=dom-media-load><a href=#dom-media-load>load()</a></code> method
+   algorithm is active, but it is not actually using the network at
+   this time.</dd>
 
    <dt><dfn id=dom-media-network_loading title=dom-media-NETWORK_LOADING><code>NETWORK_LOADING</code></dfn> (numeric value 2)</dt>
 
-   <dd>The user agent is actively trying to download data for the
-   <a href=#chosen-media-resource>chosen media resource</a>.</dd>
+   <dd>The user agent is actively trying to download data.</dd>
 
    <dt><dfn id=dom-media-network_loaded title=dom-media-NETWORK_LOADED><code>NETWORK_LOADED</code></dfn> (numeric value 3)</dt>
 
@@ -17164,313 +17183,369 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href=#htmlmediael
 
    </li>
 
-   <li><p>Any already-running instance of this algorithm for this
-   element must be aborted. If those method calls have not yet
-   returned, they must finish the step they are on, and then
-   immediately return. This is not blocking; this algorithm must not
-   wait for the earlier instances to abort before continuing.</li>
+   <li><p>Abort any already-running instance of this algorithm for
+   this element. If those method calls have not yet returned, they
+   must finish the step they are on, and then immediately return. This
+   is not blocking; this algorithm must not wait for the earlier
+   instances to abort before continuing.</li>
 
-   <li><p>If the element's <a href=#begun-flag>begun flag</a> is true, then the
-   <a href=#begun-flag>begun flag</a> must be set to false, the <code title=dom-media-error><a href=#dom-media-error>error</a></code> attribute must be set to a new
+   <li><p>If the element's <a href=#begun-flag>begun flag</a> is true, then set
+   the <a href=#begun-flag>begun flag</a> to false, set the <code title=dom-media-error><a href=#dom-media-error>error</a></code> attribute to a new
    <code><a href=#mediaerror>MediaError</a></code> object whose <code title=dom-MediaError-code><a href=#dom-mediaerror-code>code</a></code> attribute is set to <code title=dom-MediaError-MEDIA_ERR_ABORTED><a href=#dom-mediaerror-media_err_aborted>MEDIA_ERR_ABORTED</a></code>,
-   and the user agent must <a href=#fire-a-progress-event>fire a progress event</a> called
-   <code title=event-abort><a href=#event-abort>abort</a></code> at the <a href=#media-element>media
+   and <a href=#fire-a-progress-event>fire a progress event</a> called <code title=event-abort><a href=#event-abort>abort</a></code> at the <a href=#media-element>media
    element</a>.</li>
 
-   <li><p>The <code title=dom-media-error><a href=#dom-media-error>error</a></code> attribute
-   must be set to null and the <a href=#autoplaying-flag>autoplaying flag</a> must be
-   set to true.</li>
+   <li><p>Set the <code title=dom-media-error><a href=#dom-media-error>error</a></code> attribute
+   to null and the <a href=#autoplaying-flag>autoplaying flag</a> to true.</li>
 
-   <li><p>The <code title=dom-media-playbackRate><a href=#dom-media-playbackrate>playbackRate</a></code>
-   attribute must be set to the value of the <code title=dom-media-defaultPlaybackRate><a href=#dom-media-defaultplaybackrate>defaultPlaybackRate</a></code>
+   <li><p>Set the <code title=dom-media-playbackRate><a href=#dom-media-playbackrate>playbackRate</a></code> attribute to the
+   value of the <code title=dom-media-defaultPlaybackRate><a href=#dom-media-defaultplaybackrate>defaultPlaybackRate</a></code>
    attribute.</li>
 
    <li><p>If the <a href=#media-element>media element</a>'s <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> is not set to
    <code title=dom-media-NETWORK_EMPTY><a href=#dom-media-network_empty>NETWORK_EMPTY</a></code>, then
-   the following substeps must be followed:</p>
+   run these substeps:</p>
 
-    <ol><!--<li>Let <var title="">events</var> be a list of event names,
-     initially empty.</li>--><li>The <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code>
-     attribute must be set to <a href=#dom-media-network_empty title=dom-media-NETWORK_EMPTY>NETWORK_EMPTY</a><!--, and the
-     user agent must add <code title="event-emptied">emptied</code> to
-     the <var title="">events</var> list-->.</li>
+    <ol><li><p>If a fetching process is in progress for the <a href=#media-element>media
+     element</a>, the user agent should stop it.</li>
+
+     <!--<li>Let <var title="">events</var> be a list of event names,
+     initially empty.</li>-->
+
+     <li>Set the <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> attribute to
+     <a href=#dom-media-network_empty title=dom-media-NETWORK_EMPTY>NETWORK_EMPTY</a><!--,
+     and add <code title="event-emptied">emptied</code> to the <var
+     title="">events</var> list-->.</li>
 
      <li>If <code title=dom-media-readyState><a href=#dom-media-readystate>readyState</a></code> is
-     not set to <code title=dom-media-HAVE_NOTHING><a href=#dom-media-have_nothing>HAVE_NOTHING</a></code>, it must be
-     set to that state<!-- and the user agent must add <code
+     not set to <code title=dom-media-HAVE_NOTHING><a href=#dom-media-have_nothing>HAVE_NOTHING</a></code>, then set it
+     to that state<!-- and add <code
      title="event-dataunavailable">dataunavailable</code> to the <var
      title="">events</var> list-->.</li>
 
      <li>If the <code title=dom-media-paused><a href=#dom-media-paused>paused</a></code> attribute
-     is false, it must be set to true<!--, and the user agent must add
-     <code title="event-pause">pause</code> to the <var
+     is false, then set to true<!--, and add <code
+     title="event-pause">pause</code> to the <var
      title="">events</var> list-->.</li>
 
-     <li>If <code title=dom-media-seeking><a href=#dom-media-seeking>seeking</a></code> is true, it
-     must be set to false.</li>
+     <li>If <code title=dom-media-seeking><a href=#dom-media-seeking>seeking</a></code> is true,
+     set it to false.</li>
 
-     <li>The <a href=#current-playback-position>current playback position</a> must be set to
-     0.</li>
+     <li>Set the <a href=#current-playback-position>current playback position</a> to 0.</li>
 
-     <!--<li>The user agent must <span>fire a simple event</span> at
-     the <span>media element</span> for each event name in <var
-     title="">events</var>, in the same order that they were added to
-     that list.</li>-->
+     <!--<li><span>Fire a simple event</span> at the <span>media
+     element</span> for each event name in <var title="">events</var>,
+     in the same order that they were added to that list.</li>-->
 
-     <li>The user agent must <a href=#fire-a-simple-event>fire a simple event</a> called
-     <code title=event-emptied><a href=#event-emptied>emptied</a></code> at the <a href=#media-element>media
+     <li><a href=#fire-a-simple-event>Fire a simple event</a> called <code title=event-emptied><a href=#event-emptied>emptied</a></code> at the <a href=#media-element>media
      element</a>.</li>
 
     </ol></li>
 
-   <li><p>The user agent must <a href=#pick-a-media-resource>pick a media resource</a> for
-   the <a href=#media-element>media element</a>. If that fails, the method must
-   raise an <code>INVALID_STATE_ERR</code> exception, and abort these
-   steps.</li>
+   <li><p><a href=#generate-the-list-of-potential-media-resources>Generate the list of potential media resources</a>
+   and let the resulting list be <var title="">candidates</var>.</li>
 
-   <li><p>The <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code>
-   attribute must be set to <a href=#dom-media-network_idle title=dom-media-NETWORK_IDLE>NETWORK_IDLE</a>.</p>
+   <li><p>Set the <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> to <code title=dom-media-NETWORK_LOADING><a href=#dom-media-network_loading>NETWORK_LOADING</a></code>.</li>
 
-   <p class=note>The <code title=dom-media-currentSrc><a href=#dom-media-currentsrc>currentSrc</a></code> attribute starts
-   returning the new value.</li>
+   <li>
 
-   <li><p>The user agent must then set the <a href=#begun-flag>begun flag</a> to
-   true and <a href=#fire-a-progress-event>fire a progress event</a> called <code title=event-loadstart><a href=#event-loadstart>loadstart</a></code> at the <a href=#media-element>media
-   element</a>.</li>
+    <p>The method must return, but these steps must continue.</p>
 
-   <li><p>The method must return, but these steps must
-   continue.</li>
+    <p class=note>Playback of any previously playing <a href=#media-resource>media
+    resource</a> for this element stops.</p>
+
+   </li>
 
 
    <!-- SYNCHRONOUS / ASYNCHRONOUS BOUNDARY FOR EVENT DISPATCH -->
 
 
-   <li><p class=note>Playback of any previously playing <a href=#media-resource>media
-   resource</a> for this element stops.</li>
- 
-   <li><p>If a fetching process is in progress for the <a href=#media-element>media
-   element</a>, the user agent should stop it.</li>
-
-   <li><p>The user agent must then begin to <a href=#fetch>fetch</a> the
-   <a href=#chosen-media-resource>chosen media resource</a>. The rate of the download may be
-   throttled, however, in response to user preferences (including
-   throttling it to zero until the user indicates that the download
-   can start), or to balance the download with other connections
-   sharing the same bandwidth.</li>
+   <li><p>Set the <a href=#begun-flag>begun flag</a> to true and <a href=#queue-a-task>queue a
+   task</a> to <a href=#fire-a-progress-event>fire a progress event</a> called <code title=event-loadstart><a href=#event-loadstart>loadstart</a></code> at the <a href=#media-element>media
+   element</a>.</li>
 
    <li>
 
-    <p>While the fetching process is progressing, the user agent must
-    set the <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code>
-    to <code title=dom-media-NETWORK_LOADING><a href=#dom-media-network_loading>NETWORK_LOADING</a></code>
-    and <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-progress-event>fire a progress
-    event</a> called <code title=event-progress><a href=#event-progress>progress</a></code>
-    at the element every 350ms (&plusmn;200ms) or for every byte
-    received, whichever is <em>least</em> frequent.</p>
+    <p><i>Candidate loop</i>: For each item in <var title="">candidates</var>, if any, and in the same order as they
+    were added to the list, run the following steps:</p>
 
-    <p>If at any point the user agent has received no data for more
-    than about three seconds, the user agent must <a href=#queue-a-task>queue a
-    task</a> to <a href=#fire-a-progress-event>fire a progress event</a> called <code title=event-stalled><a href=#event-stalled>stalled</a></code> at the element.</p>
+    <ol><li><p>Let the <var title="">current media resource</var> be the
+     resource given by the <a href=#absolute-url>absolute URL</a> for the current
+     item in <var title="">candidates</var>. This is now the element's
+     <a href=#media-resource>media resource</a>.</li>
 
-    <p>User agents may allow users to selectively block or slow
-    <a href=#media-data>media data</a> downloads. When a <a href=#media-element>media
-    element</a>'s download has been blocked, the user agent must
-    act as if it was stalled (as opposed to acting as if the
-    connection was closed).</p>
+     <li><p>Set the <a href=#media-element>media element</a>'s <a href=#pixel-ratio-override>pixel ratio
+     override</a> to the pixel ratio override given for the current
+     item in <var title="">candidates</var>.</li>
 
-    <p>User agents may decide to not download more content at any
-    time, e.g. after buffering five minutes of a one hour media
-    resource, while waiting for the user to decide whether to play the
-    resource or not, or while waiting for user input in an interactive
-    resource. When a <a href=#media-element>media element</a>'s download has been
-    suspended, the user agent must set the <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> to <code title=dom-media-NETWORK_IDLE><a href=#dom-media-network_idle>NETWORK_IDLE</a></code> and <a href=#queue-a-task>queue
-    a task</a> to <a href=#fire-a-progress-event>fire a progress event</a> called <code title=event-suspend><a href=#event-suspend>suspend</a></code> at the element.</p>
+     <li><p>Set the <code title=dom-media-currentSrc><a href=#dom-media-currentsrc>currentSrc</a></code> attribute to the
+     <a href=#absolute-url>absolute URL</a> of the <var title="">current media
+     resource</var>.</li>
 
-    <p>The user agent may use whatever means necessary to fetch the
-    resource (within the constraints put forward by this and other
-    specifications); for example, reconnecting to the server in the
-    face of network errors, using HTTP partial range requests, or
-    switching to a streaming protocol. The user agent must consider a
-    resource erroneous only if it has given up trying to fetch it.</p>
+     <li>
 
-    <p>The <a href=#networking-task-source>networking task source</a> <a href=#concept-task title=concept-task>tasks</a> to process the data as it is
-    being fetched must, when appropriate, include the relevant
-    substeps from the following list:</p>
+      <p>Begin to <a href=#fetch>fetch</a> the <var title="">current media
+      resource</var>.</p>
 
-    <dl class=switch><dt>If the <a href=#media-data>media data</a> cannot be fetched at all, due
-     to network errors, causing the user agent to give up trying to
-     fetch the resource</dt>
+      <p>Every 350ms (&plusmn;200ms) or for every byte received,
+      whichever is <em>least</em> frequent, <a href=#queue-a-task>queue a task</a>
+      to <a href=#fire-a-progress-event>fire a progress event</a> called <code title=event-progress><a href=#event-progress>progress</a></code> at the element.</p>
 
-     <dd>
+      <p>If at any point the user agent has received no data for more
+      than about three seconds, then <a href=#queue-a-task>queue a task</a> to
+      <a href=#fire-a-progress-event>fire a progress event</a> called <code title=event-stalled><a href=#event-stalled>stalled</a></code> at the element.</p>
 
-      <p>DNS errors and HTTP 4xx and 5xx errors (and equivalents in
-      other protocols) must cause the user agent to execute the
-      following steps. User agents may also follow these steps in
-      response to other network errors of similar severity.</p>
+      <p>User agents may allow users to selectively block or slow
+      <a href=#media-data>media data</a> downloads. When a <a href=#media-element>media
+      element</a>'s download has been blocked altogether, the user
+      agent must act as if it was stalled (as opposed to acting as if
+      the connection was closed). The rate of the download may also be
+      throttled automatically by the user agent, e.g. to balance the
+      download with other connections sharing the same bandwidth.</p>
 
-      <ol><li>The user agent should cancel the fetching process.</li>
+      <p>User agents may decide to not download more content at any
+      time, e.g. after buffering five minutes of a one hour media
+      resource, while waiting for the user to decide whether to play
+      the resource or not, or while waiting for user input in an
+      interactive resource. When a <a href=#media-element>media element</a>'s
+      download has been suspended, the user agent must set the <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> to <code title=dom-media-NETWORK_IDLE><a href=#dom-media-network_idle>NETWORK_IDLE</a></code> and
+      <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-progress-event>fire a progress event</a>
+      called <code title=event-suspend><a href=#event-suspend>suspend</a></code> at the
+      element. If and when downloading of the resource resumes, the
+      user agent must set the <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> to <code title=dom-media-NETWORK_LOADING><a href=#dom-media-network_loading>NETWORK_LOADING</a></code>.</p>
 
-       <li>The <code title=dom-media-error><a href=#dom-media-error>error</a></code> attribute
-       must be set to a new <code><a href=#mediaerror>MediaError</a></code> object whose <code title=dom-MediaError-code><a href=#dom-mediaerror-code>code</a></code> attribute is set to
-       <code title=dom-MediaError-MEDIA_ERR_NETWORK><a href=#dom-mediaerror-media_err_network>MEDIA_ERR_NETWORK</a></code>.</li>
+      <p>The user agent may use whatever means necessary to fetch the
+      resource (within the constraints put forward by this and other
+      specifications); for example, reconnecting to the server in the
+      face of network errors, using HTTP partial range requests, or
+      switching to a streaming protocol. The user agent must consider a
+      resource erroneous only if it has given up trying to fetch it.</p>
 
-       <li>The <a href=#begun-flag>begun flag</a> must be set to false and the
-       user agent must <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-progress-event>fire a
-       progress event</a> called <code title=event-error><a href=#event-error>error</a></code> at the <a href=#media-element>media
-       element</a>.</li>
+      <p>The <a href=#networking-task-source>networking task source</a> <a href=#concept-task title=concept-task>tasks</a> to process the data as it is
+      being fetched must, when appropriate, include the relevant
+      substeps from the following list:</p>
 
-       <li>The element's <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> attribute
-       must be switched to the <a href=#dom-media-network_empty title=dom-media-NETWORK_EMPTY>NETWORK_EMPTY</a> value and
-       the user agent must <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-simple-event>fire a
-       simple event</a> called <code title=event-emptied><a href=#event-emptied>emptied</a></code> at the element.</li>
+      <dl class=switch><dt>If the <a href=#media-data>media data</a> cannot be fetched at all, due
+       to network errors, causing the user agent to give up trying to
+       fetch the resource</dt>
 
-       <li>These steps must be aborted.</li>
+       <dt>If the <a href=#media-data>media data</a> can be fetched but is in an
+       unsupported format, or can otherwise not be rendered at
+       all</dt>
 
-      </ol></dd>
+       <dd>
 
-     <dt id=fatal-decode-error>If the <a href=#media-data>media data</a> can be
-     fetched but is in an unsupported format, or can otherwise not be
-     rendered at all</dt>
+        <p>DNS errors, HTTP 4xx and 5xx errors (and equivalents in
+        other protocols), and other fatal network errors that occur
+        before the user agent has established whether the <var title="">current media resource</var> is usable, as well as
+        the file using an unsupported container format, or using
+        unsupported codecs for all the data, must cause the user agent
+        to execute the following steps:</p>
 
-     <dd>
+        <ol><li><p>The user agent should cancel the fetching
+         process.</li>
 
-      <p>The server returning a file of the wrong kind (e.g. one that
-      that turns out to not be pure audio when the <a href=#media-element>media
-      element</a> is an <code><a href=#audio>audio</a></code> element), or the file
-      using unsupported codecs for all the data, must cause the user
-      agent to execute the following steps. User agents may also
-      execute these steps in response to other codec-related fatal
-      errors, such as the file requiring more resources to process
-      than the user agent can provide in real time.</p>
+         <li><p>If there are more items in the <var title="">candidates</var> list, then move on to the next one,
+         jumping back to the top of the <i>candidate loop</i>;
+         otherwise, jump to the final step in the overall algorithm
+         (the <i>failure step</i>).</p>
 
-      <ol><li>The user agent should cancel the fetching process.</li>
+        </ol></dd>
 
-       <li>The <code title=dom-media-error><a href=#dom-media-error>error</a></code> attribute
-       must be set to a new <code><a href=#mediaerror>MediaError</a></code> object whose <code title=dom-MediaError-code><a href=#dom-mediaerror-code>code</a></code> attribute is set to
-       <code title=dom-MediaError-MEDIA_ERR_DECODE><a href=#dom-mediaerror-media_err_decode>MEDIA_ERR_DECODE</a></code>.</li>
 
-       <li>The <a href=#begun-flag>begun flag</a> must be set to false and the
-       user agent must <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-progress-event>fire a
-       progress event</a> called <code title=event-error><a href=#event-error>error</a></code> at the <a href=#media-element>media
-       element</a>.</li>
+       <dt>Once enough of the <a href=#media-data>media data</a> has been fetched
+       to determine the duration of the <a href=#media-resource>media resource</a>, its
+       dimensions, and other metadata</dt>
 
-       <li>The element's <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> attribute
-       must be switched to the <a href=#dom-media-network_empty title=dom-media-NETWORK_EMPTY>NETWORK_EMPTY</a> value and
-       the user agent must <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-simple-event>fire a
-       simple event</a> called <code title=event-emptied><a href=#event-emptied>emptied</a></code> at the element.</li>
+       <dd>
 
-       <li>These steps must be aborted.</li>
+        <p>This indicates that the resource is usable. The user agent
+        must follow these substeps:</p>
 
-      </ol></dd>
+        <ol><li><p>Set the <a href=#current-playback-position>current playback position</a> to the
+         <var><a href=#earliest-possible-position>earliest possible position</a></var>.</li>
 
-     <dt>If the <a href=#media-data>media data</a> fetching process is aborted by
-     the user</dt>
+         <li><p>Set the <code title=dom-media-readyState><a href=#dom-media-readystate>readyState</a></code> attribute to
+         <code title=dom-media-HAVE_METADATA><a href=#dom-media-have_metadata>HAVE_METADATA</a></code>.</li>
 
-     <dd>
+         <li><p class=note>A number of attributes, including <code title=dom-media-duration><a href=#dom-media-duration>duration</a></code>, <code title=dom-media-buffered><a href=#dom-media-buffered>buffered</a></code>, and <code title=dom-media-played><a href=#dom-media-played>played</a></code>, become
+         available.</li>
 
-      <p>The fetching process is aborted by the user, e.g. because the
-      user navigated the browsing context to another page, the user
-      agent must execute the following steps. These steps are not
-      followed if the <code title=dom-media-load><a href=#dom-media-load>load()</a></code>
-      method itself is reinvoked, as the steps above handle that
-      particular kind of abort.</p>
+         <li><p class=note>The user agent <a href=#durationChange>will</a> <a href=#queue-a-task>queue a task</a> to
+         <a href=#fire-a-simple-event>fire a simple event</a> called <code title=event-durationchange><a href=#event-durationchange>durationchange</a></code> at the
+         element at this point.</li>
 
-      <ol><li>The user agent should cancel the fetching process.</li>
+         <li id=fire-loadedmetadata><p><a href=#queue-a-task>Queue a task</a> to
+         <a href=#fire-a-simple-event>fire a simple event</a> called <code title=event-loadedmetadata><a href=#event-loadedmetadata>loadedmetadata</a></code> at the
+         element.</li>
 
-       <li>The <code title=dom-media-error><a href=#dom-media-error>error</a></code> attribute
-       must be set to a new <code><a href=#mediaerror>MediaError</a></code> object whose <code title=dom-MediaError-code><a href=#dom-mediaerror-code>code</a></code> attribute is set to
-       <code title=dom-MediaError-MEDIA_ERR_ABORT>MEDIA_ERR_ABORT</code>.</li>
+         <li>
 
-       <li>The <a href=#begun-flag>begun flag</a> must be set to false and the
-       user agent must <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-progress-event>fire a
-       progress event</a> called <code title=event-abort><a href=#event-abort>abort</a></code> at the <a href=#media-element>media
-       element</a>.</li>
+          <p>If either the <a href=#media-resource>media resource</a> or the address
+          of the <var title="">current media resource</var> indicate a
+          particular start time, then <a href=#dom-media-seek title=dom-media-seek>seek</a> to that time. Ignore any
+          resulting exceptions (if the position is out of range, it is
+          effectively ignored).</p>
 
-       <li>If the <a href=#media-element>media element</a>'s <code title=dom-media-readyState><a href=#dom-media-readystate>readyState</a></code> attribute has a
-       value equal to <code title=dom-media-HAVE_NOTHING><a href=#dom-media-have_nothing>HAVE_NOTHING</a></code>, the
-       element's <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> attribute
-       must be switched to the <a href=#dom-media-network_empty title=dom-media-NETWORK_EMPTY>NETWORK_EMPTY</a> value and
-       the user agent must <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-simple-event>fire a
-       simple event</a> called <code title=event-emptied><a href=#event-emptied>emptied</a></code> at the element. (If the
-       <code title=dom-media-readyState><a href=#dom-media-readystate>readyState</a></code> attribute
-       has a value greater than <code title=dom-media-HAVE_NOTHING><a href=#dom-media-have_nothing>HAVE_NOTHING</a></code>, then this
-       doesn't happen; the available data, if any, will be
-       playable.)</li>
+          <p class=example>For example, a fragment identifier could be
+          used to indicate a start position.</p>
 
-       <li>These steps must be aborted.</li>
+         </li>
 
-      </ol></dd>
+        </ol></dd>
 
-     <dt id=non-fatal-media-error>If the <a href=#media-data>media data</a> can
-     be fetched but has non-fatal errors or uses, in part, codecs that
-     are unsupported, preventing the user agent from rendering the
-     content completely correctly but not preventing playback
-     altogether</dt>
 
-     <dd>
+       <dt>If the connection is interrupted, causing the user agent to
+       give up trying to fetch the resource</dt>
 
-      <p>The server returning data that is partially usable but cannot
-      be optimally rendered must cause the user agent to execute the
-      following steps.</p>
+       <dd>
 
-      <ol><li class=XXX>Should we fire a 'warning' event? Set the
-       'error' flag to 'MEDIA_ERR_SUBOPTIMAL' or something?</li>
+        <p>Fatal network errors that occur after the user agent has
+        established whether the <var title="">current media
+        resource</var> is usable must cause the user agent to execute
+        the following steps:</p>
 
-      </ol></dd>
+        <ol><li>The user agent should cancel the fetching process.</li>
 
-     <dt>Once enough of the <a href=#media-data>media data</a> has been fetched
-     to determine the duration of the <a href=#media-resource>media resource</a>, its
-     dimensions, and other metadata</dt>
+         <li>Set the <code title=dom-media-error><a href=#dom-media-error>error</a></code>
+         attribute to a new <code><a href=#mediaerror>MediaError</a></code> object whose <code title=dom-MediaError-code><a href=#dom-mediaerror-code>code</a></code> attribute is set to
+         <code title=dom-MediaError-MEDIA_ERR_NETWORK><a href=#dom-mediaerror-media_err_network>MEDIA_ERR_NETWORK</a></code>.</li>
 
-     <dd>
+         <li>Set the <a href=#begun-flag>begun flag</a> to false and <a href=#queue-a-task>queue
+         a task</a> to <a href=#fire-a-progress-event>fire a progress event</a> called
+         <code title=event-error><a href=#event-error>error</a></code> at the <a href=#media-element>media
+         element</a>.</li>
 
-      <p>The user agent must follow these substeps:</p>
+         <li>Set the element's <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> attribute
+         to the <a href=#dom-media-network_empty title=dom-media-NETWORK_EMPTY>NETWORK_EMPTY</a> value
+         and <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-simple-event>fire a simple
+         event</a> called <code title=event-emptied><a href=#event-emptied>emptied</a></code> at the element.</li>
 
-      <ol><li><p>Set the <a href=#current-playback-position>current playback position</a> to the
-       <var><a href=#earliest-possible-position>earliest possible position</a></var>.</li>
+         <li>Abort the overall <code title=dom-media-load><a href=#dom-media-load>load()</a></code> method algorithm.</li>
 
-       <li><p>The <code title=dom-media-readyState><a href=#dom-media-readystate>readyState</a></code>
-       attribute must be set to <code title=dom-media-HAVE_METADATA><a href=#dom-media-have_metadata>HAVE_METADATA</a></code>.</li>
+        </ol></dd>
 
-       <li><p class=note>A number of attributes, including <code title=dom-media-duration><a href=#dom-media-duration>duration</a></code>, <code title=dom-media-buffered><a href=#dom-media-buffered>buffered</a></code>, and <code title=dom-media-played><a href=#dom-media-played>played</a></code>, become
-       available.</li>
+       <dt id=fatal-decode-error>If the <a href=#media-data>media data</a> is
+       corrupted</dt>
 
-       <li><p class=note>The user agent <a href=#durationChange>will</a> <a href=#queue-a-task>queue a task</a> to
-       <a href=#fire-a-simple-event>fire a simple event</a> called <code title=event-durationchange><a href=#event-durationchange>durationchange</a></code> at the
-       element at this point.</li>
+       <dd>
 
-       <li id=fire-loadedmetadata><p>The user agent must <a href=#queue-a-task>queue
-       a task</a> to <a href=#fire-a-simple-event>fire a simple event</a> called <code title=event-loadedmetadata><a href=#event-loadedmetadata>loadedmetadata</a></code> at the
-       element.</li>
+        <p>Fatal errors in decoding the <a href=#media-data>media data</a> that
+        occur after the user agent has established whether the <var title="">current media resource</var> is usable must cause the
+        user agent to execute the following steps:</p>
 
-       <li>
+        <ol><li>The user agent should cancel the fetching process.</li>
 
-        <p>If either the <a href=#media-resource>media resource</a> or the address of
-        the <a href=#chosen-media-resource>chosen media resource</a> indicate a particular
-        start time, then <a href=#dom-media-seek title=dom-media-seek>seek</a> to
-        that time. Ignore any resulting exceptions (if the position is
-        out of range, it is effectively ignored).</p>
+         <li>Set the <code title=dom-media-error><a href=#dom-media-error>error</a></code>
+         attribute to a new <code><a href=#mediaerror>MediaError</a></code> object whose <code title=dom-MediaError-code><a href=#dom-mediaerror-code>code</a></code> attribute is set to
+         <code title=dom-MediaError-MEDIA_ERR_DECODE><a href=#dom-mediaerror-media_err_decode>MEDIA_ERR_DECODE</a></code>.</li>
 
-        <p class=example>For example, a fragment identifier could be
-        used to indicate a start position.</p>
+         <li>Set the <a href=#begun-flag>begun flag</a> to false and <a href=#queue-a-task>queue
+         a task</a> to <a href=#fire-a-progress-event>fire a progress event</a> called
+         <code title=event-error><a href=#event-error>error</a></code> at the <a href=#media-element>media
+         element</a>.</li>
 
-       </li>
+         <li>Set the element's <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> attribute
+         to the <a href=#dom-media-network_empty title=dom-media-NETWORK_EMPTY>NETWORK_EMPTY</a> value
+         and <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-simple-event>fire a simple
+         event</a> called <code title=event-emptied><a href=#event-emptied>emptied</a></code> at the element.</li>
 
-      </ol></dd>
+         <li>Abort the overall <code title=dom-media-load><a href=#dom-media-load>load()</a></code> method algorithm.</li>
 
-    </dl><p>When the user agent has completely fetched of the entire
-    <a href=#media-resource>media resource</a>, it must move on to the next
-    step. This might never happen, e.g. when streaming an infinite
-    resource such as Web radio.</p>
+        </ol></dd>
 
-   </li>
+       <dt>If the <a href=#media-data>media data</a> fetching process is aborted by
+       the user</dt>
 
-   <li><p>If the fetching process completes without errors, the
-   <a href=#begun-flag>begun flag</a> must be set to false, the <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> attribute must
-   be set to <code title=dom-media-NETWORK_LOADED><a href=#dom-media-network_loaded>NETWORK_LOADED</a></code>, and the
-   user agent must <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-progress-event>fire a progress
-   event</a> called <code title=event-load><a href=#event-load>load</a></code> at the
-   element.</li>
+       <dd>
+
+        <p>The fetching process is aborted by the user, e.g. because
+        the user navigated the browsing context to another page, the
+        user agent must execute the following steps. These steps are
+        not followed if the <code title=dom-media-load><a href=#dom-media-load>load()</a></code>
+        method itself is reinvoked, as the steps above handle that
+        particular kind of abort.</p>
+
+        <ol><li>The user agent should cancel the fetching process.</li>
+
+         <li>Set the <code title=dom-media-error><a href=#dom-media-error>error</a></code>
+         attribute to a new <code><a href=#mediaerror>MediaError</a></code> object whose <code title=dom-MediaError-code><a href=#dom-mediaerror-code>code</a></code> attribute is set to
+         <code title=dom-MediaError-MEDIA_ERR_ABORT>MEDIA_ERR_ABORT</code>.</li>
+
+         <li>Set the <a href=#begun-flag>begun flag</a> to false and <a href=#queue-a-task>queue
+         a task</a> to <a href=#fire-a-progress-event>fire a progress event</a> called
+         <code title=event-abort><a href=#event-abort>abort</a></code> at the <a href=#media-element>media
+         element</a>.</li>
+
+         <li>If the <a href=#media-element>media element</a>'s <code title=dom-media-readyState><a href=#dom-media-readystate>readyState</a></code> attribute has
+         a value equal to <code title=dom-media-HAVE_NOTHING><a href=#dom-media-have_nothing>HAVE_NOTHING</a></code>, set the
+         element's <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> attribute
+         to the <a href=#dom-media-network_empty title=dom-media-NETWORK_EMPTY>NETWORK_EMPTY</a> value
+         and <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-simple-event>fire a simple
+         event</a> called <code title=event-emptied><a href=#event-emptied>emptied</a></code> at the element. (If the
+         <code title=dom-media-readyState><a href=#dom-media-readystate>readyState</a></code>
+         attribute has a value greater than <code title=dom-media-HAVE_NOTHING><a href=#dom-media-have_nothing>HAVE_NOTHING</a></code>, then this
+         doesn't happen; the available data, if any, will be
+         playable.)</li>
+
+         <li>Abort the overall <code title=dom-media-load><a href=#dom-media-load>load()</a></code> method algorithm.</li>
+
+        </ol></dd>
+
+       <dt id=non-fatal-media-error>If the <a href=#media-data>media data</a> can
+       be fetched but has non-fatal errors or uses, in part, codecs that
+       are unsupported, preventing the user agent from rendering the
+       content completely correctly but not preventing playback
+       altogether</dt>
+
+       <dd>
+
+        <p>The server returning data that is partially usable but cannot
+        be optimally rendered must cause the user agent to execute the
+        following steps.</p>
+
+        <ol><li class=XXX>Should we fire a 'warning' event? Set the
+         'error' flag to 'MEDIA_ERR_SUBOPTIMAL' or something?</li>
+
+        </ol></dd>
+
+      </dl><p>When the user agent has completely fetched of the entire
+      <a href=#media-resource>media resource</a>, it must move on to the next
+      step. This might never happen, e.g. when streaming an infinite
+      resource such as Web radio.</p>
+
+     </li>
+
+     <li><p>If the fetching process completes without errors, then set
+     the <a href=#begun-flag>begun flag</a> to false, set the <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> attribute to
+     <code title=dom-media-NETWORK_LOADED><a href=#dom-media-network_loaded>NETWORK_LOADED</a></code>, and
+     <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-progress-event>fire a progress event</a>
+     called <code title=event-load><a href=#event-load>load</a></code> at the
+     element.</li>
+
+     <li>Then, abort the overall <code title=dom-media-load><a href=#dom-media-load>load()</a></code> method algorithm.</li>
+
+    </ol></li>
+
+   <li>
+
+    <p><i>Failure step</i>: No usable resource was found. Run the
+    following steps:</p>
+
+    <ol><li>Set the <code title=dom-media-error><a href=#dom-media-error>error</a></code> attribute
+     to a new <code><a href=#mediaerror>MediaError</a></code> object whose <code title=dom-MediaError-code><a href=#dom-mediaerror-code>code</a></code> attribute is set to <code title=dom-MediaError-MEDIA_ERR_NONE_SUPPORTED><a href=#dom-mediaerror-media_err_none_supported>MEDIA_ERR_NONE_SUPPORTED</a></code>.</li>
+
+     <li>Set the <a href=#begun-flag>begun flag</a> to false and <a href=#queue-a-task>queue a
+     task</a> to <a href=#fire-a-progress-event>fire a progress event</a> called <code title=event-error><a href=#event-error>error</a></code> at the <a href=#media-element>media
+     element</a>.</li>
+
+     <li>Set the element's <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> attribute to
+     the <a href=#dom-media-network_empty title=dom-media-NETWORK_EMPTY>NETWORK_EMPTY</a>
+     value and <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-simple-event>fire a simple
+     event</a> called <code title=event-emptied><a href=#event-emptied>emptied</a></code> at
+     the element.</li>
+
+    </ol></li>
 
   </ol><p>If a <a href=#media-element>media element</a> whose <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> has the value
   <code title=dom-media-NETWORK_EMPTY><a href=#dom-media-network_empty>NETWORK_EMPTY</a></code> is <a href=#insert-an-element-into-a-document title="insert an element into a document">inserted into a
