@@ -17906,10 +17906,10 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
   <p>The <dfn title="attr-source-type"><code>type</code></dfn>
   attribute gives the type of the <span>media resource</span>, to help
   the user agent determine if it can play this <span>media
-  resource</span> before fetching it. Its value must be a MIME
-  type. The <code title="">codecs</code> parameter may be specified
-  and might be necessary to specify exactly how the resource is
-  encoded. <a href="#refsRFC2046">[RFC2046]</a> <a
+  resource</span> before fetching it. If specified, its value must be
+  a MIME type. The <code title="">codecs</code> parameter may be
+  specified and might be necessary to specify exactly how the resource
+  is encoded. <a href="#refsRFC2046">[RFC2046]</a> <a
   href="#refsRFC4281">[RFC4281]</a></p>
 
   <div class="example">
@@ -18014,11 +18014,6 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
   it. Its value must be a valid <a href="#mq">media query</a>. <a
   href="#refsMQ">[MQ]</a></p>
 
-  <p>Either the <code title="attr-source-type">type</code> attribute,
-  the <code title="attr-source-media">media</code> attribute or both,
-  must be specified, unless this is the last <code>source</code>
-  element child of the parent element.</p>
-
   <p>The <dfn
   title="attr-source-pixelratio"><code>pixelratio</code></dfn>
   attribute allows the author to specify the pixel ratio of anamorphic
@@ -18090,6 +18085,7 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
   readonly attribute <span>ByteRanges</span> <span title="dom-media-bufferedBytes">bufferedBytes</span>;
   readonly attribute unsigned long <span title="dom-media-totalBytes">totalBytes</span>;
   void <span title="dom-media-load">load</span>();
+  DOMString <span title="dom-navigator-canPlayType">canPlayType</span>(in DOMString type);
 
   // ready state
   const unsigned short <span title="dom-media-HAVE_NOTHING">HAVE_NOTHING</span> = 0;
@@ -18183,10 +18179,6 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
   source</span> for all the tasks <span title="queue a
   task">queued</span> in this section and its subsections is the
   <span>media element event task source</span>.</p>
-
-  <p>The <code title="dom-navigator-canPlayType">canPlayType()</code>
-  method can be used to probe the user agent to determine what types
-  are supported.</p>
 
 
   <h5>Error codes</h5>
@@ -18341,25 +18333,26 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
     <ul>
 
      <li>The <var title="">candidate</var> element has a <code
-     title="attr-source-src">src</code> attribute</li>
+     title="attr-source-src">src</code> attribute.</li>
 
      <li><span title="resolve a url">Resolving</span> the
      <span>URL</span> given by the <var title="">candidate</var>
      element's <code title="attr-source-src">src</code> attribute does
-     not fail</li>
+     not fail.</li>
 
-     <li>The <var title="">candidate</var> element has a <code
-     title="attr-source-type">type</code> attribute and that
-     attribute's value, when parsed as a MIME type (including any
-     codecs described by the <code title="">codec</code> parameter),
-     does not represent a type that the user agent knows it cannot
-     render <a href="#refsRFC2046">[RFC2046]</a> <a
-     href="#refsRFC4281">[RFC4281]</a></li>
+     <li>The <var title="">candidate</var> element either has no <code
+     title="attr-source-type">type</code> attribute, or its <code
+     title="attr-source-type">type</code> attribute's value, when
+     parsed as a MIME type (including any codecs described by the
+     <code title="">codec</code> parameter), does not represent
+     <span>a type that the user agent knows it cannot
+     render</span>.</li>
 
-     <li>The <var title="">candidate</var> element has a <code
-     title="attr-source-media">media</code> attribute and that
-     attribute's value, when processed according to the rules for <a
-     href="#mq">media queries</a>, matches the current environment <a
+     <li>The <var title="">candidate</var> element either has no <code
+     title="attr-source-media">media</code> attribute, or its <code
+     title="attr-source-media">media</code> attribute's value, when
+     processed according to the rules for <a href="#mq">media
+     queries</a>, matches the current environment. <a
      href="#refsMQ">[MQ]</a></li>
 
     </ul>
@@ -18386,6 +18379,82 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
 
   </ol>
 
+
+
+  <h5>Media types</h5>
+
+  <p>A <span>media resource</span> can be described in terms of its
+  <em>type</em>, specifically a MIME type, optionally with a <code
+  title="">codecs</code> parameter. <a
+  href="#refsRFC2046">[RFC2046]</a> <a
+  href="#refsRFC4281">[RFC4281]</a>.</p>
+
+  <p>Types are usually somewhat incomplete descriptions; for example
+  "<code title="">video/mpeg</code>" doesn't say anything except what
+  the container type is, and even a type like "<code
+  title="">video/mp4; codecs=&quot;avc1.42E01E,
+  mp4a.40.2&quot;</code>" doesn't include information like the actual
+  bitrate (only the maximum bitrate). Thus, given a type, a user agent
+  can often only know whether it <em>might</em> be able to play
+  media of that type (with varying levels of confidence), or whether
+  it definitely <em>cannot</em> play media of that type.</p>
+
+  <p><dfn>A type that the user agent knows it cannot render</dfn> is
+  one that describes a resource that the user agent definitely does
+  not support, for example because it doesn't recognise the container
+  type, or it doesn't support the listed codecs.</p>
+
+  <p>The <dfn title="dom-navigator-canPlayType"><code>canPlayType(<var
+  title="">type</var>)</code></dfn> method must return the string
+  "<code title="">no</code>" if <var title="">type</var> is <span>a
+  type that the user agent knows it cannot render</span>; it must
+  return "<code title="">probably</code>" if the user agent is
+  confident that the type represents a <span>media resource</span>
+  that it can render if used in with this <code>audio</code> or
+  <code>video</code> element; and it must return "<code
+  title="">maybe</code>" otherwise. Implementors are encouraged to
+  return "<code title="">maybe</code>" unless the type can be
+  confidently established as being supported or not. Generally, a user
+  agent should never return "<code title="">probably</code>" if the
+  type doesn't have a <code title="">codecs</code> parameter.</p>
+
+  <div class="example">
+
+   <p>This script tests to see if the user agent supports a
+   (fictional) new format to dynamically decide whether to use a
+   <code>video</code> element or a plugin:</p>
+
+   <pre>&lt;section id="video">
+ &lt;p>&lt;a href="playing-cats.nfv">Download video&lt;/a>&lt;/p>
+&lt;/section>
+&lt;script>
+ var videoSection = document.getElementById('video');
+ var videoElement = document.createElement('video');
+ var support = videoElement.canPlayType('video/x-new-fictional-format;codecs="kittens,bunnies"');
+ if (support != "probably" &amp;&amp; "New Fictional Video Plug-in" in navigator.plugins) {
+   // not confident of browser support
+   // but we have a plugin
+   // so use plugin instead
+   videoElement = document.createElement("embed");
+ } else if (support == "no") {
+   // no support from browser and no plugin
+   // do nothing
+   videoElement = null;
+ }
+ if (videoElement) {
+   while (videoSection.hasChildNodes())
+     videoSection.removeChild(videoSection.firstChild);
+   videoElement.setAttribute("src", "playing-cats.nfv");
+   videoSection.appendChild(videoElement);
+ }
+&lt;/script></pre>
+
+  </div>
+
+  <p class="note">To express the type of a <span>media resource</span>
+  to allow the user agent to avoid downloading resources it can't
+  render, authors can use the <code>source</code> element's <code
+  title="attr-source-type">type</code> attribute.</p>
 
 
   <h5>Network states</h5>
@@ -18541,6 +18610,11 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
    title="dom-media-networkState">networkState</code> to <code
    title="dom-media-NETWORK_LOADING">NETWORK_LOADING</code>.</p></li>
 
+   <li><p>Set the <span>begun flag</span> to true and <span>queue a
+   task</span> to <span>fire a progress event</span> called <code
+   title="event-loadstart">loadstart</code> at the <span>media
+   element</span>.</p></li>
+
    <li>
 
     <p>The method must return, but these steps must continue.</p>
@@ -18553,11 +18627,6 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
 
    <!-- SYNCHRONOUS / ASYNCHRONOUS BOUNDARY FOR EVENT DISPATCH -->
 
-
-   <li><p>Set the <span>begun flag</span> to true and <span>queue a
-   task</span> to <span>fire a progress event</span> called <code
-   title="event-loadstart">loadstart</code> at the <span>media
-   element</span>.</p></li>
 
    <li>
 
@@ -19501,7 +19570,7 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
    <li><p>If the fourth step above changed the value of <code
    title="dom-media-paused">paused</code>, the user agent must
    <span>queue a task</span> to <span>fire a simple event</span>
-   called <code title="event-pause">play</code> at the
+   called <code title="event-play">play</code> at the
    element.</p></li>
 
   </ol>
@@ -38529,20 +38598,20 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   readonly attribute boolean <span title="dom-navigator-onLine">onLine</span>;
 };
 
-[NoInterfaceObject] interface <dfn>NavigatorBrowsingContextAbilities</dfn> {
+[NoInterfaceObject] interface <dfn>NavigatorAbilities</dfn> {
   // content handler registration
   void <span title="dom-navigator-registerProtocolHandler">registerProtocolHandler</span>(in DOMString protocol, in DOMString url, in DOMString title);
   void <span title="dom-navigator-registerContentHandler">registerContentHandler</span>(in DOMString mimeType, in DOMString url, in DOMString title);
-<!--  XXX cookieEnabled geolocator javaEnabled mozIsLocallyAvailable plugins preference
-  readonly attribute <span>MimeTypeArray</span> <span title="dom-navigator-mimeTypes">mimeTypes</span>;-->
-  // abilities
-  short <span title="dom-navigator-canPlayType">canPlayType</span>(in DOMString type);
-};</pre>
+<!--  XXX cookieEnabled geolocator javaEnabled mozIsLocallyAvailable preference
+  readonly attribute <span>MimeTypeArray</span> <span title="dom-navigator-mimeTypes">mimeTypes</span>;
+  readonly attribute <span>PluginArray</span> <span title="dom-navigator-plugins">plugins</span>;
+  (the latter is used in a <video> element demo now)
+-->};</pre>
 
   <p>Objects implementing the <code>Navigator</code> interface must
   also implement the <span>NavigatorID</span>,
   <span>NavigatorOnLine</span>, and
-  <span>NavigatorBrowsingContextAbilities</span> interfaces. (These
+  <span>NavigatorAbilities</span> interfaces. (These
   interfaces are defined separately so that other specifications can
   re-use parts of the <code>Navigator</code> interface.)</p>
 
@@ -38943,20 +39012,6 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   title="dom-navigator-registerContentHandler">registerContentHandler()</code>
   method would work equivalently, but for unknown MIME types instead
   of unknown protocols.</p>
-
-
-
-
-  <h4>Client abilities</h4>
-
-  <p>The <dfn title="dom-navigator-canPlayType"><code>canPlayType(<var
-  title="">type</var>)</code></dfn> method must return 1 if <var
-  title="">type</var> is a MIME type that the user agent is confident
-  represents a <span>media resource</span> that it can render if used
-  in a <code>audio</code> or <code>video</code> element, 0 if it
-  cannot determine whether it could do so, and &#x2212;1 if it is
-  confident that it would not be able to render resources of that
-  type.</p>
 
 
 
