@@ -2577,6 +2577,42 @@
    <li><p>If <var title="">position</var> is beyond the end of <var
    title="">input</var>, then fail.</p></li>
 
+   <li><p><span>Parse a timezone component</span> to obtain <var
+   title="">timezone<sub title="">hours</sub></var> and <var
+   title="">timezone<sub title="">minutes</sub></var>. If this returns
+   nothing, then fail.</p>
+
+   <li><p>If <var title="">position</var> is <em>not</em> beyond the
+   end of <var title="">input</var>, then fail.</p></li>
+
+   <li><p>Let <var title="">time</var> be the moment in time at year
+   <var title="">year</var>, month <var title="">month</var>, day <var
+   title="">day</var>, hours <var title="">hour</var>, minute <var
+   title="">minute</var>, second <var title="">second</var>,
+   subtracting <var title="">timezone<sub title="">hours</sub></var>
+   hours and <var title="">timezone<sub title="">minutes</sub></var>
+   minutes. That moment in time is a moment in the UTC
+   timezone.</p></li>
+
+   <li><p>Let <var title="">timezone</var> be <var
+   title="">timezone<sub title="">hours</sub></var> hours and <var
+   title="">timezone<sub title="">minutes</sub></var> minutes from
+   UTC.</p></li>
+
+   <li><p>Return <var title="">time</var> and <var
+   title="">timezone</var>.</p></li>
+
+  </ol>
+
+  <p>The rules to <dfn>parse a timezone component</dfn>, given an <var
+  title="">input</var> string and a <var title="">position</var>, are
+  as follows. This will either return timezone hours and timezone
+  minutes, or nothing. If at any point the algorithm says that it
+  "fails", this means that it is aborted at that point and returns
+  nothing.</p>
+
+  <ol>
+
    <li>
 
     <p>If the character at <var title="">position</var> is a U+005A
@@ -2649,25 +2685,9 @@
 
    </li>
 
-   <li><p>If <var title="">position</var> is <em>not</em> beyond the
-   end of <var title="">input</var>, then fail.</p></li>
-
-   <li><p>Let <var title="">time</var> be the moment in time at year
-   <var title="">year</var>, month <var title="">month</var>, day <var
-   title="">day</var>, hours <var title="">hour</var>, minute <var
-   title="">minute</var>, second <var title="">second</var>,
-   subtracting <var title="">timezone<sub title="">hours</sub></var>
-   hours and <var title="">timezone<sub title="">minutes</sub></var>
-   minutes. That moment in time is a moment in the UTC
-   timezone.</p></li>
-
-   <li><p>Let <var title="">timezone</var> be <var
-   title="">timezone<sub title="">hours</sub></var> hours and <var
-   title="">timezone<sub title="">minutes</sub></var> minutes from
-   UTC.</p></li>
-
-   <li><p>Return <var title="">time</var> and <var
-   title="">timezone</var>.</p></li>
+   <li><p>Return <var title="">timezone<sub title="">hours</sub></var>
+   and <var title="">timezone<sub
+   title="">minutes</sub></var>.</p></li>
 
   </ol>
 
@@ -2785,27 +2805,41 @@
 
   <h5>Vaguer moments in time</h5>
 
-  <p>This section defines <dfn title="date or time string">date or
-  time strings</dfn>. There are two kinds, <dfn title="date or time
-  string in content">date or time strings in content</dfn>, and <dfn
-  title="date or time string in attributes">date or time strings in
-  attributes</dfn>. The only difference is in the handling of
-  whitespace characters.</p>
+  <p>A <dfn>date or time string</dfn> consists of either a <span
+  title="concept-date">date</span>, a <span
+  title="concept-time">time</span>, or a <span
+  title="concept-datetime">global date and time</span>.</p>
 
-  <p>To parse a <span>date or time string</span>, user agents must use
-  the following algorithm. A <span>date or time string</span> is a
-  <em>valid</em> date or time string if the following algorithm, when
-  run on the string, doesn't say the string is invalid.</p>
-  <!-- XXX should define that without reference to the algorithm -->
+  <p>A string is a <dfn>valid date or time string</dfn> if it is also
+  one of the following:</p>
 
-  <p>The algorithm may return nothing (in which case the string will
-  be invalid), or it may return a date, a time, a date and a time, or
-  a date and a time and a timezone. Even if the algorithm returns
-  one or more values, the string can still be invalid.</p>
+  <ul>
+
+   <li>A <span>valid date string</span>.</li>
+
+   <li>A <span>valid time string</span>.</li>
+
+   <li>A <span>valid global date and time string</span>.</li>
+
+  </ul>
+
+  <p>A string is a <dfn>valid date or time string in content</dfn> if
+  it consists of zero or more <span>White_Space</span> characters,
+  followed by a <span>valid date or time string</span>, followed by
+  zero or more further <span>White_Space</span> characters.</p>
+
+  <p>The rules to <dfn>parse a date or time string</dfn> are as
+  follows. The algorithm is invoked with a flag indicating if the
+  <i>in attribute</i> variant or the <i>in content</i> variant is to
+  be used. The algorithm will either return a <span
+  title="concept-date">date</span>, a <span
+  title="concept-time">time</span>, a <span
+  title="concept-datetime">global date and time</span>, or nothing. If
+  at any point the algorithm says that it "fails", this means that it
+  is aborted at that point and returns nothing.</p>
 
   <ol>
 
-   <!-- INIT -->
    <li><p>Let <var title="">input</var> be the string being
    parsed.</p></li>
 
@@ -2813,325 +2847,96 @@
    title="">input</var>, initially pointing at the start of the
    string.</p></li>
 
-   <li><p>Let <var title="">results</var> be the collection of results
-   that are to be returned (one or more of a date, a time, and a
-   timezone), initially empty. If the algorithm aborts at any point,
-   then whatever is currently in <var title="">results</var> must be
-   returned as the result of the algorithm.</p></li>
+   <li><p>For the <i>in content</i> variant: <span>skip White_Space
+   characters</span>.</p></li>
 
-   <!-- LEADING WHITESPACE -->
-   <li><p>For the "in content" variant: <span>skip White_Space
-   characters</span>; for the "in attributes" variant: <span>skip
-   whitespace</span>.</p></li><!-- XXX skip whitespace in attribute?
-   really? -->
+   <li><p>Set <var title="">start position</var> to the same position
+   as <var title="">position</var>.</p></li>
 
-   <!-- YEAR or HOUR -->
-   <li><p><span>Collect a sequence of characters</span> in the range
-   U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9). If the collected
-   sequence is empty, then the string is invalid; abort these
-   steps.</p></li>
+   <li><p>Set the <var title="">date present</var> and <var
+   title="">time present</var> flags to true.</p></li>
 
-   <li><p>Let the sequence of characters collected in the last step be
-   <var title="">s</var>.</p></li>
+   <li><p><span>Parse a date component</span> to obtain <var
+   title="">year</var>, <var title="">month</var>, and <var
+   title="">day</var>. If this fails, then set the <var title="">date
+   present</var> flag to false.</p>
 
-   <li><p>If <var title="">position</var> is past the end of <var
-   title="">input</var>, the string is invalid; abort these
-   steps.</p></li>
+   <li>
 
-   <li><p>If the character at <var title="">position</var> is
-   <em>not</em> a U+003A COLON character, then:</p>
+    <p>If <var title="">date present</var> is true, and <var
+    title="">position</var> is not beyond the end of <var
+    title="">input</var>, and the character at <var
+    title="">position</var> is a U+0054 LATIN CAPITAL LETTER T
+    character, then advance <var title="">position</var> to the next
+    character in <var title="">input</var>.</p>
 
-    <!-- DATE -->
-    <ol>
+    <p>Otherwise, if <var title="">date present</var> is true, and
+    either <var title="">position</var> is beyond the end of <var
+    title="">input</var> or the character at <var
+    title="">position</var> is not a U+0054 LATIN CAPITAL LETTER T
+    character, then set <var title="">time present</var> to false.</p>
 
-     <li><p>If the character at <var title="">position</var> is not a
-     U+002D HYPHEN-MINUS ("-") character either, then the string is
-     invalid, abort these steps.</p></li>
-
-     <!-- YEAR -->
-     <li><p>If the sequence <var title="">s</var> is not exactly four
-     digits long, then the string is invalid. (This does not stop the
-     algorithm, however.)</p></li>
-
-     <li><p>Interpret the sequence of characters collected in step 5 as
-     a base-ten integer, and let that number be <var
-     title="">year</var>.</p></li>
-
-     <li><p>Advance <var title="">position</var> past the U+002D
-     HYPHEN-MINUS ("-") character.</p></li>
-
-     <!-- MONTH -->
-     <li><p><span>Collect a sequence of characters</span> in the range
-     U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9). If the collected
-     sequence is empty, then the string is invalid; abort these
-     steps.</p></li>
-
-     <li><p>If the sequence collected in the last step is not exactly
-     two digits long, then the string is invalid.</p></li>
-
-     <li><p>Interpret the sequence of characters collected two steps ago
-     as a base-ten integer, and let that number be <var
-     title="">month</var>.</p></li>
-
-     <li>If <var title="">month</var> is not a number in the range
-     1&nbsp;&le;&nbsp;<var title="">month</var>&nbsp;&le;&nbsp;12, then
-     the string is invalid, abort these steps.</li>
-
-     <li><p>Let <var title="">maxday</var> be the <span>number of days
-     in month <var title="">month</var> of year <var
-     title="">year</var></span>.</p></li>
-
-     <li><p>If <var title="">position</var> is past the end of <var
-     title="">input</var>, or if the character at <var
-     title="">position</var> is <em>not</em> a U+002D HYPHEN-MINUS ("-")
-     character, then the string is invalid, abort these
-     steps. Otherwise, advance <var title="">position</var> to the next
-     character.</p></li>
-
-     <!-- DAY -->
-     <li><p><span>Collect a sequence of characters</span> in the range
-     U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9). If the collected
-     sequence is empty, then the string is invalid; abort these
-     steps.</p></li>
-
-     <li><p>If the sequence collected in the last step is not exactly
-     two digits long, then the string is invalid.</p></li>
-
-     <li><p>Interpret the sequence of characters collected two steps
-     ago as a base-ten integer, and let that number be <var
-     title="">day</var>.</p></li>
-
-     <li><p>If <var title="">day</var> is not a number in the range
-     1&nbsp;&le;&nbsp;<var title="">day</var>&nbsp;&le;&nbsp;<var
-     title="">maxday</var>, then the string is invalid, abort these
-     steps.</p></li>
-
-     <li><p>Add the date represented by <var title="">year</var>, <var
-     title="">month</var>, and <var title="">day</var> to the <var
-     title="">results</var>.</p></li>
-
-     <!-- XXX we should allow the algorithm to abort here without
-     error, with just a date. -->
-
-     <!-- WHITESPACE -->
-     <li><p>For the "in content" variant: <span>skip White_Space
-     characters</span>; for the "in attributes" variant: <span>skip
-     whitespace</span>.</p></li>
-
-     <li><p>If the character at <var title="">position</var> is a U+0054
-     LATIN CAPITAL LETTER T, then move <var title="">position</var>
-     forwards one character.</p></li>
-
-     <li><p>For the "in content" variant: <span>skip White_Space
-     characters</span>; for the "in attributes" variant: <span>skip
-     whitespace</span>.</p></li>
-
-     <!-- at this point, if <var title="">position</var> points to a
-     number, we know that we passed at least one space or a T, because
-     otherwise the number would have been slurped up in the last
-     "collect" step. -->
-
-     <!-- HOUR -->
-     <li><p><span>Collect a sequence of characters</span> in the range
-     U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9). If the collected
-     sequence is empty, then the string is invalid; abort these
-     steps.</p></li>
-
-     <li><p>Let <var title="">s</var> be the sequence of characters
-     collected in the last step.</p></li>
-
-    </ol>
+    <p>Otherwise, if <var title="">date present</var> is false, set
+    <var title="">position</var> back to the same position as <var
+    title="">start position</var>.</p>
 
    </li>
 
-   <!-- TIME -->
+   <li><p>If the <var title="">time present</var> flag is true, then
+   <span>parse a time component</span> to obtain <var
+   title="">hour</var>, <var title="">minute</var>, and <var
+   title="">second</var>. If this returns nothing, then set the <var
+   title="">time present</var> flag to false.</p>
 
-   <li><p>If <var title="">s</var> is not exactly two digits long,
-   then the string is invalid.</p></li>
+   <li><p>If both the <var title="">date present</var> and <var
+   title="">time present</var> flags are false, then fail.</p></li>
 
-   <li><p>Interpret the sequence of characters collected two steps
-   ago as a base-ten integer, and let that number be <var
-   title="">hour</var>.</p></li>
+   <li><p>If the <var title="">time present</var> flag is true, but
+   <var title="">position</var> is beyond the end of <var
+   title="">input</var>, then fail.</p></li>
 
-   <li><p>If <var title="">hour</var> is not a number in the range
-   0&nbsp;&le;&nbsp;<var title="">hour</var>&nbsp;&le;&nbsp;23, then
-   the string is invalid, abort these steps.</p></li>
+   <li><p>If the <var title="">date present</var> and <var
+   title="">time present</var> flags are both true, <span>parse a
+   timezone component</span> to obtain <var title="">timezone<sub
+   title="">hours</sub></var> and <var title="">timezone<sub
+   title="">minutes</sub></var>. If this returns nothing, then
+   fail.</p>
 
-   <li><p>If <var title="">position</var> is past the end of <var
-   title="">input</var>, or if the character at <var
-   title="">position</var> is <em>not</em> a U+003A COLON character,
-   then the string is invalid, abort these steps. Otherwise, advance
-   <var title="">position</var> to the next character.</p></li>
+   <li><p>For the <i>in content</i> variant: <span>skip White_Space
+   characters</span>.</p></li>
 
-   <!-- MINUTE -->
-   <li><p><span>Collect a sequence of characters</span> in the range
-   U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9). If the collected
-   sequence is empty, then the string is invalid; abort these
-   steps.</p></li>
+   <li><p>If <var title="">position</var> is <em>not</em> beyond the
+   end of <var title="">input</var>, then fail.</p></li>
 
-   <li><p>If the sequence collected in the last step is not exactly
-   two digits long, then the string is invalid.</p></li>
+   <li>
 
-   <li><p>Interpret the sequence of characters collected two steps
-   ago as a base-ten integer, and let that number be <var
-   title="">minute</var>.</p></li>
+    <p>If the <var title="">date present</var> flag is true and the
+    <var title="">time present</var> flag is false, then let <var
+    title="">date</var> be the date with year <var
+    title="">year</var>, month <var title="">month</var>, and day <var
+    title="">day</var>, and return <var title="">date</var>.</p>
 
-   <li><p>If <var title="">minute</var> is not a number in the range
-   0&nbsp;&le;&nbsp;<var title="">minute</var>&nbsp;&le;&nbsp;59, then
-   the string is invalid, abort these steps.</p></li>
+    <p>Otherwise, if the <var title="">time present</var> flag is true
+    and the <var title="">date present</var> flag is false, then let
+    <var title="">time</var> be the time with hour <var
+    title="">hour</var>, minute <var title="">minute</var>, and second
+    <var title="">second</var>, and return <var
+    title="">time</var>.</p>
 
-   <!-- SECOND -->
-   <li><p>Let <var title="">second</var> be 0. It might be changed to
-   another value in the next step.</p></li>
-
-   <li><p>If <var title="">position</var> is not past the end of <var
-   title="">input</var> and the character at <var
-   title="">position</var> is a U+003A COLON character, then:</p>
-
-    <ol>
-
-     <li><p><span>Collect a sequence of characters</span> that are
-     either characters in the range U+0030 DIGIT ZERO (0) to U+0039
-     DIGIT NINE (9) or are U+002E FULL STOP. If the collected sequence
-     is empty, or contains more than one U+002E FULL STOP character,
-     then the string is invalid; abort these steps.</p></li>
-
-     <li><p>If the first character in the sequence collected in the
-     last step is not in the range U+0030 DIGIT ZERO (0) to U+0039
-     DIGIT NINE (9), then the string is invalid.</p></li>
-
-     <li><p>Interpret the sequence of characters collected two steps
-     ago as a base-ten number (possibly with a fractional part), and
-     let that number be <var title="">second</var>.</p></li>
-
-     <li><p>If <var title="">second</var> is not a number in the range
-     0&nbsp;&le;&nbsp;<var title="">minute</var>&nbsp;&lt;&nbsp;60,
-     then the string is invalid, abort these steps.</p></li>
-
-    </ol>
+    <p>Otherwise, let <var title="">time</var> be the moment in time
+    at year <var title="">year</var>, month <var title="">month</var>,
+    day <var title="">day</var>, hours <var title="">hour</var>,
+    minute <var title="">minute</var>, second <var
+    title="">second</var>, subtracting <var title="">timezone<sub
+    title="">hours</sub></var> hours and <var title="">timezone<sub
+    title="">minutes</sub></var> minutes, that moment in time being a
+    moment in the UTC timezone; let <var title="">timezone</var> be
+    <var title="">timezone<sub title="">hours</sub></var> hours and
+    <var title="">timezone<sub title="">minutes</sub></var> minutes
+    from UTC; and return <var title="">time</var> and <var
+    title="">timezone</var>.</p>
 
    </li>
-
-   <li><p>Add the time represented by <var title="">hour</var>, <var
-   title="">minute</var>, and <var title="">second</var> to the <var
-   title="">results</var>.</p></li>
-
-   <!-- TIME ZONE -->
-
-   <li><p>If <var title="">results</var> has both a date and a time,
-   then:</p>
-
-    <ol>
-
-     <li><p>For the "in content" variant: <span>skip White_Space
-     characters</span>; for the "in attributes" variant: <span>skip
-     whitespace</span>.</p></li>
-
-     <li><p>If <var title="">position</var> is past the end of <var
-     title="">input</var>, then skip to the next step in the overall
-     set of steps.</p>
-
-     <!-- UTC -->
-     <li><p>Otherwise, if the character at <var
-     title="">position</var> is a U+005A LATIN CAPITAL LETTER Z,
-     then:</p>
-
-      <ol>
-
-       <li><p>Add the timezone corresponding to UTC (zero offset) to
-       the <var title="">results</var>.</p></li>
-
-       <li><p>Advance <var title="">position</var> to the next character
-       in <var title="">input</var>.</p></li>
-
-       <li><p>Skip to the next step in the overall set of
-       steps.</p></li>
-
-      </ol>
-
-     </li>
-
-     <!-- EXPLICIT TIMEZONE OFFSET -->
-     <li><p>Otherwise, if the character at <var
-     title="">position</var> is either a U+002B PLUS SIGN ("+") or a
-     U+002D HYPHEN-MINUS ("-"), then:</p>
-
-      <ol>
-
-       <!-- SIGN -->
-       <li><p>If the character at <var title="">position</var> is a
-       U+002B PLUS SIGN ("+"), let <var title="">sign</var> be
-       "positive". Otherwise, it's a U+002D HYPHEN-MINUS ("-"); let
-       <var title="">sign</var> be "negative".</p></li>
-
-       <!-- HOURS -->
-       <li><p>Advance <var title="">position</var> to the next
-       character in <var title="">input</var>.</p></li>
-
-       <li><p><span>Collect a sequence of characters</span> in the
-       range U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9). If the
-       collected sequence is not exactly two characters long, then
-       the string is invalid.</p></li>
-
-       <li><p>Interpret the sequence collected in the last step as a
-       base-ten number, and let that number be <var
-       title="">timezone<sub title="">hours</sub></var>.</p></li>
-
-       <li>If <var title="">timezone<sub title="">hours</sub></var> is not a
-       number in the range 0&nbsp;&le;&nbsp;<var
-       title="">timezone<sub title="">hours</sub></var>&nbsp;&le;&nbsp;23, then
-       the string is invalid; abort these steps.</li>
-
-       <li>If <var title="">sign</var> is "negative", then negate <var
-       title="">timezone<sub title="">hours</sub></var>.</li>
-
-       <li><p>If <var title="">position</var> is beyond the end of
-       <var title="">input</var> or if the character at <var
-       title="">position</var> is not a U+003A COLON character, then
-       the string is invalid; abort these steps. Otherwise, move <var
-       title="">position</var> forwards one character.</p></li>
-
-       <!-- MINUTES -->
-       <li><p><span>Collect a sequence of characters</span> in the range
-       U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9). If the collected
-       sequence is not exactly two characters long, then the string is invalid.</p></li>
-
-       <li><p>Interpret the sequence collected in the last step as a
-       base-ten number, and let that number be <var
-       title="">timezone<sub title="">minutes</sub></var>.</p></li>
-
-       <li>If <var title="">timezone<sub title="">minutes</sub></var> is not a
-       number in the range 0&nbsp;&le;&nbsp;<var
-       title="">timezone<sub title="">minutes</sub></var>&nbsp;&le;&nbsp;59,
-       then the string is invalid; abort these steps.</li>
-
-       <li><p>Add the timezone corresponding to an offset of <var
-       title="">timezone<sub title="">hours</sub></var> hours and <var
-       title="">timezone<sub title="">minutes</sub></var> minutes to the <var
-       title="">results</var>.</p></li>
-
-       <li><p>Skip to the next step in the overall set of
-       steps.</p></li>
-
-      </ol>
-
-     </li>
-
-     <li><p>Otherwise, the string is invalid; abort these
-     steps.</p></li>
-
-    </ol>
-
-   </li>
-
-   <li><p>For the "in content" variant: <span>skip White_Space
-   characters</span>; for the "in attributes" variant: <span>skip
-   whitespace</span>.</p></li>
-
-   <li><p>If <var title="">position</var> is <em>not</em> past the end
-   of <var title="">input</var>, then the string is invalid.</p>
-
-   <li><p>Abort these steps (the string is parsed).</p></li>
 
   </ol>
 
@@ -13313,15 +13118,14 @@ this specification: the &lt;abbr>WHATWG&lt;/abbr> and the
   <p>The <code>time</code> element represents a date and/or a time.</p>
 
   <p>The <dfn title="attr-time-datetime"><code>datetime</code></dfn>
-  attribute, if present, must contain a <span>date or time
+  attribute, if present, must contain a <span>valid date or time
   string</span> that identifies the date or time being specified.</p>
 
-  <p>If the <code title="attr-time-datetime">datetime</code> attribute is
-  not present, then the date or time must be specified in the content
-  of the element, such that parsing the element's
-  <code>textContent</code> according to the rules for parsing <span
-  title="date or time string in content">date or time strings in
-  content</span> successfully extracts a date or time.</p>
+  <p>If the <code title="attr-time-datetime">datetime</code> attribute
+  is not present, then the date or time must be specified in the
+  content of the element, such that the element's
+  <code>textContent</code> is a <span>valid date or time string in
+  content</span>.</p>
 
   <p>The <dfn title="dom-time-datetime"><code>dateTime</code></dfn> DOM
   attribute must <span>reflect</span> the <code
@@ -13336,15 +13140,15 @@ this specification: the &lt;abbr>WHATWG&lt;/abbr> and the
   <ol>
 
    <li>If the <code title="attr-time-datetime">datetime</code>
-   attribute is present, then parse it according to the rules for
-   parsing <span title="date or time string in attributes">date or
-   time strings in attributes</span>, and let the result be <var
+   attribute is present, then use the rules to <span>parse a date or
+   time string</span> with the flag <i>in attribute</i> from the value
+   of that attribute, and let the result be <var
    title="">result</var>.</li>
 
-   <li>Otherwise, parse the element's <code>textContent</code>
-   according to the rules for parsing <span title="date or time string
-   in attributes">date or time strings in content</span>, and let the
-   result be <var title="">result</var>.</li>
+   <li>Otherwise, use the rules to <span>parse a date or time
+   string</span> with the flag <i>in content</i> from the element's
+   <code>textContent</code>, and let the result be <var
+   title="">result</var>.</li>
 
    <li>If <var title="">result</var> is empty (because the parsing
    failed), then the <span title="concept-time-date">date</span> is
@@ -13363,10 +13167,11 @@ this specification: the &lt;abbr>WHATWG&lt;/abbr> and the
 
   </ol>
 
-  <p>The <dfn title="dom-time-date"><code>date</code></dfn> DOM attribute
-  must return null if the <span title="concept-time-date">date</span> is
-  unknown, and otherwise must return the time corresponding to
-  midnight UTC (i.e. the first second) of the given <span
+  <p>The <dfn title="dom-time-date"><code>date</code></dfn> DOM
+  attribute must return null if the <span
+  title="concept-time-date">date</span> is unknown, and otherwise must
+  return the time corresponding to midnight UTC (i.e. the first
+  second) of the given <span
   title="concept-time-date">date</span>.</p>
 
   <p>The <dfn title="dom-time-time"><code>time</code></dfn> DOM attribute
