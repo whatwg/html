@@ -19299,9 +19299,18 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
    less, and the new ready state is <code
    title="dom-media-HAVE_FUTURE_DATA">HAVE_FUTURE_DATA</code></dt>
 
-   <dd><p>The user agent must <span>queue a task</span> to
-   <span>fire a simple event</span> called <code
-   title="event-canplay">canplay</code>.</p></dd>
+   <dd>
+
+    <p>The user agent must <span>queue a task</span> to <span>fire a
+    simple event</span> called <code
+    title="event-canplay">canplay</code>.</p>
+
+    <p>If the element is <span>potentially playing</span>, the user
+    agent must <span>queue a task</span> to <span>fire a simple
+    event</span> called <code
+    title="event-playing">playing</code>.</p>
+
+   </dd>
 
    <!-- going up to enough -->
    <dt>If the new ready state is <code
@@ -19330,6 +19339,13 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
     title="attr-media-autoplay">autoplay</code> attribute rather than
     using script to force the video to play, so as to allow the user
     to override the behavior if so desired.</p>
+
+    <p>If the element is now <span>potentially playing</span>, and the
+    previous ready state was not <code
+    title="dom-media-HAVE_FUTURE_DATA">HAVE_FUTURE_DATA</code>, the
+    user agent must <span>queue a task</span> to <span>fire a simple
+    event</span> called <code
+    title="event-playing">playing</code>.</p>
 
    </dd>
 
@@ -19614,16 +19630,32 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
     be set to false.</p>
 
     <p>If this changed the value of <code
-    title="dom-media-paused">paused</code>, the user agent must
-    <span>queue a task</span> to <span>fire a simple event</span>
-    called <code title="event-play">play</code> at the element; if, in
-    addition, the <span>media element</span>'s <code
-    title="dom-media-readyState">readyState</code> attribute has a
-    value lower than <code
-    title="dom-media-HAVE_FUTURE_DATA">HAVE_FUTURE_DATA</code>, the
-    user agent must also <span>queue a task</span> to <span>fire a
-    simple event</span> called <code
-    title="event-waiting">waiting</code> at the element.</p>
+    title="dom-media-paused">paused</code>, the user agent must run the following substeps:</p>
+
+    <ol>
+
+     <li><p><span>Queue a task</span> to <span>fire a simple event</span>
+     called <code title="event-play">play</code> at the element.</p></li>
+
+     <li><p>If the <span>media element</span>'s <code
+     title="dom-media-readyState">readyState</code> attribute has the
+     value <code title="dom-media-HAVE_METADATA">HAVE_METADATA</code>
+     or <code
+     title="dom-media-HAVE_CURRENT_DATA">HAVE_CURRENT_DATA</code>,
+     <span>queue a task</span> to <span>fire a simple event</span>
+     called <code title="event-waiting">waiting</code> at the
+     element.</p></li>
+
+     <li><p>Otherwise, the <span>media element</span>'s <code
+     title="dom-media-readyState">readyState</code> attribute has the value
+     <code title="dom-media-HAVE_FUTURE_DATA">HAVE_FUTURE_DATA</code>
+     or <code
+     title="dom-media-HAVE_ENOUGH_DATA">HAVE_ENOUGH_DATA</code>;
+     <span>queue a task</span> to <span>fire a simple event</span>
+     called <code title="event-playing">playing</code> at the
+     element.</p></li>
+
+    </ol>
 
    </li>
 
@@ -19752,17 +19784,15 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
    steps.</p></li>
 
    <li><p>If the time was reached through the usual monotonic increase
-   of the current playback position during normal playback, and if
-   either the user agent has not fired a <code
+   of the current playback position during normal playback, and if the
+   user agent has not fired a <code
    title="event-timeupdate">timeupdate</code> event at the element in
-   the past 15 to 250ms, or there has been an instant since the last
-   time such an event was fired that the element was not
-   <span>potentially playing</span>, then the user agent must
-   <span>queue a task</span> to <span>fire a simple event</span>
-   called <code title="event-timeupdate">timeupdate</code> at the
-   element. (In the other cases, such as explicit seeks, relevant
-   events get fired as part of the overall process of changing the
-   current playback position.)</p>
+   the past 15 to 250ms, then the user agent must <span>queue a
+   task</span> to <span>fire a simple event</span> called <code
+   title="event-timeupdate">timeupdate</code> at the element. (In the
+   other cases, such as explicit seeks, relevant events get fired as
+   part of the overall process of changing the current playback
+   position.)</p>
 
    <p class="note">The event thus is not to be fired faster than about
    66Hz or slower than 4Hz. User agents are encouraged to vary the
@@ -20120,7 +20150,7 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
     <tr>
      <td><dfn title="event-play"><code>play</code></dfn>
      <td><code>Event</code>
-     <td>Playback has begun. Fired after the <code title="dom-media-play">play</code> method has returned.
+     <td>Playback has begun. Fired after the <code title="dom-media-play">play()</code> method has returned.
      <td><code title="dom-media-paused">paused</code> is newly false.
     <tr>
      <td><dfn title="event-pause"><code>pause</code></dfn>
@@ -20144,6 +20174,11 @@ interface <dfn>HTMLAudioElement</dfn> : <span>HTMLMediaElement</span> {
      <td><code>Event</code>
      <td>Playback has stopped because the next frame is not available, but the user agent expects that frame to become available in due course.
      <td><code title="dom-media-readyState">readyState</code> is newly equal to or less than <code title="dom-media-HAVE_CURRENT_DATA">HAVE_CURRENT_DATA</code>, and <code title="dom-media-paused">paused</code> is false. Either <code title="dom-media-seeking">seeking</code> is true, or the <span>current playback position</span> is not contained in any of the ranges in <code title="dom-media-buffered">buffered</code>. It is possible for playback to stop for two other reasons without <code title="dom-media-paused">paused</code> being false, but those two reasons do not fire this event: maybe <span title="ended playback">playback ended</span>, or playback <span>stopped due to errors</span>.
+    <tr>
+     <td><dfn title="event-playing"><code>playing</code></dfn>
+     <td><code>Event</code>
+     <td>Playback has started.
+     <td><code title="dom-media-readyState">readyState</code> is newly equal to or greater than <code title="dom-media-HAVE_FUTURE_DATA">HAVE_FUTURE_DATA</code>, <code title="dom-media-paused">paused</code> is false, <code title="dom-media-seeking">seeking</code> is false, or the <span>current playback position</span> is contained in one of the ranges in <code title="dom-media-buffered">buffered</code>.
     <tr>
      <td><dfn title="event-canplay"><code>canplay</code></dfn>
      <td><code>Event</code>
