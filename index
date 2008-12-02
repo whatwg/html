@@ -45121,6 +45121,10 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
 
   </div>
 
+  <p>To handle these cases, parsers have a <dfn id=script-nesting-level>script nesting
+  level</dfn>, which must be initially set to zero, and a <dfn id=parser-pause-flag>parser
+  pause flag</dfn>, which must be initially set to false.</p>
+
 
   <h4 id=the-input-stream><span class=secno>8.2.2 </span>The <dfn>input stream</dfn></h4>
 
@@ -46167,12 +46171,16 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
   <p>When an end tag token is emitted with its <i>self-closing
   flag</i> set, that is a <a href=#parse-error>parse error</a>.</p>
 
-  <p>Before each step of the tokeniser, the user agent may check to
-  see if either one of the scripts in the <a href=#list-of-scripts-that-will-execute-as-soon-as-possible>list of scripts that
-  will execute as soon as possible</a> or the first script in the
-  <a href=#list-of-scripts-that-will-execute-asynchronously>list of scripts that will execute asynchronously</a>, has
-  <a href=#completed-loading>completed loading</a>. If one has, then it must be <a href=#executing-a-script-block title="executing a script block">executed</a> and removed from
-  its list.</p>
+  <p>Before each step of the tokeniser, the user agent must first
+  check the <a href=#parser-pause-flag>parser pause flag</a>. If it is true, then the
+  tokeniser must abort the processing of any nested invocations of the
+  tokeniser, yielding control back to the caller. If it is false, then
+  the user agent may then check to see if either one of the scripts in
+  the <a href=#list-of-scripts-that-will-execute-as-soon-as-possible>list of scripts that will execute as soon as
+  possible</a> or the first script in the <a href=#list-of-scripts-that-will-execute-asynchronously>list of scripts
+  that will execute asynchronously</a>, has <a href=#completed-loading>completed
+  loading</a>. If one has, then it must be <a href=#executing-a-script-block title="executing a
+  script block">executed</a> and removed from its list.</p>
 
   <p>The tokeniser state machine consists of the states defined in the
   following subsections.</p>
@@ -49481,10 +49489,17 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
     the <a href=#insertion-point>insertion point</a> be just before the <a href=#next-input-character>next
     input character</a>.</p>
 
+    <p>Increment the parser's <a href=#script-nesting-level>script nesting level</a> by
+    one.</p>
+
     <p><a href=#running-a-script title="running a script">Run</a> the <var title="">script</var>. This might cause some script to execute,
     which might cause <a href=#dom-document-write-html title=dom-document-write-HTML>new
     characters to be inserted into the tokeniser</a>, and might
     cause the tokeniser to output more tokens, resulting in a <a href=#nestedParsing>reentrant invocation of the parser</a>.</p>
+
+    <p>Decrement the parser's <a href=#script-nesting-level>script nesting level</a> by
+    one. If the parser's <a href=#script-nesting-level>script nesting level</a> is zero,
+    then set the <a href=#parser-pause-flag>parser pause flag</a> to false.</p>
 
     <p>Let the <a href=#insertion-point>insertion point</a> have the value of the
     <var title="">old insertion point</var>. (In other words,
@@ -49498,10 +49513,11 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
     <dl class=switch><dt>If the tree construction stage is <a href=#nestedParsing>being called reentrantly</a>, say from a
      call to <code title=dom-document-write-HTML><a href=#dom-document-write-html>document.write()</a></code>:</dt>
 
-     <dd><p>Abort the processing of any nested invocations of the
-     tokeniser, yielding control back to the caller. (Tokenization
-     will resume when the caller returns to the "outer" tree
-     construction stage.)</dd>
+     <dd><p>Set the <a href=#parser-pause-flag>parser pause flag</a> to true, and abort
+     the processing of any nested invocations of the tokeniser,
+     yielding control back to the caller. (Tokenization will resume
+     when the caller returns to the "outer" tree construction
+     stage.)</dd>
 
 
      <dt>Otherwise:</dt>

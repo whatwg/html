@@ -51468,6 +51468,10 @@ interface <dfn>MessageChannel</dfn> {
 
   </div>
 
+  <p>To handle these cases, parsers have a <dfn>script nesting
+  level</dfn>, which must be initially set to zero, and a <dfn>parser
+  pause flag</dfn>, which must be initially set to false.</p>
+
 
   <h4>The <dfn>input stream</dfn></h4>
 
@@ -52682,13 +52686,16 @@ interface <dfn>MessageChannel</dfn> {
   <p>When an end tag token is emitted with its <i>self-closing
   flag</i> set, that is a <span>parse error</span>.</p>
 
-  <p>Before each step of the tokeniser, the user agent may check to
-  see if either one of the scripts in the <span>list of scripts that
-  will execute as soon as possible</span> or the first script in the
-  <span>list of scripts that will execute asynchronously</span>, has
-  <span>completed loading</span>. If one has, then it must be <span
-  title="executing a script block">executed</span> and removed from
-  its list.</p>
+  <p>Before each step of the tokeniser, the user agent must first
+  check the <span>parser pause flag</span>. If it is true, then the
+  tokeniser must abort the processing of any nested invocations of the
+  tokeniser, yielding control back to the caller. If it is false, then
+  the user agent may then check to see if either one of the scripts in
+  the <span>list of scripts that will execute as soon as
+  possible</span> or the first script in the <span>list of scripts
+  that will execute asynchronously</span>, has <span>completed
+  loading</span>. If one has, then it must be <span title="executing a
+  script block">executed</span> and removed from its list.</p>
 
   <p>The tokeniser state machine consists of the states defined in the
   following subsections.</p>
@@ -56361,12 +56368,19 @@ interface <dfn>MessageChannel</dfn> {
     the <span>insertion point</span> be just before the <span>next
     input character</span>.</p>
 
+    <p>Increment the parser's <span>script nesting level</span> by
+    one.</p>
+
     <p><span title="running a script">Run</span> the <var
     title="">script</var>. This might cause some script to execute,
     which might cause <span title="dom-document-write-HTML">new
     characters to be inserted into the tokeniser</span>, and might
     cause the tokeniser to output more tokens, resulting in a <a
     href="#nestedParsing">reentrant invocation of the parser</a>.</p>
+
+    <p>Decrement the parser's <span>script nesting level</span> by
+    one. If the parser's <span>script nesting level</span> is zero,
+    then set the <span>parser pause flag</span> to false.</p>
 
     <p>Let the <span>insertion point</span> have the value of the
     <var title="">old insertion point</var>. (In other words,
@@ -56384,10 +56398,11 @@ interface <dfn>MessageChannel</dfn> {
      call to <code
      title="dom-document-write-HTML">document.write()</code>:</dt>
 
-     <dd><p>Abort the processing of any nested invocations of the
-     tokeniser, yielding control back to the caller. (Tokenization
-     will resume when the caller returns to the "outer" tree
-     construction stage.)</p></dd>
+     <dd><p>Set the <span>parser pause flag</span> to true, and abort
+     the processing of any nested invocations of the tokeniser,
+     yielding control back to the caller. (Tokenization will resume
+     when the caller returns to the "outer" tree construction
+     stage.)</p></dd>
 
 
      <dt>Otherwise:</dt>
