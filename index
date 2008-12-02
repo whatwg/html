@@ -5770,8 +5770,9 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   <a href=#hyperlink>hyperlink</a> with a <code title=rel-noreferrer><a href=#link-type-noreferrer>noreferrer</a></code> keyword.</p>
 
   <p class=note>In the case of HTTP, the <code title=dom-document-referrer><a href=#dom-document-referrer>referrer</a></code> DOM attribute will
-  match the <code title="">Referer</code> (sic) header that was sent
-  when <a href=#fetch title=fetch>fetching</a> the current page.</p>
+  match the <code title=http-referer>Referer</code> (sic) header
+  that was sent when <a href=#fetch title=fetch>fetching</a> the current
+  page.</p>
 
   <p class=note>Typically user agents are configured to not report
   referrers in the case where the referrer uses an encrypted protocol
@@ -34796,8 +34797,8 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
 
   <p><strong>Leaking secure URLs.</strong> User agents should not send
   HTTPS URLs to third-party sites registered as content handlers, in
-  the same way that user agents do not send <code>Referer</code>
-  headers from secure sites to third-party sites.</p>
+  the same way that user agents do not send <code title=http-referer>Referer</code> headers from secure sites to
+  third-party sites.</p>
 
   <p><strong>Leaking credentials.</strong> User agents must never send
   username or password information in the URLs that are escaped and
@@ -36901,10 +36902,6 @@ user reload must be equivalent to .reload()
     user agent must then get the resource from the <a href=#concept-appcache-selection title=concept-appcache-selection>most appropriate application
     cache</a> of those that match.</p>
 
-    <p>Otherwise, <a href=#fetch>fetch</a> the new resource. If this results
-    in a redirect, return to <a href=#navigate-fragid-step>the step
-    labeled "fragment identifiers"</a> with the new resource.</p>
-
     <p class=example>For example, imagine an HTML page with an
     associated application cache displaying an image and a form, where
     the image is also used by several other application caches. If the
@@ -36917,7 +36914,26 @@ user reload must be equivalent to .reload()
     application cache at all; the submission will be made to the
     network.</p>
 
-   </li>
+    <p>Otherwise, <a href=#fetch>fetch</a> the new resource. If the resource
+    is being fetched using HTTP, and the method is not GET<!-- or HEAD
+    (but that can't happen) -->, then the user agent must include an
+    <code title=http-origin>Origin</code> header whose value is
+    determined as follows:</p>
+
+    <dl class=switch><dt>If the <a href=#navigate title=navigate>navigation</a> algorithm has
+     so far contacted more than one <a href=#origin-0>origin</a></dt>
+     <dt>If there is no <a href=#source-browsing-context>source browsing context</a></dt>
+
+     <dd>The value must be the string "<code title="">null</code>".</dd>
+
+     <dt>Otherwise</dt>
+
+     <dd>The value must be the <a href=#ascii-serialization-of-an-origin title="ASCII serialization of an
+     origin">ASCII serialization</a> of the <a href=#origin-0>origin</a> of
+     the <a href=#active-document>active document</a> of the <a href=#source-browsing-context>source browsing
+     context</a> at the time the navigation was started.</dd>
+
+    </dl></li>
 
    <li>
 
@@ -36928,6 +36944,15 @@ user reload must be equivalent to .reload()
     networking protocols, then at this point the user agents must
     yield to whatever script invoked the navigation steps, if they
     were invoked by script.</p>
+
+   </li>
+
+   <li>
+
+    <p>If fetching the resource results in a redirect, return to <a href=#navigate-fragid-step>the step labeled "fragment
+    identifiers"</a> with the new resource.</p>
+
+    <p class=note>Cross-origin redirects cause the <code title=http-origin>Origin</code> header to become "<code title="">null</code>" on subsequent requests in the chain.</p>
 
    </li>
 
@@ -38809,8 +38834,8 @@ interface <dfn id=sqlstatementerrorcallback>SQLStatementErrorCallback</dfn> {
 
   <p>User agents should allow the user to adjust this behavior, for
   example in conjunction with a setting that disables the sending of
-  HTTP <code title="">Referer</code> headers. Based on the user's
-  preferences, UAs may either <a href=#ignore>ignore</a> the <code title=attr-hyperlink-ping><a href=#ping>ping</a></code> attribute altogether, or
+  HTTP <code title=http-referer>Referer</code> headers. Based on the
+  user's preferences, UAs may either <a href=#ignore>ignore</a> the <code title=attr-hyperlink-ping><a href=#ping>ping</a></code> attribute altogether, or
   selectively ignore URLs in the list (e.g. ignoring any third-party
   URLs).</p>
 
@@ -38825,33 +38850,43 @@ interface <dfn id=sqlstatementerrorcallback>SQLStatementErrorCallback</dfn> {
    of the <code>Document</code> object containing the hyperlink being
    audited and the ping URL have the <a href=#same-origin>same origin</a></dt>
 
-   <dd>The request must include a <code title="">Ping-From</code> HTTP
-   header with, as its value, the <a href="#the-document's-address" title="the document's
-   address">address</a> of the document containing the hyperlink,
-   and a <code title="">Ping-To</code> HTTP header with, as its value,
+   <dd>The request must include a <code title=http-ping-from>Ping-From</code> HTTP header with, as its
+   value, the <a href="#the-document's-address" title="the document's address">address</a> of
+   the document containing the hyperlink, and a <code title=http-ping-to>Ping-To</code> HTTP header with, as its value,
    the address of the <a href=#absolute-url>absolute URL</a> of the target of the
-   hyperlink. The request must not include a <code title="">Referer</code> HTTP header. <!-- why not? --></dd>
+   hyperlink. The request must not include a <code title=http-referer>Referer</code> HTTP header. <!-- because
+   otherwise it would look like a trustable same-origin POST --></dd>
 
    <dt>Otherwise, if the origins are different, but the document
    containing the hyperlink being audited was not retrieved over an
-   encrypted connection</dt> <!-- why different? -->
+   encrypted connection</dt>
 
    <dd>The request must include a <code title="">Referer</code> HTTP
    header [sic] with, as its value, the <a href="#the-document's-address" title="the document's
    address">address</a> of the document containing the hyperlink, a
-   <code title="">Ping-From</code> HTTP header with the same value,
-   and a <code title="">Ping-To</code> HTTP header with, as its value,
-   the address of the target of the hyperlink.</dd>
+   <code title=http-ping-from>Ping-From</code> HTTP header with the
+   same value, and a <code title=http-ping-to>Ping-To</code> HTTP
+   header with, as its value, the address of the target of the
+   hyperlink.</dd>
 
    <dt>Otherwise, the origins are different and the document
    containing the hyperlink being audited was retrieved over an
    encrypted connection</dt>
 
-   <dd>The request must include a <code title="">Ping-To</code> HTTP
-   header with, as its value, the address of the target of the
-   hyperlink. The request must neither include a <code title="">Referer</code> HTTP header nor include a <code title="">Ping-From</code> HTTP header.</dd>
+   <dd>The request must include a <code title=http-ping-to>Ping-To</code> HTTP header with, as its value,
+   the address of the target of the hyperlink. The request must
+   neither include a <code title="">Referer</code> HTTP header nor
+   include a <code title=http-ping-from>Ping-From</code> HTTP
+   header.</dd>
 
-  </dl><p class=note>To save bandwidth, implementors might also wish to
+  </dl><p>In addition, an <code title=http-origin>Origin</code> header
+  must always be included, whose value is the <a href=#ascii-serialization-of-an-origin title="ASCII
+  serialization of an origin">ASCII serialization</a> of the
+  <a href=#origin-0>origin</a> of the the <code>Document</code> containing the
+  <a href=#hyperlink>hyperlink</a>. The value of the <code title=http-origin>Origin</code> header must be set to "<code title="">null</code>" when following redirects if the <a href=#origin-0 title=origin>origins</a> of all the <a href=#url title=URL>URLs</a> involved are not the <a href=#same-origin title="same
+  origin">same</a>.</p>
+
+  <p class=note>To save bandwidth, implementors might also wish to
   consider omitting optional headers such as <code>Accept</code> from
   these requests.</p>
 
