@@ -272,10 +272,11 @@
        <li><a href=#htmlformcontrolscollection><span class=secno>2.8.2.2 </span>HTMLFormControlsCollection</a></li>
        <li><a href=#htmloptionscollection><span class=secno>2.8.2.3 </span>HTMLOptionsCollection</a></ol></li>
      <li><a href=#domtokenlist><span class=secno>2.8.3 </span>DOMTokenList</a></li>
-     <li><a href=#domstringmap><span class=secno>2.8.4 </span>DOMStringMap</a></li>
-     <li><a href=#dom-feature-strings><span class=secno>2.8.5 </span>DOM feature strings</a></li>
-     <li><a href=#exceptions><span class=secno>2.8.6 </span>Exceptions</a></li>
-     <li><a href=#garbage-collection><span class=secno>2.8.7 </span>Garbage collection</a></ol></ol></li>
+     <li><a href=#safe-passing-of-structured-data><span class=secno>2.8.4 </span>Safe passing of structured data</a></li>
+     <li><a href=#domstringmap><span class=secno>2.8.5 </span>DOMStringMap</a></li>
+     <li><a href=#dom-feature-strings><span class=secno>2.8.6 </span>DOM feature strings</a></li>
+     <li><a href=#exceptions><span class=secno>2.8.7 </span>Exceptions</a></li>
+     <li><a href=#garbage-collection><span class=secno>2.8.8 </span>Garbage collection</a></ol></ol></li>
  <li><a href=#dom><span class=secno>3 </span>Semantics and structure of HTML documents</a>
   <ol>
    <li><a href=#semantics-intro><span class=secno>3.1 </span>Introduction</a></li>
@@ -865,9 +866,8 @@
       <ol>
        <li><a href=#authors><span class=secno>7.4.2.1 </span>Authors</a></li>
        <li><a href=#user-agents><span class=secno>7.4.2.2 </span>User agents</a></ol></li>
-     <li><a href=#posting-text><span class=secno>7.4.3 </span>Posting text</a></li>
-     <li><a href=#posting-message-ports><span class=secno>7.4.4 </span>Posting message ports</a></li>
-     <li><a href=#posting-structured-data><span class=secno>7.4.5 </span>Posting structured data</a></ol></li>
+     <li><a href=#posting-messages><span class=secno>7.4.3 </span>Posting messages</a></li>
+     <li><a href=#posting-messages-with-message-ports><span class=secno>7.4.4 </span>Posting messages with message ports</a></ol></li>
    <li><a href=#channel-messaging><span class=secno>7.5 </span>Channel messaging</a>
     <ol>
      <li><a href=#introduction-6><span class=secno>7.5.1 </span>Introduction</a></li>
@@ -5560,7 +5560,90 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   underlying string representation.</p>
 
 
-  <h4 id=domstringmap><span class=secno>2.8.4 </span>DOMStringMap</h4>
+  <h4 id=safe-passing-of-structured-data><span class=secno>2.8.4 </span>Safe passing of structured data</h4>
+
+  <p>When a user agent is required to obtain a <dfn id=structured-clone>structured
+  clone</dfn> of an object, it must run the following algorithm, which
+  either returns a separate object, or returns an exception.</p>
+
+  <ol><li><p>Let <var title="">input</var> be the object being
+   cloned.</li>
+
+   <li><p>Let <var title="">memory</var> be a list of objects,
+   initially empty. (This is used to catch cycles.)</li>
+
+   <li><p>Let <var title="">output</var> be the object resulting from
+   calling the <a href=#internal-structured-cloning-algorithm>internal structured cloning algorithm</a> with
+   <var title="">input</var> and <var title="">memory</var>.</li>
+
+   <li><p>Return <var title="">output</var>.</li>
+
+  </ol><p>The <dfn id=internal-structured-cloning-algorithm>internal structured cloning algorithm</dfn> is always
+  called with two arguments, <var title="">input</var> and <var title="">memory</var>, and its behavior depends on the type of <var title="">input</var>, as follows:</p>
+
+  <dl class=switch><dt>If <var title="">input</var> is the undefined value</dt>
+
+   <dd><p>Return the undefined value.</dd>
+
+   <dt>If <var title="">input</var> is the null value</dt>
+
+   <dd><p>Return the null value.</dd>
+
+   <dt>If <var title="">input</var> is the false value</dt>
+
+   <dd><p>Return the false value.</dd>
+
+   <dt>If <var title="">input</var> is the true value</dt>
+
+   <dd><p>Return the true value.</dd>
+
+   <dt>If <var title="">input</var> is a Number object</dt>
+
+   <dd><p>Return a newly constructed Number object with the same value as <var title="">input</var>.</dd>
+
+   <dt>If <var title="">input</var> is a String object</dt>
+
+   <dd><p>Return a newly constructed String object with the same value as <var title="">input</var>.</dd>
+
+   <dt>If <var title="">input</var> is a Date object</dt>
+
+   <dd><p>Return a newly constructed Date object with the same value as <var title="">input</var>.</dd>
+
+   <dt>If <var title="">input</var> is a host object</dt>
+
+   <dd><p>Return the null value.</dd>
+
+   <dt>If <var title="">input</var> is an Array object</dt>
+   <dt>If <var title="">input</var> is an Object object</dt>
+
+   <dd>
+
+    <ol><li><p>If <var title="">input</var> is in <var title="">memory</var>, then return a
+     <code><a href=#not_supported_err>NOT_SUPPORTED_ERR</a></code> exception and abort the overall
+     <a href=#structured-clone>structured clone</a> algorithm.</li>
+
+     <li><p>Otherwise, let <var title="">new memory</var> be a list
+     consisting of the items in <var title="">memory</var> with the
+     addition of <var title="">input</var>.</li>
+
+     <li><p>Create a new object, <var title="">output</var>, of the
+     same type as <var title="">input</var>: either an Array or an
+     Object.</li>
+
+     <li><p>For each property in <var title="">input</var>, add a
+     corresponding property to <var title="">output</var> having the
+     same name, and having a value created from invoking the
+     <a href=#internal-structured-cloning-algorithm>internal structured cloning algorithm</a> recursively
+     with the value of the property as the "<var title="">input</var>"
+     arguemnt and <var title="">new memory</var> as the "<var title="">memory</var>" argument. The order of the properties in
+     the <var title="">input</var> and <var title="">output</var>
+     objects must be the same.</li>
+
+     <li><p>Return <var title="">output</var>.</li>
+
+    </ol></dd>
+
+  </dl><h4 id=domstringmap><span class=secno>2.8.5 </span>DOMStringMap</h4>
 
   <p>The <code><a href=#domstringmap-0>DOMStringMap</a></code> interface represents a set of
   name-value pairs. When a <code><a href=#domstringmap-0>DOMStringMap</a></code> object is
@@ -5592,7 +5675,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   must return true.</p>
 
 
-  <h4 id=dom-feature-strings><span class=secno>2.8.5 </span>DOM feature strings</h4>
+  <h4 id=dom-feature-strings><span class=secno>2.8.6 </span>DOM feature strings</h4>
 
   <p>DOM3 Core defines mechanisms for checking for interface support,
   and for obtaining implementations of interfaces, using <a href=http://www.w3.org/TR/DOM-Level-3-Core/core.html#DOMFeatures>feature
@@ -5623,7 +5706,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
   not guaranteed that an implementation that supports "<code title="">HTML</code>" "<code>5.0</code>" also supports "<code title="">HTML</code>" "<code>2.0</code>".</p>
 
 
-  <h4 id=exceptions><span class=secno>2.8.6 </span>Exceptions</h4>
+  <h4 id=exceptions><span class=secno>2.8.7 </span>Exceptions</h4>
 
   <p>The following <code>DOMException</code> codes are defined in DOM
   Core. <a href=#refsDOMCORE>[DOMCORE]</a></p>
@@ -5653,7 +5736,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
    <li value=23><dfn id=unavailable_script_err><code>UNAVAILABLE_SCRIPT_ERR</code></dfn></li> <!-- actually defined right here for now -->
    <li value=81><dfn id=parse_err><code>PARSE_ERR</code></dfn></li> <!-- actually defined in dom3ls -->
    <li value=82><dfn id=serialise_err><code>SERIALISE_ERR</code></dfn></li> <!-- actually defined in dom3ls -->
-  </ol><h4 id=garbage-collection><span class=secno>2.8.7 </span>Garbage collection</h4>
+  </ol><h4 id=garbage-collection><span class=secno>2.8.8 </span>Garbage collection</h4>
 
   <p>There is an <dfn id=implied-strong-reference>implied strong reference</dfn> from any DOM
   attribute that returns a pre-existing object to that object.</p>
@@ -32768,8 +32851,8 @@ explain that only direct children of the <menu> matter
   void <a href=#dom-shownotification title=dom-showNotification>showNotification</a>(in DOMString title, in DOMString subtitle, in DOMString description, in VoidCallback onclick);
 
   // <a href=#crossDocumentMessages>cross-document messaging</a>
-  void <a href=#dom-window-postmessage-2 title=dom-window-postMessage-2>postMessage</a>(in DOMString message, in DOMString targetOrigin);
-  void <a href=#dom-window-postmessage-3 title=dom-window-postMessage-3>postMessage</a>(in DOMString message, in <a href=#messageport>MessagePort</a> messagePort, in DOMString targetOrigin);
+  void <a href=#dom-window-postmessage-2 title=dom-window-postMessage-2>postMessage</a>(in any message, in DOMString targetOrigin);
+  void <a href=#dom-window-postmessage-3 title=dom-window-postMessage-3>postMessage</a>(in any message, in <a href=#messageport>MessagePort</a> messagePort, in DOMString targetOrigin);
 
   // <a href=#event-handler-dom-attributes>event handler DOM attributes</a>
            attribute <span>EventListener</span> <a href=#handler-onabort title=handler-onabort>onabort</a>;
@@ -42733,13 +42816,13 @@ XXX Once we resolve the style="" issue, address these:
   <p>The following interface is defined for this event:</p>
 
   <pre class=idl>interface <dfn id=messageevent>MessageEvent</dfn> : Event {
-  readonly attribute DOMString <a href=#dom-messageevent-data title=dom-MessageEvent-data>data</a>;
+  readonly attribute any <a href=#dom-messageevent-data title=dom-MessageEvent-data>data</a>;
   readonly attribute DOMString <a href=#dom-messageevent-origin title=dom-MessageEvent-origin>origin</a>;
   readonly attribute DOMString <a href=#dom-messageevent-lasteventid title=dom-MessageEvent-lastEventId>lastEventId</a>;
   readonly attribute <a href=#window>Window</a> <a href=#dom-messageevent-source title=dom-MessageEvent-source>source</a>;
   readonly attribute <a href=#messageport>MessagePort</a> <a href=#dom-messageevent-messageport title=dom-MessageEvent-messagePort>messagePort</a>;
-  void <a href=#dom-messageevent-initmessageevent title=dom-MessageEvent-initMessageEvent>initMessageEvent</a>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString originArg, in DOMString lastEventIdArg, in Window sourceArg, in <a href=#messageport>MessagePort</a> messagePortArg);
-  void <a href=#dom-messageevent-initmessageeventns title=dom-MessageEvent-initMessageEventNS>initMessageEventNS</a>(in DOMString namespaceURI, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString dataArg, in DOMString originArg, in DOMString lastEventIdArg, in Window sourceArg, in <a href=#messageport>MessagePort</a> messagePortArg);
+  void <a href=#dom-messageevent-initmessageevent title=dom-MessageEvent-initMessageEvent>initMessageEvent</a>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in any dataArg, in DOMString originArg, in DOMString lastEventIdArg, in Window sourceArg, in <a href=#messageport>MessagePort</a> messagePortArg);
+  void <a href=#dom-messageevent-initmessageeventns title=dom-MessageEvent-initMessageEventNS>initMessageEventNS</a>(in DOMString namespaceURI, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in any dataArg, in DOMString originArg, in DOMString lastEventIdArg, in Window sourceArg, in <a href=#messageport>MessagePort</a> messagePortArg);
 };</pre>
 
   <p>The <dfn id=dom-messageevent-initmessageevent title=dom-MessageEvent-initMessageEvent><code>initMessageEvent()</code></dfn>
@@ -44203,7 +44286,7 @@ function receiver(e) {
   careful to allow access to certain properties but not others.</p>
 
 
-  <h4 id=posting-text><span class=secno>7.4.3 </span>Posting text</h4>
+  <h4 id=posting-messages><span class=secno>7.4.3 </span>Posting messages</h4>
 
   <p>When a script invokes the <dfn id=dom-window-postmessage-2 title=dom-window-postMessage-2><code>postMessage(<var title="">message</var>, <var title="">targetOrigin</var>)</code></dfn> method (with only two
   arguments) on a <code><a href=#window>Window</a></code> object, the user agent must
@@ -44218,6 +44301,16 @@ function receiver(e) {
     that is neither empty nor a single U+002F SOLIDUS character (/),
     then throw a <code><a href=#syntax_err>SYNTAX_ERR</a></code> exception and abort the
     overall set of steps.</p>
+
+   </li>
+
+   <li>
+
+    <p>Let <var title="">message clone</var> be the result of
+    obtaining a <a href=#structured-clone>structured clone</a> of the <var title="">message</var> argument.</p>
+
+    <p>If doing this raised an exception, then raise that exception
+    and abort these steps.</p>
 
    </li>
 
@@ -44245,12 +44338,10 @@ function receiver(e) {
     <p>Create an event that uses the <code><a href=#messageevent>MessageEvent</a></code>
     interface, with the event name <code title=event-message><a href=#event-message>message</a></code>, which does not bubble, is
     cancelable, and has no default action. The <code title=dom-MessageEvent-data><a href=#dom-messageevent-data>data</a></code> attribute must be set to
-    the value passed as the <var title="">message</var> argument to
-    the <code title=dom-window-postMessage-2><a href=#dom-window-postmessage-2>postMessage()</a></code>
-    method, the <code title=dom-MessageEvent-origin><a href=#dom-messageevent-origin>origin</a></code>
-    attribute must be set to the <a href=#unicode-serialization-of-an-origin title="Unicode serialization of
-    an origin">Unicode serialization</a> of the <a href=#origin-0>origin</a>
-    of the script that invoked the method, and the <code title=dom-MessageEvent-source><a href=#dom-messageevent-source>source</a></code> attribute must be
+    the value of <var title="">message clone</var>, the <code title=dom-MessageEvent-origin><a href=#dom-messageevent-origin>origin</a></code> attribute must be
+    set to the <a href=#unicode-serialization-of-an-origin title="Unicode serialization of an
+    origin">Unicode serialization</a> of the <a href=#origin-0>origin</a> of
+    the script that invoked the method, and the <code title=dom-MessageEvent-source><a href=#dom-messageevent-source>source</a></code> attribute must be
     set to the <code><a href=#window>Window</a></code> object of the <a href=#default-view>default
     view</a> of the <a href=#browsing-context>browsing context</a> for which the
     <code>Document</code> object with which the script is associated
@@ -44270,7 +44361,7 @@ function receiver(e) {
 
    </li>
 
-  </ol><h4 id=posting-message-ports><span class=secno>7.4.4 </span>Posting message ports</h4>
+  </ol><h4 id=posting-messages-with-message-ports><span class=secno>7.4.4 </span>Posting messages with message ports</h4>
 
   <p>When a script invokes the <dfn id=dom-window-postmessage-3 title=dom-window-postMessage-3><code>postMessage(<var title="">message</var>, <var title="">messagePort</var>, <var title="">targetOrigin</var>)</code></dfn> method (with three
   arguments) on a <code><a href=#window>Window</a></code> object, the user agent must
@@ -44285,6 +44376,14 @@ function receiver(e) {
     that is neither empty nor a single U+002F SOLIDUS character (/),
     then throw a <code><a href=#syntax_err>SYNTAX_ERR</a></code> exception and abort the
     overall set of steps.</p>
+
+   </li>
+
+   <li>
+
+    <p>Let <var title="">message clone</var> be the result of
+    obtaining a <a href=#structured-clone>structured clone</a> of the <var title="">message</var> argument. If this returns an exception,
+    then throw that exception and abort these steps.</p>
 
    </li>
 
@@ -44329,12 +44428,10 @@ function receiver(e) {
     <p>Create an event that uses the <code><a href=#messageevent>MessageEvent</a></code>
     interface, with the event name <code title=event-message><a href=#event-message>message</a></code>, which does not bubble, is
     cancelable, and has no default action. The <code title=dom-MessageEvent-data><a href=#dom-messageevent-data>data</a></code> attribute must be set to
-    the value passed as the <var title="">message</var> argument to
-    the <code title=dom-window-postMessage-3><a href=#dom-window-postmessage-3>postMessage()</a></code>
-    method, the <code title=dom-MessageEvent-origin><a href=#dom-messageevent-origin>origin</a></code>
-    attribute must be set to the <a href=#unicode-serialization-of-an-origin title="Unicode serialization of
-    an origin">Unicode serialization</a> of the <a href=#origin-0>origin</a>
-    of the script that invoked the method, and the <code title=dom-MessageEvent-source><a href=#dom-messageevent-source>source</a></code> attribute must be
+    the value of <var title="">message clone</var>, the <code title=dom-MessageEvent-origin><a href=#dom-messageevent-origin>origin</a></code> attribute must be
+    set to the <a href=#unicode-serialization-of-an-origin title="Unicode serialization of an
+    origin">Unicode serialization</a> of the <a href=#origin-0>origin</a> of
+    the script that invoked the method, and the <code title=dom-MessageEvent-source><a href=#dom-messageevent-source>source</a></code> attribute must be
     set to the <code><a href=#window>Window</a></code> object of the <a href=#default-view>default
     view</a> of the <a href=#browsing-context>browsing context</a> for which the
     <code>Document</code> object with which the script is associated
@@ -44369,13 +44466,6 @@ function receiver(e) {
   implementations have shipped postMessage(). Anne asked that these
   sections be kept separate so that implementors can avoid getting
   confused with the 'port' step. -->
-
-
-  <h4 id=posting-structured-data><span class=secno>7.4.5 </span>Posting structured data</h4>
-
-  <p class=XXX>People often request the ability to send
-  name/value pairs, arrays, and numbers using postMessage() instead of
-  just strings.</p>
 
 
 
@@ -44434,8 +44524,8 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
 
   <pre class=idl>interface <dfn id=messageport>MessagePort</dfn> {
   readonly attribute boolean <a href=#dom-messageport-active title=dom-MessagePort-active>active</a>;
-  void <a href=#dom-messageport-postmessage title=dom-MessagePort-postMessage>postMessage</a>(in DOMString message);
-  void <a href=#dom-messageport-postmessage title=dom-MessagePort-postMessage>postMessage</a>(in DOMString message, in <a href=#messageport>MessagePort</a> messagePort);<!--
+  void <a href=#dom-messageport-postmessage title=dom-MessagePort-postMessage>postMessage</a>(in any message);
+  void <a href=#dom-messageport-postmessage title=dom-MessagePort-postMessage>postMessage</a>(in any message, in <a href=#messageport>MessagePort</a> messagePort);<!--
   <span>MessagePort</span> <span title="dom-MessagePort-startConversation">startConversation</span>(in DOMString message);-->
   void <a href=#dom-messageport-start title=dom-MessagePort-start>start</a>();
   void <a href=#dom-messageport-close title=dom-MessagePort-close>close</a>();
@@ -44528,6 +44618,10 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
    notice. we don't return false because if the port is _about_
    to be closed, the message might not be listened for anyway. -->
 
+   <li><p>Let <var title="">message clone</var> be the result of
+   obtaining a <a href=#structured-clone>structured clone</a> of the <var title="">message</var> argument. If this returns an exception, then
+   throw that exception and abort these steps.</li>
+
    <li><p>Let <var title="">target port</var> be the port with which
    <var title="">source port</var> is entangled.</li>
 
@@ -44536,7 +44630,8 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
    cancelable, and has no default action.</li>
 
    <li><p>Let the <code title=dom-MessageEvent-data><a href=#dom-messageevent-data>data</a></code>
-   attribute of the event have the value of <var title="">message</var>, the method's first argument.</li>
+   attribute of the event have the value of <var title="">message
+   clone</var>.</li>
 
    <li><p>If the method was called with a second argument <var title="">data port</var> and that argument isn't null, then run the
    following substeps:</p>
@@ -44560,10 +44655,7 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
 
    <li><p>Add the event to the <a href=#port-message-queue>port message queue</a> of <var title="">target port</var>.</li>
 
-  </ol><p class=XXX>People often request the ability to send
-  name/value pairs, arrays, and numbers using postMessage() instead of
-  just strings.</p>
-<!--
+  </ol><!--
   <hr>
 
   <p>The <dfn
@@ -44622,8 +44714,7 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
    title="">target port</var>.</p></li>
 
   </ol>
--->
-  <hr><p>The <dfn id=dom-messageport-start title=dom-MessagePort-start><code>start()</code></dfn>
+--><hr><p>The <dfn id=dom-messageport-start title=dom-MessagePort-start><code>start()</code></dfn>
   method must open its port's <a href=#port-message-queue>port message queue</a>, if it
   is not already open.</p>
 
