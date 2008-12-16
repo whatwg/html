@@ -48860,15 +48860,6 @@ XXX Once we resolve the style="" issue, address these:
   null, and the <code title="dom-MessageEvent-messagePort">messagePort</code>
   attribute must be null.</p>
 
-  <hr>
-
-  <p><span title="concept-task">Tasks</span> in <span>server-sent
-  events</span> and <span>Web Sockets</span> use their own <span
-  title="task source">task sources</span>, but the <span>task
-  source</span> for the <span title="concept-task">tasks</span> in
-  <span>cross-document messaging</span> and <span>channel
-  messaging</span> is the <dfn>posted message task source</dfn>.</p>
-
 
   <h3 id="server-sent-events"><dfn>Server-sent events</dfn></h3>
   <!-- eventsource -->
@@ -50390,6 +50381,10 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
   domain, in a way designed to not enable cross-site scripting
   attacks.</p>
 
+  <p>The <span>task source</span> for the <span
+  title="concept-task">tasks</span> in <span>cross-document
+  messaging</span> is the <dfn>posted message task source</dfn>.</p>
+
 
   <h4>Introduction</h4>
 
@@ -50754,7 +50749,6 @@ interface <dfn>MessageChannel</dfn> {
 
   // event handler attributes
            attribute <span>EventListener</span> <span title="handler-MessagePort-onmessage">onmessage</span>;
-           attribute <span>EventListener</span> <span title="handler-MessagePort-onclose">onclose</span>;
 };</pre>
 
   <p>Objects implementing the <code>MessagePort</code> interface must
@@ -50762,9 +50756,9 @@ interface <dfn>MessageChannel</dfn> {
 
   <p>Each <code>MessagePort</code> object can be entangled with
   another (a symmetric relationship). Each <code>MessagePort</code>
-  object also has a <dfn>port message queue</dfn>, initial empty. A
-  <span>port message queue</span> can be open or closed, and is
-  initially closed.</p>
+  object also has a <span>task source</span> called the <dfn>port
+  message queue</dfn>, initial empty. A <span>port message
+  queue</span> can be open or closed, and is initially closed.</p>
 
   <p>When the user agent is to <dfn>create a new
   <code>MessagePort</code> object</dfn> owned by a <span>script's
@@ -50860,9 +50854,8 @@ interface <dfn>MessageChannel</dfn> {
    <li><p>If the <var title="">source port</var> is not entangled with
    another port, then return and abort these steps.</p></li>
    <!-- we don't raise an exception because this can happen moment's
-   notice. listen to onclose if you want to know when things start
-   going wonky. (We don't return false because if the port is _about_
-   to be closed, the message might not be listened for anyway.) -->
+   notice. we don't return false because if the port is _about_
+   to be closed, the message might not be listened for anyway. -->
 
    <li><p>Let <var title="">target port</var> be the port with which
    <var title="">source port</var> is entangled.</p></li>
@@ -50937,10 +50930,9 @@ interface <dfn>MessageChannel</dfn> {
    another port, then return <var title="">port1</var> and abort these
    steps.</p></li>
    <!- - we don't raise an exception because this can happen moment's
-   notice. listen to onclose if you want to know when things start
-   going wonky. (We don't return null because then we'd end up with
+   notice. we don't return null because then we'd end up with
    null derefs. better to just let the likely next postMessage call
-   fall on the floor) - ->
+   fall on the floor. - ->
 
    <li><p>Let <var title="">target port</var> be the port with which
    <var title="">source port</var> is entangled.</p></li>
@@ -50979,13 +50971,9 @@ interface <dfn>MessageChannel</dfn> {
   method must open its port's <span>port message queue</span>, if it
   is not already open.</p>
 
-  <p>When a port's <span>port message queue</span> is open and
-  contains an event, the user agent must <span>queue a task</span> in
-  the <span>event loop</span> to dispatch the first event in the queue
-  on the <code>MessagePort</code> object, and remove the event from
-  the queue.  The <span>task source</span> for this <span
-  title="concept-task">task</span> is the <span>posted message task
-  source</span>.</p>
+  <p>When a port's <span>port message queue</span> is open, the
+  <span>event loop</span> must use it as one of its <span title="task
+  source">task sources</span>.</p>
 
   <p class="note">If the <span>script group</span> of the port's event
   handlers is <i>frozen</i>, then the messages are lost.</p>
@@ -50994,29 +50982,9 @@ interface <dfn>MessageChannel</dfn> {
 
   <p>The <dfn title="dom-MessagePort-close"><code>close()</code></dfn>
   method, when called on a port <var title="">local port</var> that is
-  entangled with another port, must cause the user agents to run the
-  following steps:</p>
-
-  <ol>
-
-   <li><p>Unentangle the two ports.</p></li>
-
-   <li><p><span>Queue a task</span> to <span>fire a simple
-   event</span> called <code title="event-close">close</code> at the
-   port on which the method was called.</p></li>
-
-   <li><p><span>Queue a task</span> to <span>fire a simple
-   event</span> called <code title="event-close">close</code> at the
-   other port.</p></li>
-
-  </ol>
-
-  <p>The <span>task source</span> for the two <span
-  title="concept-task">tasks</span> above is the <span>posted message
-  task source</span>.
-
-  <p>If the method is called on a port that is not entangled, then the
-  method must do nothing.</p>
+  entangled with another port, must cause the user agents to
+  unentangle the two ports. If the method is called on a port that is
+  not entangled, then the method must do nothing.</p>
 
   <hr>
 
@@ -51041,12 +51009,6 @@ interface <dfn>MessageChannel</dfn> {
     method had been called.</p>
 
    </dd>
-
-   <dt><dfn title="handler-MessagePort-onclose"><code>onclose</code></dfn></dt>
-
-   <dd><p>Must be invoked whenever a <code
-   title="event-close">close</code> event is targeted at or bubbles
-   through the <code>MessagePort</code> object.</p></dd>
 
   </dl>
 
