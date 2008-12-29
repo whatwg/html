@@ -44480,9 +44480,8 @@ have a variable and unknowable number of literals coming:
   increase the quota every five megabytes.</p>
 
   <pre class="idl">interface <dfn>Database</dfn> {
-  void <span title="dom-database-transaction">transaction</span>(in <span>SQLTransactionCallback</span> callback);
-  void <span title="dom-database-transaction">transaction</span>(in <span>SQLTransactionCallback</span> callback, in <span>SQLTransactionErrorCallback</span> errorCallback);
-  void <span title="dom-database-transaction">transaction</span>(in <span>SQLTransactionCallback</span> callback, in <span>SQLTransactionErrorCallback</span> errorCallback, in <span>VoidCallback</span> successCallback);
+  void <span title="dom-database-transaction">transaction</span>(in <span>SQLTransactionCallback</span> callback, [Optional] in <span>SQLTransactionErrorCallback</span> errorCallback, [Optional] in <span>VoidCallback</span> successCallback);
+  void <span title="dom-database-readTransaction">readTransaction</span>(in <span>SQLTransactionCallback</span> callback, [Optional] in <span>SQLTransactionErrorCallback</span> errorCallback, [Optional] in <span>VoidCallback</span> successCallback);
 
   readonly attribute DOMString <span title="dom-database-version">version</span>;
   void <span title="dom-database-changeVersion">changeVersion</span>(in DOMString oldVersion, in DOMString newVersion, in <span>SQLTransactionCallback</span> callback, in <span>SQLTransactionErrorCallback</span> errorCallback, in <span>VoidCallback</span> successCallback);
@@ -44498,13 +44497,21 @@ interface <dfn>SQLTransactionErrorCallback</dfn> {
 
   <p>The <dfn
   title="dom-database-transaction"><code>transaction()</code></dfn>
-  method takes one or two arguments. When called, the method must
+  and <dfn
+  title="dom-database-readTransaction"><code>readTransaction()</code></dfn>
+  methods takes one to three arguments. When called, these method must
   immediately return and then asynchronously run the <span>transaction
   steps</span> with the <i>transaction callback</i> being the first
   argument, the <i>error callback</i> being the second argument, if
   any, the <i>success callback</i> being the third argument, if any,
   and with no <i>preflight operation</i> or <i>postflight
   operation</i>.</p>
+
+  <p>For the <code
+  title="dom-database-transaction">transaction()</code> method, the
+  <i>mode</i> must be read/write. For the <code
+  title="dom-database-readTransaction">readTransaction()</code>
+  method, the <i>mode</i> must be read-only.</p>
 
   <p>The version that the database was opened with is the <dfn
   title="concept-database-expected-version">expected version</dfn> of
@@ -44538,7 +44545,7 @@ interface <dfn>SQLTransactionErrorCallback</dfn> {
 
   </ol>
 
-  <p>...and the <i>postflight operation</i> being the following:</p>
+  <p>...the <i>postflight operation</i> being the following:</p>
 
   <ol>
 
@@ -44553,6 +44560,8 @@ interface <dfn>SQLTransactionErrorCallback</dfn> {
    method.</li>
 
   </ol>
+
+  <p>...and the <i>mode</i> being read/write.</p>
 
 
   <h5>Executing SQL statements</h5>
@@ -44829,16 +44838,22 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
   be run asynchronously. These steps are invoked with a <i>transaction
   callback</i>, optionally an <i>error callback</i>, optionally a
   <i>success callback</i>, optionally a <i>preflight operation</i>,
-  and optionally a <i>postflight operation</i>.</p>
+  optionally a <i>postflight operation</i>, and with a <i>mode</i>
+  that is either read/write or read-only.</p>
 
   <ol>
 
    <li><p>Open a new SQL transaction to the database, and create a
    <code>SQLTransaction</code> object that represents that
-   transaction.</p></li>
+   transaction. If the <i>mode</i> is read/write, the transaction must
+   have an exclusive write lock over the entire database. If the
+   <i>mode</i> is read-only, the transaction must have a shared read
+   lock over the entire database. The user agent should wait for an
+   appropriate lock to be available..</p></li>
 
-   <li><p>If an error occurred in the opening of the transaction, jump
-   to the last step.</p></li>
+   <li><p>If an error occurred in the opening of the transaction
+   (e.g. if the user agent failed to obtain an appropriate lock after
+   an appropriate delay), jump to the last step.</p></li>
 
    <li><p>If a <i>preflight operation</i> was defined for this
    instance of the transaction steps, run that. If it fails, then jump
@@ -44869,6 +44884,22 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
 
      <li><p>If the statement is marked as bogus, jump to the "in case
      of error" steps below.</p></li>
+
+     <li id="modifications-fail-if-read-only">
+
+      <p>If the <i>mode</i> is read-only but the statement's main verb
+      can modify the database, jump to the "in case of error" steps
+      below.</p>
+
+      <p class="note">Only the statement's main verb (e.g. <code
+      title="">UPDATE</code>, <code title="">SELECT</code>, <code
+      title="">DROP</code>) is considered here. Thus, a statement like
+      "<code title="">UPDATE test SET id=0 WHERE 0=1</code>" would be
+      treated as potentially modifying the database for the purposes
+      of this step, even though it could never in fact have any
+      side-effects.</p>
+
+     </li>
 
      <li><p>Execute the statement in the context of the transaction.
      <a href="#refsSQL">[SQL]</a></p>
