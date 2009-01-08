@@ -50278,16 +50278,67 @@ interface <dfn>WebSocket</dfn> {
   <p>The <dfn title="dom-WebSocket"><code>WebSocket(<var
   title="">url</var>)</code></dfn> constructor takes one argument,
   <var title="">url</var>, which specifies the <span>URL</span> to
-  which to connect. When a <code>WebSocket</code> object is created,
-  the UA must <span title="parse a url">parse</span> this argument and
-  verify that the URL parses without failure and has a <span
-  title="url-scheme">&lt;scheme&gt;</span> component whose value is
-  either "<code title="">ws</code>" or "<code title="">wss</code>",
-  when compared in an <span>ASCII case-insensitive</span> manner. If
-  it does, it has, and it is, then the user agent must asynchronously
-  <span>establish a Web Socket connection</span> to <var
-  title="">url</var>. Otherwise, the constructor must raise a
-  <code>SYNTAX_ERR</code> exception.</p>
+  which to connect. When the <code>WebSocket()</code> constructor is
+  invoked, the UA must run these steps:</p>
+
+  <ol>
+
+   <li><p><span title="parse a url">Parse</span> the <var
+   title="">url</var> argument.</p></li>
+
+   <li><p>If the previous step failed, or if <var title="">url</var>
+   does not have a <span title="url-scheme">&lt;scheme&gt;</span>
+   component whose value is either "<code title="">ws</code>" or
+   "<code title="">wss</code>", when compared in an <span>ASCII
+   case-insensitive</span> manner, then throw a
+   <code>SYNTAX_ERR</code> exception.</p></li>
+
+   <li><p>Return a new <code>WebSocket</code> object, and continue
+   these steps in the background (without blocking scripts).</p></li>
+
+   <li><p>Let <var title="">origin</var> be the <span title="ASCII
+   serialization of an origin">ASCII serialization</span> of the
+   <span>origin</span> of the script that invoked the <code
+   title="dom-WebSocket">WebSocket()</code> constructor.</p></li>
+
+   <li><p>If the <span title="url-scheme">&lt;scheme&gt;</span>
+   component of <var title="">url</var> is "<code title="">ws</code>",
+   set <var title="">secure</var> to false; otherwise, the <span
+   title="url-scheme">&lt;scheme&gt;</span> component is "<code
+   title="">wss</code>", set <var title="">secure</var> to
+   true.</p></li>
+
+   <li><p>Let <var title="">host</var> be the value of the <span
+   title="url-host">&lt;host&gt;</span> component of <var
+   title="">url</var>.</p></li>
+
+   <li><p>If <var title="">url</var> has a <span
+   title="url-port">&lt;port&gt;</span> component, then let <var
+   title="">port</var> be that component's value; otherwise, there is
+   no explicit <var title="">port</var>.</p></li>
+
+   <li><p>Let <var title="">resource name</var> be the value of the
+   <span title="url-path">&lt;path&gt;</span> component (which might
+   be empty) of <var title="">url</var>.</p></li>
+
+   <li><p>If <var title="">resource name</var> is the empty string,
+   set it to a single character U+002F SOLIDUS (/).</p></li>
+
+   <li><p>If <var title="">url</var> has a <span
+   title="url-query">&lt;query&gt;</span> component, then append a
+   single U+003F QUESTION MARK (?) character to <var title="">resource
+   name</var>, followed by the value of the <span
+   title="url-query">&lt;query&gt;</span> component.</p></li>
+
+   <li><p><span>Establish a Web Socket connection</span> to a host
+   <var title="">host</var>, on port <var title="">port</var> (if one
+   was specified), from <var title="">origin</var>, with the flag <var
+   title="">secure</var>, and with <var title="">resource name</var>
+   as the resource name.</p></li>
+
+  </ol>
+
+  <hr>
 
   <p>The <dfn title="dom-WebSocket-URL"><code>URL</code></dfn>
   attribute must return the value that was passed to the
@@ -50316,7 +50367,9 @@ interface <dfn>WebSocket</dfn> {
 
   <p>When the object is created its <code
   title="dom-WebSocket-readyState">readyState</code> must be set to
-  <code title="dom-WebSocket-CONNECTING">CONNECTING</code> (0).</p>
+  <code title="dom-WebSocket-CONNECTING">CONNECTING</code> (0). The
+  steps executed when the constructor is invoked change this
+  attribute's value.</p>
 
   <p>The <dfn title="dom-WebSocket-postMessage"><code>postMessage(<var
   title="">data</var>)</code></dfn> method transmits data using the
@@ -50386,12 +50439,80 @@ interface <dfn>WebSocket</dfn> {
   </dl>
 
 
-  <h4 id="websocket-protocol">The Web Socket protocol</h4>
+
+  <h4>Feedback from the protocol</h4>
+
+  <p>When the <i>Web Socket connection is established</i>, the user
+  agent must run the following steps:</p>
+
+  <ol>
+
+   <li>
+
+    <p>Change the <code
+    title="dom-WebSocket-readyState">readyState</code> attribute's value
+    to <code title="dom-WebSocket-OPEN">OPEN</code> (1).</p>
+
+   </li>
+
+   <li>
+
+    <p><span>Queue a task</span> to <span>fire a simple event</span>
+    named <code title="event-WebSocket-open">open</code> at the
+    <code>WebSocket</code> object.</p>
+
+   </li>
+
+  </ol>
+
+  <hr>
+
+  <p>When <i>a Web Socket message has been received</i> with text <var
+  title="">data</var>, the user agent must create an event that uses
+  the <code>MessageEvent</code> interface, with the event name <code
+  title="event-message">message</code>, which does not bubble, is
+  cancelable, has no default action, and whose <code
+  title="dom-MessageEvent-data">data</code> attribute is set to <var
+  title="">data</var>, and <span>queue a task</span> to dispatch it at
+  the <code>WebSocket</code> object.</p>
+
+  <hr>
+
+  <p id="closeWebSocket">When the <i>Web Socket connection is
+  closed</i>, the <code
+  title="dom-WebSocket-readyState">readyState</code> attribute's value
+  must be changed to <code title="dom-WebSocket-CLOSED">CLOSED</code>
+  (2), and the user agent must <span>queue a task</span> to <span>fire
+  a simple event</span> named <code
+  title="event-WebSocket-close">close</code> at the
+  <code>WebSocket</code> object.</p>
+
+  <hr>
 
   <p>The <span>task source</span> for all <span
   title="concept-task">tasks</span> <span title="queue a
-  task">queued</span> by algorithms in this section and its
-  subsections is the <dfn>Web Socket task source</dfn>.</p>
+  task">queued</span> in this section is the <dfn>Web Socket task
+  source</dfn>.</p>
+
+
+
+  <h4 id="websocket-protocol" title="This protocol enables two-way
+  communication between a user agent running untrusted code running in
+  a controlled environment to a remote host that understands the
+  protocol. It is intended to fail to communicate with servers of
+  pre-existing protocols like SMTP or HTTP, while allowing HTTP
+  servers to opt-in to supporting this protocol if desired. It is
+  designed to be easy to implement on the server side.">The Web Socket
+  protocol</h4>
+
+  <div class="no-rfc">
+   <p class="note">This section will be extracted into an RFC in due
+   course.</p>
+  </div>
+
+  <h5>Introduction</h5>
+
+  <p class="XXX">...</p>
 
   <h5>Client-side requirements</h5>
 
@@ -50406,59 +50527,36 @@ interface <dfn>WebSocket</dfn> {
   <h6>Handshake</h6>
 
   <p>When the user agent is to <dfn>establish a Web Socket
-  connection</dfn> to <var title="">url</var>, it must run the
-  following steps, in the background (without blocking scripts or
-  anything like that):</p>
+  connection</dfn> to a host <var title="">host</var>, optionally on
+  port <var title="">port</var>, from an origin <var
+  title="">origin</var>, with a flag <var title="">secure</var>, and
+  with a particular <var title="">resource name</var>, it must run the
+  following steps:</p>
 
   <ol>
 
-   <li id="ws-ua-1"><p><span title="resolve a url">Resolve</span> the
-   <span>URL</span> <var title="">url</var>.</p></li> <!-- warning for
-   editors: this is referred to as "the first step" by later steps -->
+   <li>
 
-   <li><p>If the <span title="url-scheme">&lt;scheme&gt;</span>
-   component of the resulting <span>absolute URL</span> is "<code
-   title="">ws</code>", set <var title="">secure</var> to false;
-   otherwise, the <span title="url-scheme">&lt;scheme&gt;</span>
-   component is "<code title="">wss</code>", set <var
-   title="">secure</var> to true.</p></li>
+    <p>If there is no explicit <var title="">port</var>, then: if <var
+    title="">secure</var> is false, let <var title="">port</var> be 81,
+    otherwise let <var title="">port</var> be 815.</p>
 
-   <li><p>Let <var title="">host</var> be the value of the <span
-   title="url-host">&lt;host&gt;</span> component in the resulting
-   <span>absolute URL</span>.</p></li>
-
-   <li><p>If the resulting <span>absolute URL</span> has a <span
-   title="url-port">&lt;port&gt;</span> component, then let <var
-   title="">port</var> be that component's value; otherwise, if <var
-   title="">secure</var> is false, let <var title="">port</var> be 81,
-   otherwise let <var title="">port</var> be 815.</p></li>
-
-   <li><p>Let <var title="">resource name</var> be the value of the
-   <span title="url-path">&lt;path&gt;</span> component (which might
-   be empty) in the resulting <span>absolute URL</span>.</p></li>
-
-   <li><p>If <var title="">resource name</var> is the empty string,
-   set it to a single character U+002F SOLIDUS (/).</p></li>
-
-   <li><p>If the resulting <span>absolute URL</span> has a <span
-   title="url-query">&lt;query&gt;</span> component, then append a
-   single U+003F QUESTION MARK (?) character to <var title="">resource
-   name</var>, followed by the value of the <span
-   title="url-query">&lt;query&gt;</span> component.</p></li>
+   </li>
 
    <li>
 
     <p>If the user agent is configured to use a proxy to connect to
-    port <var title="">port</var>, then connect to that proxy and ask
-    it to open a TCP/IP connection to the host given by <var
-    title="">host</var> and the port given by <var
-    title="">port</var>.</p>
+    host <var title="">host</var> and/or port <var
+    title="">port</var>, then connect to that proxy and ask it to open
+    a TCP/IP connection to the host given by <var title="">host</var>
+    and the port given by <var title="">port</var>.</p>
 
     <div class="example">
 
-     <p>For example, if the user agent uses an HTTP proxy, then if it
-     was to try to connect to port 80 on server example.com, it might
-     send the following lines to the proxy server:</p>
+     <p>For example, if the user agent uses an HTTP proxy for all
+     traffic, then if it was to try to connect to port 80 on server
+     example.com, it might send the following lines to the proxy
+     server:</p>
 
      <pre>CONNECT example.com HTTP/1.1</pre>
 
@@ -50514,8 +50612,9 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
 
     <pre>48 6f 73 74 3a 20</pre>
 
-    <p>Send the <var title="">host</var> value, encoded as US-ASCII,
-    if it represents a host name (and not an IP address).</p>
+    <p>Send the <var title="">host</var> value, encoded as US-ASCII
+    and <span>converted to lowercase</span>, if it represents a host
+    name (and not an IP address).</p>
 
     <p>Send the following bytes:</p>
 
@@ -50531,10 +50630,8 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
 
     <pre>4f 72 69 67 69 6e 3a 20</pre>
 
-    <p>Send the <span title="ASCII serialization of an origin">ASCII
-    serialization</span> of the <span>origin</span> of the script that
-    invoked the <code title="dom-WebSocket">WebSocket()</code>
-    constructor.</p>
+    <p>Send the <var title="">origin</var> value, encoded as US-ASCII
+    and <span>converted to lowercase</span>.</p>
 
     <p>Send the following bytes:</p>
 
@@ -50547,12 +50644,12 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
    <li>
 
     <p>If the client has any authentication information or cookies
-    that would be relevant to a resource with a <span>URL</span> that
-    has a scheme of <code title="">http</code> if <var
-    title="">secure</var> is false and <code title="">https</code> if
-    <var title="">secure</var> is true and is otherwise identical to
-    <var title="">url</var>, then HTTP headers that would be
-    appropriate for that information should be sent at this point. <a
+    that would be relevant to a resource accessed over HTTP, if <var
+    title="">secure</var> is false, or HTTPS, if it is true, on host
+    <var title="">host</var>, port <var title="">port</var>, with <var
+    title="">resource name</var> as the path (and possibly query
+    parameters), then HTTP headers that would be appropriate for that
+    information should be sent at this point. <a
     href="#refsRFC2616">[RFC2616]</a> <a
     href="#refsRFC2109">[RFC2109]</a> <a
     href="#refsRFC2965">[RFC2965]</a></p>
@@ -50565,9 +50662,16 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
     <div class="example">
 
      <p>For example, if the server had a username and password that
-     applied to that URL, it could send:</p>
+     applied to <code title="">http://example.com/socket</code>, and
+     the Web Socket was being opened to <code
+     title="">ws://example.com:80/socket</code>, it could send
+     them:</p>
 
      <pre>Authorization: Basic d2FsbGU6ZXZl</pre>
+
+     <p>However, it would not send them if the Web Socket was being
+     opened to <code title="">ws://example.com/socket</code>, as that
+     uses a different port (81, not 80).</p>
 
     </div>
 
@@ -50602,8 +50706,8 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
     string "Upgrade:&nbsp;WebSocket", CRLF, the string
     "Connection:&nbsp;Upgrade", CRLF.</p>
 
-    <p class="XXX">What if the response is a 401 asking for
-    credentials?</p>
+    <!-- v2 if we ever support the server requiring credentials, this
+    is where it goes -->
 
    </li>
 
@@ -50785,34 +50889,58 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
      <dt>If the entry's name is "<code
      title="">websocket-origin</code>"</dt>
 
-     <dd>If the value is not exactly equal to the <span title="ASCII
-     serialization of an origin">ASCII serialization</span> of the
-     <span>origin</span> of the script that invoked the <code
-     title="dom-WebSocket">WebSocket()</code> constructor, then
+     <dd><p>If the value is not exactly equal to <var
+     title="">origin</var>, <span>converted to lowercase</span>, then
      <span>fail the Web Socket connection</span> and abort these
-     steps.</dd>
+     steps.</p></dd>
 
 
      <dt>If the entry's name is "<code
      title="">websocket-location</code>"</dt>
 
-     <dd>If the value is not exactly equal to the <span>absolute
-     URL</span> that resulted from the <a href="#ws-ua-1">first
-     step</a> of ths algorithm, then <span>fail the Web Socket
-     connection</span> and abort these steps.</dd>
+     <dd>
+
+      <p>If the value is not exactly equal to a string consisting of
+      the following components in the same order, then <span>fail the
+      Web Socket connection</span> and abort these steps:</p>
+
+      <ol>
+
+       <li>The string "<code title="">http</code>" if <var
+       title="">secure</var> is false and "<code
+       title="">https</code>" if <var title="">secure</var> is
+       true</li>
+
+       <li>The three characters "<code title="">://</code>".</li>
+
+       <li>The value of <var title="">host</var>.</li>
+
+       <li>If <var title="">secure</var> is false and <var
+       title="">port</var> is not 81, or if <var title="">secure</var>
+       is true and <var title="">port</var> is not 815: a "<code
+       title="">:</code>" character followed by the value of <var
+       title="">port</var>.</li>
+
+       <li>The value of <var title="">resource name</var>.</li>
+
+      </ol>
+
+     </dd>
 
 
      <dt>If the entry's name is "<code title="">set-cookie</code>" or
      "<code title="">set-cookie2</code>" or another cookie-related
      header name</dt>
 
-     <dd>Handle the cookie as defined by the appropriate spec, except
-     pretend that the resource's <span>URL</span> actually has a
-     scheme of <code title="">http</code> if <var
+     <dd><p>Handle the cookie as defined by the appropriate spec, with
+     the resource being the one with the host <var
+     title="">host</var>, the port <var title="">port</var>, the path
+     (and possibly query parameters) <var title="">resource
+     name</var>, and the scheme <code title="">http</code> if <var
      title="">secure</var> is false and <code title="">https</code> if
-     <var title="">secure</var> is true and is otherwise identical to
-     <var title="">url</var>. <a href="#refsRFC2109">[RFC2109]</a> <a
-     href="#refsRFC2965">[RFC2965]</a></dd>
+     <var title="">secure</var> is true. <a
+     href="#refsRFC2109">[RFC2109]</a> <a
+     href="#refsRFC2965">[RFC2965]</a></p></dd>
 
 
      <dt>Any other name</dt>
@@ -50820,22 +50948,6 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
      <dd>Ignore it.</dd>
 
     </dl>
-
-   </li>
-
-   <li>
-
-    <p>Change the <code
-    title="dom-WebSocket-readyState">readyState</code> attribute's value
-    to <code title="dom-WebSocket-OPEN">OPEN</code> (1).</p>
-
-   </li>
-
-   <li>
-
-    <p><span>Queue a task</span> to <span>fire a simple event</span>
-    named <code title="event-WebSocket-open">open</code> at the
-    <code>WebSocket</code> object.</p>
 
    </li>
 
@@ -50853,8 +50965,8 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
   <span>close the Web Socket connection</span>, and may report the
   problem to the user (which would be especially useful for
   developers). However, user agents must not convey the failure
-  information to the script in a way distinguishable from the Web
-  Socket being closed normally.</p>
+  information to the script that attempted the connection in a way
+  distinguishable from the Web Socket being closed normally.</p>
 
 
   <h6>Data framing</h6>
@@ -50945,14 +51057,9 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
        <li><p>Interpret <var title="">raw data</var> as a UTF-8
        string, and store that string in <var title="">data</var>.</p>
 
-       <li><p>If <var title="">frame type</var> is 0x00, create an
-       event that uses the <code>MessageEvent</code> interface, with
-       the event name <code title="event-message">message</code>,
-       which does not bubble, is cancelable, has no default action,
-       and whose <code title="dom-MessageEvent-data">data</code>
-       attribute is set to <var title="">data</var>, and <span>queue a
-       task</span> to dispatch it at the <code>WebSocket</code>
-       object. Otherwise, discard the data.</p></li>
+       <li><p>If <var title="">frame type</var> is 0x00, then <dfn>a
+       message has been received</dfn> with text <var
+       title="">data</var>.  Otherwise, discard the data.</p></li>
 
       </ol>
 
@@ -50987,11 +51094,11 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
 
   </ol>
 
-  <p class="XXX">People often request the ability to send binary
-  blobs over this API; also, once the other postMessage() methods
-  support it, we should look into allowing name/value pairs, arrays,
-  and numbers using postMessage() instead of just strings and binary
-  data.</p>
+  <!-- v2: People often request the ability to send binary blobs over
+  this API; we should also look into allowing name/value pairs,
+  arrays, and numbers using postMessage() instead of just strings and
+  binary data. -->
+
 
 
   <h5>Server-side requirements</h5>
@@ -51139,7 +51246,7 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
    <li><p>Let <var title="">raw data</var> be an empty byte
    array.</p></li>
 
-   <li id="ws-sd-data"><p><em>Data</em>: Read a byte, let <var
+   <li id="ws-sd-data"><p><i>Data</i>: Read a byte, let <var
    title="">b</var> be that byte.</p></li>
 
    <li><p>If <var title="">b</var> is not 0xff, then append <var
@@ -51187,15 +51294,10 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
   <p>User agents should not <span>close the Web Socket
   connection</span> arbitrarily.</p>
 
-  <p id="closeWebSocket">When the <span>Web Socket connection is
-  closed</span>, the <code
-  title="dom-WebSocket-readyState">readyState</code> attribute's value
-  must be changed to <code title="dom-WebSocket-CLOSED">CLOSED</code>
-  (2), and the user agent must <span>queue a task</span> to <span>fire
-  a simple event</span> named <code
-  title="event-WebSocket-close">close</code> at the
-  <code>WebSocket</code> object.</p>
 
+  <h5>Security considerations</h5>
+
+  <p class="XXX">...</p>
 
 
   <h3 id="crossDocumentMessages"><dfn>Cross-document messaging</dfn></h3>
