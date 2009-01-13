@@ -5168,9 +5168,9 @@
   <ul>
 
    <li>It is an <code>a</code>, <code>applet</code>,
-   <code>area</code>, <code>form</code>, <code>img</code>, or
-   <code>object</code> element with a <code
-   title="">name</code> attribute equal to <var
+   <code>area</code>, <code>embed</code>, <code>form</code>,
+   <code>iframe</code>, <code>img</code>, or <code>object</code>
+   element with a <code title="">name</code> attribute equal to <var
    title="">key</var>, or,</li>
 
    <li>It is an element with an ID <var title="">key</var>.</li>
@@ -5832,7 +5832,7 @@ interface <dfn>DOMStringMap</dfn> {};</pre>
   simply being the primary interface of the document object, it is no
   longer defined as inheriting from <code>Document</code>.</p>
 
-  <pre class="idl">[<span title="dom-document-namedItem">NameGetter</span>]
+  <pre class="idl">[<span title="dom-document-namedItem">NameGetter</span>=OverrideBuiltins]<!-- XXX http://krijnhoetmer.nl/irc-logs/whatwg/20090113#l-300 -->
 interface <dfn>HTMLDocument</dfn> {
   // <span>resource metadata management</span>
   [PutForwards=href] readonly attribute <span>Location</span> <span title="dom-document-location">location</span>;
@@ -6388,22 +6388,61 @@ interface <dfn>HTMLDocument</dfn> {
 
   <p>When <dfn title="dom-document-namedItem">the
   <code>HTMLDocument</code> object is indexed for property
-  retrieval</dfn> using a name <var title="">name</var>, then: if the
-  list of <span title="dom-document-namedItem-filter">named
-  elements</span> with the name <var title="">name</var> in the
-  <code>Document</code> <!-- There will be at least one such element,
-  by definition. (If there wasn't, then this algorithm wouldn't have
-  been invoked by WebIDL.) --> has only one element, then that element
-  must be the value returned; otherwise the value returned must be an
-  <code>HTMLCollection</code> rooted at the <code>Document</code>
-  node, whose filter matches only <span
-  title="dom-document-namedItem-filter">named elements</span> with the
-  name <var title="">name</var>.</p> <!-- the same one each time is
-  returned, because of the rule under collections -->
+  retrieval</dfn> using a name <var title="">name</var>, then the user
+  agent must return the value obtained using the following steps:</p>
+
+  <ol>
+
+   <li>
+
+    <p>Let <var title="">elements</var> be the list of <span
+    title="dom-document-namedItem-filter">named elements</span> with
+    the name <var title="">name</var> in the <code>Document</code>.
+
+    <p class="note">There will be at least one such element, by
+    definition.<!-- (If there wasn't, then this algorithm wouldn't
+    have been invoked by WebIDL.) --></p>
+
+   </li>
+
+   <li>
+
+    <p>If <var title="">elements</var> has only one element, and that
+    element is an <code>iframe</code> element, then return the
+    <code>Window</code> object of the <span>default view</span> of the
+    <span>nested browsing context</span> represented by that
+    <code>iframe</code> element, and abort these steps.</p>
+
+   </li>
+
+   <li>
+
+    <p>Otherwise, if <var title="">elements</var> has only one
+    element, return that element and abort these steps.</p>
+
+   </li>
+
+   <li>
+
+    <p>Otherwise return an <code>HTMLCollection</code> rooted at the
+    <code>Document</code> node, whose filter matches only <span
+    title="dom-document-namedItem-filter">named elements</span> with
+    the name <var title="">name</var>.</p> <!-- the same one each time
+    is returned, because of the rule under collections -->
+
+   </li>
+
+  <!--
+  Note that this named getter overrides built-in properties, as in:
+     http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C!DOCTYPE%20html%3E%0D%0A...%3Ciframe%20name%3Dbody%3E%3C%2Fiframe%3E%3Cscript%3Ew(document.body)%3C%2Fscript%3E
+  This is what the "OverrideBuiltins" bit means in the IDL.
+  -->
+
+  </ol>
 
   <p><dfn title="dom-document-nameditem-filter">Named elements</dfn>
-  with the name <var title="">name</var> are those that are
-  either:</p>
+  with the name <var title="">name</var>, for the purposes of the
+  above algorithm, are those that are either:</p>
 
   <ul>
 
@@ -6416,7 +6455,7 @@ interface <dfn>HTMLDocument</dfn> {
    <li><code>applet</code> or <span>fallback-free</span>
    <code>object</code> elements that have an <code
    title="attr-id">id</code> content attribute whose value is <var
-   title="">name</var>.</li>
+   title="">name</var>, or</li>
 
    <li><code>img</code> elements that have an <code
    title="attr-id">id</code> content attribute whose value is <var
@@ -6650,8 +6689,8 @@ interface <dfn>HTMLDocument</dfn> {
   </dl>
 
   <p>In addition, the following <span>event handler content
-  attributes</span> may be specified on any <span>HTML
-  element</span>:</p>
+  attributes</span> may be specified on any <span title="HTML
+  elements">HTML element</span>:</p>
 
   <dl class="element">
    <dt>Event handler content attributes:</dt>
@@ -6693,8 +6732,9 @@ interface <dfn>HTMLDocument</dfn> {
 
   <p>Also, <span title="custom data attribute">custom data
   attributes</span> (e.g. <code title="">data-foldername</code> or
-  <code title="">data-msgid</code>) can be specified on any <span>HTML
-  element</span>, to store custom data specific to the page.</p>
+  <code title="">data-msgid</code>) can be specified on any <span
+  title="HTML elements">HTML element</span>, to store custom data
+  specific to the page.</p>
 
   <p>In <span>HTML documents</span>, elements in the <span>HTML
   namespace</span> may have an <code title="">xmlns</code> attribute
@@ -37879,7 +37919,7 @@ explain that only direct children of the <menu> matter
   view">default views</span> must also implement the
   <code>Window</code> and <code>EventTarget</code> interfaces.</p>
 
-  <pre class="idl">[NoInterfaceObject, IndexGetter]
+  <pre class="idl">[NoInterfaceObject, <span title="dom-window-item">IndexGetter</span>, <span title="dom-window-namedItem">NameGetter</span>]
 interface <dfn>Window</dfn> {
   // the current browsing context
   readonly attribute <span>Window</span> <span title="dom-window">window</span>;
@@ -38010,7 +38050,8 @@ interface <dfn>Window</dfn> {
    <li>The <code title="dom-frames">frames</code> attribute
 
    <li>Any <span title="corresponding indexed property">corresponding
-   indexed properties</span>
+   indexed properties</span> (used for <span
+   title="dom-window-item">accessing nested browsing contexts</span>)
 
   </ul>
 
@@ -38129,12 +38170,12 @@ interface <dfn>Window</dfn> {
   <code>Document</code>.</p>
 
   <p>The value of a <span>corresponding indexed property</span> <var
-  title="">index</var> whenever an indexed property on a
-  <code>Window</code> object is retrieved is the <var
-  title="">index</var>th <span>child browsing context</span> of the
-  <span title="active document">active</span> <code>Document</code>,
-  sorted in document order of the elements nesting those browsing
-  contexts.</p>
+  title="">index</var> whenever <dfn title="dom-window-item">an
+  indexed property on a <code>Window</code> object is retrieved</dfn>
+  is the <var title="">index</var>th <span>child browsing
+  context</span> of the <span title="active document">active</span>
+  <code>Document</code>, sorted in document order of the elements
+  nesting those browsing contexts.</p>
 
 
 
@@ -38173,6 +38214,96 @@ interface <dfn>Window</dfn> {
   title="browsing context">browsing contexts</span> must be discarded
   once their <code>Window</code> object is eligible for garbage
   collection.</p>
+
+
+
+  <h4>Named access on the <code>Window</code> object</h4>
+
+  <p>The <code>Window</code> interface <span title="support named
+  properties">supports named properties</span>. The <span>names of the
+  supported named properties</span> at any moment consist of:</p>
+
+  <ul>
+
+   <li>The value of the <code title="">name</code> content attribute
+   for all <code>a</code>, <code>applet</code>, <code>area</code>,
+   <code>embed</code>, <code>form</code>, <code>iframe</code>,
+   <code>img</code>, and <code>object</code> elements in the
+   <span>active document</span> that have a <code title="">name</code>
+   content attribute, and,</li>
+
+   <li>The value of the <code title="attr-id">id</code> content
+   attribute of any <span title="HTML elements">HTML element</span> in
+   the <span>active document</span> with an <code
+   title="attr-id">id</code> content attribute.</li>
+
+  </ul>
+
+  <p>When <dfn title="dom-window-namedItem">the <code>Window</code>
+  object is indexed for property retrieval</dfn> using a name <var
+  title="">name</var>, then the user agent must return the value
+  obtained using the following steps:</p>
+
+  <ol>
+
+   <li>
+
+    <p>Let <var title="">elements</var> be the list of <span
+    title="dom-window-namedItem-filter">named elements</span> with the
+    name <var title="">name</var> in the <span>active document</span>.
+
+    <p class="note">There will be at least one such element, by
+    definition.<!-- (If there wasn't, then this algorithm wouldn't
+    have been invoked by WebIDL.) --></p>
+
+   </li>
+
+   <li>
+
+    <p>If <var title="">elements</var> contains an <code>iframe</code>
+    element, then return the <code>Window</code> object of the
+    <span>default view</span> of the <span>nested browsing
+    context</span> represented by the first such <code>iframe</code>
+    element in <span>tree order</span>, and abort these steps.</p>
+
+   </li>
+
+   <li>
+
+    <p>Otherwise, if <var title="">elements</var> has only one
+    element, return that element and abort these steps.</p>
+
+   </li>
+
+   <li>
+
+    <p>Otherwise return an <code>HTMLCollection</code> rooted at the
+    <code>Document</code> node, whose filter matches only <span
+    title="dom-window-namedItem-filter">named elements</span> with
+    the name <var title="">name</var>.</p> <!-- the same one each time
+    is returned, because of the rule under collections -->
+
+   </li>
+
+  </ol>
+
+  <p><dfn title="dom-window-nameditem-filter">Named elements</dfn>
+  with the name <var title="">name</var>, for the purposes of the
+  above algorithm, are those that are either:</p>
+
+  <ul>
+
+   <li><code>a</code>, <code>applet</code>, <code>area</code>,
+   <code>embed</code>, <code>form</code>, <code>iframe</code>,
+   <code>img</code>, or <code>object</code> elements that have a <code
+   title="attr-name">name</code> content attribute whose value is <var
+   title="">name</var>, or</li>
+
+   <li><span>HTML elements</span> elements that have an <code
+   title="attr-id">id</code> content attribute whose value is <var
+   title="">name</var>.</li>
+
+  </ul>
 
 
 
