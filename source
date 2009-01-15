@@ -6180,7 +6180,8 @@ interface <dfn>HTMLDocument</dfn> {
   changed to "complete" when the parser reaches the end of its input
   stream.</p> <!-- XXX this should be in its own section, and we
   should define 'delay the load event' for XML parsing so that we can
-  have the "interactive" state here too. -->
+  have the "interactive" state here too. also, XML parser will need to
+  fire the /pending state object/, and the 'load' event, and... -->
 
   <p>The <dfn
   title="dom-document-readyState"><code>readyState</code></dfn> DOM
@@ -42991,14 +42992,6 @@ style/default.css</pre>
   (or script) goes back in the history, thus enabling authors to use
   the "navigation" metaphor even in one-page applications.</p>
 
-  <p>Every <code>Document</code> in the session history is defined to
-  have a <dfn>last activated entry</dfn>, which is the <span>state
-  object</span> entry associated with that <code>Document</code> which
-  was most recently activated. Initially, the <span>last activated
-  entry</span> of a <code>Document</code> must be the first entry for
-  the <code>Document</code>, representing the fact that no <span>state
-  object</span> entry has yet been activated.</p>
-
   <p>At any point, one of the entries in the session history is the
   <dfn>current entry</dfn>. This is the entry representing the
   <span>active document</span> of the <span>browsing
@@ -43037,17 +43030,6 @@ style/default.css</pre>
   <p>When state object entries are added, a URL can be provided. This
   URL is used to replace the state object entry if the
   <code>Document</code> is evicted.</p>
-
-  <p>When a user agent discards the <code>Document</code> object from
-  an entry in the session history, it must also discard all the
-  entries that share that <code>Document</code> but do not have an
-  associated URL (i.e. entries that only have a <span>state
-  object</span>). Entries that shared that <code>Document</code>
-  object but had a state object and have a different URL must then
-  have their <em>state objects</em> removed. Removed entries are not
-  recreated if the user or script navigates back to the page. If there
-  are no state object entries for that <code>Document</code> object
-  then no entries are removed.</p>
 
 
   <h4>The <code>History</code> interface</h4>
@@ -43123,6 +43105,11 @@ style/default.css</pre>
 
   <ol>
 
+   <li><p>Let <var title="">clone data</var> be a <span>structured
+   clone</span> of the specified <var title="">data</var>. If this
+   throws an exception, then rethrow that exception and abort these
+   steps.</p></li>
+
    <li>
 
     <p>If a third argument is specified, run these substeps:</p>
@@ -43165,14 +43152,13 @@ style/default.css</pre>
    then no entries are removed.</p></li>
 
    <li><p>Add a state object entry to the session history, after the
-   <span>current entry</span>, with the specified <var
-   title="">data</var> as the state object, the given <var
-   title="">title</var> as the title, and, if the third argument is
-   present, the <span>absolute URL</span> that was found in the first
-   step as the URL of the entry.</p></li>
+   <span>current entry</span>, with <var title="">cloned data</var> as
+   the state object, the given <var title="">title</var> as the title,
+   and, if the third argument is present, the <span>absolute
+   URL</span> that was found earlier in this algorithm as the
+   <span>URL</span> of the entry.</p></li>
 
-   <li><p>Set this new entry as being the <span>last activated
-   entry</span> for the <code>Document</code>.</p></li>
+   <!-- XXX update the current address as per bug 6437 -->
 
    <li><p>Update the <span>current entry</span> to be the this newly
    added entry.</p></li>
@@ -43212,26 +43198,50 @@ style/default.css</pre>
   as described above), the user agent must run the following
   steps:</p>
 
-  <ol>
-
-   <li><p>First, the user agent must set this new entry as being the
-   <span>last activated entry</span> for the <code>Document</code> to
-   which the entry belongs.</p></li>
+  <ol><!-- only called for the first entry of a Document set and for
+  state object entries, not for frag id change entries -->
 
    <li><p>If the entry is a <span>state object</span> entry, let <var
-   title="">state</var> be that state object. Otherwise, the entry is
-   the first entry for the <code>Document</code>; let <var
-   title="">state</var> be null.</p></li>
+   title="">state</var> be a <span>structured clone</span> of that
+   state object. Otherwise, let <var title="">state</var> be
+   null.</p></li>
 
-   <li><p>The user agent must then fire a <dfn
-   title="event-popstate"><code>popstate</code></dfn> event in no
-   namespace on <span>the body element</span> using the
-   <code>PopStateEvent</code> interface, with the <code
-   title="dom-PopStateEvent-state">state</code> attribute set to the
-   value of <var title="">state</var>. This event bubbles but is not
-   cancelable and has no default action.</p></li>
+   <li>
+
+    <p>Run the appropriate according to the conditions described:</p>
+
+    <dl class="switch">
+
+     <dt>If the <span>current document readiness</span> is set to the
+     string "complete"</dt>
+
+     <dd><p><span>Queue a task</span> to fire a <dfn
+     title="event-popstate"><code>popstate</code></dfn> event in no
+     namespace on <span>the body element</span> using the
+     <code>PopStateEvent</code> interface, with the <code
+     title="dom-PopStateEvent-state">state</code> attribute set to the
+     value of <var title="">state</var>. This event must bubble but
+     not be cancelable and has no default action. The <span>task
+     source</span> for this task is the <span>DOM manipulation task
+     source</span>.</p></dd>
+
+     <dt>Otherwise</dt>
+
+     <dd><p>Let the <code>Document</code>'s <dfn>pending state
+     object</dfn> be <var title="">state</var>. (If there was already
+     a <span>pending state object</span>, the previous one is
+     discarded.)</p>
+
+     <p class="note">The event will then be fired just after the <code
+     title="event-load">load</code> event.</p></dd>
+
+    </dl>
+
+   </li>
 
   </ol>
+
+  <p>The <span>pending state object</span> must be initially null.</p>
 
   <!-- XXX onpopstate should be defined somewhere -->
 
@@ -44268,17 +44278,6 @@ user reload must be equivalent to .reload()
 
    </li>
 
-   <li><p>If there are any entries with state objects between the
-   <span>last activated entry</span> for the <code>Document</code> of
-   the <i>specified entry</i> and the <i>specified entry</i> itself
-   (not inclusive), then the user agent must iterate through every
-   entry between that <span>last activated entry</span> and the
-   <i>specified entry</i>, starting with the entry closest to the
-   <span>current entry</span>, and ending with the one closest to the
-   <i>specified entry</i>. For each entry, if the entry is a state
-   object, the user agent must <span>activate the state
-   object</span>.</p></li>
-
    <li><p>If the <i>specified entry</i> is a state object or the
    first entry for a <code>Document</code>, the user agent must <span
    title="activate the state object">activate that
@@ -44287,9 +44286,11 @@ user reload must be equivalent to .reload()
    <li><p>If the <i>specified entry</i> has a URL that differs from
    the <span>current entry</span>'s only by its fragment identifier,
    and the two share the same <code>Document</code> object, then
-   <span>fire a simple event</span> with the name <code
+   first, if the <code>Document</code>'s <span>current document
+   readiness</span> is the string "complete", then <span>fire a simple
+   event</span> with the name <code
    title="event-hashchange">hashchange</code> at <span>the
-   <code>body</code> element</span>, and, if the new URL has a
+   <code>body</code> element</span>; and second, if the new URL has a
    fragment identifier, <span>scroll to the fragment
    identifier</span>.</p></li>
 
@@ -59675,11 +59676,32 @@ interface <dfn>MessageChannel</dfn> {
   <code>Document</code>.</p>
 
   <p>Once everything that <dfn title="delay the load event">delays the
-  load event</dfn> has completed, the user agent must set the
-  <span>current document readiness</span> to "complete", and then
-  <span title="fire a load event">fire a <code
-  title="event-load">load</code> event</span> at <span>the
-  <code>body</code> element</span>.</p>
+  load event</dfn> has completed, the user agent must run the
+  following steps:</p>
+
+  <ol>
+
+   <li><span>Queue a task</span> to set the <span>current document
+   readiness</span> to "complete".</li>
+
+   <li><span>Queue a task</span> to <span title="fire a load
+   event">fire a <code title="event-load">load</code> event</span> at
+   <span>the <code>body</code> element</span>.</p>
+
+   <li>If the <code>Document</code> has a <span>pending state
+   object</span>, then <span>queue a task</span> to fire a <code
+   title="event-popstate">popstate</code> event in no namespace on
+   <span>the body element</span> using the <code>PopStateEvent</code>
+   interface, with the <code
+   title="dom-PopStateEvent-state">state</code> attribute set to the
+   current value of the <span>pending state object</span>. This event
+   must bubble but not be cancelable and has no default
+   action.</p></li>
+
+  </ol>
+
+  <p>The <span>task source</span> for these tasks is the <span>DOM
+  manipulation task source</span>.</p>
 
   <!-- XXX make sure things "delay the load event" -->
 
