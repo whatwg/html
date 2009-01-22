@@ -698,11 +698,12 @@
        <li><a href=#writing-cache-manifests><span class=secno>5.7.3.2 </span>Writing cache manifests</a></li>
        <li><a href=#parsing-cache-manifests><span class=secno>5.7.3.3 </span>Parsing cache manifests</a></ol></li>
      <li><a href=#updating-an-application-cache><span class=secno>5.7.4 </span>Updating an application cache</a></li>
-     <li><a href=#processing-model-2><span class=secno>5.7.5 </span>Processing model</a>
+     <li><a href=#matching-a-fallback-namespace><span class=secno>5.7.5 </span>Matching a fallback namespace</a></li>
+     <li><a href=#the-application-cache-selection-algorithm><span class=secno>5.7.6 </span>The application cache selection algorithm</a>
       <ol>
-       <li><a href=#changesToNetworkingModel><span class=secno>5.7.5.1 </span>Changes to the networking model</a></ol></li>
-     <li><a href=#application-cache-api><span class=secno>5.7.6 </span>Application cache API</a></li>
-     <li><a href=#browser-state><span class=secno>5.7.7 </span>Browser state</a></ol></li>
+       <li><a href=#changesToNetworkingModel><span class=secno>5.7.6.1 </span>Changes to the networking model</a></ol></li>
+     <li><a href=#application-cache-api><span class=secno>5.7.7 </span>Application cache API</a></li>
+     <li><a href=#browser-state><span class=secno>5.7.8 </span>Browser state</a></ol></li>
    <li><a href=#history><span class=secno>5.8 </span>Session history and navigation</a>
     <ol>
      <li><a href=#the-session-history-of-browsing-contexts><span class=secno>5.8.1 </span>The session history of browsing contexts</a></li>
@@ -745,7 +746,7 @@
        <li><a href=#executing-sql-statements><span class=secno>5.10.2.3 </span>Executing SQL statements</a></li>
        <li><a href=#database-query-results><span class=secno>5.10.2.4 </span>Database query results</a></li>
        <li><a href=#errors><span class=secno>5.10.2.5 </span>Errors</a></li>
-       <li><a href=#processing-model-3><span class=secno>5.10.2.6 </span>Processing model</a></ol></li>
+       <li><a href=#processing-model-2><span class=secno>5.10.2.6 </span>Processing model</a></ol></li>
      <li><a href=#disk-space><span class=secno>5.10.3 </span>Disk space</a></li>
      <li><a href=#privacy><span class=secno>5.10.4 </span>Privacy</a>
       <ol>
@@ -8435,10 +8436,10 @@ Consider: data:text/xml,<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[ d
   <a href=#valid-url>valid URL</a>.</p>
 
   <p>The <code title=attr-html-manifest><a href=#attr-html-manifest>manifest</a></code> attribute
-  only <a href=#concept-appcache-init-with-attribute title=concept-appcache-init-with-attribute>has an
-  effect</a> during the early stages of document load. Changing the
-  attribute dynamically thus has no effect (and thus, no DOM API is
-  provided for this attribute).</p>
+  only <a href=#concept-appcache-init title=concept-appcache-init>has an effect</a> during
+  the early stages of document load. Changing the attribute
+  dynamically thus has no effect (and thus, no DOM API is provided for
+  this attribute).</p>
 
   <p class=note>Later <code><a href=#the-base-element>base</a></code> elements don't affect the
   <a href=#resolve-a-url title="resolve a url">resolving of relative URLs</a> in
@@ -10055,7 +10056,7 @@ people expect to have work and what is necessary.
 
        <dd>
 
-        <p>The contents of that file, interpreted as as string of
+        <p>The contents of that file, interpreted as string of
         Unicode characters, are the script source.</p>
 
         <p>The file must be converted to Unicode using the character
@@ -35092,7 +35093,7 @@ JSURL: http://ietfreport.isoc.org/all-ids/draft-hoehrmann-javascript-scheme-00.t
   <a href=#event-handler-dom-attributes title="event handler DOM attributes">event handler DOM
   attribute</a>.</p>
 
-  <p>The second way is as as an <a href=#event-handler-content-attributes title="event handler content
+  <p>The second way is as an <a href=#event-handler-content-attributes title="event handler content
   attributes">event handler content attribute</a>. Event handlers on
   <a href=#html-elements>HTML elements</a> and some of the event handlers on
   <code><a href=#window>Window</a></code> objects are exposed in this way.</p>
@@ -36517,38 +36518,8 @@ interface <dfn id=function>Function</dfn> {
 
   <h4 id=appcache><span class=secno>5.7.2 </span>Application caches</h4>
 
-  <p>An <dfn id=application-cache>application cache</dfn> is a collection of resources. An
-  application cache is identified by the <a href=#absolute-url>absolute URL</a> of
-  a resource manifest which is used to populate the cache.</p>
-
-  <p>Application caches are versioned, and there can be different
-  instances of caches for the same manifest URL, each having a
-  different version. A cache is newer than another if it was created
-  after the other (in other words, caches in a group have a
-  chronological order).</p>
-
-  <p>Each group of application caches for the same manifest URL has a
-  common <dfn id=concept-appcache-status title=concept-appcache-status>update status</dfn>,
-  which is one of the following: <i>idle</i>, <i>checking</i>,
-  <i>downloading</i>.</p>
-
-  <p>Each group of application caches for the same manifest URL also
-  has a common <dfn id=concept-appcache-lifecycle title=concept-appcache-lifecycle>lifecycle
-  status</dfn>, which is one of the following: <i>new</i>,
-  <i>mature</i>, <i>obsolete</i>. A <dfn id=relevant-application-cache>relevant application
-  cache</dfn> is an <a href=#application-cache>application cache</a> whose <a href=#concept-appcache-lifecycle title=concept-appcache-lifecycle>lifecycle status</a> is
-  <i>mature</i>.</p>
-
-  <p id=appcache-history-1>A <a href=#browsing-context>browsing context</a> is
-  associated with the application cache appropriate for its
-  <a href=#active-document>active document</a>, if any. A <code>Document</code>
-  initially has no appropriate cache, but steps <a href=#parser-appcache>in the parser</a> and in the <a href=#navigate title=navigate>navigation</a> sections cause <a href=#concept-appcache-init-with-attribute title=concept-appcache-init-with-attribute>cache selection</a>
-  to occur early in the page load process. A browsing context's
-  associated cache can also <a href=#appcache-history-2>change</a>
-  during <a href=#traverse-the-history title="traverse the history">session history
-  traversal</a>.</p>
-
-  <p>An application cache consists of:</p>
+  <p>An <dfn id=application-cache>application cache</dfn> is a set of cached resources
+  consisting of:</p>
 
   <ul><li>
 
@@ -36602,9 +36573,43 @@ interface <dfn id=function>Function</dfn> {
    <li>Zero or more URLs that form the <dfn id=concept-appcache-onlinewhitelist title=concept-appcache-onlinewhitelist>online whitelist
    namespaces</dfn>.
 
-  </ul><p>Multiple application caches can contain the same resource,
-  e.g. if their manifests all reference that resource. If the user
-  agent is to <dfn id=concept-appcache-selection title=concept-appcache-selection>select an
+  </ul><p>Each <a href=#application-cache>application cache</a> has a <dfn id=concept-appcache-completeness title=concept-appcache-completeness>completeness flag</dfn>, which is
+  either <i>complete</i> or <i>incomplete</i>.</p>
+
+  <hr><p>An <dfn id=application-cache-group>application cache group</dfn> is a group of <a href=#application-cache title="application cache">application caches</a>, identified by
+  the <a href=#absolute-url>absolute URL</a> of a resource <a href=#concept-appcache-manifest title=concept-appcache-manifest>manifest</a> which is used to
+  populate the caches in the group.</p>
+
+  <p>An <a href=#application-cache>application cache</a> is <dfn id=concept-appcache-newer title=concept-appcache-newer>newer</dfn> than another if it was
+  created after the other (in other words, <a href=#application-cache title="application
+  cache">application caches</a> in an <a href=#application-cache-group>application cache
+  group</a> have a chronological order).</p>
+
+  <p>Only the newest <a href=#application-cache>application cache</a> in an
+  <a href=#application-cache-group>application cache group</a> can have its <a href=#concept-appcache-completeness title=concept-appcache-completeness>completeness flag</a> set to
+  <i>incomplete</i>, the others are always all <i>complete</i>.</p>
+
+  <p>Each <a href=#application-cache-group>application cache group</a> has an <dfn id=concept-appcache-status title=concept-appcache-status>update status</dfn>, which is one of
+  the following: <i>idle</i>, <i>checking</i>, <i>downloading</i>.</p>
+
+  <p>A <dfn id=relevant-application-cache>relevant application cache</dfn> is an <a href=#application-cache>application
+  cache</a> that is the <a href=#concept-appcache-newer title=concept-appcache-newer>newest</a> in its <a href=#application-cache-group title="application cache group">group</a> to be
+  <i>complete</i>.</p>
+
+  <p>Each <a href=#application-cache-group>application cache group</a> has a <dfn id=concept-appcache-pending-masters title=concept-appcache-pending-masters>list of pending master
+  entries</dfn>. Each entry in this list consists of a resource and a
+  corresponding <code>Document</code> object. It is used during the
+  update process to ensure that new master entries are cached.</p>
+
+  <hr><p>A <code>Document</code> initially is not associated with an
+  <a href=#application-cache>application cache</a>, but steps <a href=#parser-appcache>in the parser</a> and in the <a href=#navigate title=navigate>navigation</a> sections cause <a href=#concept-appcache-init title=concept-appcache-init>cache selection</a> to occur early
+  in the page load process.</p>
+
+  <p>Multiple <a href=#application-cache title="application cache">application
+  caches</a> in different <a href=#application-cache-group title="application cache
+  group">application cache groups</a> can contain the same
+  resource, e.g. if the manifests all reference that resource. If the
+  user agent is to <dfn id=concept-appcache-selection title=concept-appcache-selection>select an
   application cache</dfn> from a list of <a href=#relevant-application-cache title="relevant
   application cache">relevant application caches</a> that contain a
   resource, that the user agent must use the application cache that
@@ -36617,7 +36622,7 @@ interface <dfn id=function>Function</dfn> {
    resource from which the user decided to look at the new resource,
    and
 
-   <li>which application cache the user prefers.</li>
+   <li>which application cache the user prefers.
 
   </ul><h4 id=manifests><span class=secno>5.7.3 </span>The cache manifest syntax</h4>
 
@@ -37011,63 +37016,70 @@ style/default.css</pre>
 
   <p>When the user agent is required (by other parts of this
   specification) to start the <dfn id=application-cache-update-process>application cache update
-  process</dfn> for a <a href=#concept-appcache-manifest title=concept-appcache-manifest>manifest</a> URL or for an
-  <a href=#application-cache>application cache</a>, potentially given a particular
+  process</dfn> for an <a href=#absolute-url>absolute URL</a> purported to identify
+  a <a href=#concept-appcache-manifest title=concept-appcache-manifest>manifest</a>, or for an
+  <a href=#application-cache-group>application cache group</a>, potentially given a particular
   <a href=#browsing-context>browsing context</a>, and potentially given a new <a href=#concept-appcache-master title=concept-appcache-master>master</a> resource, the user
   agent must run the following steps:</p>
-
-  <p class=XXX>the event stuff needs to be more consistent --
-  something about showing every step of the ui or no steps or
-  something; and we need to deal with showing ui for browsing contexts
-  that open when an update is already in progress, and we may need to
-  give applications control over the ui the first time they cache
-  themselves (right now the original cache is done without
-  notifications to the browsing contexts); also, we need to update
-  this so all event firing uses queues</p>
 
   <ol><li>
 
     <p>Atomically, so as to avoid race conditions, perform the
     following substeps:</p>
 
-    <ol><li><p>Let <var title="">manifest URL</var> be the URL of the
-     <a href=#concept-appcache-manifest title=concept-appcache-manifest>manifest</a> to be
-     updated, or of the <a href=#concept-appcache-manifest title=concept-appcache-manifest>manifest</a> of the
-     <a href=#application-cache>application cache</a> to be updated, as
-     appropriate.</li>
+    <ol><li>
 
-     <li><p>If these steps were invoked with a URL (as opposed to a
-     specific cache), and there is no <a href=#application-cache>application cache</a>
-     identified by <var title="">manifest URL</var> whose <a href=#concept-appcache-lifecycle title=concept-appcache-lifecycle>lifecycle status</a> is not
-     <i>obsolete</i>, then create a new <a href=#application-cache>application cache</a>
-     identified with that URL and set the group's <a href=#concept-appcache-lifecycle title=concept-appcache-lifecycle>lifecycle status</a> to
-     <i>new</i>.</li>
+      <p>Pick the approprate substeps:</p>
 
-     <li id=flagAsCandidateForCache><p>If these steps were invoked
-     with a new <a href=#concept-appcache-master title=concept-appcache-master>master</a>
-     resource, then flag the resource's <code>Document</code> as a
-     candidate for this manifest URL's caches, so that it will be <a href=#flagAsCandidateForCache-result>associated with an
-     application cache identified by this manifest URL</a> later, when
-     such an <a href=#application-cache>application cache</a> is ready.</li>
+      <dl class=switch><dt>If these steps were invoked with an <a href=#absolute-url>absolute
+       URL</a> purported to identify a <a href=#concept-appcache-manifest title=concept-appcache-manifest>manifest</a></dt>
 
-     <li><p>Let <var title="">cache group</var> be the group of <a href=#application-cache title="application cache">application caches</a> identified by
-     <var title="">manifest URL</var>.</li>
+       <dd>
 
-     <li><p>Let <var title="">cache</var> be the most recently updated
-     <a href=#application-cache>application cache</a> identified by <var title="">manifest
-     URL</var> (that is, the newest version found in <var title="">cache
-     group</var>).</li>
+        <p>Let <var title="">manifest URL</var> be that <a href=#absolute-url>absolute
+        URL</a>.</p>
+
+        <p>If there is no <a href=#application-cache-group>application cache group</a>
+        identified by <var title="">manifest URL</var>, then create a
+        new <a href=#application-cache-group>application cache group</a> identified by <var title="">manifest URL</var>. Initially it has no <a href=#application-cache title="application cache">application caches</a>, though
+        one will be created later in this algorithm.</p>
+
+       </dd>
+
+
+       <dt>If these steps were invoked with an <a href=#application-cache-group>application cache
+       group</a></dt>
+
+       <dd>
+
+        <p>Let <var title="">manifest URL</var> be the <a href=#absolute-url>absolute
+        URL</a> of the <a href=#concept-appcache-manifest title=concept-appcache-manifest>manifest</a> used to
+        identify the <a href=#application-cache-group>application cache group</a> to be
+        updated.</p>
+
+       </dd>
+
+      </dl></li>
+
+     <li><p>Let <var title="">cache group</var> be the
+     <a href=#application-cache-group>application cache group</a> identified by <var title="">manifest URL</var>.</li>
+
+     <li><p>If these steps were invoked with a new <a href=#concept-appcache-master title=concept-appcache-master>master</a> resource, then add
+     the resource, along with the resource's <code>Document</code>, to
+     <var title="">cache group</var>'s <a href=#concept-appcache-pending-masters title=concept-appcache-pending-masters>list of pending master
+     entries</a>.</li>
 
      <li><p>If these steps were invoked with a <a href=#browsing-context>browsing
-     context</a>, and the <a href=#concept-appcache-status title=concept-appcache-status>status</a> of the <var title="">cache group</var> is <i>checking</i> or
-     <i>downloading</i>, then <a href=#fire-a-simple-event>fire a simple event</a> called
-     <code title=event-checking>checking</code> at the
+     context</a>, and the <a href=#concept-appcache-status title=concept-appcache-status>status</a> of <var title="">cache group</var> is <i>checking</i> or
+     <i>downloading</i>, then <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-simple-event>fire
+     a simple event</a> called <code title=event-checking>checking</code> at the
      <code><a href=#applicationcache>ApplicationCache</a></code> singleton of that <a href=#browsing-context>browsing
      context</a>.</li>
 
      <li><p>If these steps were invoked with a <a href=#browsing-context>browsing
-     context</a>, and the <a href=#concept-appcache-status title=concept-appcache-status>status</a> of the <var title="">cache group</var> is <i>downloading</i>, then also
-     <a href=#fire-a-simple-event>fire a simple event</a> called <code title=event-downloading>downloading</code> at the
+     context</a>, and the <a href=#concept-appcache-status title=concept-appcache-status>status</a> of <var title="">cache group</var> is <i>downloading</i>, then also
+     <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-simple-event>fire a simple event</a>
+     called <code title=event-downloading>downloading</code> at the
      <code><a href=#applicationcache>ApplicationCache</a></code> singleton of that <a href=#browsing-context>browsing
      context</a>.</li>
 
@@ -37076,50 +37088,38 @@ style/default.css</pre>
      or <i>downloading</i>, then abort this instance of the update
      process, as an update is already in progress for them.</li>
 
-     <li><p>Set the <a href=#concept-appcache-status title=concept-appcache-status>status</a> of this group of
-     caches to <i>checking</i>.</p>
+     <li><p>Set the <a href=#concept-appcache-status title=concept-appcache-status>status</a> of <var title="">cache group</var> to <i>checking</i>.</p>
+
+     <li><p>For each <a href=#browsing-context>browsing context</a> whose <a href=#active-document>active
+     document</a> is associated with an <a href=#application-cache>application
+     cache</a> in <var title="">cache group</var>, <a href=#queue-a-task>queue a
+     task</a> to <a href=#fire-a-simple-event>fire a simple event</a> called <code title=event-checking>checking</code> at the
+     <code><a href=#applicationcache>ApplicationCache</a></code> singleton of the <a href=#browsing-context>browsing
+     context</a>. The default action of these events should be the
+     display of some sort of user interface indicating to the user
+     that the user agent is checking for the availability of
+     updates.</li>
 
     </ol><p>The remainder of the steps run asychronously.</p>
 
-   </li>
-
-   <li>
-
-    <p>If there is already a resource with the URL of <var title="">manifest URL</var> in <var title="">cache</var>, and
-    that resource is categorized as a <a href=#concept-appcache-manifest title=concept-appcache-manifest>manifest</a>, then this is an
-    <dfn id=concept-appcache-upgrade title=concept-appcache-upgrade>upgrade
-    attempt</dfn>. Otherwise, this is a <dfn id=concept-appcache-cache title=concept-appcache-cache>cache attempt</dfn>.</p>
-
-    <p class=note>If this is a <a href=#concept-appcache-cache title=concept-appcache-cache>cache attempt</a>, then <var title="">cache</var> is forcibly the only application cache in
-    <var title="">cache group</var>, and it hasn't ever been populated
-    from its manifest (i.e. this update is an attempt to download the
-    application for the first time). It also can't have any browsing
-    contexts associated with it.</p>
+    <p>If <var title="">cache group</var> already has an
+    <a href=#application-cache>application cache</a> in it, then this is an <dfn id=concept-appcache-upgrade title=concept-appcache-upgrade>upgrade attempt</dfn>. Otherwise,
+    this is a <dfn id=concept-appcache-cache title=concept-appcache-cache>cache
+    attempt</dfn>.</p>
 
    </li>
 
-   <li>
-
-    <p><a href=#fire-a-simple-event>Fire a simple event</a> called <code title=event-checking>checking</code> at the
-    <code><a href=#applicationcache>ApplicationCache</a></code> singleton of each <a href=#browsing-context>browsing
-    context</a> whose <a href=#active-document>active document</a> is associated
-    with a cache in <var title="">cache group</var>. The default
-    action of this event should be the display of some sort of user
-    interface indicating to the user that the user agent is checking
-    for the availability of updates.</p>
-
-    <p class=note>Again, if this is a <a href=#concept-appcache-cache title=concept-appcache-cache>cache attempt</a>, then <var title="">cache group</var> has only one cache and it has no
-    browsing contexts associated with it, so no events are dispatched
-    due to this step or any of the other steps that fire events other
-    than the final <code title=event-cached>cached</code> event.</p>
-
-   </li>
+   <li><p>If this is a <a href=#concept-appcache-cache title=concept-appcache-cache>cache
+   attempt</a>, then this algorithm was invoked with a
+   <a href=#browsing-context>browsing context</a>; <a href=#queue-a-task>queue a task</a> to
+   <a href=#fire-a-simple-event>fire a simple event</a> called <code title=event-checking>checking</code> at the
+   <code><a href=#applicationcache>ApplicationCache</a></code> singleton of that <a href=#browsing-context>browsing
+   context</a>.</li>
 
    <li>
 
-    <p><a href=#fetch>Fetch</a> the resource from <var title="">manifest
-    URL</var>, and let <var title="">manifest</var> be that
-    resource.</p>
+    <p><i>Fetching the manifest</i>: <a href=#fetch>Fetch</a> the resource
+    from <var title="">manifest URL</var>, and let <var title="">manifest</var> be that resource.</p>
 
     <p>If the resource is labeled with the MIME type <code title="">text/cache-manifest</code>, parse <var title="">manifest</var> according to the <a href=#parse-a-manifest title="parse a
     manifest">rules for parsing manifests</a>, obtaining a list of
@@ -37133,11 +37133,39 @@ style/default.css</pre>
 
    <li>
 
-    <p>If the previous step fails due to a 404 or 410 response <a href=#concept-http-equivalent-codes title=concept-http-equivalent-codes>or equivalent</a>, then
-    run the <a href=#cache-removal-steps>cache removal steps</a></p>
+    <p>If <i>fetching the manifest</i> fails due to a 404 or 410
+    response <a href=#concept-http-equivalent-codes title=concept-http-equivalent-codes>or
+    equivalent</a>, then run these substeps:</p>
 
-    <p>If the previous step fails in some other way (e.g. the server
-    returns another 4xx or 5xx response <a href=#concept-http-equivalent-codes title=concept-http-equivalent-codes>or equivalent</a>, or
+    <ol><!-- XXX can they be merged with the cache failure steps? (event name is different, this always disassociates even for upgrades, anything else?) --><li><p>For each <a href=#browsing-context>browsing context</a> whose <a href=#active-document>active
+     document</a> is associated with an <a href=#application-cache>application
+     cache</a> in <var title="">cache group</var>, <a href=#queue-a-task>queue a
+     task</a> to <a href=#fire-a-simple-event>fire a simple event</a> called <code title=event-obsolete>obsolete</code> at the
+     <code><a href=#applicationcache>ApplicationCache</a></code> singleton of the <a href=#browsing-context>browsing
+     context</a>. The default action of these events should be the
+     display of some sort of user interface indicating to the user
+     that the application is no longer available for offline
+     use.</li>
+
+     <li><p>Unassociate any <code>Document</code> associated with an
+     <a href=#application-cache>application cache</a> in <var title="">cache
+     group</var>.</li>
+
+     <li><p>If appropriate, remove any user interface indicating
+     that an update for this cache is in progress.</li>
+
+     <li><p>Discard <var title="">cache group</var> and its associated
+     <a href=#application-cache title="application cache">application caches</a>, if
+     any.</p>
+
+     <li><p>Abort the update process.</li>
+
+    </ol></li>
+
+   <li>
+
+    <p>Otherwise, if <i>fetching the manifest</i> fails in some other
+    way (e.g. the server returns another 4xx or 5xx response <a href=#concept-http-equivalent-codes title=concept-http-equivalent-codes>or equivalent</a>, or
     there is a DNS error, or the connection times out, or the user
     cancels the download, or the parser for manifests fails when
     checking the magic signature), or if the server returned a
@@ -37151,51 +37179,77 @@ style/default.css</pre>
 
     <p>If this is an <a href=#concept-appcache-upgrade title=concept-appcache-upgrade>upgrade
     attempt</a> and the newly downloaded <var title="">manifest</var> is byte-for-byte identical to the manifest
-    found in <var title="">cache</var>, or if the server reported it
-    as "304 Not Modified" <a href=#concept-http-equivalent-codes title=concept-http-equivalent-codes>or equivalent</a>, then
+    found in the <a href=#concept-appcache-newer title=concept-appcache-newer>newest</a>
+    <a href=#application-cache>application cache</a> in <var title="">cache group</var>,
+    or the server reported it as "304 Not Modified" <a href=#concept-http-equivalent-codes title=concept-http-equivalent-codes>or equivalent</a>, then
     run these substeps:</p>
 
-    <ol><li><p><a href=#fire-a-simple-event>Fire a simple event</a> called <code title=event-noupdate>noupdate</code> at the
-     <code><a href=#applicationcache>ApplicationCache</a></code> singleton of each <a href=#browsing-context>browsing
-     context</a> whose <a href=#active-document>active document</a> is associated
-     with a cache in <var title="">cache group</var>. The default
-     action of this event should be the display of some sort of user
-     interface indicating to the user that the application is up to
-     date.</li>
+    <ol><!-- XXX can they be merged with the cache failure steps? (event name is different, anything else?) --><li><p>Let <var title="">cache</var> be the <a href=#concept-appcache-newer title=concept-appcache-newer>newest</a> <a href=#application-cache>application
+     cache</a> in <var title="">cache group</var>.</li>
 
-     <li><p>If there are any pending downloads of <a href=#concept-appcache-master title=concept-appcache-master>master entries</a> that are
-     being stored in the cache, then wait for all of them to have
-     completed. If any of these downloads fail (e.g. the server
-     returns a 4xx or 5xx response <a href=#concept-http-equivalent-codes title=concept-http-equivalent-codes>or equivalent</a>, or
-     there is a DNS error, or the connection times out, or the user
-     cancels the download), then run the <a href=#cache-failure-steps>cache failure
-     steps</a>.</li>
+     <li>
 
-     <li><p>Let the <a href=#concept-appcache-status title=concept-appcache-status>status</a> of the group of
-     caches to which <var title="">cache</var> belongs be
-     <i>idle</i>. If appropriate, remove any user interface indicating
-     that an update for this cache is in progress.</li>
+      <p>For each entry in <var title="">cache group</var>'s <a href=#concept-appcache-pending-masters title=concept-appcache-pending-masters>list of pending master
+      entries</a>, wait for the resource for this entry to have
+      completely downloaded.</p>
+
+      <p>If the download failed (e.g. the connection times out, or the
+      user cancels the download), then <a href=#queue-a-task>queue a task</a> to
+      <a href=#fire-a-simple-event>fire a simple event</a> called <code title=event-error><a href=#event-error>error</a></code> at the
+      <code><a href=#applicationcache>ApplicationCache</a></code> singleton of the <a href=#browsing-context>browsing
+      context</a> whose <a href=#active-document>active document</a> is the
+      <code>Document</code> for this entry, if there still is one. The
+      default action of this event should be the display of some sort
+      of user interface indicating to the user that the user agent
+      failed to save the application for offline use.</p>
+
+      <p>Otherwise, associate the <code>Document</code> for this entry
+      with <var title="">cache</var>; store the resource for this
+      entry in <var title="">cache</var>, if it isn't already there,
+      and categorize its entry as a <a href=#concept-appcache-master title=concept-appcache-master>master entry</a>; and
+      <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-simple-event>fire a simple event</a>
+      called <code title=event-noupdate>noupdate</code> at the
+      <code><a href=#applicationcache>ApplicationCache</a></code> singleton of the <a href=#browsing-context>browsing
+      context</a> whose <a href=#active-document>active document</a> is the
+      <code>Document</code> for this entry, if there still is one. The
+      default action of this event should be the display of some sort
+      of user interface indicating to the user that the application is
+      up to date.</p>
+
+     </li>
+
+     <li><p>Empty <var title="">cache group</var>'s <a href=#concept-appcache-pending-masters title=concept-appcache-pending-masters>list of pending master
+     entries</a>.</li>
+
+     <li><p>If appropriate, remove any user interface indicating that
+     an update for this cache is in progress.</li>
+
+     <li><p>Let the <a href=#concept-appcache-status title=concept-appcache-status>status</a> of <var title="">cache group</var> be <i>idle</i>.</li>
 
      <li><p>Abort the update process.</li>
 
     </ol></li>
 
+   <li><p>Let <var title="">new cache</var> be a newly created
+   <a href=#application-cache>application cache</a> in <var title="">cache
+   group</var>. Set its <a href=#concept-appcache-completeness title=concept-appcache-completeness>completeness flag</a> to
+   <i>incomplete</i>.</li>
+
+   <li><p>For each entry in <var title="">cache group</var>'s <a href=#concept-appcache-pending-masters title=concept-appcache-pending-masters>list of pending master
+   entries</a>, associate the <code>Document</code> for this entry
+   with <var title="">new cache</var>.</li>
+
    <li><p>Set the <a href=#concept-appcache-status title=concept-appcache-status>status</a>
    of <var title="">cache group</var> to <i>downloading</i>.</li>
 
-   <li><p><a href=#fire-a-simple-event>Fire a simple event</a> called <code title=event-downloading>downloading</code> at the
-   <code><a href=#applicationcache>ApplicationCache</a></code> singleton of each <a href=#browsing-context>browsing
-   context</a> whose <a href=#active-document>active document</a> is associated
-   with a cache in <var title="">cache group</var>. The default action
-   of this event should be the display of some sort of user interface
-   indicating to the user that a new version is being
-   downloaded.</li>
-
-   <li><p>If this is an <a href=#concept-appcache-upgrade title=concept-appcache-upgrade>upgrade
-   attempt</a>, then let <var title="">new cache</var> be a newly
-   created <a href=#application-cache>application cache</a> identified by <span title="">manifest URL</span>, being a new version in <var title="">cache group</var>. Otherwise, let <var title="">new
-   cache</var> and <var title="">cache</var> be the same version of
-   the application cache.</li>
+   <li><p>For each <a href=#browsing-context>browsing context</a> whose <a href=#active-document>active
+   document</a> is associated with an <a href=#application-cache>application
+   cache</a> in <var title="">cache group</var>, <a href=#queue-a-task>queue a
+   task</a> to <a href=#fire-a-simple-event>fire a simple event</a> called <code title=event-downloading>downloading</code> at the
+   <code><a href=#applicationcache>ApplicationCache</a></code> singleton of the <a href=#browsing-context>browsing
+   context</a>. The default action of these events should be the
+   display of some sort of user interface indicating to the user that
+   a new version is being downloaded.</li>
 
    <li><p>Let <var title="">file list</var> be an empty list of
    URLs with flags.</li>
@@ -37209,8 +37263,10 @@ style/default.css</pre>
    list</var>, each flagged with "fallback entry".</li>
 
    <li><p>If this is an <a href=#concept-appcache-upgrade title=concept-appcache-upgrade>upgrade
-   attempt</a>, then add all the URLs of <a href=#concept-appcache-master title=concept-appcache-master>master entries</a> in <var title="">cache</var> to <var title="">file list</var>, each flagged
-   with "master entry".</li>
+   attempt</a>, then add all the URLs of <a href=#concept-appcache-master title=concept-appcache-master>master entries</a> in the <a href=#concept-appcache-newer title=concept-appcache-newer>newest</a> <a href=#application-cache>application
+   cache</a> in <var title="">cache group</var> whose <a href=#concept-appcache-completeness title=concept-appcache-completeness>completeness flag</a> is
+   <i>complete</i> to <var title="">file list</var>, each flagged with
+   "master entry".</li>
 
    <li><p>If any URL is in <var title="">file list</var> more than
    once, then merge the entries into one entry for that URL, that
@@ -37229,20 +37285,23 @@ style/default.css</pre>
       may skip this URL.</p>
 
       <p class=note>This is intended to allow user agents to expire
-      resources (other than those in the manifest itself) from the
-      cache. Generally, implementors are urged to use an approach that
-      expires lesser-used resources first.</p>
+      resources not listed in the manifest (other than those in the
+      manifest itself) from the cache. Generally, implementors are
+      urged to use an approach that expires lesser-used resources
+      first.</p>
 
      </li>
 
-     <li><p><a href=#fire-a-simple-event>Fire a simple event</a> called <code title=event-progress><a href=#event-progress>progress</a></code> at the
-     <code><a href=#applicationcache>ApplicationCache</a></code> singleton of each <a href=#browsing-context>browsing
-     context</a> whose <a href=#active-document>active document</a> is associated
-     with a cache in <var title="">cache group</var>. The default
-     action of this event should be the display of some sort of user
-     interface indicating to the user that a file is being downloaded
-     in preparation for updating the application.</li> <!-- XXX
-     need to include progress information -->
+     <li><p>For each <a href=#browsing-context>browsing context</a> whose <a href=#active-document>active
+     document</a> is associated with an <a href=#application-cache>application
+     cache</a> in <var title="">cache group</var>, <a href=#queue-a-task>queue a
+     task</a> to <a href=#fire-a-simple-event>fire a simple event</a> called <code title=event-progress><a href=#event-progress>progress</a></code> at the
+     <code><a href=#applicationcache>ApplicationCache</a></code> singleton of the <a href=#browsing-context>browsing
+     context</a>. The default action of these events should be the
+     display of some sort of user interface indicating to the user
+     that a file is being downloaded in preparation for updating the
+     application.</li> <!-- XXX need to include progress
+     information -->
 
      <li>
 
@@ -37306,7 +37365,9 @@ style/default.css</pre>
 
        <dd>
 
-        <p>Copy the resource and its metadata from <var title="">cache</var>, and act as if that was the fetched
+        <p>Copy the resource and its metadata from the <a href=#concept-appcache-newer title=concept-appcache-newer>newest</a> <a href=#application-cache>application
+        cache</a> in <var title="">cache group</var> whose <a href=#concept-appcache-completeness title=concept-appcache-completeness>completeness flag</a>
+        is <i>complete</i>, and act as if that was the fetched
         resource, ignoring the resource obtained from the network.</p>
 
        </dd>
@@ -37318,7 +37379,7 @@ style/default.css</pre>
       the manifest fatal, while making it possible for other resources
       to be removed from caches when they are removed from the server,
       without errors, and making non-manifest resources survive
-      server-side errors.
+      server-side errors.</p>
 
      </li>
 
@@ -37357,19 +37418,48 @@ style/default.css</pre>
 
    <li>
 
-    <p>Wait for all pending downloads of <a href=#concept-appcache-master title=concept-appcache-master>master entries</a> that are
-    being stored in the cache to have completed.</p>
+    <p>For each entry in <var title="">cache group</var>'s <a href=#concept-appcache-pending-masters title=concept-appcache-pending-masters>list of pending master
+    entries</a>, wait for the resource for this entry to have
+    completely downloaded.</p>
 
-    <p class=example>For example, if the <a href=#browsing-context>browsing
-    context</a>'s <a href=#active-document>active document</a> isn't itself listed
-    in the cache manifest, then it might still be being
-    downloaded.</p>
+    <p>If the download failed (e.g. the connection times out, or the
+    user cancels the download), then run these sebsteps:</p>
 
-    <p>If any of these downloads fail (e.g. the connection times out,
-    or the user cancels the download), then run the <a href=#cache-failure-steps>cache
-    failure steps</a>.</p> <!-- can't fail with a non-2xx code,
-    because things only get added to the cache implicitly once they
-    are known to have a manifest="" attribute. -->
+    <ol><li><p>Unassociate the <code>Document</code> for this entry from
+     <var title="">new cache</var>.</li>
+
+     <li><p><a href=#queue-a-task>Queue a task</a> to <a href=#fire-a-simple-event>fire a simple event</a>
+     called <code title=event-error><a href=#event-error>error</a></code> at the
+     <code><a href=#applicationcache>ApplicationCache</a></code> singleton of the <a href=#browsing-context>browsing
+     context</a> whose <a href=#active-document>active document</a> is the
+     <code>Document</code> for this entry, if there still is one. The
+     default action of this event should be the display of some sort
+     of user interface indicating to the user that the user agent
+     failed to save the application for offline use.</p>
+
+     <li>
+
+      <p>If this is a <a href=#concept-appcache-cache title=concept-appcache-cache>cache
+      attempt</a> and this entry is the last entry in <var title="">cache group</var>'s <a href=#concept-appcache-pending-masters title=concept-appcache-pending-masters>list of pending master
+      entries</a>, then run these further substeps:</p>
+
+      <ol><li><p>Discard <var title="">cache group</var> and its only
+       <a href=#application-cache>application cache</a>, <var title="">new
+       cache</var>.</p>
+
+       <li><p>If appropriate, remove any user interface indicating
+       that an update for this cache is in progress.</li>
+
+       <li><p>Abort the update process.</li>
+
+      </ol></li>
+
+     <li><p>Otherwise, remove this entry from <var title="">cache
+     group</var>'s <a href=#concept-appcache-pending-masters title=concept-appcache-pending-masters>list
+     of pending master entries</a>.</li>
+
+    </ol><p>Otherwise, store the resource for this entry in <var title="">new cache</var>, if it isn't already there, and
+    categorize its entry as a <a href=#concept-appcache-master title=concept-appcache-master>master entry</a>.</p>
 
    </li>
 
@@ -37395,113 +37485,139 @@ style/default.css</pre>
    <li>
 
     <p>Otherwise, store <var title="">manifest</var> in <var title="">new cache</var>, if it's not there already, and
-    categorize this entry (whether newly added or not) as <a href=#concept-appcache-manifest title=concept-appcache-manifest>the manifest</a>.</p>
+    categorize its entry as <a href=#concept-appcache-manifest title=concept-appcache-manifest>the manifest</a>.</p>
 
    </li>
+
+   <li><p>Set the <a href=#concept-appcache-completeness title=concept-appcache-completeness>completeness flag</a> of
+   <var title="">new cache</var> to <i>complete</i>.</li>
 
    <li>
 
     <p>If this is a <a href=#concept-appcache-cache title=concept-appcache-cache>cache
-    attempt</a>, then:</p>
+    attempt</a>, then for each <a href=#browsing-context>browsing context</a>
+    whose <a href=#active-document>active document</a> is associated with an
+    <a href=#application-cache>application cache</a> in <var title="">cache
+    group</var>, <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-simple-event>fire a simple
+    event</a> called <code title=event-cached>cached</code> at
+    the <code><a href=#applicationcache>ApplicationCache</a></code> singleton of the
+    <a href=#browsing-context>browsing context</a>. The default action of these
+    events should be the display of some sort of user interface
+    indicating to the user that the application has been cached and
+    that they can now use it offline.</p>
 
-    <p id=flagAsCandidateForCache-result>Associate any
-    <code>Document</code> objects that were <a href=#flagAsCandidateForCache>flagged as candidates</a> for this
-    manifest URL's caches with <var title="">cache</var>.</p>
-
-    <p><a href=#fire-a-simple-event>Fire a simple event</a> called <code title=event-cached>cached</code> at the
-    <code><a href=#applicationcache>ApplicationCache</a></code> singleton of each <a href=#browsing-context>browsing
-    context</a> whose <a href=#active-document>active document</a> is associated
-    with a cache in <var title="">cache group</var>. The default
-    action of this event should be the display of some sort of user
-    interface indicating to the user that the application has been
-    cached and that they can now use it offline.</p>
-
-    <p>Set the <a href=#concept-appcache-lifecycle title=concept-appcache-lifecycle>lifecycle
-    status</a> of <var title="">cache group</var> to
-    <i>mature</i>.</p>
-
-    <p>Set the <a href=#concept-appcache-status title=concept-appcache-status>update
-    status</a> of <var title="">cache group</var> to
-    <i>idle</i>.</p>
+    <p>Otherwise, it is an <a href=#concept-appcache-upgrade title=concept-appcache-upgrade>upgrade attempt</a>. For
+    each <a href=#browsing-context>browsing context</a> whose <a href=#active-document>active
+    document</a> is associated with an <a href=#application-cache>application
+    cache</a> in <var title="">cache group</var>, <a href=#queue-a-task>queue a
+    task</a> to <a href=#fire-a-simple-event>fire a simple event</a> called <code title=event-updateready>updateready</code> at the
+    <code><a href=#applicationcache>ApplicationCache</a></code> singleton of the <a href=#browsing-context>browsing
+    context</a>. The default action of these events should be the
+    display of some sort of user interface indicating to the user
+    that a new version is available and that they can activate it by
+    reloading the page.</p>
 
    </li>
 
-   <li>
+   <li><p>If appropriate, remove any user interface indicating that
+   an update for this cache is in progress.</li>
 
-    <p>Otherwise, this is an <a href=#concept-appcache-upgrade title=concept-appcache-upgrade>upgrade attempt</a>. Perform
-    the following substeps atomically, so as to avoid race
-    conditions:</p>
-
-    <ol><li>
-
-      <p>For each <a href=#browsing-context>browsing context</a> whose <a href=#active-document>active
-      document</a> is associated with a cache in <var title="">cache group</var>, <a href=#queue-a-task>queue a task</a> to
-      <a href=#fire-a-simple-event>fire a simple event</a> called <code title=event-updateready>updateready</code> at the relevant
-      <code><a href=#applicationcache>ApplicationCache</a></code> singleton. The default action of
-      these events should be the display of some sort of user
-      interface indicating to the user that a new version is available
-      and that they can activate it by reloading the page.</p>
-
-      <p class=note>Since this step merely queues tasks, and since
-      all these substeps are being done atomically, the next step is
-      guaranteed to happen before the events are actually
-      dispatched.</p>
-
-     </li>
-
-     <li>
-
-      <p>Set the <a href=#concept-appcache-status title=concept-appcache-status>status</a>
-      of <var title="">cache group</var> to <i>idle</i>.</p>
-
-     </li>
-
-    </ol></li>
-
-  </ol><p>The <dfn id=cache-removal-steps>cache removal steps</dfn> are as follows:</p>
-
-  <ol><li><p>If this is a <a href=#concept-appcache-cache title=concept-appcache-cache>cache
-   attempt</a>, then discard <var title="">cache</var> and abort
-   the update process.</li>
-
-   <li><p><a href=#fire-a-simple-event>Fire a simple event</a> called <code title=event-obsolete>obsolete</code> at the
-   <code><a href=#applicationcache>ApplicationCache</a></code> singleton of each <a href=#browsing-context>browsing
-   context</a> whose <a href=#active-document>active document</a> is associated
-   with a cache in <var title="">cache group</var>. The default action
-   of this event should be the display of some sort of user interface
-   indicating to the user that the application is no longer available
-   for offline use.</li>
-
-   <li><p>Set the <a href=#concept-appcache-lifecycle title=concept-appcache-lifecycle>lifecycle
+   <li><p>Set the <a href=#concept-appcache-status title=concept-appcache-status>update
    status</a> of <var title="">cache group</var> to
-   <i>obsolete</i>.</li>
-
-   <li><p>Let the <a href=#concept-appcache-status title=concept-appcache-status>update
-   status</a> of the group of caches to which <var title="">cache</var> belongs be <i>idle</i>. If appropriate, remove
-   any user interface indicating that an update for this cache is in
-   progress. Abort the update process.</li>
+   <i>idle</i>.</li>
 
   </ol><p>The <dfn id=cache-failure-steps>cache failure steps</dfn> are as follows:</p>
 
-  <ol><li><p><a href=#fire-a-simple-event>Fire a simple event</a> called <code title=event-error><a href=#event-error>error</a></code> at the
-   <code><a href=#applicationcache>ApplicationCache</a></code> singleton of each <a href=#browsing-context>browsing
-   context</a> whose <a href=#active-document>active document</a> is associated
-   with a cache in <var title="">cache group</var>. The default action
-   of this event should be the display of some sort of user interface
-   indicating to the user that the user agent failed to save the
-   application for offline use.</li>
+  <dl class=switch><dt>If this was a <a href=#concept-appcache-cache title=concept-appcache-cache>cache
+   attempt</a></dt>
 
-   <li><p>If this is a <a href=#concept-appcache-cache title=concept-appcache-cache>cache
-   attempt</a>, then discard <var title="">cache</var> and abort
-   the update process.</li>
+   <dd>
 
-   <li><p>Otherwise, let the <a href=#concept-appcache-status title=concept-appcache-status>status</a> of the group of
-   caches to which <var title="">cache</var> belongs be
-   <i>idle</i>. If appropriate, remove any user interface indicating
-   that an update for this cache is in progress. Abort the update
-   process.</li>
+    <ol><li><p>For each entry in <var title="">cache group</var>'s
+     <a href=#concept-appcache-pending-masters title=concept-appcache-pending-masters>list of pending
+     master entries</a>, <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-simple-event>fire
+     a simple event</a> called <code title=event-error><a href=#event-error>error</a></code> at the
+     <code><a href=#applicationcache>ApplicationCache</a></code> singleton of the <a href=#browsing-context>browsing
+     context</a> whose <a href=#active-document>active document</a> is the
+     <code>Document</code> for this entry, if there still is
+     one. The default action of this event should be the display of
+     some sort of user interface indicating to the user that the
+     user agent failed to save the application for offline
+     use.</li>
 
-  </ol><p>User agents may invoke the <a href=#application-cache-update-process>application cache update
+     <li><p>If appropriate, remove any user interface indicating
+     that an update for this cache is in progress.</li>
+
+     <li><p>Discard <var title="">cache group</var> (and its
+     <a href=#application-cache>application cache</a>, if any).</p>
+
+     <li><p>Abort the update process.</li>
+
+    </ol></dd>
+
+   <dt>If this was an <a href=#concept-appcache-upgrade title=concept-appcache-upgrade>upgrade
+   attempt</a></dt>
+
+   <dd>
+
+    <ol><li><p>For each <a href=#browsing-context>browsing context</a> whose <a href=#active-document>active
+     document</a> is associated with an <a href=#application-cache>application
+     cache</a> in <var title="">cache group</var>, <a href=#queue-a-task>queue a
+     task</a> to <a href=#fire-a-simple-event>fire a simple event</a> called <code title=event-error><a href=#event-error>error</a></code> at the
+     <code><a href=#applicationcache>ApplicationCache</a></code> singleton of the <a href=#browsing-context>browsing
+     context</a>. The default action of these events should be the
+     display of some sort of user interface indicating to the user
+     that the user agent failed to save the application for offline
+     use.</li>
+
+     <li><p>Let <var title="">cache</var> be the <a href=#concept-appcache-newer title=concept-appcache-newer>newest</a> <a href=#application-cache>application
+     cache</a> in <var title="">cache group</var>.</li>
+
+     <li>
+
+      <p>For each entry in <var title="">cache group</var>'s <a href=#concept-appcache-pending-masters title=concept-appcache-pending-masters>list of pending master
+      entries</a>, run the following further substeps.  These steps
+      may be run in parallel for two or more entries at a time.</p>
+
+      <ol><li><p>Wait for the resource for this entry to have completely
+       downloaded.</p>
+
+       <li><p>If the download was successful, associate the
+       <code>Document</code> for this entry with <var title="">cache</var> (unassociating it from the other
+       <a href=#application-cache>application cache</a> it is associated with, if any),
+       store the resource for this entry in <var title="">cache</var>,
+       if it isn't already there, and categorize its entry as a <a href=#concept-appcache-master title=concept-appcache-master>master entry</a>.</li>
+
+       <li><p><a href=#queue-a-task>Queue a task</a> to <a href=#fire-a-simple-event>fire a simple
+       event</a> called <code title=event-error><a href=#event-error>error</a></code> at
+       the <code><a href=#applicationcache>ApplicationCache</a></code> singleton of the
+       <a href=#browsing-context>browsing context</a> whose <a href=#active-document>active
+       document</a> is the <code>Document</code> for this entry, if
+       there still is one. The default action of this event should be
+       the display of some sort of user interface indicating to the
+       user that the user agent failed to save the application for
+       offline use.</p>
+
+      </ol></li>
+
+     <li><p>Empty <var title="">cache group</var>'s <a href=#concept-appcache-pending-masters title=concept-appcache-pending-masters>list of pending master
+     entries</a>.</li>
+
+     <li><p>If <var title="">cache group</var> has an
+     <a href=#application-cache>application cache</a> whose <a href=#concept-appcache-completeness title=concept-appcache-completeness>completeness flag</a> is
+     <i>incomplete</i>, then discrad that <a href=#application-cache>application
+     cache</a>.</p>
+
+     <li><p>If appropriate, remove any user interface indicating that
+     an update for this cache is in progress.</li>
+
+     <li><p>Let the <a href=#concept-appcache-status title=concept-appcache-status>status</a> of <var title="">cache group</var> be <i>idle</i>.</li>
+
+     <li><p>Abort the update process.</li>
+
+    </ol></dd>
+
+  </dl><hr><p>User agents may invoke the <a href=#application-cache-update-process>application cache update
   process</a>, in the background, for any <a href=#application-cache>application
   cache</a>, at any time (with no <a href=#browsing-context>browsing
   context</a>). This allows user agents to keep caches primed and
@@ -37509,11 +37625,7 @@ style/default.css</pre>
 
 
 
-  <h4 id=processing-model-2><span class=secno>5.7.5 </span>Processing model</h4>
-
-  <p>The processing model of application caches for offline support in
-  Web applications is part of the <a href=#navigate title=navigate>navigation</a> model, but references the
-  algorithms defined in this section.</p>
+  <h4 id=matching-a-fallback-namespace><span class=secno>5.7.5 </span>Matching a fallback namespace</h4>
 
   <p>A URL <dfn id=concept-appcache-matches-fallback title=concept-appcache-matches-fallback>matches a
   fallback namespace</dfn> if there exists a <a href=#relevant-application-cache>relevant
@@ -37540,56 +37652,35 @@ style/default.css</pre>
 
   </div>
 
-  <hr><p>When the <dfn id=concept-appcache-init-with-attribute title=concept-appcache-init-with-attribute>application cache
-  selection algorithm</dfn> algorithm is invoked with a manifest URL
-  and document, the user agent must run the first applicable set of
-  steps from the following list:</p>
 
-  <dl class=switch><dt>If the document is not being loaded as part of navigation of a
-   <a href=#browsing-context>browsing context</a></dt>
+  <h4 id=the-application-cache-selection-algorithm><span class=secno>5.7.6 </span>The application cache selection algorithm</h4>
 
-   <dd>
+  <p>When the <dfn id=concept-appcache-init title=concept-appcache-init>application cache
+  selection algorithm</dfn> algorithm is invoked with a
+  <code>Document</code> <var title="">document</var> and optinally a
+  manifest <a href=#url>URL</a> <var title="">manifest URL</var>, the user
+  agent must run the first applicable set of steps from the following
+  list:</p>
 
-    <p>Do nothing.</p>
+  <dl class=switch><dt>If <var title="">document</var> was loaded from an
+   <a href=#application-cache>application cache</a>, and there is no <var title="">manifest URL</var></dt>
 
-    <p class=note>For instance, the HTML parser can call this
-    algorithm during the processing of a document generated
-    exclusively from <code title=dom-document-write><a href=#dom-document-write>document.open()</a></code> and <code title=dom-document-write><a href=#dom-document-write>document.write()</a></code>, without
-    navigation taking place.</p>
-
-   </dd>
-
-
-   <!-- otherwise, we're talking browsing contexts only: -->
-
-   <dt>If the document was loaded from an application cache and the
-   URL of that application cache's manifest is the same as the
-   manifest URL with which the algorithm was invoked</dt> <dd>
-
-    <p>Associate the <code>Document</code> with the cache from which
-    it was loaded. Invoke the <a href=#application-cache-update-process>application cache update
-    process</a> for that cache and with the <a href=#browsing-context>browsing
-    context</a> being navigated.</p>
-
-   </dd>
-
-
-   <dt>If the document being loaded was loaded from an application
-   cache and the URL of that application cache's manifest is
-   <em>not</em> the same as the manifest URL with which the algorithm
-   was invoked</dt>
+   <dt>If <var title="">document</var> was loaded from an
+   <a href=#application-cache>application cache</a>, and the URL of the <a href=#concept-appcache-manifest title=concept-appcache-manifest>manifest</a> of that cache's
+   <a href=#application-cache-group>application cache group</a> is <em>not</em> the same as
+   <var title="">manifest URL</var></dt>
 
    <dd>
 
-    <p>Mark the entry for this document in the application cache from
-    which it was loaded as <a href=#concept-appcache-foreign title=concept-appcache-foreign>foreign</a>.</p>
+    <p>Mark the entry for the resource from which <var title="">document</var> was taken in the <a href=#application-cache>application
+    cache</a> from which it was loaded as <a href=#concept-appcache-foreign title=concept-appcache-foreign>foreign</a>.</p>
 
     <p>Restart the current navigation from the top of the <a href=#navigate title=navigate>navigation algorithm</a>, undoing any changes
     that were made as part of the initial load (changes can be avoided
     by ensuring that the step to <a href=#update-the-session-history-with-the-new-page>update the session history with
-    the new page</a> is only ever completed <em>after</em> the
-    application cache selection algorithm is run, though this is not
-    required).</p>
+    the new page</a> is only ever completed <em>after</em> this
+    <a href=#concept-appcache-init title=concept-appcache-init>application cache selection
+    algorithm</a> is run, though this is not required).</p>
 
     <p class=note>The navigation will not result in the same
     resource being loaded, because "foreign" entries are never picked
@@ -37602,44 +37693,56 @@ style/default.css</pre>
    </dd>
 
 
-   <dt>If the document being loaded was not loaded from an application
-   cache, but it was loaded using HTTP GET <a href=#concept-http-equivalent-get title=concept-http-equivalent-get>or equivalent</a></dt> <dd>
+   <dt>If <var title="">document</var> was loaded from an
+   <a href=#application-cache>application cache</a><!--[redundant], and the URL of the
+   <span title="concept-appcache-manifest">manifest</span> of that
+   cache's <span>application cache group</span> is the same as <var
+   title="">manifest URL</var>--></dt>
 
-    <ol><li><p>If the manifest URL does not have the <a href=#same-origin>same
-     origin</a> as the document, then invoke the <a href=#concept-appcache-init-no-attribute title=concept-appcache-init-no-attribute>application cache
-     selection algorithm</a> again, but without a manifest, and
-     abort these steps.</li>
-
-     <li><p>Otherwise, invoke the <a href=#application-cache-update-process>application cache update
-     process</a> for the given manifest URL, with the
-     <a href=#browsing-context>browsing context</a> being navigated, and with the
-     <code>Document</code> as the new <a href=#concept-appcache-master title=concept-appcache-master>master</a> resource.</li>
-
-    </ol></dd>
-
-
-   <dt>Otherwise</dt>
    <dd>
-    <p>Invoke the <a href=#concept-appcache-init-no-attribute title=concept-appcache-init-no-attribute>application cache
-    selection algorithm</a> again, but without a manifest.</p>
+
+    <p>Associate <var title="">document</var> with the
+    <a href=#application-cache>application cache</a> from which it was loaded. Invoke
+    the <a href=#application-cache-update-process>application cache update process</a> for that cache
+    and with the <a href=#browsing-context>browsing context</a> being navigated.</p>
+
    </dd>
 
-  </dl><p>When the <dfn id=concept-appcache-init-no-attribute title=concept-appcache-init-no-attribute>application cache
-  selection algorithm</dfn> is invoked <em>without</em> a manifest, if
-  the document is being loaded as part of navigation of a
-  <a href=#browsing-context>browsing context</a>, and it was fetched from a particular
-  <a href=#application-cache>application cache</a>, then the user agent must associate
-  the <code>Document</code> with that application cache and invoke the
-  <a href=#application-cache-update-process>application cache update process</a> for that cache, with
-  that <a href=#browsing-context>browsing context</a>. Otherwise, nothing special
-  happens.</p>
+
+   <dt>If <var title="">document</var> <!--[redundant] was not loaded
+   from an <span>application cache</span>, but it--> was loaded using
+   HTTP GET <a href=#concept-http-equivalent-get title=concept-http-equivalent-get>or
+   equivalent</a>, and <var title="">manifest URL</var> has the
+   <a href=#same-origin>same origin</a> as <var title="">document</var></dt>
+
+   <dd>
+
+    <p>Invoke the <a href=#application-cache-update-process>application cache update process</a> for
+    <var title="">manifest URL</var>, with the <a href=#browsing-context>browsing
+    context</a> being navigated, and with <var title="">document</var> and the resource from which <var title="">document</var> was loaded as the new <a href=#concept-appcache-master title=concept-appcache-master>master</a> resource.</p>
+
+   </dd>
 
 
+   <dt>Otherwise</dt> <!-- not from cache and either non GET or wrong-origin manifest -->
 
-  <h5 id=changesToNetworkingModel><span class=secno>5.7.5.1 </span>Changes to the networking model</h5>
+   <dd>
 
-  <p>When a <a href=#browsing-context>browsing context</a> is associated with an
-  <a href=#application-cache>application cache</a>, any and all loads for resources in
+    <p>The <code>Document</code> is not associated with any
+    <a href=#application-cache>application cache</a>.</p>
+
+    <p>If there was a <var title="">manifest URL</var>, the user agent
+    may report to the user that it was ignored, to aid in application
+    development.</p>
+
+   </dd>
+
+  </dl><h5 id=changesToNetworkingModel><span class=secno>5.7.6.1 </span>Changes to the networking model</h5>
+
+  <p>When a <a href=#browsing-context>browsing context</a>'s <a href=#active-document>active
+  document</a> is associated with an <a href=#application-cache>application cache</a>
+  whose <a href=#concept-appcache-completeness title=concept-appcache-completeness>completeness
+  flag</a> is <i>complete</i>, any and all loads for resources in
   that <a href=#browsing-context>browsing context</a> other than those for <a href=#child-browsing-context title="child browsing context">child browsing contexts</a> must
   go through the following steps instead of immediately invoking the
   mechanisms appropriate to that resource's scheme:</p>
@@ -37684,12 +37787,13 @@ style/default.css</pre>
    <li><p>Fail the resource load.</li>
 
   </ol><p class=note>The above algorithm ensures that resources that are
-  not present in the manifest will always fail to load (at least,
-  after the cache has been primed the first time), making the testing
-  of offline applications simpler.</p>
+  not present in the <a href=#concept-appcache-manifest title=concept-appcache-manifest>manifest</a> will always fail
+  to load (at least, after the <a href=#application-cache>application cache</a> has been
+  primed the first time), making the testing of offline applications
+  simpler.</p>
 
 
-  <h4 id=application-cache-api><span class=secno>5.7.6 </span>Application cache API</h4>
+  <h4 id=application-cache-api><span class=secno>5.7.7 </span>Application cache API</h4>
 
   <pre class=idl>interface <dfn id=applicationcache>ApplicationCache</dfn> {
 
@@ -37699,7 +37803,6 @@ style/default.css</pre>
   const unsigned short <a href=#dom-appcache-checking title=dom-appcache-CHECKING>CHECKING</a> = 2;
   const unsigned short <a href=#dom-appcache-downloading title=dom-appcache-DOWNLOADING>DOWNLOADING</a> = 3;
   const unsigned short <a href=#dom-appcache-updateready title=dom-appcache-UPDATEREADY>UPDATEREADY</a> = 4;
-  const unsigned short <a href=#dom-appcache-obsolete title=dom-appcache-OBSOLETE>OBSOLETE</a> = 5;
   readonly attribute unsigned short <a href=#dom-appcache-status title=dom-appcache-status>status</a>;
 
   // updates
@@ -37751,45 +37854,37 @@ style/default.css</pre>
    (numeric value 1)</dt>
 
    <dd><p>The <code><a href=#applicationcache>ApplicationCache</a></code> object is associated with
-   an <a href=#application-cache>application cache</a> whose group is in the <i>idle</i>
-   <a href=#concept-appcache-status title=concept-appcache-status>update status</a> and the
-   <i>mature</i> <a href=#concept-appcache-lifecycle title=concept-appcache-lifecycle>lifecycle
-   status</a> and that application cache is the newest cache in its
+   an <a href=#application-cache>application cache</a> whose <a href=#application-cache-group>application cache
+   group</a>'s <a href=#concept-appcache-status title=concept-appcache-status>update
+   status</a> is <i>idle</i>, and that application cache is the
+   <a href=#concept-appcache-newer title=concept-appcache-newer>newest</a> cache in its
    group.</dd>
 
    <dt><dfn id=dom-appcache-checking title=dom-appcache-CHECKING><code>CHECKING</code></dfn>
    (numeric value 2)</dt>
 
    <dd><p>The <code><a href=#applicationcache>ApplicationCache</a></code> object is associated with
-   an <a href=#application-cache>application cache</a> whose group is in the
-   <i>checking</i> <a href=#concept-appcache-status title=concept-appcache-status>update
-   status</a>.</dd>
+   an <a href=#application-cache>application cache</a> whose <a href=#application-cache-group>application cache
+   group</a>'s <a href=#concept-appcache-status title=concept-appcache-status>update
+   status</a> is <i>checking</i>.</dd>
 
    <dt><dfn id=dom-appcache-downloading title=dom-appcache-DOWNLOADING><code>DOWNLOADING</code></dfn>
    (numeric value 3)</dt>
 
    <dd><p>The <code><a href=#applicationcache>ApplicationCache</a></code> object is associated with
-   an <a href=#application-cache>application cache</a> whose group is in the
-   <i>downloading</i> <a href=#concept-appcache-status title=concept-appcache-status>update
-   status</a>.</dd>
+   an <a href=#application-cache>application cache</a> whose <a href=#application-cache-group>application cache
+   group</a>'s <a href=#concept-appcache-status title=concept-appcache-status>update
+   status</a> is <i>downloading</i>.</dd>
 
    <dt><dfn id=dom-appcache-updateready title=dom-appcache-UPDATEREADY><code>UPDATEREADY</code></dfn>
    (numeric value 4)</dt>
 
    <dd><p>The <code><a href=#applicationcache>ApplicationCache</a></code> object is associated with
-   an <a href=#application-cache>application cache</a> whose group is in the <i>idle</i>
-   <a href=#concept-appcache-status title=concept-appcache-status>update status</a> and the
-   <i>mature</i> <a href=#concept-appcache-lifecycle title=concept-appcache-lifecycle>lifecycle
-   status</a> but that application cache is <em>not</em> the newest
+   an <a href=#application-cache>application cache</a> whose <a href=#application-cache-group>application cache
+   group</a>'s <a href=#concept-appcache-status title=concept-appcache-status>update
+   status</a> is <i>idle</i>, but that application cache is
+   <em>not</em> the <a href=#concept-appcache-newer title=concept-appcache-newer>newest</a>
    cache in its group.</dd>
-
-   <dt><dfn id=dom-appcache-obsolete title=dom-appcache-OBSOLETE><code>OBSOLETE</code></dfn>
-   (numeric value 5)</dt>
-
-   <dd><p>The <code><a href=#applicationcache>ApplicationCache</a></code> object is associated with
-   an <a href=#application-cache>application cache</a> whose group is in the
-   <i>obsolete</i> <a href=#concept-appcache-lifecycle title=concept-appcache-lifecycle>lifecycle
-   status</a>.</dd>
 
   </dl><hr><p>If the <dfn id=dom-appcache-update title=dom-appcache-update><code>update()</code></dfn> method is
   invoked, the user agent must invoke the <a href=#application-cache-update-process>application cache
@@ -37816,20 +37911,17 @@ style/default.css</pre>
    associated. (By definition, this is the same as the one that was
    found in the previous step.)</li>
 
-   <li><p>If the group of <a href=#application-cache title="application cache">application
-   caches</a> to which <var title="">cache</var> belongs has the
-   <a href=#concept-appcache-lifecycle title=concept-appcache-lifecycle>lifecycle status</a>
-   <i>obsolete</i>, unassociate <var title="">document</var> from <var title="">cache</var> and abort these steps.</li>
-
-   <li><p>Otherwise, check that there is an application cache in the
-   same group as <var title="">cache</var> which has an entry
-   categorized as a <a href=#concept-appcache-manifest title=concept-appcache-manifest>manifest</a> that is newer
-   than <var title="">cache</var>. If there is not, then raise an
+   <li><p>Check that there is an application cache in the same
+   <a href=#application-cache-group>application cache group</a> as <var title="">cache</var>
+   whose <a href=#concept-appcache-completeness title=concept-appcache-completeness>completeness
+   flag</a> is <i>complete</i> and that is <a href=#concept-appcache-newer title=concept-appcache-newer>newer</a> than <var title="">cache</var>. If there is not, then raise an
    <code><a href=#invalid_state_err>INVALID_STATE_ERR</a></code> exception and abort these
    steps.</li>
 
-   <li><p>Let <var title="">new cache</var> be the newest
-   <a href=#application-cache>application cache</a> in the same group as <var title="">cache</var> which has an entry categorized as a <a href=#concept-appcache-manifest title=concept-appcache-manifest>manifest</a>.</li>
+   <li><p>Let <var title="">new cache</var> be the <a href=#concept-appcache-newer title=concept-appcache-newer>newest</a> <a href=#application-cache>application
+   cache</a> in the same <a href=#application-cache-group>application cache group</a> as
+   <var title="">cache</var> whose <a href=#concept-appcache-completeness title=concept-appcache-completeness>completeness flag</a> is
+   <i>complete</i>.</li>
 
    <li><p>Unassociate <var title="">document</var> from <var title="">cache</var> and instead associate it with <var title="">new cache</var>.</li>
 
@@ -37886,7 +37978,7 @@ style/default.css</pre>
    <dd><p>Must be invoked whenever an <code title=event-obsolete>obsolete</code> event is targeted at or bubbles
    through the <code><a href=#applicationcache>ApplicationCache</a></code> object.</dd>
 
-  </dl><h4 id=browser-state><span class=secno>5.7.7 </span>Browser state</h4>
+  </dl><h4 id=browser-state><span class=secno>5.7.8 </span>Browser state</h4>
 
   <p>The <dfn id=dom-navigator-online title=dom-navigator-onLine><code>navigator.onLine</code></dfn>
   attribute must return false if the user agent will not contact the
@@ -38710,9 +38802,9 @@ user reload must be equivalent to .reload()
   before the page has finished parsing, the user agent must
   <a href=#update-the-session-history-with-the-new-page>update the session history with the new page</a>.</p>
 
-  <p class=note><a href=#concept-appcache-init-with-attribute title=concept-appcache-init-with-attribute>Application cache
-  selection</a> happens <a href=#parser-appcache>in the HTML
-  parser</a>.</p>
+  <p class=note><a href=#concept-appcache-init title=concept-appcache-init>Application
+  cache selection</a> happens <a href=#parser-appcache>in the
+  HTML parser</a>.</p>
 
 
 
@@ -38738,13 +38830,13 @@ user reload must be equivalent to .reload()
   element is <a href=#insert-an-element-into-a-document title="insert an element into a document">inserted
   into the document</a>, the user agent must <a href=#resolve-a-url title="resolve a
   url">resolve</a> the value of that attribute, and if that is
-  successful, must run the <a href=#concept-appcache-init-with-attribute title=concept-appcache-init-with-attribute>application cache
-  selection algorithm</a> with the resulting <a href=#absolute-url>absolute
-  URL</a> as the manifest URL, and passing in the newly-created
+  successful, must run the <a href=#concept-appcache-init title=concept-appcache-init>application cache selection
+  algorithm</a> with the resulting <a href=#absolute-url>absolute URL</a> as the
+  manifest URL, and passing in the newly-created
   <code>Document</code>. Otherwise, if the attribute is absent or
   resolving it fails, then as soon as the root element is <a href=#insert-an-element-into-a-document title="insert an element into a document">inserted into the
-  document</a>, the user agent must run the <a href=#concept-appcache-init-no-attribute title=concept-appcache-init-no-attribute>application cache
-  selection algorithm</a> with no manifest, passing in the
+  document</a>, the user agent must run the <a href=#concept-appcache-init title=concept-appcache-init>application cache selection
+  algorithm</a> with no manifest, passing in the
   <code>Document</code>.</p>
 
   <p class=note>Because the processing of the <code title=attr-html-manifest><a href=#attr-html-manifest>manifest</a></code> attribute happens
@@ -38794,7 +38886,7 @@ user reload must be equivalent to .reload()
   character encoding used to decode the document.</p>
 
   <p>Upon creation of the <code>Document</code> object, the user agent
-  must run the <a href=#concept-appcache-init-no-attribute title=concept-appcache-init-no-attribute>application cache
+  must run the <a href=#concept-appcache-init title=concept-appcache-init>application cache
   selection algorithm</a> with no manifest, passing in the
   newly-created <code>Document</code>.</p>
 
@@ -38835,7 +38927,7 @@ user reload must be equivalent to .reload()
   parsing">stopped parsing</a>.</p>
 
   <p>Upon creation of the <code>Document</code> object, the user agent
-  must run the <a href=#concept-appcache-init-no-attribute title=concept-appcache-init-no-attribute>application cache
+  must run the <a href=#concept-appcache-init title=concept-appcache-init>application cache
   selection algorithm</a> with no manifest, passing in the
   newly-created <code>Document</code>.</p>
 
@@ -38868,7 +38960,7 @@ user reload must be equivalent to .reload()
   parsing">stopped parsing</a>.</p>
 
   <p>Upon creation of the <code>Document</code> object, the user agent
-  must run the <a href=#concept-appcache-init-no-attribute title=concept-appcache-init-no-attribute>application cache
+  must run the <a href=#concept-appcache-init title=concept-appcache-init>application cache
   selection algorithm</a> with no manifest, passing in the
   newly-created <code>Document</code>.</p>
 
@@ -38904,7 +38996,7 @@ user reload must be equivalent to .reload()
   had <a href=#stop-parsing title="stop parsing">stopped parsing</a>.</p>
 
   <p>Upon creation of the <code>Document</code> object, the user agent
-  must run the <a href=#concept-appcache-init-no-attribute title=concept-appcache-init-no-attribute>application cache
+  must run the <a href=#concept-appcache-init title=concept-appcache-init>application cache
   selection algorithm</a> with no manifest, passing in the
   newly-created <code>Document</code>.</p>
 
@@ -39034,9 +39126,7 @@ user reload must be equivalent to .reload()
      <li id=appcache-history-2>The user agent must make the
      <i>specified entry</i>'s <code>Document</code> object the
      <a href=#active-document>active document</a> of the <a href=#browsing-context>browsing
-     context</a>. (If it is a <a href=#top-level-browsing-context>top-level browsing
-     context</a>, this might <a href=#appcache-history-1>change</a> which <a href=#application-cache>application
-     cache</a> it is associated with.)</li>
+     context</a>.</li>
 
      <li>If the <i>specified entry</i> has a <a href=#browsing-context-name>browsing
      context name</a> stored with it, then the following
@@ -39987,7 +40077,7 @@ interface <dfn id=sqlstatementerrorcallback>SQLStatementErrorCallback</dfn> {
 
 
 
-  <h5 id=processing-model-3><span class=secno>5.10.2.6 </span>Processing model</h5>
+  <h5 id=processing-model-2><span class=secno>5.10.2.6 </span>Processing model</h5>
 
   <p>The <dfn id=transaction-steps>transaction steps</dfn> are as follows. These steps must
   be run asynchronously. These steps are invoked with a <i>transaction
@@ -49693,13 +49783,15 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
     object. Put this element in the <a href=#stack-of-open-elements>stack of open
     elements</a>.</p>
 
-    <p id=parser-appcache>If the token has an attribute "manifest",
-    then <a href=#resolve-a-url title="resolve a url">resolve</a> the value of that
-    attribute to an <a href=#absolute-url>absolute URL</a>, and if that is
-    successful, run the <a href=#concept-appcache-init-with-attribute title=concept-appcache-init-with-attribute>application cache
-    selection algorithm</a> with the resulting <a href=#absolute-url>absolute
-    URL</a>. Otherwise, if there is no such attribute or resolving
-    it fails, run the <a href=#concept-appcache-init-no-attribute title=concept-appcache-init-no-attribute>application cache
+    <p id=parser-appcache>If the <code>Document</code> is being
+    loaded as part of <a href=#navigate title=navigate>navigation</a> of a
+    <a href=#browsing-context>browsing context</a>, then: if the token has an attribute
+    "manifest", then <a href=#resolve-a-url title="resolve a url">resolve</a> the
+    value of that attribute to an <a href=#absolute-url>absolute URL</a>, and if
+    that is successful, run the <a href=#concept-appcache-init title=concept-appcache-init>application cache selection
+    algorithm</a> with the resulting <a href=#absolute-url>absolute URL</a>;
+    otherwise, if there is no such attribute or resolving it fails,
+    run the <a href=#concept-appcache-init title=concept-appcache-init>application cache
     selection algorithm</a> with no manifest. The algorithm must be
     passed the <code>Document</code> object.</p>
 
@@ -49715,8 +49807,9 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
     to the <code>Document</code> object. Put this element in the
     <a href=#stack-of-open-elements>stack of open elements</a>.</p>
 
-    <p>Run the <a href=#concept-appcache-init-no-attribute title=concept-appcache-init-no-attribute>application cache
-    selection algorithm</a> with no manifest, passing it the
+    <p>If the <code>Document</code> is being loaded as part of <a href=#navigate title=navigate>navigation</a> of a <a href=#browsing-context>browsing
+    context</a>, then: run the <a href=#concept-appcache-init title=concept-appcache-init>application cache selection
+    algorithm</a> with no manifest, passing it the
     <code>Document</code> object.</p>
 
     <p>Switch the <a href=#insertion-mode>insertion mode</a> to "<a href=#the-before-head-insertion-mode title="insertion mode: before head">before head</a>", then
