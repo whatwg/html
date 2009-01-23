@@ -22,7 +22,7 @@
   <div class=head>
    <p><a class=logo href=http://www.whatwg.org/ rel=home><img alt=WHATWG src=/images/logo></a></p>
    <h1>HTML 5</h1>
-   <h2 class="no-num no-toc" id=draft-recommendation-&mdash;-date:-01-jan-1901>Draft Recommendation &mdash; 22 January 2009</h2>
+   <h2 class="no-num no-toc" id=draft-recommendation-&mdash;-date:-01-jan-1901>Draft Recommendation &mdash; 23 January 2009</h2>
    <p>You can take part in this work. <a href=http://www.whatwg.org/mailing-list>Join the working group's discussion list.</a></p>
    <p><strong>Web designers!</strong> We have a <a href=http://blog.whatwg.org/faq/>FAQ</a>, a <a href=http://forums.whatwg.org/>forum</a>, and a <a href=http://www.whatwg.org/mailing-list#help>help mailing list</a> for you!</p>
    <dl><dt>Multiple-page version:</dt>
@@ -36601,6 +36601,10 @@ interface <dfn id=function>Function</dfn> {
   corresponding <code>Document</code> object. It is used during the
   update process to ensure that new master entries are cached.</p>
 
+  <p>An <a href=#application-cache-group>application cache group</a> can be marked as <dfn id=concept-appcache-obsolete title=concept-appcache-obsolete>obsolete</dfn>, meaning that it
+  must be ignored when looking at what <a href=#application-cache-group title="application cache
+  group">application cache groups</a> exist.</p>
+
   <hr><p>A <code>Document</code> initially is not associated with an
   <a href=#application-cache>application cache</a>, but steps <a href=#parser-appcache>in the parser</a> and in the <a href=#navigate title=navigate>navigation</a> sections cause <a href=#concept-appcache-init title=concept-appcache-init>cache selection</a> to occur early
   in the page load process.</p>
@@ -37137,7 +37141,11 @@ style/default.css</pre>
     response <a href=#concept-http-equivalent-codes title=concept-http-equivalent-codes>or
     equivalent</a>, then run these substeps:</p>
 
-    <ol><!-- XXX can they be merged with the cache failure steps? (event name is different, this always disassociates even for upgrades, anything else?) --><li><p>For each <a href=#browsing-context>browsing context</a> whose <a href=#active-document>active
+    <ol><li><p>Mark <var title="">cache group</var> as <a href=#concept-appcache-obsolete title=concept-appcache-obsolete>obsolete</a>. This <var title="">cache group</var> no longer exists for any purpose other
+     than the processing of <code>Document</code> objects already
+     associated with an <a href=#application-cache>application cache</a> in the <var title="">cache group</var>.</li>
+
+     <li><p>For each <a href=#browsing-context>browsing context</a> whose <a href=#active-document>active
      document</a> is associated with an <a href=#application-cache>application
      cache</a> in <var title="">cache group</var>, <a href=#queue-a-task>queue a
      task</a> to <a href=#fire-a-simple-event>fire a simple event</a> called <code title=event-obsolete>obsolete</code> at the
@@ -37147,16 +37155,26 @@ style/default.css</pre>
      that the application is no longer available for offline
      use.</li>
 
-     <li><p>Unassociate any <code>Document</code> associated with an
-     <a href=#application-cache>application cache</a> in <var title="">cache
-     group</var>.</li>
+     <li><p>For each entry in <var title="">cache group</var>'s <a href=#concept-appcache-pending-masters title=concept-appcache-pending-masters>list of pending master
+     entries</a>, <a href=#queue-a-task>queue a task</a> to <a href=#fire-a-simple-event>fire a simple
+     event</a> called <code title=event-error><a href=#event-error>error</a></code> (not
+     <code title=event-obsolete>obsolete</code>!) at the
+     <code><a href=#applicationcache>ApplicationCache</a></code> singleton of the <a href=#browsing-context>browsing
+     context</a> whose <a href=#active-document>active document</a> is the
+     <code>Document</code> for this entry, if there still is one. The
+     default action of this event should be the display of some sort
+     of user interface indicating to the user that the user agent
+     failed to save the application for offline use.</li>
 
-     <li><p>If appropriate, remove any user interface indicating
-     that an update for this cache is in progress.</li>
+     <li><p>If <var title="">cache group</var> has an
+     <a href=#application-cache>application cache</a> whose <a href=#concept-appcache-completeness title=concept-appcache-completeness>completeness flag</a> is
+     <i>incomplete</i>, then discard that <a href=#application-cache>application
+     cache</a>.</p>
 
-     <li><p>Discard <var title="">cache group</var> and its associated
-     <a href=#application-cache title="application cache">application caches</a>, if
-     any.</p>
+     <li><p>If appropriate, remove any user interface indicating that
+     an update for this cache is in progress.</li>
+
+     <li><p>Let the <a href=#concept-appcache-status title=concept-appcache-status>status</a> of <var title="">cache group</var> be <i>idle</i>.</li>
 
      <li><p>Abort the update process.</li>
 
@@ -37803,6 +37821,7 @@ style/default.css</pre>
   const unsigned short <a href=#dom-appcache-checking title=dom-appcache-CHECKING>CHECKING</a> = 2;
   const unsigned short <a href=#dom-appcache-downloading title=dom-appcache-DOWNLOADING>DOWNLOADING</a> = 3;
   const unsigned short <a href=#dom-appcache-updateready title=dom-appcache-UPDATEREADY>UPDATEREADY</a> = 4;
+  const unsigned short <a href=#dom-appcache-obsolete title=dom-appcache-OBSOLETE>OBSOLETE</a> = 5;
   readonly attribute unsigned short <a href=#dom-appcache-status title=dom-appcache-status>status</a>;
 
   // updates
@@ -37856,9 +37875,10 @@ style/default.css</pre>
    <dd><p>The <code><a href=#applicationcache>ApplicationCache</a></code> object is associated with
    an <a href=#application-cache>application cache</a> whose <a href=#application-cache-group>application cache
    group</a>'s <a href=#concept-appcache-status title=concept-appcache-status>update
-   status</a> is <i>idle</i>, and that application cache is the
-   <a href=#concept-appcache-newer title=concept-appcache-newer>newest</a> cache in its
-   group.</dd>
+   status</a> is <i>idle</i>, and that <a href=#application-cache>application
+   cache</a> is the <a href=#concept-appcache-newer title=concept-appcache-newer>newest</a> cache in its
+   <a href=#application-cache-group>application cache group</a>, and the <a href=#application-cache-group>application
+   cache group</a> is not marked as <a href=#concept-appcache-obsolete title=concept-appcache-obsolete>obsolete</a>.</dd>
 
    <dt><dfn id=dom-appcache-checking title=dom-appcache-CHECKING><code>CHECKING</code></dfn>
    (numeric value 2)</dt>
@@ -37882,17 +37902,25 @@ style/default.css</pre>
    <dd><p>The <code><a href=#applicationcache>ApplicationCache</a></code> object is associated with
    an <a href=#application-cache>application cache</a> whose <a href=#application-cache-group>application cache
    group</a>'s <a href=#concept-appcache-status title=concept-appcache-status>update
-   status</a> is <i>idle</i>, but that application cache is
-   <em>not</em> the <a href=#concept-appcache-newer title=concept-appcache-newer>newest</a>
-   cache in its group.</dd>
+   status</a> is <i>idle</i>, and whose <a href=#application-cache-group>application cache
+   group</a> is not marked as <a href=#concept-appcache-obsolete title=concept-appcache-obsolete>obsolete</a>, but that
+   <a href=#application-cache>application cache</a> is <em>not</em> the <a href=#concept-appcache-newer title=concept-appcache-newer>newest</a> cache in its
+   group.</dd>
+
+   <dt><dfn id=dom-appcache-obsolete title=dom-appcache-OBSOLETE><code>OBSOLETE</code></dfn>
+   (numeric value 5)</dt>
+
+   <dd><p>The <code><a href=#applicationcache>ApplicationCache</a></code> object is associated with
+   an <a href=#application-cache>application cache</a> whose <a href=#application-cache-group>application cache
+   group</a> is marked as <a href=#concept-appcache-obsolete title=concept-appcache-obsolete>obsolete</a>.</dd>
 
   </dl><hr><p>If the <dfn id=dom-appcache-update title=dom-appcache-update><code>update()</code></dfn> method is
   invoked, the user agent must invoke the <a href=#application-cache-update-process>application cache
   update process</a>, in the background, for the <a href=#application-cache>application
   cache</a> with which the <code><a href=#applicationcache>ApplicationCache</a></code> object is
   associated, but with no <a href=#browsing-context>browsing context</a>. If there is
-  no such application cache, then the method must raise an
-  <code><a href=#invalid_state_err>INVALID_STATE_ERR</a></code> exception instead.</p>
+  no such application cache, or if it is marked as <a href=#concept-appcache-obsolete title=concept-appcache-obsolete>obsolete</a>, then the method
+  must raise an <code><a href=#invalid_state_err>INVALID_STATE_ERR</a></code> exception instead.</p>
 
   <p>If the <dfn id=dom-appcache-swapcache title=dom-appcache-swapCache><code>swapCache()</code></dfn> method
   is invoked, the user agent must run the following steps:
@@ -37910,6 +37938,11 @@ style/default.css</pre>
    cache</a> with which the <code><a href=#applicationcache>ApplicationCache</a></code> object is
    associated. (By definition, this is the same as the one that was
    found in the previous step.)</li>
+
+   <li><p>If <var title="">cache</var>'s <a href=#application-cache-group>application cache
+   group</a> is marked as <a href=#concept-appcache-obsolete title=concept-appcache-obsolete>obsolete</a>, then raise an
+   <code><a href=#invalid_state_err>INVALID_STATE_ERR</a></code> exception and abort these
+   steps.</li>
 
    <li><p>Check that there is an application cache in the same
    <a href=#application-cache-group>application cache group</a> as <var title="">cache</var>

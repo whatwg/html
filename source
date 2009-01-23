@@ -41636,6 +41636,11 @@ interface <dfn>Function</dfn> {
   corresponding <code>Document</code> object. It is used during the
   update process to ensure that new master entries are cached.</p>
 
+  <p>An <span>application cache group</span> can be marked as <dfn
+  title="concept-appcache-obsolete">obsolete</dfn>, meaning that it
+  must be ignored when looking at what <span title="application cache
+  group">application cache groups</span> exist.</p>
+
   <hr>
 
   <p>A <code>Document</code> initially is not associated with an
@@ -42268,7 +42273,14 @@ style/default.css</pre>
     response <span title="concept-http-equivalent-codes">or
     equivalent</span>, then run these substeps:</p>
 
-    <ol> <!-- XXX can they be merged with the cache failure steps? (event name is different, this always disassociates even for upgrades, anything else?) -->
+    <ol>
+
+     <li><p>Mark <var title="">cache group</var> as <span
+     title="concept-appcache-obsolete">obsolete</span>. This <var
+     title="">cache group</var> no longer exists for any purpose other
+     than the processing of <code>Document</code> objects already
+     associated with an <span>application cache</span> in the <var
+     title="">cache group</var>.</p></li>
 
      <li><p>For each <span>browsing context</span> whose <span>active
      document</span> is associated with an <span>application
@@ -42281,16 +42293,30 @@ style/default.css</pre>
      that the application is no longer available for offline
      use.</p></li>
 
-     <li><p>Unassociate any <code>Document</code> associated with an
-     <span>application cache</span> in <var title="">cache
-     group</var>.</p></li>
+     <li><p>For each entry in <var title="">cache group</var>'s <span
+     title="concept-appcache-pending-masters">list of pending master
+     entries</span>, <span>queue a task</span> to <span>fire a simple
+     event</span> called <code title="event-error">error</code> (not
+     <code title="event-obsolete">obsolete</code>!) at the
+     <code>ApplicationCache</code> singleton of the <span>browsing
+     context</span> whose <span>active document</span> is the
+     <code>Document</code> for this entry, if there still is one. The
+     default action of this event should be the display of some sort
+     of user interface indicating to the user that the user agent
+     failed to save the application for offline use.</p></li>
 
-     <li><p>If appropriate, remove any user interface indicating
-     that an update for this cache is in progress.</p></li>
+     <li><p>If <var title="">cache group</var> has an
+     <span>application cache</span> whose <span
+     title="concept-appcache-completeness">completeness flag</span> is
+     <i>incomplete</i>, then discard that <span>application
+     cache</span>.</p>
 
-     <li><p>Discard <var title="">cache group</var> and its associated
-     <span title="application cache">application caches</span>, if
-     any.</p>
+     <li><p>If appropriate, remove any user interface indicating that
+     an update for this cache is in progress.</p></li>
+
+     <li><p>Let the <span
+     title="concept-appcache-status">status</span> of <var
+     title="">cache group</var> be <i>idle</i>.</p></li>
 
      <li><p>Abort the update process.</p></li>
 
@@ -43054,6 +43080,7 @@ style/default.css</pre>
   const unsigned short <span title="dom-appcache-CHECKING">CHECKING</span> = 2;
   const unsigned short <span title="dom-appcache-DOWNLOADING">DOWNLOADING</span> = 3;
   const unsigned short <span title="dom-appcache-UPDATEREADY">UPDATEREADY</span> = 4;
+  const unsigned short <span title="dom-appcache-OBSOLETE">OBSOLETE</span> = 5;
   readonly attribute unsigned short <span title="dom-appcache-status">status</span>;
 
   // updates
@@ -43110,9 +43137,12 @@ style/default.css</pre>
    <dd><p>The <code>ApplicationCache</code> object is associated with
    an <span>application cache</span> whose <span>application cache
    group</span>'s <span title="concept-appcache-status">update
-   status</span> is <i>idle</i>, and that application cache is the
-   <span title="concept-appcache-newer">newest</span> cache in its
-   group.</p></dd>
+   status</span> is <i>idle</i>, and that <span>application
+   cache</span> is the <span
+   title="concept-appcache-newer">newest</span> cache in its
+   <span>application cache group</span>, and the <span>application
+   cache group</span> is not marked as <span
+   title="concept-appcache-obsolete">obsolete</span>.</p></dd>
 
    <dt><dfn title="dom-appcache-CHECKING"><code>CHECKING</code></dfn>
    (numeric value 2)</dt>
@@ -43136,9 +43166,20 @@ style/default.css</pre>
    <dd><p>The <code>ApplicationCache</code> object is associated with
    an <span>application cache</span> whose <span>application cache
    group</span>'s <span title="concept-appcache-status">update
-   status</span> is <i>idle</i>, but that application cache is
-   <em>not</em> the <span title="concept-appcache-newer">newest</span>
-   cache in its group.</p></dd>
+   status</span> is <i>idle</i>, and whose <span>application cache
+   group</span> is not marked as <span
+   title="concept-appcache-obsolete">obsolete</span>, but that
+   <span>application cache</span> is <em>not</em> the <span
+   title="concept-appcache-newer">newest</span> cache in its
+   group.</p></dd>
+
+   <dt><dfn title="dom-appcache-OBSOLETE"><code>OBSOLETE</code></dfn>
+   (numeric value 5)</dt>
+
+   <dd><p>The <code>ApplicationCache</code> object is associated with
+   an <span>application cache</span> whose <span>application cache
+   group</span> is marked as <span
+   title="concept-appcache-obsolete">obsolete</span>.</p></dd>
 
   </dl>
 
@@ -43150,8 +43191,9 @@ style/default.css</pre>
   update process</span>, in the background, for the <span>application
   cache</span> with which the <code>ApplicationCache</code> object is
   associated, but with no <span>browsing context</span>. If there is
-  no such application cache, then the method must raise an
-  <code>INVALID_STATE_ERR</code> exception instead.</p>
+  no such application cache, or if it is marked as <span
+  title="concept-appcache-obsolete">obsolete</span>, then the method
+  must raise an <code>INVALID_STATE_ERR</code> exception instead.</p>
 
   <p>If the <dfn
   title="dom-appcache-swapCache"><code>swapCache()</code></dfn> method
@@ -43172,6 +43214,12 @@ style/default.css</pre>
    cache</span> with which the <code>ApplicationCache</code> object is
    associated. (By definition, this is the same as the one that was
    found in the previous step.)</p></li>
+
+   <li><p>If <var title="">cache</var>'s <span>application cache
+   group</span> is marked as <span
+   title="concept-appcache-obsolete">obsolete</span>, then raise an
+   <code>INVALID_STATE_ERR</code> exception and abort these
+   steps.</p></li>
 
    <li><p>Check that there is an application cache in the same
    <span>application cache group</span> as <var title="">cache</var>
