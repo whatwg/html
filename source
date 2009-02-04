@@ -1707,11 +1707,112 @@
   </ol>
 
 
-  <h5 id="percentages-and-dimensions">Percentages and dimensions</h5>
+  <h5 id="percentages-and-dimensions">Percentages and lengths</h5>
 
-  <p class="XXX"><dfn>rules for parsing dimension values</dfn> (only
-  used by height/width on img, embed, object &mdash; lengths in css
-  pixels or percentages)</p>
+  <p>A string is a <dfn>valid dimension value</dfn> if it consists of
+  a character in the range U+0031 DIGIT ONE (1) to U+0039 DIGIT NINE
+  (9), optionally followed by zero of more characters in the range
+  U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9), optionally followed
+  by a U+002E FULL STOP character (.) and one of more characters in
+  the range U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9), and
+  optionally suffixed by a U+0025 PERCENT SIGN character (%).</p>
+
+  <p>A <span>valid dimension value</span> represents the number that
+  is represented in base ten by that string of digits, optionally with
+  a fractional component. If the U+0025 PERCENT SIGN is present, then
+  the dimension is a percentage; otherwise, it is a length.</p>
+
+  <p class="note">For historical reasons, percentanges and lengths
+  less than 1.0 cannot be represented as <span title="valid dimension
+  value">valid dimension values</span>.</p>
+
+  <p>The <dfn>rules for parsing dimension values</dfn> are as given in
+  the following algorithm. When invoked, the steps must be followed in
+  the order given, aborting at the first step that returns a
+  value. This algorithm will either return a number greater than or
+  equal to 1.0, or an error; if a number is returned, then it is
+  further categorised as either a percentage or a length.</p>
+
+  <ol>
+
+   <li><p>Let <var title="">input</var> be the string being
+   parsed.</p></li>
+
+   <li><p>Let <var title="">position</var> be a pointer into <var
+   title="">input</var>, initially pointing at the start of the
+   string.</p></li>
+
+   <li><p><span>Skip whitespace</span>.</p></li>
+
+   <li><p>If <var title="">position</var> is past the end of <var
+   title="">input</var>, return an error.</p></li>
+
+   <li><p>If the next character is a U+002B PLUS SIGN character (+),
+   advance <var title="">position</var> to the next character.</li>
+
+   <li><p><span>Collect a sequence of characters</span> that are
+   U+0030 DIGIT ZERO (0) characters, and discard them.</p></li>
+
+   <li><p>If <var title="">position</var> is past the end of <var
+   title="">input</var>, return an error.</p></li>
+
+   <li><p>If the next character is not one of U+0031 DIGIT ONE (1)
+   .. U+0039 DIGIT NINE (9), then return an error.</p></li>
+
+   <!-- Ok. At this point we know we have a number. It might have
+   trailing garbage which we'll ignore, but it's a number, and we
+   won't return an error. -->
+
+   <li><p><span>Collect a sequence of characters</span> in the range
+   U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9), and interpret the
+   resulting sequence as a base-ten integer. Let <var
+   title="">value</var> be that number.</li>
+
+   <li><p>If <var title="">position</var> is past the end of <var
+   title="">input</var>, return <var title="">value</var> as an
+   integer.</p></li>
+
+   <li>
+
+    <p>If the next character is a U+002E FULL STOP character (.):</p>
+
+    <ol>
+
+     <li><p>Advance <var title="">position</var> to the next
+     character.</p></li>
+
+     <li><p>If the next character is not one of U+0030 DIGIT ZERO (0)
+     .. U+0039 DIGIT NINE (9), then return <var title="">value</var>
+     as an integer.</p></li>
+
+     <li><p><span>Collect a sequence of characters</span> in the range
+     U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9). Let <var
+     title="">length</var> be the number of characters collected. Let
+     <var title="">fraction</var> be the result of interpreting the
+     collected characters as a base-ten integer, and then dividing
+     that number by <span title="">10<sup title=""><var
+     title="">length</var></sup></span>.</li>
+
+     <li><p>Increment <var title="">value</var> by <var
+     title="">fraction</var>.</p></li>
+
+    </ol>
+
+   </li>
+
+   <li><p><span>Collect a sequence of characters</span> that are
+   U+0030 DIGIT ZERO (0) characters, and discard them.</p></li>
+
+   <li><p>If <var title="">position</var> is past the end of <var
+   title="">input</var>, return <var title="">value</var> as a
+   length.</p></li>
+
+   <li><p>If the next character is a U+0025 PERCENT SIGN character
+   (%), return <var title="">value</var> as a percentage.</p></li>
+
+   <li><p>Return <var title="">value</var> as a length.</p></li>
+
+  </ol>
 
 
 
@@ -60973,9 +61074,14 @@ style, title { display: none; }</pre>
 
   <h4>Introduction</h4>
 
-  <p>The CSS rules given in these subsections are expected to be used
-  as the defaults for all documents that contain <span>HTML
-  elements</span> when presented in visual media.</p>
+  <p>The CSS rules given in these subsections are, unless otherwise
+  specified, expected to be used as part of the user-agent level style
+  sheet defaults for all documents that contain <span>HTML
+  elements</span>.</p>
+
+  <p>Some rules are intended for the author-level zero-specificity
+  presentational hints part of the CSS cascade; these are explicitly
+  called out as <dfn>presentational hints</dfn>.</p>
 
   <p>Rules regarding left and right margins are given here as
   appropriate for elements whose 'direction' property is 'ltr', and
@@ -60984,6 +61090,33 @@ style, title { display: none; }</pre>
 
   <p class="XXX">Please send feedback if you can accurately describe
   rules required by legacy content.</p>
+
+  <p>When the text below says that an attribute <var
+  title="">attribute</var> on an element <var title="">element</var>
+  <dfn>maps to the pixel length property</dfn> (or properties) <var
+  title="">properties</var>, it means that if <var
+  title="">element</var> has an attribute <var
+  title="">attribute</var> set, and parsing that attribute's value
+  using the <span>rules for parsing non-negative integers</span>
+  doesn't generate an error, then the user agent is expected to use
+  the parsed value as a pixel length for a <span title="presentational
+  hints">presentational hint</span> for <var
+  title="">property</var>.</p>
+
+  <p>When the text below says that an attribute <var
+  title="">attribute</var> on an element <var title="">element</var>
+  <dfn>maps to the dimension property</dfn> (or properties) <var
+  title="">properties</var>, it means that if <var
+  title="">element</var> has an attribute <var
+  title="">attribute</var> set, and parsing that attribute's value
+  using the <span>rules for parsing dimension values</span> doesn't
+  generate an error, then the user agent is expected to use the parsed
+  dimension as the value for a <span title="presentational
+  hints">presentational hint</span> for <var title="">property</var>,
+  with the value given as a pixel length if the dimension was an
+  integer, and with the value given as a percentage if the dimension
+  was a percentage.</p>
+
 
 
   <h4>Display types</h4>
@@ -61058,32 +61191,13 @@ h6 { margin-left: 2.33em; margin-right; 2.33em; }
 table { border-spacing: 2px; border-collapse: separate; }
 td, th { padding: 1px; }</pre>
 
-  <p>In <span>quirks mode</span>, the following rules are also
-  expected to apply:</p>
-
-  <pre class="css">@namespace url(http://www.w3.org/1999/xhtml);
-form { margin-bottom: 1em; }
-img[align=left] { margin-right: 3px; }
-img[align=right] { margin-left: 3px; }</pre>
-
-  <p>When a <code>Document</code> is in <span>quirks mode</span>,
-  margins on <span>HTML elements</span> that collapse with the top or
-  bottom of the initial containing block are expected to be collapsed
-  to zero.</p>
-
-  <hr>
-
-  <p>For a <code>body</code> element, the 'margin-top',
-  'margin-right', 'margin-bottom', and 'margin-left' properties are
-  expected to be set by presentational hints from a variety of source,
-  given in the table below in precedence order. If one of the
-  attributes listed is present, then the first such attribute's value
-  is expected to be parsed using the <span>rules for parsing
-  non-negative integers</span>; if this does not result in an error,
-  then the parsed value is expected to be used as a pixel length for
-  the corresponding property. If no attribute is found, or if the
-  attribute's value cannot be parsed successfully, then a default
-  value of 8px is expected to be used.</p>
+  <p>For each property in the table below, given a <code>body</code>
+  element, the first attribute that exists <span>maps to the pixel
+  length property</span> on the <code>body</code> element. If none of
+  the attributes for a property are found, or if the value of the
+  attribute that was found cannot be parsed successfully, then a
+  default value of 8px is expected to be used for that property
+  instead.</p>
 
   <!-- XXX so, uh, about the cross-site-styling hole below... -->
 
@@ -61137,12 +61251,82 @@ img[align=right] { margin-left: 3px; }</pre>
 
   <hr>
 
-  <p class="XXX">...tables...</p>
-  <!-- cellspacing, cellpadding, height, width* (int/%; *width=0 => width:auto); <table hspace/vspace> (int); <table cols>; <table border> (border => border=1); -->
-  <!-- td/th width height: 0=>auto; %=>%; n=>px -->
-  <!-- col width=int/% span=n -->
-  <!-- tbody/thead/tfoot height=int/% (ignore %?) -->
-  <!-- tr height=int/% -->
+  <p>The <code>table</code> element's <code
+  title="attr-table-cellspacing">cellspacing</code> attribute
+  <span>maps to the pixel length property</span> 'border-spacing' on the
+  element.</p>
+
+  <p>The <code>table</code> element's <code
+  title="attr-table-cellpadding">cellpadding</code> attribute <span
+  title="maps to the pixel length property">maps to the pixel length
+  properties</span> 'padding-top', 'padding-right', 'padding-bottom',
+  and 'padding-left' of any <code>td</code> and <code>th</code>
+  elements that have corresponding <span
+  title="concept-cell">cells</span> in the <span
+  title="concept-table">table</span> corresponding to the
+  <code>table</code> element.</p>
+
+  <p>The <code>table</code> element's <code
+  title="attr-table-hspace">hspace</code> attribute <span title="maps
+  to the pixel length property">maps to the pixel length properties</span>
+  'margin-left' and 'margin-right' on the <code>table</code>
+  element.</p>
+
+  <p>The <code>table</code> element's <code
+  title="attr-table-vspace">vspace</code> attribute <span title="maps
+  to the pixel length property">maps to the pixel length properties</span>
+  'margin-top' and 'margin-bottom' on the <code>table</code>
+  element.</p>
+
+  <p>The <code>table</code> element's <code
+  title="attr-table-height">height</code> attribute <span>maps to the
+  dimension property</span> 'height' on the <code>table</code>
+  element.</p>
+
+  <p>The <code>table</code> element's <code
+  title="attr-table-width">width</code> attribute <span>maps to the
+  dimension property</span> 'width' on the <code>table</code>
+  element.</p>
+
+  <p>The <code>col</code> element's <code
+  title="attr-col-width">width</code> attribute <span>maps to the
+  dimension property</span> 'width' on the <code>col</code>
+  element.</p>
+
+  <p>The <code>tr</code> element's <code
+  title="attr-tr-height">height</code> attribute <span>maps to the
+  dimension property</span> 'height' on the <code>tr</code>
+  element.</p>
+
+  <p>The <code>td</code> and <code>th</code> elements' <code
+  title="attr-tdth-height">height</code> attributes <span title="maps
+  to the dimension property">map to the dimension property</span> 'height'
+  on the element.</p>
+
+  <p>The <code>td</code> and <code>th</code> elements' <code
+  title="attr-tdth-height">height</code> attributes <span title="maps
+  to the dimension property">map to the dimension property</span> 'height'
+  on the element.</p>
+
+  <p>The <code>td</code> and <code>th</code> elements' <code
+  title="attr-tdth-width">width</code> attributes <span title="maps
+  to the dimension property">map to the dimension property</span> 'width'
+  on the element.</p>
+
+  <hr>
+
+  <p>In <span>quirks mode</span>, the following rules are also
+  expected to apply:</p>
+
+  <pre class="css">@namespace url(http://www.w3.org/1999/xhtml);
+form { margin-bottom: 1em; }
+img[align=left] { margin-right: 3px; }
+img[align=right] { margin-left: 3px; }</pre>
+
+  <p>When a <code>Document</code> is in <span>quirks mode</span>,
+  margins on <span>HTML elements</span> that collapse with the top or
+  bottom of the initial containing block are expected to be collapsed
+  to zero.</p>
 
 
   <h4>Alignment</h4>
@@ -61153,28 +61337,94 @@ thead, tbody, tfoot, table > tr { vertical-align: middle; }
 tr, td, th { vertical-align: inherit; }
 sub { vertical-align: sub; }
 sup { vertical-align: super; }
-
-table[align=left], img[align=left] { float: left; }
-table[align=right], img[align=right] { float: right; }
 th { text-align: center; }</pre>
-
-  <p>The <code>center</code> and <code>caption</code> elements are
-  expected to center text within themselves, as if they had their
-  'text-align' property set to 'center', and to center blocks and
-  tables within them, as their descendants had their horizontal
-  margins set to 'auto'.</p>
-
-  <!-- XXX <div/h1-h6/p align="left|right|center/middle|justify"> -->
 
   <hr>
 
-  <p class="XXX">...tables...</p>
-  <!-- table                           align="left|right|center/abscenter/absmiddle/middle|char|justify" -->
-  <!-- caption                         align="left|right|top|bottom" caption-side -->
-  <!-- tr/td/th/col/tbody/thead/tfoot  align="left|right|center/absmiddle|char|justify" -->
-  <!-- tr/td/th/col/tbody/thead/tfoot  valign="top|middle|bottom|baseline" -->
-  <!-- tr/td/th/col/tbody/thead/tfoot  ch=? charoff=n>0 -->
+  <p>The following rules are also expected to apply, as
+  <span>presentational hints</span>:</p>
 
+  <pre class="css">@namespace url(http://www.w3.org/1999/xhtml);
+
+table[align=left], img[align=left] { float: left; }
+table[align=right], img[align=right] { float: right; }
+table[align=center], table[align=abscenter],
+table[align=abdmiddle], table[align=middle] {
+  margin-left: auto; margin-right: auto;
+}
+
+caption[align=bottom] { caption-side: bottom; }
+p[align=left], h1[align=left], h2[align=left], h3[align=left],
+h4[align=left], h5[align=left], h6[align=left] {
+  text-align: left;
+}
+p[align=right], h1[align=right], h2[align=right], h3[align=right],
+h4[align=right], h5[align=right], h6[align=right] {
+  text-align: right;
+}
+p[align=center], h1[align=center], h2[align=center], h3[align=center],
+h4[align=center], h5[align=center], h6[align=center] {
+  text-align: center;
+}
+p[align=justify], h1[align=justify], h2[align=justify], h3[align=justify],
+h4[align=justify], h5[align=justify], h6[align=justify] {
+  text-align: justify;
+}
+col[valign=top], thead[valign=top], tbody[valign=top],
+tfoot[valign=top], tr[valign=top], td[valign=top], th[valign=top] {
+  vertial-align: top;
+}
+col[valign=middle], thead[valign=middle], tbody[valign=middle],
+tfoot[valign=middle], tr[valign=middle], td[valign=middle], th[valign=middle] {
+  vertial-align: middle;
+}
+col[valign=bottom], thead[valign=bottom], tbody[valign=bottom],
+tfoot[valign=bottom], tr[valign=bottom], td[valign=bottom], th[valign=bottom] {
+  vertial-align: bottom;
+}
+col[valign=baseline], thead[valign=baseline], tbody[valign=baseline],
+tfoot[valign=baseline], tr[valign=baseline], td[valign=baseline], th[valign=baseline] {
+  vertial-align: baseline;
+}</pre>
+
+  <p>The <code>center</code> element, the <code>caption</code> element
+  unless specified otherwise below, and the <code>div</code> element
+  when its <code title="attr-div-align">align</code> attribute's value
+  is an <span>ASCII case-insensitive</span> match for the string
+  "<code title="">center</code>", are expected to center text within
+  themselves, as if they had their 'text-align' property set to
+  'center' in a <span title="presentational hints">presentational
+  hint</span>, and to center blocks and tables within them, as if
+  their descendants had their 'margin-left' and 'margin-right'
+  properties set to 'auto' in <span>presentational hints</span>.</p>
+
+  <p>The <code>div</code>, <code>caption</code>, <code>thead</code>,
+  <code>tbody</code>, <code>tfoot</code>, <code>tr</code>,
+  <code>td</code>, and <code>th</code> elements, when they have an
+  <code title="attr-align">align</code> attribute whose value is an
+  <span>ASCII case-insensitive</span> match for the string "<code
+  title="">left</code>" or "<code title="">justify</code>", are
+  expected to left-align text within themselves, as if they had their
+  'text-align' property set to 'left' in a <span title="presentational
+  hints">presentational hint</span>, and to left-align blocks and
+  tables within them, as if their descendants had their 'margin-right'
+  property set to 'auto' in <span>presentational hints</span>.</p>
+
+  <p>The <code>div</code>, <code>caption</code>, <code>thead</code>,
+  <code>tbody</code>, <code>tfoot</code>, <code>tr</code>,
+  <code>td</code>, and <code>th</code> elements, when they have an
+  <code title="attr-align">align</code> attribute whose value is an
+  <span>ASCII case-insensitive</span> match for the string "<code
+  title="">right</code>", are expected to right-align text within
+  themselves, as if they had their 'text-align' property set to
+  'right' in a <span title="presentational hints">presentational
+  hint</span>, and to right-align blocks and tables within them, as if
+  their descendants had their 'margin-left' property set to 'auto' in
+  <span>presentational hints</span>.</p>
+
+  <p>In all these cases, the effect on descendants is expected to only
+  extend to descendants that do not themselves have an applicable
+  <code title="attr-align">align</code> attribute.</p>
 
 
   <h4>Fonts and colors</h4>
@@ -61313,7 +61563,7 @@ bdo[dir] { unicode-bidi: bidi-override; }</pre>
   <hr>
 
   <p class="XXX">...tables...</p>
-  <!-- table: rules/layout/frames -->
+  <!-- table: rules/layout/frames; <table border> (border => border=1);  -->
 
 
   <h4>Resetting rules for inherited properties</h4>
