@@ -2124,6 +2124,131 @@
   </ol>
 
 
+  <h5>Lists of dimensions</h5>
+
+  <!-- no definition of a type since no conforming feature uses this
+  syntax (it's only used in cols="" and rows="" on <frameset> -->
+
+  <p>The <dfn>rules for parsing a list of dimensions</dfn> are as
+  follows. These rules return a list of zero or more pairs consisting
+  of a number and a unit, the unit being one of <i>percentage</i>,
+  <i>relative</i>, and <i>absolute</i>.</p>
+
+  <ol>
+
+   <li><p>Let <var title="">raw input</var> be the string being
+   parsed.</p></li>
+
+   <li><p>If the last character in <var title="">raw input</var> is a
+   U+002C COMMA character (","), then remove that character from <var
+   title="">raw input</var>.</p></li>
+
+   <li><p><span title="split a string on commas">Split the string <var
+   title="">raw input</var> on commas</span>. Let <var title="">raw
+   tokens</var> be the resulting list of tokens.</p></li>
+
+   <li><p>Let <var title="">result</var> be an empty list of
+   number/unit pairs.</p></li>
+
+   <li>
+
+    <p>For each token in <var title="">raw tokens</var>, run the
+    following substeps:</p>
+
+    <ol>
+
+     <li><p>Let <var title="">input</var> be the token.</p></li>
+
+     <li><p>Let <var title="">position</var> be a pointer into <var
+     title="">input</var>, initially pointing at the start of the
+     string.</p></li>
+
+     <li><p>Let <var title="">value</var> be the number 0.</p></li>
+
+     <li><p>Let <var title="">unit</var> be <i>absolute</i>.</p></li>
+
+     <li><p>If <var title="">position</var> is past the end of <var
+     title="">input</var>, set <var title="">unit</var> to
+     <i>relative</i> and jump to the last substep.</p></li>
+
+     <li><p>If the character at <var title="">position</var> is a
+     character in the range U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE
+     (9), <span>collect a sequence of characters</span> in the range
+     U+0030 DIGIT ZERO (0) to U+0039 DIGIT NINE (9), interpret the
+     resulting sequence as an integer in base ten, and increment <var
+     title="">value</var> by that integer.</p></li>
+
+     <li>
+
+      <p>If the character at <var title="">position</var> is a U+002E
+      FULL STOP character (.), run these substeps:</p>
+
+      <ol>
+
+       <li><p><span>Collect a sequence of characters</span> consisting
+       of <span title="space character">space characters</span> and
+       characters in the range U+0030 DIGIT ZERO (0) to U+0039 DIGIT
+       NINE (9). Let <var title="">s</var> be the resulting
+       sequence.</p></li>
+
+       <li><p>Remove all <span title="space character">space
+       characters</span> in <var title="">s</var>.</p></li>
+
+       <li>
+
+        <p>If <var title="">s</var> is not the empty string, run these
+        subsubsteps:</p>
+
+        <ol>
+
+         <li><p>Let <var title="">length</var> be the number of
+         characters in <var title="">s</var> (after the spaces were
+         removed).</p></li>
+
+         <li><p>Let <var title="">fraction</var> be the result of
+         interpreting <var title="">s</var> as a base-ten integer, and
+         then dividing that number by <span title="">10<sup
+         title=""><var title="">length</var></sup></span>.</li>
+
+         <li><p>Increment <var title="">value</var> by <var
+         title="">fraction</var>.</p></li>
+
+        </ol>
+
+       </li>
+
+      </ol>
+
+     </li>
+
+     <li><p><span>Skip whitespace</span>.</p></li>
+
+     <li>
+
+      <p>If the character at <var title="">position</var> is a U+0025
+      PERCENT SIGN (%) character, then set <var title="">unit</var> to
+      <i>percentage</i>.</p>
+
+      <p>Otherwise, if the character at <var title="">position</var>
+      is a U+002A ASTERISK character (*), then set <var
+      title="">unit</var> to <i>relative</i>.</p>
+
+     </li>
+
+     <!-- the remaining characters in /input/ are ignored -->
+
+     <li><p>Add an entry to <var title="">result</var> consisting of
+     the number given by <var title="">value</var> and the unit given
+     by <var title="">unit</var>.</p></li>
+
+    </ol>
+
+   </li>
+
+   <li><p>Return the list <var title="">result</var>.</p></li>
+
+  </ol>
+
 
   <h4>Dates and times</h4>
 
@@ -3346,14 +3471,20 @@
 
   <h4>Comma-separated tokens</h4>
 
-  <p class="XXX">We should allow whitespace around commas, and
-  leading/trailing whitespace.</p>
-
   <p>A <dfn>set of comma-separated tokens</dfn> is a set of zero or
   more tokens each separated from the next by a single U+002C COMMA
   character (<code title="">,</code>), where tokens consist of any
-  string of zero or more characters, none of which are U+002C COMMA
-  characters (<code title="">,</code>).</p>
+  string of zero or more characters, neither beginning nor ending with
+  <span title="space character">space characters</span>, nor
+  containing any U+002C COMMA characters (<code title="">,</code>),
+  and optionally surrounded by <span title="space character">space
+  characters</span>.</p>
+
+  <p class="example">For instance, the string "<code
+  title="">&nbsp;a&nbsp;,b,,d&nbsp;d&nbsp;</code>" consists of four
+  tokens: "a", "b", the empty string, and "d&nbsp;d". Leading and
+  trailing whitespace around each token doesn't count as part of the
+  token, and the empty string can be a token.</p>
 
   <p><span title="set of comma-separated tokens">Sets of
   comma-separated tokens</span> sometimes have further restrictions on
@@ -3381,10 +3512,16 @@
    end of <var title="">input</var>, jump to the last step.</p></li>
 
    <li><p><span>Collect a sequence of characters</span> that are not
-   U+002C COMMA characters (<code title="">,</code>).</p></li>
+   U+002C COMMA characters (<code title="">,</code>). Let <var
+   title="">s</var> be the resulting sequence (which might be the
+   empty string).</p></li>
 
-   <li><p>Add the string collected in the previous step (which might
-   be the empty string) to <var title="">tokens</var>.</p></li>
+   <li><p>Remove any leading or trailing sequence of <span
+   title="space character">space characters</span> from <var
+   title="">s</var>.</p></li>
+
+   <li><p>Add <var title="">s</var> to <var
+   title="">tokens</var>.</p></li>
 
    <li><p>If <var title="">position</var> is not past the end of <var
    title="">input</var>, then the character at <var
@@ -28593,9 +28730,10 @@ interface <dfn>HTMLFormElement</dfn> : <span>HTMLElement</span> {
 
   <p>A <dfn>valid e-mail address list</dfn> is a <span>set of
   comma-separated tokens</span>, where each token is itself a
-  <span>valid e-mail address</span>, possibly with one or more leading
-  or trailing <span title="space character">space
-  characters</span>.</p>
+  <span>valid e-mail address</span>. To obtain the list of tokens from
+  a <span>valid e-mail address list</span>, the user agent must <span
+  title="split a string on commas">split the string on
+  commas</span>.</p>
 
   <p>A <dfn>valid e-mail address</dfn> is a string that matches the
   production <code title="">dot-atom&nbsp;"@"&nbsp;dot-atom</code>
@@ -30257,7 +30395,9 @@ interface <dfn>HTMLFormElement</dfn> : <span>HTMLElement</span> {
 
   <p>The tokens must not be <span>ASCII case-insensitive</span>
   matches for any of the other tokens (i.e. duplicates are not
-  allowed).</p>
+  allowed). To obtain the list of tokens from the attribute, the user
+  agent must <span title="split a string on commas">split the
+  attribute value on commas</span>.</p>
 
   <p>User agents should prevent the user from selecting files that are
   not accepted by one (or more) of these tokens.</p>
@@ -61299,6 +61439,52 @@ td, th { padding: 1px; }</pre>
 
   <hr>
 
+  <p>If the <code>Document</code> has a <span>root element</span>, and
+  the <code>Document</code>'s <span>browsing context</span> is a
+  <span>nested browsing context</span>, and the <span>browsing context
+  container</span> of that <span>nested browsing context</span> is a
+  <code>frame</code> or <code>iframe</code> element, and that element
+  has a <code title="attr-frames-scrolling">scrolling</code>
+  attribute, then the user agent is expected to compare the value of
+  the attribute in an <span>ASCII case-insensitive</span> manner to
+  the values in the first column of the following table, and if one of
+  them matches, then the user agent is expected to treat that
+  attribute as a <span title="presentational hints">presentational
+  hint</span> for the aforementioned root element's 'overflow'
+  property, setting it to the value given in the corresponding cell on
+  the same row in the second column:</p>
+
+  <table>
+   <thead>
+    <tr>
+     <th> Attribute value
+     <th> 'overflow' value
+   <tbody>
+    <tr>
+     <td><code title="">on</code>
+     <td>'scroll'
+    <tr>
+     <td><code title="">scroll</code>
+     <td>'scroll'
+    <tr>
+     <td><code title="">yes</code>
+     <td>'scroll'
+    <tr>
+     <td><code title="">off</code>
+     <td>'hidden'
+    <tr>
+     <td><code title="">noscroll</code>
+     <td>'hidden'
+    <tr>
+     <td><code title="">no</code>
+     <td>'hidden'
+    <tr>
+     <td><code title="">auto</code>
+     <td>'auto'
+  </table>
+
+  <hr>
+
   <p>The <code>table</code> element's <code
   title="attr-table-cellspacing">cellspacing</code> attribute
   <span>maps to the pixel length property</span> 'border-spacing' on the
@@ -62239,21 +62425,334 @@ img[align=right] { margin-left: 3px; }</pre>
 
 
 
-  <h4>Fragment identifiers</h4>
-
-  <p class="XXX">(need to remove "must" and reword) CSS UAs in visual
-  media must, when scrolling a page to a fragment identifier, align
-  the top of the viewport with the target element's top border
-  edge.</p> <!-- XXX horiz pos given bidi, and not scrolling when not
-  required to?  -->
-
-
-
   <h4>Frames</h4>
 
-  <p class="XXX">...</p>
-  <!-- <frame>: bordercolor; frameborder (yes/1|no/0); marginwidth, marginheight (int/%); scrolling (yes/on/scroll|no/off/noscroll|auto) -->
-  <!-- <frame>, <iframe>: scrolling (yes/on/scroll|no/off/noscroll|auto) -->
+  <p>When an <code>html</code> element's second child element is a
+  <code>frameset</code> element, the user agent is expected to render
+  the <code>frameset</code> element as described below across the
+  surface of the <span>view</span>, instead of applying the usual CSS
+  rendering rules.</p>
+
+  <p>When rendering a <code>frameset</code> on a surface, the user
+  agent is expected to use the following layout algorithm:</p>
+
+  <ol>
+
+   <li>
+
+    <p>The <var title="">cols</var> and <var title="">rows</var>
+    variables are lists of zero or more pairs consisting of a number
+    and a unit, the unit being one of <i>percentage</i>,
+    <i>relative</i>, and <i>absolute</i>.</p>
+
+    <p>Use the <span>rules for parsing a list of dimensions</span> to
+    parse the value of the element's <code
+    title="attr-frameset-cols">cols</code> attribute, if there is
+    one. Let <var title="">cols</var> be the result, or an empty list
+    if there is no such attribute.</p>
+
+    <p>Use the <span>rules for parsing a list of dimensions</span> to
+    parse the value of the element's <code
+    title="attr-frameset-rows">rows</code> attribute, if there is
+    one. Let <var title="">rows</var> be the result, or an empty list
+    if there is no such attribute.</p>
+
+   </li>
+
+   <li>
+
+    <p>For any of the entries in <var title="">cols</var> or <var
+    title="">rows</var> that have the number zero and the unit
+    <i>relative</i>, change the entry's number to one.</p>
+
+   </li>
+
+   <li>
+
+    <p>If <var title="">cols</var> has no entries, then add a single
+    entry consisting of the value 1 and the unit <i>relative</i> to
+    <var title="">cols</var>.</p>
+
+    <p>If <var title="">rows</var> has no entries, then add a single
+    entry consisting of the value 1 and the unit <i>relative</i> to
+    <var title="">rows</var>.</p>
+
+   </li>
+
+   <li>
+
+    <p>Invoke the algorithm defined below to <span>convert a list of
+    dimensions to a list of pixel values</span> using <var
+    title="">cols</var> as the input list, and the width of the
+    surface that the <code>fieldset</code> is being rendered into, in
+    CSS pixels, as the input dimension. Let <var title="">sized
+    cols</var> be the resulting list.</p>
+
+    <p>Invoke the algorithm defined below to <span>convert a list of
+    dimensions to a list of pixel values</span> using <var
+    title="">rows</var> as the input list, and the height of the
+    surface that the <code>fieldset</code> is being rendered into, in
+    CSS pixels, as the input dimension. Let <var title="">sized
+    rows</var> be the resulting list.</p>
+
+   </li>
+
+   <li>
+
+    <p>Split the surface into a grid of <span title=""><var
+    title="">w</var>&times;<var title="">h</var></span> rectangles,
+    where <var title="">w</var> is the number of entries in <var
+    title="">sized cols</var> and <var title="">h</var> is the number
+    of entries in <var title="">sized rows</var>.</p>
+
+    <p>Size the columns so that each column in the grid is as many CSS
+    pixels wide as the corresponding entry in the <var title="">sized
+    cols</var> list.</p>
+
+    <p>Size the rows so that each row in the grid is as many CSS
+    pixels high as the corresponding entry in the <var title="">sized
+    rows</var> list.</p>
+
+   </li>
+
+   <li>
+
+    <p>Let <var title="">children</var> be the list of
+    <code>frame</code> and <code>frameset</code> elements that are
+    children of the <code>frameset</code> element for which the
+    algorithm was invoked.</p>
+
+   </li>
+
+   <li>
+
+    <p>For each row of the grid of rectangles created in the previous
+    step, from top to bottom, run these substeps:</p>
+
+    <ol>
+
+     <li>
+
+      <p>For each rectangle in the row, from left to right, run these
+      substeps:</p>
+
+      <ol>
+
+       <li>
+
+        <p>If there are any elements left in <var
+        title="">children</var>, take the first element in the list,
+        and assign it to the rectangle.</p>
+
+        <p>If this is a <code>frameset</code> element, then recurse
+        the entire <code>frameset</code> layout algorithm for that
+        <code>frameset</code> element, with the rectangle as the
+        surface.</p>
+
+        <p>Otherwise, it is a <code>frame</code> element; create a
+        <span>nested browsing context</span> sized to fit the
+        rectangle.</p>
+
+       </li>
+
+       <li>
+
+        <p>If there are any elements left in <var
+        title="">children</var>, remove the first element from <var
+        title="">children</var>.</p>
+
+      </ol>
+
+     </li>
+
+    </ol>
+
+   </li>
+
+   <li>
+
+    <p>If the <code>frameset</code> element <span>has a border</span>,
+    draw an outer set of borders around the rectangles, using the
+    element's <span>frame border color</span>.</p>
+
+    <p>For each rectangle, if there is an element assigned to that
+    rectangle, and that element <span>has a border</span>, draw an
+    inner set of borders around that rectangle, using the
+    element's <span>frame border color</span>.</p>
+
+    <p>For each (visible) border that does not abut a rectangle that
+    is assigned a <code>frame</code> element with a <code
+    title="attr-frame-noresize">noresize</code> attribute (including
+    rectangles in further nested <code>frameset</code> elements), the
+    user agent is expected to allow the user to move the border,
+    resizing the rectangles within, keeping the proportions of any
+    nested <code>frameset</code> grids.</p>
+
+    <p>A <code>frameset</code> or <code>frame</code> element <dfn>has
+    a border</dfn> if the following algorithm returns true:</p>
+
+    <ol>
+
+     <li><p>If the element has a <code
+     title="attr-frames-frameborder">frameborder</code> attribute
+     whose value is not the empty string and whose first character is
+     either a U+0031 DIGIT ONE (1), a U+0079 LATIN SMALL LETTER Y, or
+     a U+0059 LATIN CAPITAL LETTER Y, then return true.</p></li>
+
+     <li><p>Otherwise, if the element has a <code
+     title="attr-frames-frameborder">frameborder</code> attribute,
+     return false.</p></li>
+
+     <li><p>Otherwise, if the element has a parent element that is a
+     <code>frameset</code> element, then return true if <em>that</em>
+     element <span>has a border</span>, and false if it does
+     not.</p></li>
+
+     <li><p>Otherwise, return true.</p></li>
+
+    </ol>
+
+    <p>The <dfn>frame border color</dfn> of a <code>frameset</code> or
+    <code>frame</code> element is the color obtained from the
+    following algorithm:</p>
+
+    <ol>
+
+     <li><p>If the element has a <code
+     title="attr-frames-bordercolor">bordercolor</code> attribute,
+     then return the color obtained from applying the <span>rules for
+     parsing a legacy color value</span> to that attribute's
+     value.</p></li>
+
+     <li><p>Otherwise, if the element has a parent element that is a
+     <code>frameset</code> element, then the <span>frame border
+     color</span> of that element.</p>
+
+     <li><p>Otherwise, return gray.</p></li>
+
+    </ol>
+
+   </li>
+
+  </ol>
+
+  <p>The algorithm to <dfn>convert a list of dimensions to a list of
+  pixel values</dfn> consists of the following steps:</p>
+
+  <ol>
+
+   <li>
+
+    <p>Let <var title="">input list</var> be the list of numbers and
+    units passed to the algorithm.</p>
+
+    <p>Let <var title="">output list</var> be a list of numbers the
+    same length as <var title="">input list</var>, all zero.</p>
+
+    <p>Entries in <var title="">output list</var> correspond to the
+    entries in <var title="">input list</var> that have the same
+    position.</p>
+
+   </li>
+
+   <li><p>Let <var title="">input dimension</var> be the size passed
+   to the algorithm.</p>
+
+   <li>
+
+    <p>Let <var title="">count percentage</var> be the number of
+    entries in <var title="">input list</var> whose unit is
+    <i>percentage</i>.</p>
+
+    <p>Let <var title="">total percentage</var> be the sum of all the
+    numbers in <var title="">input list</var> whose unit is
+    <i>percentage</i>.</p>
+
+    <p>Let <var title="">count relative</var> be the number of
+    entries in <var title="">input list</var> whose unit is
+    <i>relative</i>.</p>
+
+    <p>Let <var title="">total relative</var> be the sum of all the
+    numbers in <var title="">input list</var> whose unit is
+    <i>relative</i>.</p>
+
+    <p>Let <var title="">count absolute</var> be the number of
+    entries in <var title="">input list</var> whose unit is
+    <i>absolute</i>.</p>
+
+    <p>Let <var title="">total absolute</var> be the sum of all the
+    numbers in <var title="">input list</var> whose unit is
+    <i>absolute</i>.</p>
+
+    <p>Let <var title="">remaining space</var> be the value of <var
+    title="">input dimension</var>.</p>
+
+   </li>
+
+   <li>
+
+    <p>If <var title="">total absolute</var> is greater than <var
+    title="">remaining space</var>, then for each entry in <var
+    title="">input list</var> whose unit is <i>absolute</i>, set the
+    corresponding value in <var title="">output list</var> to the
+    number of the entry in <var title="">input list</var> multiplied
+    by <var title="">remaining space</var> and divided by <var
+    title="">total absolute</var>. Then, set <var title="">remaining
+    space</var> to zero.</p>
+
+    <p>Otherwise, for each entry in <var title="">input list</var>
+    whose unit is <i>absolute</i>, set the corresponding value in <var
+    title="">output list</var> to the number of the entry in <var
+    title="">input list</var>. Then, decrement <var title="">remaining
+    space</var> by <var title="">total absolute</var>.</p>
+
+   </li>
+
+   <li>
+
+    <p>If <var title="">total percentage</var> multiplied by the <var
+    title="">input dimension</var> and divided by 100 is greater than
+    <var title="">remaining space</var>, then for each entry in <var
+    title="">input list</var> whose unit is <i>percentage</i>, set the
+    corresponding value in <var title="">output list</var> to the
+    number of the entry in <var title="">input list</var> multiplied
+    by <var title="">remaining space</var> and divided by <var
+    title="">total percentage</var>. Then, set <var title="">remaining
+    space</var> to zero.</p>
+
+    <p>Otherwise, for each entry in <var title="">input list</var>
+    whose unit is <i>percentage</i>, set the corresponding value in
+    <var title="">output list</var> to the number of the entry in <var
+    title="">input list</var> multiplied by the <var title="">input
+    dimension</var> and divided by 100. Then, decrement <var
+    title="">remaining space</var> by <var title="">total
+    percentage</var> multiplied by the <var title="">input
+    dimension</var> and divided by 100.</p>
+
+   </li>
+
+   <li>
+
+    <p>For each entry in <var title="">input list</var> whose unit is
+    <i>relative</i>, set the corresponding value in <var
+    title="">output list</var> to the number of the entry in <var
+    title="">input list</var> multiplied by <var title="">remaining
+    space</var> and divided by <var title="">total relative</var>.</p>
+
+   </li>
+
+   <li><p>Return <var title="">output list</var>.</p></li>
+
+  </ol>
+
+  <p>User agents working with integer values for frame widths (as
+  opposed to user agents that can lay frames out with subpixel
+  accuracy) are expected to distribute the remainder first the last
+  entry whose unit is <i>relative</i>, then equally (not
+  proportionally) to each entry whose unit is <i>percentage</i>, then
+  equally (not proportionally) to each entry whose unit is
+  <i>absolute</i>, and finally, failing all else, to the last
+  entry.</p>
 
 
 
