@@ -17872,8 +17872,9 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href=#htmlmediael
   these must return a new <code><a href=#htmlaudioelement>HTMLAudioElement</a></code> object (a new
   <code><a href=#audio>audio</a></code> element). If the <var title="">src</var> argument
   is present, the object created must have its <code title=dom-media-src><a href=#dom-media-src>src</a></code> content attribute set to the
-  provided value, and the user agent must invoke the object's <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load algorithm</a> before
-  returning.</p>
+  provided value, and the user agent must asynchronously invoke the
+  object's <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource
+  selection algorithm</a> before returning.</p>
 
 
 
@@ -18152,11 +18153,10 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
   <p>All <a href=#media-element title="media element">media elements</a> have an
   associated error status, which records the last error the element
-  encountered since its <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load algorithm</a> was last
-  invoked. The <dfn id=dom-media-error title=dom-media-error><code>error</code></dfn>
-  attribute, on getting, must return the <code><a href=#mediaerror>MediaError</a></code>
-  object created for this last error, or null if there has not been an
-  error.</p>
+  encountered since its <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
+  algorithm</a> was last invoked. The <dfn id=dom-media-error title=dom-media-error><code>error</code></dfn> attribute, on
+  getting, must return the <code><a href=#mediaerror>MediaError</a></code> object created for
+  this last error, or null if there has not been an error.</p>
 
   <pre class=idl>interface <dfn id=mediaerror>MediaError</dfn> {
   const unsigned short <a href=#dom-mediaerror-media_err_aborted title=dom-MediaError-MEDIA_ERR_ABORTED>MEDIA_ERR_ABORTED</a> = 1;
@@ -18205,8 +18205,8 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
   <p>The <dfn id=dom-media-currentsrc title=dom-media-currentSrc><code>currentSrc</code></dfn> DOM
   attribute is initially the empty string. Its value is changed by the
-  <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load algorithm</a>
-  defined below.</p>
+  <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
+  algorithm</a> defined below.</p>
 
   <p class=note>There are two ways to specify a <a href=#media-resource>media
   resource</a>, the <code title=attr-media-src><a href=#attr-media-src>src</a></code>
@@ -18299,7 +18299,7 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
    <dt><dfn id=dom-media-network_idle title=dom-media-NETWORK_IDLE><code>NETWORK_IDLE</code></dfn> (numeric value 1)</dt>
 
-   <dd>The element's <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load
+   <dd>The element's <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
    algorithm</a> is active and has selected a resource, but it is
    not actually using the network at this time.</dd>
 
@@ -18315,11 +18315,11 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
    <dt><dfn id=dom-media-network_no_source title=dom-media-NETWORK_NO_SOURCE><code>NETWORK_NO_SOURCE</code></dfn> (numeric value 4)</dt>
 
-   <dd>The element's <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load
+   <dd>The element's <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
    algorithm</a> is active, but it has failed to find a resource to
    use.</dd>
 
-  </dl><p>The <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load
+  </dl><p>The <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
   algorithm</a> defined below describes exactly when the <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> attribute changes
   value and what events fire to indicate changes in this state.</p>
 
@@ -18345,8 +18345,8 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
    this element is already being invoked, then abort these
    steps.</li>
 
-   <li><p>Abort any already-running instance of the <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load algorithm</a> for this
-   element.</li>
+   <li><p>Abort any already-running instance of the <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
+   algorithm</a> for this element.</li>
 
    <li>
 
@@ -18415,7 +18415,8 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
     </ol></li>
 
-   <li><p>Asynchronously invoke the <a href=#media-element>media element</a>'s <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load algorithm</a>.</li>
+   <li><p>Asynchronously invoke the <a href=#media-element>media element</a>'s <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
+   algorithm</a>.</li>
 
    <li>
 
@@ -18424,14 +18425,23 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
    </li>
 
-  </ol><p>The <dfn id=concept-media-load-algorithm title=concept-media-load-algorithm>load
+  </ol><p>The <dfn id=concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
   algorithm</dfn> for a <a href=#media-element>media element</a> is as follows. This
   algorithm is always invoked asynchronously, meaning that it runs in
   the background with scripts and other <a href=#concept-task title=concept-task>tasks</a> running in parallel.</p>
 
-  <ol><li><p>While the <a href=#media-element>media element</a> has neither a <code title=attr-media-src><a href=#attr-media-src>src</a></code> attribute nor any
-   <code><a href=#the-source-element>source</a></code> element children, wait. (This steps might wait
-   forever.)</li>
+  <ol><li>
+
+    <p>If the <a href=#media-element>media element</a> has neither a <code title=attr-media-src><a href=#attr-media-src>src</a></code> attribute nor any
+    <code><a href=#the-source-element>source</a></code> element children, run these substeps:</p>
+
+    <ol><li><p>Set the <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> to <code title=dom-media-NETWORK_NO_SOURCE><a href=#dom-media-network_no_source>NETWORK_NO_SOURCE</a></code>.</li>
+
+     <li><p>While the <a href=#media-element>media element</a> has neither a <code title=attr-media-src><a href=#attr-media-src>src</a></code> attribute nor any
+     <code><a href=#the-source-element>source</a></code> element children, wait. (This steps might
+     wait forever.)</li>
+
+    </ol></li>
 
    <li><p>Set the element's <a href=#delaying-the-load-event-flag>delaying-the-load-event flag</a>
    to true. This <a href=#delay-the-load-event title="delay the load event">delays the load
@@ -18452,7 +18462,7 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
      <a href=#url>URL</a> given in that attribute, relative to the
      <a href=#media-element>media element</a>.</p>
 
-     <li><p>If that is successful, then run the <a href=#concept-media-load-resource title=concept-media-load-resource>resource-load
+     <li><p>If that is successful, then run the <a href=#concept-media-load-resource title=concept-media-load-resource>resource fetch
      algorithm</a> with the resulting <a href=#absolute-url>absolute URL</a>. If
      that algorithm returns without aborting <em>this</em> one, then
      the load failed.</li>
@@ -18577,7 +18587,7 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
      in case it was set to <code title=dom-media-NETWORK_NO_SOURCE><a href=#dom-media-network_no_source>NETWORK_NO_SOURCE</a></code>
      above.</li>
 
-     <li><p>Run the <a href=#concept-media-load-resource title=concept-media-load-resource>resource-load
+     <li><p>Run the <a href=#concept-media-load-resource title=concept-media-load-resource>resource fetch
      algorithm</a> with the <a href=#absolute-url>absolute URL</a> that resulted
      from <a href=#resolve-a-url title="resolve a url">resolving</a> the
      <a href=#url>URL</a> given by the <var title="">candidate</var>
@@ -18612,9 +18622,11 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
      event">delays the load event</a> again, in case it hasn't gone
      been fired yet.</li>
 
+     <li><p>Jump back to the step labeled <i>search loop</i>.</li>
+
     </ol></li>
 
-  </ol><p>The <dfn id=concept-media-load-resource title=concept-media-load-resource>resource-load
+  </ol><p>The <dfn id=concept-media-load-resource title=concept-media-load-resource>resource fetch
   algorithm</dfn> for a <a href=#media-element>media element</a> and a given
   <a href=#absolute-url>absolute URL</a> is as follows:</p>
 
@@ -18699,7 +18711,8 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
       <ol><li><p>The user agent should cancel the fetching
        process.</li>
 
-       <li><p>Abort this subalgorithm, returning to the <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load algorithm</a>.</p>
+       <li><p>Abort this subalgorithm, returning to the <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
+       algorithm</a>.</p>
 
       </ol></dd>
 
@@ -18801,7 +18814,7 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
        flag</a> to false. This stops <a href=#delay-the-load-event title="delay the load
        event">delaying the load event</a>.</li>
 
-       <li><p>Abort the overall <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load
+       <li><p>Abort the overall <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
        algorithm</a>.</li>
 
       </ol></dd>
@@ -18836,7 +18849,7 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
        flag</a> to false. This stops <a href=#delay-the-load-event title="delay the load
        event">delaying the load event</a>.</li>
 
-       <li><p>Abort the overall <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load
+       <li><p>Abort the overall <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
        algorithm</a>.</li>
 
       </ol></dd>
@@ -18878,7 +18891,7 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
        flag</a> to false. This stops <a href=#delay-the-load-event title="delay the load
        event">delaying the load event</a>.</li>
 
-       <li><p>Abort the overall <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load
+       <li><p>Abort the overall <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
        algorithm</a>.</li>
 
       </ol></dd>
@@ -18914,13 +18927,14 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
    called <code title=event-load><a href=#event-load>load</a></code> at the
    element.</li>
 
-   <li><p>Then, abort the overall <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load
+   <li><p>Then, abort the overall <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
    algorithm</a>.</li>
 
   </ol><p>If a <a href=#media-element>media element</a> whose <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> has the value
   <code title=dom-media-NETWORK_EMPTY><a href=#dom-media-network_empty>NETWORK_EMPTY</a></code> is <a href=#insert-an-element-into-a-document title="insert an element into a document">inserted into a
   document</a>, the user agent must asynchronously invoke the
-  <a href=#media-element>media element</a>'s <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load algorithm</a>.</p>
+  <a href=#media-element>media element</a>'s <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
+  algorithm</a>.</p>
 
   <p>The <dfn id=attr-media-autobuffer title=attr-media-autobuffer><code>autobuffer</code></dfn>
   attribute is a <a href=#boolean-attribute>boolean attribute</a>. Its presence hints to
@@ -19382,7 +19396,8 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
   <ol><li><p>If the <a href=#media-element>media element</a>'s <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> attribute has
    the value <code title=dom-media-NETWORK_EMPTY><a href=#dom-media-network_empty>NETWORK_EMPTY</a></code>, then the user
-   agent must invoke the <a href=#media-element>media element</a>'s <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load
+   agent must asynchronously invoke the <a href=#media-element>media element</a>'s
+   <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
    algorithm</a>.</li>
 
    <li>
@@ -19438,7 +19453,8 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
   <ol><li><p>If the <a href=#media-element>media element</a>'s <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> attribute has
    the value <code title=dom-media-NETWORK_EMPTY><a href=#dom-media-network_empty>NETWORK_EMPTY</a></code>, then the user
-   agent must invoke the <a href=#media-element>media element</a>'s <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load
+   agent must asynchronously invoke the <a href=#media-element>media element</a>'s
+   <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
    algorithm</a>.</li>
 
    <li><p>If the <a href=#media-element>media element</a>'s <code title=dom-media-paused><a href=#dom-media-paused>paused</a></code> attribute is false, it must
@@ -19808,7 +19824,7 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
    <tbody><tr><td><dfn id=event-loadstart title=event-loadstart><code>loadstart</code></dfn>
      <td><code>ProgressEvent</code> <a href=#refsPROGRESS>[PROGRESS]</a>
-     <td>The user agent begins looking for <a href=#media-data>media data</a>, as part of the <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load algorithm</a>.
+     <td>The user agent begins looking for <a href=#media-data>media data</a>, as part of the <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection algorithm</a>.
      <td><code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> equals <code title=dom-media-NETWORK_LOADING><a href=#dom-media-network_loading>NETWORK_LOADING</a></code>
     <tr><td><dfn id=event-progress title=event-progress><code>progress</code></dfn>
      <td><code>ProgressEvent</code> <a href=#refsPROGRESS>[PROGRESS]</a>
@@ -19834,7 +19850,7 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
          <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> equals either <code title=dom-media-NETWORK_EMPTY><a href=#dom-media-network_empty>NETWORK_EMPTY</a></code> or <code title=dom-media-NETWORK_LOADED><a href=#dom-media-network_loaded>NETWORK_LOADED</a></code>, depending on when the download was aborted.
     <tr><td><dfn id=event-emptied title=event-emptied><code>emptied</code></dfn>
      <td><code>Event</code>
-     <td>A <a href=#media-element>media element</a> whose <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> was previously not in the <code title=dom-media-NETWORK_EMPTY><a href=#dom-media-network_empty>NETWORK_EMPTY</a></code> state has just switched to that state (either because of a fatal error during load that's about to be reported, or because the <code title=dom-media-load><a href=#dom-media-load>load()</a></code> method was invoked while the <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>load algorithm</a> was already running, in which case it is fired synchronously during the <code title=dom-media-load><a href=#dom-media-load>load()</a></code> method call).
+     <td>A <a href=#media-element>media element</a> whose <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> was previously not in the <code title=dom-media-NETWORK_EMPTY><a href=#dom-media-network_empty>NETWORK_EMPTY</a></code> state has just switched to that state (either because of a fatal error during load that's about to be reported, or because the <code title=dom-media-load><a href=#dom-media-load>load()</a></code> method was invoked while the <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection algorithm</a> was already running, in which case it is fired synchronously during the <code title=dom-media-load><a href=#dom-media-load>load()</a></code> method call).
      <td><code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> is <code title=dom-media-NETWORK_EMPTY><a href=#dom-media-network_empty>NETWORK_EMPTY</a></code>; all the DOM attributes are in their initial states.
     <tr><td><dfn id=event-stalled title=event-stalled><code>stalled</code></dfn>
      <td><code>ProgressEvent</code>
@@ -59587,23 +59603,23 @@ interface <dfn id=timeouthandler>TimeoutHandler</dfn> {
   Lawson, Bruce Miller, Cameron McCormack, Cao Yipeng, Carlos
   Perell&oacute; Mar&iacute;n, Chao Cai, &#50980;&#49437;&#52268;
   (Channy Yun), Charl van Niekerk, Charles Iliya Krempeaux, Charles
-  McCathieNevile, Christian Biesinger, Christian Johansen, Christian
-  Schmidt, Chriswa, Cole Robison, Colin Fine, Collin Jackson, Daniel
-  Barclay, Daniel Brumbaugh Keeney, Daniel Glazman, Daniel Peng,
-  Daniel Sp&aring;ng, Daniel Steinberg, Danny Sullivan, Darin Adler,
-  Darin Fisher, Dave Camp, Dave Singer, Dave Townsend<!-- Mossop on
-  moz irc -->, David Baron, David Bloom, David Carlisle, David
-  Flanagan, David H&aring;s&auml;ther, David Hyatt, David Smith, David
-  Woolley, Dean Edridge, Debi Orton, Derek Featherstone, DeWitt
-  Clinton, Dimitri Glazkov, dolphinling, Doron Rosenberg, Doug Kramer,
-  Edward O'Connor, Edward Z. Yang, Eira Monstad, Elliotte Harold, Eric
-  Carlson, Eric Law, Erik Arvidsson, Evan Martin, Evan Prodromou,
-  fantasai, Felix Sasaki, Franck 'Shift' Qu&eacute;lain, Garrett
-  Smith, Geoffrey Garen, Geoffrey Sneddon, George Lund, H&aring;kon
-  Wium Lie, Hans S. T&oslash;mmerhalt, Henri Sivonen, Henrik Lied,
-  Henry Mason, Hugh Winkler, Ignacio Javier, Ivo Emanuel
-  Gon&ccedil;alves, J. King, Jacques Distler, James Craig, James
-  Graham, James Justin Harrell, James M Snell, James Perrett,
+  McCathieNevile, Chris Pearce, Christian Biesinger, Christian
+  Johansen, Christian Schmidt, Chriswa, Cole Robison, Colin Fine,
+  Collin Jackson, Daniel Barclay, Daniel Brumbaugh Keeney, Daniel
+  Glazman, Daniel Peng, Daniel Sp&aring;ng, Daniel Steinberg, Danny
+  Sullivan, Darin Adler, Darin Fisher, Dave Camp, Dave Singer, Dave
+  Townsend<!-- Mossop on moz irc -->, David Baron, David Bloom, David
+  Carlisle, David Flanagan, David H&aring;s&auml;ther, David Hyatt,
+  David Smith, David Woolley, Dean Edridge, Debi Orton, Derek
+  Featherstone, DeWitt Clinton, Dimitri Glazkov, dolphinling, Doron
+  Rosenberg, Doug Kramer, Edward O'Connor, Edward Z. Yang, Eira
+  Monstad, Elliotte Harold, Eric Carlson, Eric Law, Erik Arvidsson,
+  Evan Martin, Evan Prodromou, fantasai, Felix Sasaki, Franck 'Shift'
+  Qu&eacute;lain, Garrett Smith, Geoffrey Garen, Geoffrey Sneddon,
+  George Lund, H&aring;kon Wium Lie, Hans S. T&oslash;mmerhalt, Henri
+  Sivonen, Henrik Lied, Henry Mason, Hugh Winkler, Ignacio Javier, Ivo
+  Emanuel Gon&ccedil;alves, J. King, Jacques Distler, James Craig,
+  James Graham, James Justin Harrell, James M Snell, James Perrett,
   Jan-Klaas Kollhof, Jason White, Jasper Bryant-Greene, Jed Hartman,
   Jeff Cutsinger, Jeff Schiller, Jeff Walden, Jens Bannmann, Jens
   Fendler, Jeroen van der Meer, Jim Jewett, Jim Meehan, Joe Clark,
