@@ -689,7 +689,9 @@
        <li><a href=#killing-scripts><span class=secno>5.5.3.4 </span>Killing scripts</a></ol></li>
      <li><a href=#event-loops><span class=secno>5.5.4 </span>Event loops</a>
       <ol>
-       <li><a href=#generic-task-sources><span class=secno>5.5.4.1 </span>Generic task sources</a></ol></li>
+       <li><a href=#definitions-1><span class=secno>5.5.4.1 </span>Definitions</a></li>
+       <li><a href=#processing-model-2><span class=secno>5.5.4.2 </span>Processing model</a></li>
+       <li><a href=#generic-task-sources><span class=secno>5.5.4.3 </span>Generic task sources</a></ol></li>
      <li><a href=#javascript-protocol><span class=secno>5.5.5 </span>The <code title="">javascript:</code> protocol</a></li>
      <li><a href=#events><span class=secno>5.5.6 </span>Events</a>
       <ol>
@@ -828,7 +830,7 @@
    <li><a href=#undo><span class=secno>6.10 </span>Undo history</a>
     <ol>
      <li><a href=#introduction-4><span class=secno>6.10.1 </span>Introduction</a></li>
-     <li><a href=#definitions-1><span class=secno>6.10.2 </span>Definitions</a></li>
+     <li><a href=#definitions-2><span class=secno>6.10.2 </span>Definitions</a></li>
      <li><a href=#the-undomanager-interface><span class=secno>6.10.3 </span>The <code>UndoManager</code> interface</a></li>
      <li><a href=#undo:-moving-back-in-the-undo-transaction-history><span class=secno>6.10.4 </span>Undo: moving back in the undo transaction history</a></li>
      <li><a href=#redo:-moving-forward-in-the-undo-transaction-history><span class=secno>6.10.5 </span>Redo: moving forward in the undo transaction history</a></li>
@@ -1399,14 +1401,6 @@
   way a document is rendered to the user. These terms are not meant to
   imply a visual medium; they must be considered to apply to other
   media in equivalent ways.</p>
-
-  <p class=impl>Some of the algorithms in this specification, for
-  historical reasons, require the user agent to <dfn id=pause>pause</dfn> until
-  some condition has been met. While a user agent is paused, it must
-  ensure that no scripts execute (e.g. no event handlers, no timers,
-  etc). User agents should remain responsive to user input while
-  paused, however, albeit without letting the user interact with Web
-  pages where that would involve invoking any <a href=#concept-script title=concept-script>script</a>.</p>
 
 
   <h4 id=xml><span class=secno>2.1.1 </span>XML</h4>
@@ -40125,6 +40119,8 @@ interface <dfn id=window>Window</dfn> {
 
   <h4 id=event-loops><span class=secno>5.5.4 </span>Event loops</h4>
 
+  <h5 id=definitions-1><span class=secno>5.5.4.1 </span>Definitions</h5>
+
   <p>To coordinate events, user interaction, scripts, rendering,
   networking, and so forth, user agents must use <dfn id=event-loop title="event
   loop">event loops</dfn> as described in this section.</p>
@@ -40214,14 +40210,26 @@ interface <dfn id=window>Window</dfn> {
   processing events from any one <a href=#task-source>task source</a> out of
   order.</p>
 
+  <p>A user agent is required to have one <dfn id=storage-mutex>storage
+  mutex</dfn>. This mutex is used to control access to shared state
+  like cookies. At any one point, the <a href=#storage-mutex>storage mutex</a> is
+  either free, or owned by a particular <a href=#event-loop>event loop</a>.</p>
+
+
+  <h5 id=processing-model-2><span class=secno>5.5.4.2 </span>Processing model</h5>
+
   <p>An <a href=#event-loop>event loop</a> must continually run through the
   following steps for as long as it exists:</p>
 
-  <ol><li><p>Run the oldest task on one of the <a href=#event-loop>event loop</a>'s
-   <a href=#task-queue title="task queue">task queues</a>, ignoring tasks whose
-   associated <code>Document</code>s are not <a href=#fully-active>fully
-   active</a>. The user agent may pick any <a href=#task-queue>task
-   queue</a>.</li>
+  <ol><li><p>Run the oldest <a href=#concept-task title=concept-task>task</a> on one
+   of the <a href=#event-loop>event loop</a>'s <a href=#task-queue title="task queue">task
+   queues</a>, ignoring tasks whose associated
+   <code>Document</code>s are not <a href=#fully-active>fully active</a>. The user
+   agent may pick any <a href=#task-queue>task queue</a>.</li>
+
+   <li><p>If the <a href=#storage-mutex>storage mutex</a> is now owned by the
+   <a href=#event-loop>event loop</a>, release it so that it is once again
+   free.</p>
 
    <li><p>Remove that task from its <a href=#task-queue>task queue</a>.</li>
 
@@ -40232,12 +40240,35 @@ interface <dfn id=window>Window</dfn> {
    <li><p>Return to the first step of the <a href=#event-loop>event
    loop</a>.</li>
 
+  </ol><hr><p class=impl>Some of the algorithms in this specification, for
+  historical reasons, require the user agent to <dfn id=pause>pause</dfn> while
+  running a <a href=#concept-task title=concept-task>task</a> until some
+  condition has been met. While a user agent has a paused <a href=#concept-task title=concept-task>task</a>, the corresponding <a href=#event-loop>event
+  loop</a> must not run further <a href=#concept-task title=concept-task>tasks</a>, and any script in the currently
+  running <a href=#concept-task title=concept-task>task</a> must block. User
+  agents should remain responsive to user input while paused, however,
+  albeit in a reduced capacity since the <a href=#event-loop>event loop</a> will
+  not be doing anything.</p>
+
+  <hr><p>When a user agent is to <dfn id=obtain-the-storage-mutex>obtain the storage mutex</dfn> as
+  part of running a <a href=#concept-task title=concept-task>task</a>, it must
+  run through the following steps:</p>
+
+  <ol><li><p>If the <a href=#storage-mutex>storage mutex</a> is already owned by this
+   <a href=#concept-task title=concept-task>task</a>'s <a href=#event-loop>event loop</a>,
+   then abort these steps.</li>
+
+   <li><p>Otherwise, <a href=#pause>pause</a> until the <a href=#storage-mutex>storage
+   mutex</a> can be taken by the <a href=#event-loop>event loop</a>.</li>
+
+   <li><p>Take ownership of the <a href=#storage-mutex>storage mutex</a>.</li>
+
   </ol></div>
 
 
   <div class=impl>
 
-  <h5 id=generic-task-sources><span class=secno>5.5.4.1 </span>Generic task sources</h5>
+  <h5 id=generic-task-sources><span class=secno>5.5.4.3 </span>Generic task sources</h5>
 
   <p>The following <a href=#task-source title="task source">task sources</a> are
   used by a number of mostly unrelated features in this and other
@@ -48713,7 +48744,7 @@ http://developer.apple.com/documentation/AppleApplications/Conceptual/SafariJSPr
 
   <div class=impl>
 
-  <h4 id=definitions-1><span class=secno>6.10.2 </span>Definitions</h4>
+  <h4 id=definitions-2><span class=secno>6.10.2 </span>Definitions</h4>
 
   <p>The user agent must associate an <dfn id=undo-transaction-history>undo transaction
   history</dfn> with each <code><a href=#htmldocument>HTMLDocument</a></code> object.</p>
