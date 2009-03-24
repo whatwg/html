@@ -6935,13 +6935,13 @@ interface <dfn>HTMLDocument</dfn> {
   <code>Document</code> was created, the user agent must raise a
   <code>SECURITY_ERR</code> exception. Otherwise, if <span>the
   document's address</span> does not use a server-based naming
-  authority, it must return the empty string. Otherwise, it must
-  return the same string as the value of the <code
-  title="">Cookie</code> HTTP header it would include if <span
-  title="fetch">fetching</span> the resource indicated by <span>the
-  document's address</span> over HTTP, as per RFC 2109 section 4.3.4
-  or later specifications, excluding HTTP-only cookies. <a
-  href="#refsRFC2109">[RFC2109]</a> <a
+  authority, it must return the empty string. Otherwise, it must first
+  <span>obtain the storage mutex</span> and then return the same
+  string as the value of the <code title="">Cookie</code> HTTP header
+  it would include if <span title="fetch">fetching</span> the resource
+  indicated by <span>the document's address</span> over HTTP, as per
+  RFC 2109 section 4.3.4 or later specifications, excluding HTTP-only
+  cookies. <a href="#refsRFC2109">[RFC2109]</a> <a
   href="#refsRFC2965">[RFC2965]</a></p>
 
   <p>On setting, if the document is not associated with a
@@ -6952,14 +6952,14 @@ interface <dfn>HTMLDocument</dfn> {
   <code>Document</code> was created, the user agent must raise a
   <code>SECURITY_ERR</code> exception. Otherwise, if <span>the
   document's address</span> does not use a server-based naming
-  authority, it must do nothing. Otherwise, the user agent must act as
-  it would when processing cookies if it had just attempted to
-  <span>fetch</span> <span>the document's address</span> over HTTP,
-  and had received a response with a <code>Set-Cookie</code> header
-  whose value was the specified value, as per RFC 2109 sections 4.3.1,
-  4.3.2, and 4.3.3 or later specifications, but without overwriting
-  the values of HTTP-only cookies. <a
-  href="#refsRFC2109">[RFC2109]</a> <a
+  authority, it must do nothing. Otherwise, the user agent must
+  <span>obtain the storage mutex</span> and then act as it would when
+  processing cookies if it had just attempted to <span>fetch</span>
+  <span>the document's address</span> over HTTP, and had received a
+  response with a <code>Set-Cookie</code> header whose value was the
+  specified value, as per RFC 2109 sections 4.3.1, 4.3.2, and 4.3.3 or
+  later specifications, but without overwriting the values of
+  HTTP-only cookies. <a href="#refsRFC2109">[RFC2109]</a> <a
   href="#refsRFC2965">[RFC2965]</a></p>
 
   <p class="note">This specification does not define what makes an
@@ -51303,7 +51303,6 @@ user reload must be equivalent to .reload()
   underlying list of key/value pairs see is required.</p>
 
 
-
   <h5>The <code title="dom-sessionStorage">sessionStorage</code> attribute</h5>
 
   <p>The <dfn
@@ -51414,6 +51413,17 @@ user reload must be equivalent to .reload()
   title="event-storage">storage</code> event must be fired, as <span
   title="event-storage">described below</span>.</p>
 
+  <p id="localStorageMutex">Whenever the properties of a <code
+  title="dom-localStorage">localStorage</code> attribute's
+  <code>Storage</code> object are to be examined, returned, set, or
+  deleted, whether as part of a direct property access, when checking
+  for the presence of a property, during property enumeration, when
+  determining the number of properties present, or as part of the
+  execution of any of the methods or attributes defined on the
+  <code>Storage</code> interface. the user agent must first
+  <span>obtain the storage mutex</span>.</p>
+
+
 
   <h5>The <code title="event-storage">storage</code> event</h5>
 
@@ -51517,28 +51527,18 @@ user reload must be equivalent to .reload()
 
   <h5>Threads</h5>
 
-  <p>Multiple browsing contexts must be able to access the local
-  storage areas simultaneously in such a manner that scripts cannot
-  detect any concurrent script execution.</p>
+  <p>Because of <a href="#localStorageMutex">the use</a> of the
+  <span>storage mutex</span>, multiple browsing contexts will be able
+  to access the local storage areas simultaneously in such a manner
+  that scripts cannot detect any concurrent script execution.</p>
 
-  <p>This is required to guarantee that the <code
-  title="dom-Storage-length">length</code> attribute of a
-  <code>Storage</code> object never changes while a script is
+  <p>Thus, the <code title="dom-Storage-length">length</code>
+  attribute of a <code>Storage</code> object, and the value of the
+  various properties of that object, cannot change while a script is
   executing, other than in a way that is predictable by the script
   itself.</p>
 
-  <p class="note">There are various ways of implementing this
-  requirement. One is to just have one <span>event loop</span> for all
-  <span title="browsing context">browsing contexts</span>. Another is
-  that if a script running in one browsing context accesses a storage
-  area, the user agent blocks scripts in other browsing contexts when
-  they try to access the same storage area until the <span>event
-  loop</span> running the first script has completed running the task
-  that started that script. Another (potentially more efficient but
-  certainly more complex) implementation strategy is to use optimistic
-  transactional script execution. This specification does not require
-  any particular implementation strategy, so long as the requirement
-  above is met.</p>
+
 
 
   <h4 id="sql">Database storage</h4>
