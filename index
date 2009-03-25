@@ -19129,9 +19129,8 @@ interface <dfn id=htmlaudioelement>HTMLAudioElement</dfn> : <a href=#htmlmediael
   these must return a new <code><a href=#htmlaudioelement>HTMLAudioElement</a></code> object (a new
   <code><a href=#audio>audio</a></code> element). If the <var title="">src</var> argument
   is present, the object created must have its <code title=dom-media-src><a href=#dom-media-src>src</a></code> content attribute set to the
-  provided value, and the user agent must asynchronously invoke the
-  object's <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource
-  selection algorithm</a> before returning.</p>
+  provided value, and the user agent must invoke the object's <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
+  algorithm</a> before returning.</p>
 
   </div>
 
@@ -19774,7 +19773,7 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
     </ol></li>
 
-   <li><p>Asynchronously invoke the <a href=#media-element>media element</a>'s <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
+   <li><p>Invoke the <a href=#media-element>media element</a>'s <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
    algorithm</a>.</li>
 
    <li>
@@ -19786,8 +19785,10 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
   </ol><p>The <dfn id=concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
   algorithm</dfn> for a <a href=#media-element>media element</a> is as follows. This
-  algorithm is always invoked asynchronously, meaning that it runs in
-  the background with scripts and other <a href=#concept-task title=concept-task>tasks</a> running in parallel.</p>
+  algorithm is always invoked synchronously, but one of the first
+  steps in the algorithm is to return and continue running the
+  remaining steps asynchronously, meaning that it runs in the
+  background with scripts and other <a href=#concept-task title=concept-task>tasks</a> running in parallel.</p>
 
   <ol><li>
 
@@ -19796,17 +19797,36 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
     <ol><li><p>Set the <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> to <code title=dom-media-NETWORK_NO_SOURCE><a href=#dom-media-network_no_source>NETWORK_NO_SOURCE</a></code>.</li>
 
+     <li><p>Run the remainder of the <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
+     algorithm</a> steps asynchronously, allowing the <a href=#concept-task title=concept-task>task</a> that invoked this algorithm to
+     continue.</li>
+
      <li><p>While the <a href=#media-element>media element</a> has neither a <code title=attr-media-src><a href=#attr-media-src>src</a></code> attribute nor any
-     <code><a href=#the-source-element>source</a></code> element children, wait. (This steps might
-     wait forever.)</li>
+     <code><a href=#the-source-element>source</a></code> element children, wait. (This step might wait
+     forever.)</li>
+
+     <li><p>Before the <a href=#concept-task title=concept-task>task</a> that set
+     the <code title=attr-media-src><a href=#attr-media-src>src</a></code> attribute or inserted
+     the <code><a href=#the-source-element>source</a></code> element has a chance to complete, set the
+     <a href=#media-element>media element</a>'s <a href=#delaying-the-load-event-flag>delaying-the-load-event
+     flag</a> to true (this <a href=#delay-the-load-event title="delay the load
+     event">delays the load event</a>), and set its <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> to <code title=dom-media-NETWORK_LOADING><a href=#dom-media-network_loading>NETWORK_LOADING</a></code>.</li>
+
+    </ol><p>Otherwise, run these substeps:</p>
+
+    <ol><li><p>Set the <a href=#media-element>media element</a>'s
+     <a href=#delaying-the-load-event-flag>delaying-the-load-event flag</a> to true (this <a href=#delay-the-load-event title="delay the load event">delays the load event</a>), and
+     set its <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code>
+     to <code title=dom-media-NETWORK_LOADING><a href=#dom-media-network_loading>NETWORK_LOADING</a></code>.</li>
+
+     <li><p>Run the remainder of the <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
+     algorithm</a> steps asynchronously, allowing the <a href=#concept-task title=concept-task>task</a> that invoked this algorithm to
+     continue.</li>
 
     </ol></li>
 
-   <li><p>Set the element's <a href=#delaying-the-load-event-flag>delaying-the-load-event flag</a>
-   to true. This <a href=#delay-the-load-event title="delay the load event">delays the load
-   event</a>.</li>
-
-   <li><p>Set the <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> to <code title=dom-media-NETWORK_LOADING><a href=#dom-media-network_loading>NETWORK_LOADING</a></code>.</li>
+   <li><p class=note>By this point, the algorithm is running
+   asynchronously.</li>
 
    <li><p><a href=#queue-a-task>Queue a task</a> to <a href=#fire-a-progress-event>fire a progress
    event</a> called <code title=event-loadstart><a href=#event-loadstart>loadstart</a></code>
@@ -19976,10 +19996,12 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
      node other than the end of the list. (This step might wait
      forever.)</li>
 
-     <li><p>Set the element's <a href=#delaying-the-load-event-flag>delaying-the-load-event
+     <li><p>Before the <a href=#concept-task title=concept-task>task</a> that
+     inserted the <code><a href=#the-source-element>source</a></code> element has a chance to
+     complete, set the element's <a href=#delaying-the-load-event-flag>delaying-the-load-event
      flag</a> back to true. This <a href=#delay-the-load-event title="delay the load
-     event">delays the load event</a> again, in case it hasn't gone
-     been fired yet.</li>
+     event">delays the load event</a> again, in case it hasn't been
+     fired yet.</li>
 
      <li><p>Jump back to the step labeled <i>search loop</i>.</li>
 
@@ -20292,9 +20314,9 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
   </ol><p>If a <a href=#media-element>media element</a> whose <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> has the value
   <code title=dom-media-NETWORK_EMPTY><a href=#dom-media-network_empty>NETWORK_EMPTY</a></code> is <a href=#insert-an-element-into-a-document title="insert an element into a document">inserted into a
-  document</a>, the user agent must asynchronously invoke the
-  <a href=#media-element>media element</a>'s <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
-  algorithm</a>.</p>
+  document</a>, the user agent must invoke the <a href=#media-element>media
+  element</a>'s <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource
+  selection algorithm</a>.</p>
 
   </div>
 
@@ -20942,8 +20964,7 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
   <ol><li><p>If the <a href=#media-element>media element</a>'s <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> attribute has
    the value <code title=dom-media-NETWORK_EMPTY><a href=#dom-media-network_empty>NETWORK_EMPTY</a></code>, then the user
-   agent must asynchronously invoke the <a href=#media-element>media element</a>'s
-   <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
+   agent must invoke the <a href=#media-element>media element</a>'s <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
    algorithm</a>.</li>
 
    <li>
@@ -20999,8 +21020,7 @@ interface <dfn id=cuerangecallback>CueRangeCallback</dfn> {
 
   <ol><li><p>If the <a href=#media-element>media element</a>'s <code title=dom-media-networkState><a href=#dom-media-networkstate>networkState</a></code> attribute has
    the value <code title=dom-media-NETWORK_EMPTY><a href=#dom-media-network_empty>NETWORK_EMPTY</a></code>, then the user
-   agent must asynchronously invoke the <a href=#media-element>media element</a>'s
-   <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
+   agent must invoke the <a href=#media-element>media element</a>'s <a href=#concept-media-load-algorithm title=concept-media-load-algorithm>resource selection
    algorithm</a>.</li>
 
    <li><p>If the <a href=#media-element>media element</a>'s <code title=dom-media-paused><a href=#dom-media-paused>paused</a></code> attribute is false, it must
