@@ -44373,7 +44373,7 @@ interface <dfn>Window</dfn> {
   readonly attribute <span>Navigator</span> <span title="dom-navigator">navigator</span>; <!-- XXX IE6 also has window.clientInformation pointing to this same object -->
   readonly attribute <span>Storage</span> <span title="dom-localStorage">localStorage</span>; <!-- XXX split into separate interface -->
   readonly attribute <span>Storage</span> <span title="dom-sessionStorage">sessionStorage</span>;
-  <span>Database</span> <span title="dom-opendatabase">openDatabase</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize); <!-- XXX split into separate interface -->
+  <span>Database</span> <span title="dom-opendatabase">openDatabase</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize);
   readonly attribute <span>ApplicationCache</span> <span title="dom-applicationCache">applicationCache</span>;
 
   // user prompts
@@ -51809,44 +51809,67 @@ have a variable and unknowable number of literals coming:
   assumptions.</p>
 
   <p>The <dfn
-  title="dom-opendatabase"><code>openDatabase()</code></dfn> method
-  returns a <code>Database</code> object. The method takes four
-  arguments: a database name, a database version, a display name, and
-  an estimated size, in bytes, of the data that will be stored in the
-  database.</p>
+  title="dom-opendatabase"><code>openDatabase()</code></dfn> method on
+  the <code>Window</code> and <code>WorkerUtils</code> interfaces must
+  return a newly constructed <code>Database</code> object that
+  represents the database requested.</p>
+
+  <p>The <dfn
+  title="dom-opendatabase-sync"><code>openDatabaseSync()</code></dfn>
+  method on the <code>WorkerUtils</code> interfaces must return a
+  newly constructed <code>DatabaseSync</code> object that represents
+  the database requested.</p>
+
+  <p>These methods take four arguments: a database name, a database
+  version, a display name, and an estimated size, in bytes, of the
+  data that will be stored in the database.</p>
+
+  <p>The database requested is the one with the given database
+  name from the appropriate <span>origin</span>.</p>
 
   <p>The <code title="dom-opendatabase">openDatabase()</code> method
-  must use and create databases from the <span>origin</span> of the
-  <code>Document</code> of the <code>Window</code> object on which the
-  method was invoked.</p>
+  on the <code>Window</code> object must use and create databases from
+  the <span>origin</span> of the <span>active document</span> of the
+  <span>browsing context</span> of the <code>Window</code> object on
+  which the method was invoked.</p>
+
+  <p>The <code title="dom-opendatabase">openDatabase()</code> and
+  <code title="dom-opendatabase-sync">openDatabaseSync()</code>
+  methods on the <code>WorkerUtils</code> object must use and create
+  databases from the <span>origin</span> of the scripts in the
+  worker.</p>
+
+  <p>All strings including the empty string are valid database
+  names. Database names must be compared in a
+  <span>case-sensitive</span> manner.</p>
+
+  <p class="note">Implementations can support this even in
+  environments that only support a subset of all strings as database
+  names by mapping database names (e.g. using a hashing algorithm) to
+  the supported set of names.</p>
 
   <p>If the database version provided is not the empty string, and the
   database already exists but has a different version, or no version,
   then the method must raise an <code>INVALID_STATE_ERR</code>
   exception.</p>
 
+  <p>The version that the database was opened with is the <dfn
+  title="concept-database-expected-version">expected version</dfn> of
+  this <code>Database</code> object. It can be the empty string, in
+  which case there is no expected version &mdash; any version is
+  fine.</p>
+
   <p>Otherwise, if the database version provided is the empty string,
   or if the database doesn't yet exist, or if the database exists and
-  the version provided to the <code
-  title="dom-opendatabase">openDatabase()</code> method is the same as
-  the current version associated with the database, then the method
-  must return a <code>Database</code> object representing the database
-  that has the name that was given. If no such database exists, it
-  must be created first.</p>
-
-  <p>All strings including the empty string are valid database
-  names. Database names must be compared in a
-  <span>case-sensitive</span> manner.</p>
+  the version requested is the same as the current version associated
+  with the database, then the method must return an object
+  representing the database that has the name that was given. If no
+  such database exists, it must be created first.</p>
 
   <p>The user agent may raise a <code>SECURITY_ERR</code> exception
   instead of returning a <code>Database</code> object if the request
   violates a policy decision (e.g. if the user agent is configured to
   not allow the page to open databases).</p>
-
-  <p class="note">Implementations can support this even in
-  environments that only support a subset of all strings as database
-  names by mapping database names (e.g. using a hashing algorithm) to
-  the supported set of names.</p>
 
   <p>User agents are expected to use the display name and the
   estimated database size to optimize the user experience. For
@@ -51856,7 +51879,66 @@ have a variable and unknowable number of literals coming:
   instead of the user agent prompting the user for permission to
   increase the quota every five megabytes.</p>
 
-  <pre class="idl">interface <dfn>Database</dfn> {
+
+  <h5>Parsing and processing SQL statements</h5>
+
+  <p>When the user agent is to <dfn title="preprocess the SQL
+  statement">preprocess a SQL statement</dfn> <var
+  title="">sqlStatement</var> with an array of arguments <var
+  title="">arguments</var>, it must run the following steps:</p>
+
+  <ol>
+
+   <li><p>Parse <var title="">sqlStatement</var> as a SQL statement,
+   with the exception that U+003F QUESTION MARK (?) characters can be
+   used in place of SQL literals in the statement. <a
+   href="#refsSQL">[SQL]</a></p></li>
+
+   <li>
+
+    <p>Replace each <code title="">?</code> placeholder with the value
+    of the argument in the <var title="">arguments</var> array with
+    the same position. (So the first <code title="">?</code>
+    placeholder gets replaced by the first value in the <var
+    title="">arguments</var> array, and generally the <var
+    title="">n</var>th <code title="">?</code> placeholder gets
+    replaced by the <var title="">n</var>th value in the <var
+    title="">arguments</var> array.)</p>
+
+    <p class="note">Substitutions for <code title="">?</code>
+    placeholders are done at the literal level, not as string
+    concatenations, so this provides a way to dynamically insert
+    parameters into a statement without risk of a SQL injection
+    attack.</p>
+
+    <p>The result is <var title="">the statement</var>.</p>
+
+    <p class="XXX">Implementation feedback is requested on what
+    to do with arguments that are of types that are not supported by
+    the underlying SQL backend. For example, SQLite doesn't support
+    booleans, so what should the UA do if passed a boolean? The Gears
+    team suggests failing, not silently converting types.</p>
+
+   </li>
+
+   <li><p>If the syntax of <var title="">sqlStatement</var> is not
+   valid (except for the use of <code title="">?</code> characters in
+   the place of literals), or the statement uses features that are not
+   supported (e.g. due to security reasons), or the number of items in
+   the <var title="">arguments</var> array is not equal to the number
+   of <code title="">?</code> placeholders in the statement, or the
+   statement cannot be parsed for some other reason, then mark <var title="">the
+   statement</var> as bogus.</p></li>
+
+   <li><p>Return <var title="">the statement</var>.</p></li>
+
+  </ol>
+  
+
+
+  <h5>Asynchronous database API</h5>
+
+  <pre class="idl">interface <dfn title="Database">Database</dfn> {
   void <span title="dom-database-transaction">transaction</span>(in <span>SQLTransactionCallback</span> callback, [Optional] in <span>SQLTransactionErrorCallback</span> errorCallback, [Optional] in <span>SQLVoidCallback</span> successCallback);
   void <span title="dom-database-readTransaction">readTransaction</span>(in <span>SQLTransactionCallback</span> callback, [Optional] in <span>SQLTransactionErrorCallback</span> errorCallback, [Optional] in <span>SQLVoidCallback</span> successCallback);
 
@@ -51896,12 +51978,6 @@ interface <dfn>SQLTransactionErrorCallback</dfn> {
   <i>mode</i> must be read/write. For the <code
   title="dom-database-readTransaction">readTransaction()</code>
   method, the <i>mode</i> must be read-only.</p>
-
-  <p>The version that the database was opened with is the <dfn
-  title="concept-database-expected-version">expected version</dfn> of
-  this <code>Database</code> object. It can be the empty string, in
-  which case there is no expected version &mdash; any version is
-  fine.</p>
 
   <p>On getting, the <dfn
   title="dom-database-version"><code>version</code></dfn> attribute
@@ -51948,7 +52024,7 @@ interface <dfn>SQLTransactionErrorCallback</dfn> {
   <p>...and the <i>mode</i> being read/write.</p>
 
 
-  <h5>Executing SQL statements</h5>
+  <h6>Executing SQL statements</h6>
 
   <p>The <code title="dom-database-transaction">transaction()</code>
   and <code title="dom-database-changeVersion">changeVersion()</code>
@@ -51993,61 +52069,31 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
    only called once a transaction has failed, and no SQL statements
    can be added to a failed transaction.)</p></li>
 
-   <li><p>Parse the first argument to the method (<var
-   title="">sqlStatement</var>) as a SQL statement, with the exception
-   that U+003F QUESTION MARK (?) characters can be used in place of
-   SQL literals in the statement. <a
-   href="#refsSQL">[SQL]</a></p></li>
-
    <li>
 
-    <p>Replace each <code title="">?</code> placeholder with the value
-    of the argument in the <var title="">arguments</var> array with
-    the same position. (So the first <code title="">?</code>
-    placeholder gets replaced by the first value in the <var
-    title="">arguments</var> array, and generally the <var
-    title="">n</var>th <code title="">?</code> placeholder gets
-    replaced by the <var title="">n</var>th value in the <var
-    title="">arguments</var> array.)</p>
-
-    <p class="note">Substitutions for <code title="">?</code>
-    placeholders are done at the literal level, not as string
-    concatenations, so this provides a way to dynamically insert
-    parameters into a statement without risk of a SQL injection
-    attack.</p>
+    <p><span>Preprocess the SQL statement</span> given as the first
+    argument to the method (<var title="">sqlStatement</var>), using
+    the second argument to the method as the <var
+    title="">arguments</var> array, to obtain <var title="">the
+    statement</var>.</p>
 
     <p>If the second argument is omitted or null, then treat the <var
     title="">arguments</var> array as empty.</p>
 
-    <p>The result is <i>the statement</i>.</p>
-
-    <p class="XXX">Implementation feedback is requested on what
-    to do with arguments that are of types that are not supported by
-    the underlying SQL backend. For example, SQLite doesn't support
-    booleans, so what should the UA do if passed a boolean? The Gears
-    team suggests failing, not silently converting types.</p>
-
    </li>
-
-   <li><p>If the syntax of <var title="">sqlStatement</var> is not
-   valid (except for the use of <code title="">?</code> characters in
-   the place of literals), or the statement uses features that are not
-   supported (e.g. due to security reasons), or the number of items in
-   the <var title="">arguments</var> array is not equal to the number
-   of <code title="">?</code> placeholders in the statement, or the
-   statement cannot be parsed for some other reason, then mark <i>the
-   statement</i> as bogus.</p></li>
 
    <li><p>If the <code>Database</code> object that the
    <code>SQLTransaction</code> object was created from has an <span
    title="concept-database-expected-version">expected version</span>
    that is neither the empty string nor the actual version of the
-   database, then mark <i>the statement</i> as bogus. (<span
-   title="dom-sqlerror-code-2">Error code 2</span>.)</p></li>
+   database, then mark <var title="">the statement</var> as
+   bogus. (<span title="dom-sqlerror-code-2">Error code
+   2</span>.)</p></li>
 
-   <li><p>Queue up <i>the statement</i> in the transaction, along with
-   the third argument (if any) as the statement's result set callback
-   and the fourth argument (if any) as the error callback.</p></li>
+   <li><p>Queue up <var title="">the statement</var> in the
+   transaction, along with the third argument (if any) as the
+   statement's result set callback and the fourth argument (if any) as
+   the error callback.</p></li>
 
   </ol>
 
@@ -52055,7 +52101,6 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
   otherwise completely empty environment with no resources. For
   example, attempts to read from or write to the file system will
   fail.</p>
-
 
   <p>SQL inherently supports multiple concurrent connections. Authors
   should make appropriate use of the transaction features to handle
@@ -52073,6 +52118,156 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
 
   <p class="note">A future version of this specification will probably
   define the exact SQL subset required in more detail.</p>
+
+
+
+  <h6>Processing model</h6>
+
+  <p>The <dfn>transaction steps</dfn> are as follows. These steps must
+  be run asynchronously. These steps are invoked with a <i>transaction
+  callback</i>, optionally an <i>error callback</i>, optionally a
+  <i>success callback</i>, optionally a <i>preflight operation</i>,
+  optionally a <i>postflight operation</i>, and with a <i>mode</i>
+  that is either read/write or read-only.</p>
+
+  <ol>
+
+   <li><p>Open a new SQL transaction to the database, and create a
+   <code>SQLTransaction</code> object that represents that
+   transaction. If the <i>mode</i> is read/write, the transaction must
+   have an exclusive write lock over the entire database. If the
+   <i>mode</i> is read-only, the transaction must have a shared read
+   lock over the entire database. The user agent should wait for an
+   appropriate lock to be available.</p></li>
+
+   <li><p>If an error occurred in the opening of the transaction
+   (e.g. if the user agent failed to obtain an appropriate lock after
+   an appropriate delay), jump to the last step.</p></li>
+
+   <li><p>If a <i>preflight operation</i> was defined for this
+   instance of the transaction steps, run that. If it fails, then jump
+   to the last step. (This is basically a hook for the <code
+   title="dom-database-changeVersion">changeVersion()</code>
+   method.)</p></li>
+
+   <li><p><span>Queue a task</span> to invoke the <i>transaction
+   callback</i> with the aforementioned <code>SQLTransaction</code>
+   object as its only argument, and wait for that task to be
+   run.</p></li>
+
+   <li><p>If the callback couldn't be called (e.g. it was null), or if
+   the callback was invoked and raised an exception, jump to the last
+   step.</p></li>
+<!--
+   <li><p>If the callback could be called and returned false, let
+   <i>callback-canceled</i> be true. Otherwise, let it be
+   false.</p></li>
+-->
+   <li><p>While there are any statements queued up in the transaction,
+   perform the following steps for each queued up statement in the
+   transaction, oldest first. Each statement has a statement,
+   optionally a result set callback, and optionally an error
+   callback.</p>
+
+    <ol>
+
+     <li><p>If the statement is marked as bogus, jump to the "in case
+     of error" steps below.</p></li>
+
+     <li id="modifications-fail-if-read-only">
+
+      <p>If the <i>mode</i> is read-only but the statement's main verb
+      can modify the database, jump to the "in case of error" steps
+      below.</p>
+
+      <p class="note">Only the statement's main verb (e.g. <code
+      title="">UPDATE</code>, <code title="">SELECT</code>, <code
+      title="">DROP</code>) is considered here. Thus, a statement like
+      "<code title="">UPDATE test SET id=0 WHERE 0=1</code>" would be
+      treated as potentially modifying the database for the purposes
+      of this step, even though it could never in fact have any
+      side-effects.</p>
+
+     </li>
+
+     <li><p>Execute the statement in the context of the transaction.
+     <a href="#refsSQL">[SQL]</a></p>
+
+     <li><p>If the statement failed, jump to the "in case of error"
+     steps below.</p></li>
+
+     <li><p>Create a <code>SQLResultSet</code> object that represents
+     the result of the statement.</p></li>
+
+     <li><p>If the statement has a result set callback, <span>queue a
+     task</span> to invoke it with the <code>SQLTransaction</code>
+     object as its first argument and the new
+     <code>SQLResultSet</code> object as its second argument, and wait
+     for that task to be run.</p></li>
+
+     <li><p>If the callback was invoked and raised an exception, jump
+     to the last step in the overall steps.</p></li>
+
+     <li><p>Move on to the next statement, if any, or onto the next
+     overall step otherwise.</p></li>
+
+    </ol>
+
+    <p>In case of error (or more specifically, if the above substeps
+    say to jump to the "in case of error" steps), run the following
+    substeps:</p>
+
+    <ol>
+
+     <li><p>If the statement had an associated error callback, then
+     <span>queue a task</span> to invoke that error callback with the
+     <code>SQLTransaction</code> object and a newly constructed
+     <code>SQLError</code> object that represents the error that
+     caused these substeps to be run as the two arguments,
+     respectively, and wait for the task to be run.</p></li>
+
+     <li><p>If the error callback returns false, then move on to the
+     next statement, if any, or onto the next overall step
+     otherwise.</p></li>
+
+     <li><p>Otherwise, the error callback did not return false, or
+     there was no error callback. Jump to the last step in the overall
+     steps.</p></li>
+
+    </ol>
+
+   </li>
+
+   <li><p>If a <i>postflight operation</i> was defined for this
+   instance of the transaction steps, run that. If it fails, then jump
+   to the last step. <!--The operation, if any, might depend
+   <i>callback-canceled</i>.--> (This is basically a hook for the
+   <code title="dom-database-changeVersion">changeVersion()</code>
+   method.)</p></li>
+
+   <li><p>Commit the transaction.</p></li>
+
+   <li><p>If an error occurred in the committing of the transaction,
+   jump to the last step.</p></li>
+
+   <li><p><span>Queue a task</span> to invoke the <i>success
+   callback</i>.</p></li>
+
+   <li><p>End these steps. The next step is only used when something
+   goes wrong.</p></li>
+
+   <li><p><span>Queue a task</span> to invoke the <i>error
+   callback</i> with a newly constructed <code>SQLError</code> object
+   that represents the last error to have occurred in this
+   transaction. Rollback the transaction. Any still-pending statements
+   in the transaction are discarded.</p></li>
+
+  </ol>
+
+
+  <h5>Synchronous database API</h5>
+
+  <p class="XXX">...<dfn>DatabaseSync</dfn></p>
 
 
   <h5>Database query results</h5>
@@ -52220,152 +52415,6 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
   DOM attribute must return an error message describing the error
   encountered. The message should be localized to the user's
   language.</p>
-
-
-
-  <h5>Processing model</h5>
-
-  <p>The <dfn>transaction steps</dfn> are as follows. These steps must
-  be run asynchronously. These steps are invoked with a <i>transaction
-  callback</i>, optionally an <i>error callback</i>, optionally a
-  <i>success callback</i>, optionally a <i>preflight operation</i>,
-  optionally a <i>postflight operation</i>, and with a <i>mode</i>
-  that is either read/write or read-only.</p>
-
-  <ol>
-
-   <li><p>Open a new SQL transaction to the database, and create a
-   <code>SQLTransaction</code> object that represents that
-   transaction. If the <i>mode</i> is read/write, the transaction must
-   have an exclusive write lock over the entire database. If the
-   <i>mode</i> is read-only, the transaction must have a shared read
-   lock over the entire database. The user agent should wait for an
-   appropriate lock to be available.</p></li>
-
-   <li><p>If an error occurred in the opening of the transaction
-   (e.g. if the user agent failed to obtain an appropriate lock after
-   an appropriate delay), jump to the last step.</p></li>
-
-   <li><p>If a <i>preflight operation</i> was defined for this
-   instance of the transaction steps, run that. If it fails, then jump
-   to the last step. (This is basically a hook for the <code
-   title="dom-database-changeVersion">changeVersion()</code>
-   method.)</p></li>
-
-   <li><p><span>Queue a task</span> to invoke the <i>transaction
-   callback</i> with the aforementioned <code>SQLTransaction</code>
-   object as its only argument, and wait for that task to be
-   run.</p></li>
-
-   <li><p>If the callback couldn't be called (e.g. it was null), or if
-   the callback was invoked and raised an exception, jump to the last
-   step.</p></li>
-<!--
-   <li><p>If the callback could be called and returned false, let
-   <i>callback-canceled</i> be true. Otherwise, let it be
-   false.</p></li>
--->
-   <li><p>While there are any statements queued up in the transaction,
-   perform the following steps for each queued up statement in the
-   transaction, oldest first. Each statement has a statement,
-   optionally a result set callback, and optionally an error
-   callback.</p>
-
-    <ol>
-
-     <li><p>If the statement is marked as bogus, jump to the "in case
-     of error" steps below.</p></li>
-
-     <li id="modifications-fail-if-read-only">
-
-      <p>If the <i>mode</i> is read-only but the statement's main verb
-      can modify the database, jump to the "in case of error" steps
-      below.</p>
-
-      <p class="note">Only the statement's main verb (e.g. <code
-      title="">UPDATE</code>, <code title="">SELECT</code>, <code
-      title="">DROP</code>) is considered here. Thus, a statement like
-      "<code title="">UPDATE test SET id=0 WHERE 0=1</code>" would be
-      treated as potentially modifying the database for the purposes
-      of this step, even though it could never in fact have any
-      side-effects.</p>
-
-     </li>
-
-     <li><p>Execute the statement in the context of the transaction.
-     <a href="#refsSQL">[SQL]</a></p>
-
-     <li><p>If the statement failed, jump to the "in case of error"
-     steps below.</p></li>
-
-     <li><p>Create a <code>SQLResultSet</code> object that represents
-     the result of the statement.</p></li>
-
-     <li><p>If the statement has a result set callback, <span>queue a
-     task</span> to invoke it with the <code>SQLTransaction</code>
-     object as its first argument and the new
-     <code>SQLResultSet</code> object as its second argument, and wait
-     for that task to be run.</p></li>
-
-     <li><p>If the callback was invoked and raised an exception, jump
-     to the last step in the overall steps.</p></li>
-
-     <li><p>Move on to the next statement, if any, or onto the next
-     overall step otherwise.</p></li>
-
-    </ol>
-
-    <p>In case of error (or more specifically, if the above substeps
-    say to jump to the "in case of error" steps), run the following
-    substeps:</p>
-
-    <ol>
-
-     <li><p>If the statement had an associated error callback, then
-     <span>queue a task</span> to invoke that error callback with the
-     <code>SQLTransaction</code> object and a newly constructed
-     <code>SQLError</code> object that represents the error that
-     caused these substeps to be run as the two arguments,
-     respectively, and wait for the task to be run.</p></li>
-
-     <li><p>If the error callback returns false, then move on to the
-     next statement, if any, or onto the next overall step
-     otherwise.</p></li>
-
-     <li><p>Otherwise, the error callback did not return false, or
-     there was no error callback. Jump to the last step in the overall
-     steps.</p></li>
-
-    </ol>
-
-   </li>
-
-   <li><p>If a <i>postflight operation</i> was defined for this
-   instance of the transaction steps, run that. If it fails, then jump
-   to the last step. <!--The operation, if any, might depend
-   <i>callback-canceled</i>.--> (This is basically a hook for the
-   <code title="dom-database-changeVersion">changeVersion()</code>
-   method.)</p></li>
-
-   <li><p>Commit the transaction.</p></li>
-
-   <li><p>If an error occurred in the committing of the transaction,
-   jump to the last step.</p></li>
-
-   <li><p><span>Queue a task</span> to invoke the <i>success
-   callback</i>.</p></li>
-
-   <li><p>End these steps. The next step is only used when something
-   goes wrong.</p></li>
-
-   <li><p><span>Queue a task</span> to invoke the <i>error
-   callback</i> with a newly constructed <code>SQLError</code> object
-   that represents the last error to have occurred in this
-   transaction. Rollback the transaction. Any still-pending statements
-   in the transaction are discarded.</p></li>
-
-  </ol>
-
 
 
   <h4>Disk space</h4>
@@ -59414,6 +59463,7 @@ interface <dfn>SharedWorker</dfn> : <span>AbstractWorker</span> {
   void <span title="dom-WorkerGlobalScope-importScripts">importScripts</span>([Variadic] in DOMString urls);
   readonly attribute <span title="worker-Navigator">Navigator</span> <span title="dom-worker-navigator">navigator</span>;
   <span>Database</span> <span title="dom-opendatabase">openDatabase</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize);
+  <span>DatabaseSync</span> <span title="dom-opendatabase-sync">openDatabaseSync</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize);
 };</pre>
 
   <p>Objects that implement the <code>WorkerGlobalScope</code>
@@ -59424,8 +59474,6 @@ interface <dfn>SharedWorker</dfn> : <span>AbstractWorker</span> {
   must also implement the <code>WindowTimers</code> interface. (This
   interface provides the <code title="">setTimeout()</code> method and
   its friends.)</p><!-- XXX ref -->
-
-  <p class="XXX">Need to define a sync database API.</p>
 
   <!-- XXX ApplicationCache -->
 
@@ -59567,14 +59615,9 @@ interface <dfn>SharedWorker</dfn> : <span>AbstractWorker</span> {
  
   <h4>APIs defined in other specifications</h4>
 
-  <p>The <dfn
-  title="dom-opendatabase"><code>openDatabase()</code></dfn> method
-  must act as defined for the API of the same name defined in the Web
-  Storage specification, with the exception that where the API would
-  use the <span>origin</span> of the <span>active document</span> of
-  the <span>browsing context</span> of the <code>Window</code> object
-  on which the method was supposedly invoked, it must instead use the
-  <span>origin</span> of the script that invoked the method. <a
+  <p>The <code title="dom-opendatabase">openDatabase()</code> and
+  <code title="dom-opendatabase-sync">openDatabaseSync()</code>
+  methods are defined in the Web Storage specification. <a
   href="#refsWEBSTORAGE">[WEBSTORAGE]</a></p>
 
 
