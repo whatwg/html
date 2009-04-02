@@ -51855,9 +51855,9 @@ have a variable and unknowable number of literals coming:
 
   <p>The version that the database was opened with is the <dfn
   title="concept-database-expected-version">expected version</dfn> of
-  this <code>Database</code> object. It can be the empty string, in
-  which case there is no expected version &mdash; any version is
-  fine.</p>
+  this <code>Database</code> or <code>DatabaseSync</code> object. It
+  can be the empty string, in which case there is no expected version
+  &mdash; any version is fine.</p>
 
   <p>Otherwise, if the database version provided is the empty string,
   or if the database doesn't yet exist, or if the database exists and
@@ -51921,24 +51921,72 @@ have a variable and unknowable number of literals coming:
 
    </li>
 
-   <li><p>If the syntax of <var title="">sqlStatement</var> is not
-   valid (except for the use of <code title="">?</code> characters in
-   the place of literals), or the statement uses features that are not
-   supported (e.g. due to security reasons), or the number of items in
-   the <var title="">arguments</var> array is not equal to the number
-   of <code title="">?</code> placeholders in the statement, or the
-   statement cannot be parsed for some other reason, then mark <var title="">the
-   statement</var> as bogus.</p></li>
+   <li><p>If the <code>Database</code> object that the
+   <code>SQLTransaction</code> or <code>SQLTransactionSync</code>
+   object was created from has an <span
+   title="concept-database-expected-version">expected version</span>
+   that is neither the empty string nor the actual version of the
+   database, then mark <var title="">the statement</var> as
+   bogus. (<span title="dom-sqlerror-code-2">Error code
+   2</span>.)</p></li>
+
+   <li>
+
+    <p>Otherwise, if the syntax of <var title="">sqlStatement</var> is
+    not valid (except for the use of <code title="">?</code>
+    characters in the place of literals), or the statement uses
+    features that are not supported (e.g. due to security reasons), or
+    the number of items in the <var title="">arguments</var> array is
+    not equal to the number of <code title="">?</code> placeholders in
+    the statement, or the statement cannot be parsed for some other
+    reason, then mark <var title="">the statement</var> as
+    bogus. (<span title="dom-sqlerror-code-5">Error code
+    5</span>.)</p>
+
+    <p>User agents must consider statements that use the <code
+    title="">BEGIN</code>, <code title="">COMMIT</code>, and <code
+    title="">ROLLBACK</code> SQL features as being unsupported (and thus
+    will mark them as bogus), so as to not let these statements
+    interfere with the explicit transactions managed by the database API
+    itself.</p>
+
+   </li>
+
+   <li id="modifications-fail-if-read-only">
+
+    <p>Otherwise, if the <i>mode</i> that was used to create the
+    <code>SQLTransaction</code> or <code>SQLTransactionSync</code>
+    object is read-only but the statement's main verb can modify the
+    database, mark the statement as bogus. (<span
+    title="dom-sqlerror-code-5">Error code 5</span>.)</p>
+
+    <p class="note">Only the statement's main verb (e.g. <code
+    title="">UPDATE</code>, <code title="">SELECT</code>, <code
+    title="">DROP</code>) is considered here. Thus, a statement like
+    "<code title="">UPDATE test SET id=0 WHERE 0=1</code>" would be
+    treated as potentially modifying the database for the purposes
+    of this step, even though it could never in fact have any
+    side-effects.</p>
+
+   </li>
 
    <li><p>Return <var title="">the statement</var>.</p></li>
 
   </ol>
+
+  <p>The user agent must act as if the database was hosted in an
+  otherwise completely empty environment with no resources. For
+  example, attempts to read from or write to the file system will
+  fail.</p>
+
+  <p class="note">A future version of this specification will probably
+  define the exact SQL subset required in more detail.</p>
   
 
 
   <h5>Asynchronous database API</h5>
 
-  <pre class="idl">interface <dfn title="Database">Database</dfn> {
+  <pre class="idl">interface <dfn>Database</dfn> {
   void <span title="dom-database-transaction">transaction</span>(in <span>SQLTransactionCallback</span> callback, [Optional] in <span>SQLTransactionErrorCallback</span> errorCallback, [Optional] in <span>SQLVoidCallback</span> successCallback);
   void <span title="dom-database-readTransaction">readTransaction</span>(in <span>SQLTransactionCallback</span> callback, [Optional] in <span>SQLTransactionErrorCallback</span> errorCallback, [Optional] in <span>SQLVoidCallback</span> successCallback);
 
@@ -51965,7 +52013,7 @@ interface <dfn>SQLTransactionErrorCallback</dfn> {
   title="dom-database-transaction"><code>transaction()</code></dfn>
   and <dfn
   title="dom-database-readTransaction"><code>readTransaction()</code></dfn>
-  methods takes one to three arguments. When called, these method must
+  methods takes one to three arguments. When called, these methods must
   immediately return and then asynchronously run the <span>transaction
   steps</span> with the <i>transaction callback</i> being the first
   argument, the <i>error callback</i> being the second argument, if
@@ -52026,7 +52074,8 @@ interface <dfn>SQLTransactionErrorCallback</dfn> {
 
   <h6>Executing SQL statements</h6>
 
-  <p>The <code title="dom-database-transaction">transaction()</code>
+  <p>The <code title="dom-database-transaction">transaction()</code>,
+  <code title="dom-database-readTransaction">readTransaction()</code>,
   and <code title="dom-database-changeVersion">changeVersion()</code>
   methods invoke callbacks with <code>SQLTransaction</code>
   objects.</p>
@@ -52082,42 +52131,12 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
 
    </li>
 
-   <li><p>If the <code>Database</code> object that the
-   <code>SQLTransaction</code> object was created from has an <span
-   title="concept-database-expected-version">expected version</span>
-   that is neither the empty string nor the actual version of the
-   database, then mark <var title="">the statement</var> as
-   bogus. (<span title="dom-sqlerror-code-2">Error code
-   2</span>.)</p></li>
-
    <li><p>Queue up <var title="">the statement</var> in the
    transaction, along with the third argument (if any) as the
    statement's result set callback and the fourth argument (if any) as
    the error callback.</p></li>
 
   </ol>
-
-  <p>The user agent must act as if the database was hosted in an
-  otherwise completely empty environment with no resources. For
-  example, attempts to read from or write to the file system will
-  fail.</p>
-
-  <p>SQL inherently supports multiple concurrent connections. Authors
-  should make appropriate use of the transaction features to handle
-  the case of multiple scripts interacting with the same database
-  simultaneously (as could happen if the same page was opened in two
-  different <span title="browsing context">browsing
-  contexts</span>).</p>
-
-  <p>User agents must consider statements that use the <code
-  title="">BEGIN</code>, <code title="">COMMIT</code>, and <code
-  title="">ROLLBACK</code> SQL features as being unsupported (and thus
-  will mark them as bogus), so as to not let these statements
-  interfere with the explicit transactions managed by the database API
-  itself.</p>
-
-  <p class="note">A future version of this specification will probably
-  define the exact SQL subset required in more detail.</p>
 
 
 
@@ -52173,22 +52192,6 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
 
      <li><p>If the statement is marked as bogus, jump to the "in case
      of error" steps below.</p></li>
-
-     <li id="modifications-fail-if-read-only">
-
-      <p>If the <i>mode</i> is read-only but the statement's main verb
-      can modify the database, jump to the "in case of error" steps
-      below.</p>
-
-      <p class="note">Only the statement's main verb (e.g. <code
-      title="">UPDATE</code>, <code title="">SELECT</code>, <code
-      title="">DROP</code>) is considered here. Thus, a statement like
-      "<code title="">UPDATE test SET id=0 WHERE 0=1</code>" would be
-      treated as potentially modifying the database for the purposes
-      of this step, even though it could never in fact have any
-      side-effects.</p>
-
-     </li>
 
      <li><p>Execute the statement in the context of the transaction.
      <a href="#refsSQL">[SQL]</a></p>
@@ -52267,12 +52270,196 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
 
   <h5>Synchronous database API</h5>
 
-  <p class="XXX">...<dfn>DatabaseSync</dfn></p>
+  <pre class="idl">interface <dfn>DatabaseSync</dfn> {
+  <span>SQLTransactionSync</span> <span title="dom-database-sync-transaction">transaction</span>();
+  <span>SQLTransactionSync</span> <span title="dom-database-sync-readTransaction">readTransaction</span>();
+
+  readonly attribute DOMString <span title="dom-database-sync-version">version</span>;
+  <span>SQLTransactionSync</span> <span title="dom-database-sync-changeVersion">changeVersion</span>(in DOMString oldVersion, in DOMString newVersion);
+};</pre>
+
+  <p>The <dfn
+  title="dom-database-sync-transaction"><code>transaction()</code></dfn>
+  method must <span>create a <code>SQLTransactionSync</code>
+  object</span> for a read/write transaction, and return that
+  object.</p>
+
+  <p>The <dfn
+  title="dom-database-sync-readTransaction"><code>readTransaction()</code></dfn>
+  method must <span>create a <code>SQLTransactionSync</code>
+  object</span> for a read/only transaction, and return that
+  object.</p>
+
+  <p>On getting, the <dfn
+  title="dom-database-sync-version"><code>version</code></dfn>
+  attribute must return the current version of the database (as
+  opposed to the <span
+  title="concept-database-expected-version">expected version</span> of
+  the <code>DatabaseSync</code> object).</p>
+
+  <p>The <dfn
+  title="dom-database-sync-changeVersion"><code>changeVersion()</code></dfn>
+  method allows scripts to atomically verify the version number and
+  change it at the same time as doing a schema update. When the method
+  is invoked, it must run the following steps:</p>
+
+  <ol>
+
+   <li><p><span>Create a <code>SQLTransactionSync</code> object</span>
+   for a read/write transaction. If this throws an exception, then
+   rethrow it and abort these steps.</p></li>
+
+   <li><p>Check that the value of the first argument to the <code
+   title="dom-database-sync-changeVersion">changeVersion()</code>
+   method exactly matches the database's actual version. If it does
+   not, then throw a <code>SQLTransactionSync</code> object and abort
+   these steps. (<span title="dom-sqlerror-code-2">Error code
+   2</span>.)</p></li>
+
+   <li><p>Return the <code>SQLTransactionSync</code> object.</p></li>
+
+  </ol>
+
+  <p>When the <code>SQLTransactionSync</code> object's <code
+  title="dom-sqltransaction-sync-commit">commit()</code> method is
+  invoked, when the steps for that method invoke the <i>postcommit
+  operation</i>, the user agent must run the following steps:</p>
+
+  <ol>
+
+   <li>Change the database's actual version to the value of the second
+   argument to the <code
+   title="dom-database-sync-changeVersion">changeVersion()</code>
+   method.</li>
+
+   <li>Change the <code>Database</code> object's expected version to
+   the value of the second argument to the <code
+   title="dom-database-sync-changeVersion">changeVersion()</code>
+   method.</li>
+
+  </ol>
+
+  <hr>
+
+  <p>When the user agent is to <dfn>create a
+  <code>SQLTransactionSync</code> object</dfn> for a transaction that
+  is either read/write or read-only, it must run the following
+  steps:</p>
+
+  <ol>
+
+   <li><p>Open a new SQL transaction to the database, and create a
+   <code>SQLTransactionSync</code> object that represents that
+   transaction. If the <i>mode</i> is read/write, the transaction must
+   have an exclusive write lock over the entire database. If the
+   <i>mode</i> is read-only, the transaction must have a shared read
+   lock over the entire database. The user agent should wait for an
+   appropriate lock to be available.</p></li>
+
+   <li><p>If an error occurred in the opening of the transaction
+   (e.g. if the user agent failed to obtain an appropriate lock after
+   an appropriate delay), throw a <code>SQLException</code> exception
+   and abort these steps.</p></li>
+
+   <li><p>Return the newly created <code>SQLTransactionSync</code>
+   object.</p></li>
+
+  </ol>
+
+
+
+  <h6>Executing SQL statements</h6>
+
+  <p>The <code
+  title="dom-database-sync-transaction">transaction()</code>, <code
+  title="dom-database-sync-readTransaction">readTransaction()</code>,
+  and <code
+  title="dom-database-sync-changeVersion">changeVersion()</code>
+  methods return <code>SQLTransactionSync</code> objects.</p>
+
+  <pre class="idl">// typedef sequence&lt;any> <span>ObjectArray</span>;
+
+interface <dfn>SQLTransactionSync</dfn> {
+  <span>SQLResultSet</span> <span title="dom-sqltransaction-sync-executeSql">executeSql</span>(in DOMString sqlStatement, [Optional] in <span>ObjectArray</span> arguments);
+  void <span title="dom-sqltransaction-sync-commit">commit</span>();
+};</pre>
+
+  <p>A <code>SQLTransactionSync</code> object is initially <i
+  title="">fresh</i>, but it will be marked as <i title="">stale</i>
+  once it has been committed or rolled back.</p>
+
+  <p>When the <dfn
+  title="dom-sqltransaction-sync-executeSql"><code>executeSql(<var
+  title="">sqlStatement</var>, <var
+  title="">arguments</var>)</code></dfn> method is invoked, the user
+  agent must run the following algorithm:</p>
+
+  <ol>
+
+   <li><p>If the <code>SQLTransactionSync</code> object is <i
+   title="">stale</i>, then throw an <code>INVALID_STATE_ERR</code>
+   exception.</p></li>
+
+   <li>
+
+    <p><span>Preprocess the SQL statement</span> given as the first
+    argument to the method (<var title="">sqlStatement</var>), using
+    the second argument to the method as the <var
+    title="">arguments</var> array, to obtain <var title="">the
+    statement</var>.</p>
+
+    <p>If the second argument is omitted or null, then treat the <var
+    title="">arguments</var> array as empty.</p>
+
+   </li>
+
+   <li><p>If the statement is marked as bogus, throw a
+   <code>SQLException</code> exception.</p></li>
+
+   <li><p>Execute the statement in the context of the transaction.
+   <a href="#refsSQL">[SQL]</a></p>
+
+   <li><p>If the statement failed, throw a <code>SQLException</code>
+   exception.</p></li>
+
+   <li><p>Create a <code>SQLResultSet</code> object that represents
+   the result of the statement.</p></li>
+
+   <li><p>Return the newly created <code>SQLResultSet</code>
+   object.</p></li>
+
+  </ol>
+
+  <hr>
+
+  <p>When the <dfn
+  title="dom-sqltransaction-sync-commit"><code>commit()</code></dfn>
+  method is invoked, the user agent must run the following
+  algorithm:</p>
+
+  <ol>
+
+   <li><p>Commit the transaction.</p></li>
+
+   <li><p>Mark the <code>SQLTransactionSync</code> object as <i
+   title="">stale</i>.</p>
+
+   <li><p>If appropriate (i.e. if the <code
+   title="dom-database-sync-changeVersion">changeVersion()</code>
+   method created the <code>SQLTransactionSync</code> object), invoke
+   the <i>postcommit operation</i>.</p>
+
+   <li><p>If an error occurred in the committing of the transaction,
+   throw a <code>SQLException</code> exception.</p></li>
+
+  </ol>
+
+
 
 
   <h5>Database query results</h5>
 
-  <p>The <code title="dom-transaction-executeSql">executeSql()</code>
+  <p>The <code title="dom-sqltransaction-executeSql">executeSql()</code>
   method invokes its callback with a <code>SQLResultSet</code> object
   as an argument.</p>
 
@@ -52338,20 +52525,50 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
   by the database.</p>
 
 
-  <h5>Errors</h5>
+  <h5>Errors and exceptions</h5>
 
-  <p>Errors in the database API are reported using callbacks that have
-  a <code>SQLError</code> object as one of their arguments.</p>
+  <p>Errors in the asynchronous database API are reported using
+  callbacks that have a <code>SQLError</code> object as one of their
+  arguments.</p>
 
   <pre class="idl">interface <dfn>SQLError</dfn> {
   readonly attribute unsigned long <span title="dom-SQLError-code">code</span>;
   readonly attribute DOMString <span title="dom-SQLError-message">message</span>;
 };</pre>
 
+  <p>The <dfn title="dom-SQLError-code"><code>code</code></dfn> DOM
+  attribute must return the most appropriate code from the table
+  below.</p>
+
+  <p>The <dfn title="dom-SQLError-message"><code>message</code></dfn>
+  DOM attribute must return an error message describing the error
+  encountered. The message should be localized to the user's
+  language.</p>
+
+  <hr>
+
+  <p>Errors in the synchronous database API are reported using
+  exceptions that implement the <code>SQLException</code>
+  interface:</p>
+
+  <pre class="idl">exception <dfn>SQLException</dfn> {
+  readonly attribute unsigned long <span title="dom-SQLException-code">code</span>;
+  readonly attribute DOMString <span title="dom-SQLException-message">message</span>;
+};</pre>
+
+  <p>The <dfn title="dom-SQLException-code"><code>code</code></dfn>
+  DOM attribute must return the most appropriate code from the table
+  below.</p>
+
   <p>The <dfn
-  title="dom-SQLError-code"><code>code</code></dfn> DOM
-  attribute must return the most appropriate code from the following
-  table:</p>
+  title="dom-SQLException-message"><code>message</code></dfn> DOM
+  attribute must return an error message describing the error
+  encountered. The message should be localized to the user's
+  language.</p>
+
+  <hr>
+
+  <p>The error codes are as follows:</p>
 
   <table>
    <thead>
@@ -52372,9 +52589,17 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
 
     <tr>
      <td><dfn title="dom-sqlerror-code-2">2</dfn>
-     <td>The statement failed because the <span
+     <td>The operation failed because the actual database version was
+     not what it should be. For example, a statement found that the
+     actual database version no longer matched the <span
      title="concept-database-expected-version">expected version</span>
-     of the database didn't match the actual database version.
+     of the <code>Database</code> or <code>DatabaseSync</code> object,
+     or the <code
+     title="dom-database-changeversion">Database.changeVersion()</code>
+     or <code
+     title="dom-database-sync-changeversion">DatabaseSync.changeVersion()</code>
+     methods were passed a version that doesn't match the actual
+     database version.
 
     <tr>
      <td><dfn title="dom-sqlerror-code-3">3</dfn>
@@ -52390,12 +52615,13 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
 
     <tr>
      <td><dfn title="dom-sqlerror-code-5">5</dfn>
-     <td>The statement failed because the transaction's first
-     statement was a read-only statement, and a subsequent statement
-     in the same transaction tried to modify the database, but the
-     transaction failed to obtain a write lock before another
-     transaction obtained a write lock and changed a part of the
-     database that the former transaction was depending upon.
+     <td>The statement failed because of a syntax error, or the number
+     of arguments did not match the number of <code title="">?</code>
+     placeholders in the statement, or the statement tried to use a
+     statement that is not allowed, such as <code
+     title="">BEGIN</code>, <code title="">COMMIT</code>, or <code
+     title="">ROLLBACK</code>, or the statement tried to use a verb
+     that could modify the database but the transaction was read-only.
 
     <tr>
      <td><dfn title="dom-sqlerror-code-6">6</dfn>
@@ -52405,16 +52631,13 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
      because a row was being inserted and the value given for the
      primary key column duplicated the value of an existing row.
 
+    <tr>
+     <td><dfn title="dom-sqlerror-code-7">7</dfn>
+     <td>A lock for the transaction could not be obtained in a
+     reasonable time.
+
   </table>
 
-  <p class="XXX">We should define a more thorough list of
-  codes. Implementation feedback is requested to determine what codes
-  are needed.</p>
-
-  <p>The <dfn title="dom-SQLError-message"><code>message</code></dfn>
-  DOM attribute must return an error message describing the error
-  encountered. The message should be localized to the user's
-  language.</p>
 
 
   <h4>Disk space</h4>
