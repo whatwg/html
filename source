@@ -22672,33 +22672,38 @@ interface <dfn>CueRangeCallback</dfn> {
    <dt><dfn title="dom-media-HAVE_CURRENT_DATA"><code>HAVE_CURRENT_DATA</code></dfn> (numeric value 2)</dt>
 
    <dd>Data for the immediate <span>current playback position</span>
-   is available, but not enough data is available that the user agent
-   could successfully advance the <span>current playback
-   position</span> at all without immediately reverting to the <code
-   title="dom-media-HAVE_METADATA">HAVE_METADATA</code> state. For
-   example, in video this corresponds to the user agent having data
-   from the current frame, but not the next frame.</dd>
+   is available, but either not enough data is available that the user
+   agent could successfully advance the <span>current playback
+   position</span> in the <span>direction of playback</span> at all
+   without immediately reverting to the <code
+   title="dom-media-HAVE_METADATA">HAVE_METADATA</code> state, or
+   there is no more data to obtain in the <span>direction of
+   playback</span>. For example, in video this corresponds to the user
+   agent having data from the current frame, but not the next frame;
+   and to when <span title="ended playback">playback has
+   ended</span>.</dd>
 
    <dt><dfn title="dom-media-HAVE_FUTURE_DATA"><code>HAVE_FUTURE_DATA</code></dfn> (numeric value 3)</dt>
 
    <dd>Data for the immediate <span>current playback position</span>
    is available, as well as enough data for the user agent to advance
-   the <span>current playback position</span> at least a little
-   without immediately reverting to the <code
-   title="dom-media-HAVE_METADATA">HAVE_METADATA</code> state. For
-   example, In video this corresponds to the user agent having data
-   for at least the current frame and the next frame.</dd>
+   the <span>current playback position</span> in the <span>direction
+   of playback</span> at least a little without immediately reverting
+   to the <code title="dom-media-HAVE_METADATA">HAVE_METADATA</code>
+   state. For example, in video this corresponds to the user agent
+   having data for at least the current frame and the next frame. The
+   user agent cannot be in this state if <span title="ended
+   playback">playback has ended</span>, as the <span>current playback
+   position</span> can never advanced in this case.</dd>
 
    <dt><dfn title="dom-media-HAVE_ENOUGH_DATA"><code>HAVE_ENOUGH_DATA</code></dfn> (numeric value 4)</dt>
 
-   <dd>Data for the immediate <span>current playback position</span>
-   is available, as well as enough data for the user agent to advance
-   the <span>current playback position</span> at least a little
-   without immediately reverting to the <code
-   title="dom-media-HAVE_METADATA">HAVE_METADATA</code> state, and,
-   in addition, the user agent estimates that data is being fetched at
-   a rate where the <span>current playback position</span>, if it were
-   to advance at the rate given by the <code
+   <dd>All the conditions described for the <code
+   title="dom-media-HAVE_FUTURE_DATA">HAVE_FUTURE_DATA</code> state
+   are met, and, in addition, the user agent estimates that data is
+   being fetched at a rate where the <span>current playback
+   position</span>, if it were to advance at the rate given by the
+   <code
    title="dom-media-defaultPlaybackRate">defaultPlaybackRate</code>
    attribute, would not overtake the available data before playback
    reaches the end of the <span>media resource</span>.</dd>
@@ -23063,14 +23068,18 @@ interface <dfn>CueRangeCallback</dfn> {
   playback</dfn> when the element's <code
   title="dom-media-readyState">readyState</code> attribute is <code
   title="dom-media-HAVE_METADATA">HAVE_METADATA</code> or greater, and
-  the <span>current playback position</span> is the end of the
-  <span>media resource</span>, and the <span>media element</span> does
+  either the <span>current playback position</span> is the end of the
+  <span>media resource</span> and the <span>direction of
+  playback</span> is forwards and the <span>media element</span> does
   not have a <code title="attr-media-loop">loop</code> attribute
-  specified.</p>
+  specified, or the <span>current playback position</span> is the
+  <var>earliest possible position</var> and the <span>direction of
+  playback</span> is backwards.</p>
 
   <p>The <dfn title="dom-media-ended"><code>ended</code></dfn>
   attribute must return true if the <span>media element</span> has
-  <span>ended playback</span>, and false otherwise.</p>
+  <span>ended playback</span> and the <span>direction of
+  playback</span> is forwards, and false otherwise.</p>
 
   <p>A <span>media element</span> is said to have <dfn>stopped due to
   errors</dfn> when the element's <code
@@ -23117,8 +23126,9 @@ interface <dfn>CueRangeCallback</dfn> {
   the element.</p>
 
   <p>When the <span>current playback position</span> reaches the end
-  of the <span>media resource</span>, then the user agent must follow
-  these steps:</p>
+  of the <span>media resource</span> when the <span>direction of
+  playback</span> is forwards, then the user agent must follow these
+  steps:</p>
 
   <ol>
 
@@ -23147,6 +23157,21 @@ interface <dfn>CueRangeCallback</dfn> {
 
   </ol>
 
+  <p>When the <span>current playback position</span> reaches the
+  <var>earliest possible position</var> of the <span>media
+  resource</span> when the <span>direction of playback</span> is
+  backwards, then the user agent must follow these steps:</p>
+
+  <ol>
+
+   <li><p>Stop playback.</p></li>
+
+   <li><p>The user agent must <span>queue a task</span> to <span>fire
+   a simple event</span> called <code
+   title="event-timeupdate">timeupdate</code> at the element.</p></li>
+
+  </ol>
+
   <p>The <dfn
   title="dom-media-defaultPlaybackRate"><code>defaultPlaybackRate</code></dfn>
   attribute gives the desired speed at which the <span>media
@@ -23167,6 +23192,10 @@ interface <dfn>CueRangeCallback</dfn> {
   hasn't yet been set; on setting the attribute must be set to the new
   value, and the playback must change speed (if the element is
   <span>potentially playing</span>).</p>
+
+  <p>If the <code title="dom-media-playbackRate">playbackRate</code>
+  is positive or zero, then the <dfn>direction of playback</dfn> is
+  forwards. Otherwise, it is backwards.</p>
 
   <p>The "play" function in a user agent's interface must set the
   <code title="dom-media-playbackRate">playbackRate</code> attribute
