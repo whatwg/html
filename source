@@ -21418,7 +21418,7 @@ interface <dfn>CueRangeCallback</dfn> {
   const unsigned short <span title="dom-MediaError-MEDIA_ERR_ABORTED">MEDIA_ERR_ABORTED</span> = 1;
   const unsigned short <span title="dom-MediaError-MEDIA_ERR_NETWORK">MEDIA_ERR_NETWORK</span> = 2;
   const unsigned short <span title="dom-MediaError-MEDIA_ERR_DECODE">MEDIA_ERR_DECODE</span> = 3;
-  const unsigned short <span title="dom-MediaError-MEDIA_ERR_NONE_SUPPORTED">MEDIA_ERR_NONE_SUPPORTED</span> = 4;
+  const unsigned short <span title="dom-MediaError-MEDIA_ERR_SRC_NOT_SUPPORTED">MEDIA_ERR_SRC_NOT_SUPPORTED</span> = 4;
   readonly attribute unsigned short <span title="dom-MediaError-code">code</span>;
 };</pre>
 
@@ -21461,9 +21461,10 @@ interface <dfn>CueRangeCallback</dfn> {
    <span>media resource</span>, after the resource was established to
    be usable.</dd>
 
-   <dt><dfn title="dom-MediaError-MEDIA_ERR_NONE_SUPPORTED"><code>MEDIA_ERR_NONE_SUPPORTED</code></dfn> (numeric value 4)</dt>
+   <dt><dfn title="dom-MediaError-MEDIA_ERR_SRC_NOT_SUPPORTED"><code>MEDIA_ERR_SRC_NOT_SUPPORTED</code></dfn> (numeric value 4)</dt>
 
-   <dd>No suitable <span>media resource</span> could be found.</dd>
+   <dd>The <span>media resource</span> indicated by the <code
+   title="attr-media-src">src</code> attribute was not suitable.</dd>
 
   </dl>
 
@@ -21865,6 +21866,12 @@ interface <dfn>CueRangeCallback</dfn> {
      title="dom-media-networkState">networkState</code> to <code
      title="dom-media-NETWORK_LOADING">NETWORK_LOADING</code>.</p></li>
 
+     <li><p>If a <code title="attr-media-src">src</code> attribute was
+     set before a <code>source</code> element was inserted, let <var
+     title="">src</var> equal the first value that was assigned to the
+     <code title="attr-media-src">src</code> attribute after this
+     algorithm was invoked.</p></li>
+
     </ol>
 
     <p>Otherwise, run these substeps:</p>
@@ -21877,6 +21884,10 @@ interface <dfn>CueRangeCallback</dfn> {
      set its <code title="dom-media-networkState">networkState</code>
      to <code
      title="dom-media-NETWORK_LOADING">NETWORK_LOADING</code>.</p></li>
+
+     <li><p>If the <span>media element</span> has a <code
+     title="attr-media-src">src</code> attribute, let <var
+     title="">src</var> equal the value of that attribute.</p></li>
 
      <li><p>Run the remainder of the <span
      title="concept-media-load-algorithm">resource selection
@@ -21897,28 +21908,32 @@ interface <dfn>CueRangeCallback</dfn> {
 
    <li>
 
-    <p>If the <span>media element</span> has a <code
-    title="attr-media-src">src</code> attribute, then run these
-    substeps:</p>
+    <p>If <var title="">src</var> was given a value in the earlier
+    steps, then run these substeps:</p>
 
     <ol>
 
-     <li><p><span title="resolve a url">Resolve</span> the
-     <span>URL</span> given in that attribute, relative to the
-     <span>media element</span>.</p>
+     <li><p>Let <var title="">absolute URL</var> be the <span>absolute
+     URL</span> that would have resulted from <span title="resolve a
+     url">resolving</span> the <span>URL</span> given by <var
+     title="">src</var> relative to the <span>media element</span>
+     when the <code title="attr-media-src">src</code> attribute was
+     set to <var title="">src</var>.</p> <!-- i.e. changing xml:base
+     or <base> after src="" has no effect -->
 
-     <li><p>If that is successful, then run the <span
+     <li><p>If <var title="">absolute URL</var> was successfully
+     obtained, then run the <span
      title="concept-media-load-resource">resource fetch
-     algorithm</span> with the resulting <span>absolute URL</span>. If
-     that algorithm returns without aborting <em>this</em> one, then
-     the load failed.</p></li>
+     algorithm</span> with <var title="">absolute URL</var>. If that
+     algorithm returns without aborting <em>this</em> one, then the
+     load failed.</p></li>
 
      <li><p>Reaching this step indicates that either the URL failed to
      resolve, or the media resource failed to load. Set the <code
      title="dom-media-error">error</code> attribute to a new
      <code>MediaError</code> object whose <code
      title="dom-MediaError-code">code</code> attribute is set to <code
-     title="dom-MediaError-MEDIA_ERR_NONE_SUPPORTED">MEDIA_ERR_NONE_SUPPORTED</code>.</p></li>
+     title="dom-MediaError-MEDIA_ERR_SRC_NOT_SUPPORTED">MEDIA_ERR_SRC_NOT_SUPPORTED</code>.</p></li>
 
      <li><p>Set the element's <code
      title="dom-media-networkState">networkState</code> attribute to
@@ -21998,19 +22013,20 @@ interface <dfn>CueRangeCallback</dfn> {
 
      <li>
 
-      <p><i>Search loop:</i> Run these substeps atomically (so that
-      the DOM cannot change while they are running):</p>
+      <p><i>Search loop:</i> <span>Queue a task</span> to run the
+      following steps (so that no other tasks are running that could
+      make the DOM change while these steps are running):</p>
 
       <ol>
 
+       <li><p>Let <var title="">candidate</var> be null.</p></li>
+
        <li><p>If the node after <var title="">pointer</var> is the end
-       of the list, then jump to the step below labeled
-       <i>waiting</i>.</p></li>
+       of the list, then abort the task.</p></li>
 
        <li><p>If the node after <var title="">pointer</var> is a
        <code>source</code> element, let <var title="">candidate</var>
-       be that element; otherwise, let <var title="">candidate</var>
-       be null.</p></li>
+       be that element.</p></li>
 
        <li><p>Advance <var title="">pointer</var> so that the node
        before <var title="">pointer</var> is now the node that was
@@ -22018,11 +22034,21 @@ interface <dfn>CueRangeCallback</dfn> {
        title="">pointer</var> is the node after the node that used to
        be after <var title="">pointer</var>.</p></li>
 
-       <li><p>If <var title="">candidate</var> is null, restart the
-       step labelled <i>search loop</i> from the first
-       substep.</p></li>
+       <li><p>If <var title="">candidate</var> is null, restart these
+       substeps from the first substep. Otherwise, abort the
+       task.</p></li>
+
+       <li><p><span title="resolve a url">Resolve</span> the
+       <span>URL</span> given by the <var title="">candidate</var>
+       element's <code title="attr-source-src">src</code> attribute
+       relative to <var title="">candidate</var>.</p></li>
 
       </ol>
+
+      <p>Wait for the task to run. When the task ends, if <var
+      title="">candidate</var> is null, then jump to the step below
+      labeled <i>waiting</i>. Otherwise, continue with the next
+      step.</p>
 
      </li>
 
@@ -22042,7 +22068,7 @@ interface <dfn>CueRangeCallback</dfn> {
        <li><span title="resolve a url">Resolving</span> the
        <span>URL</span> given by the <var title="">candidate</var>
        element's <code title="attr-source-src">src</code> attribute
-       relative to <var title="">candidate</var> fails.</li>
+       relative to <var title="">candidate</var> failed.</li>
 
        <li>The <var title="">candidate</var> element has a <code
        title="attr-source-type">type</code> attribute whose value,
@@ -22083,21 +22109,11 @@ interface <dfn>CueRangeCallback</dfn> {
 
      <li><p>Return to the step labeled <i>search loop</i>.</p></li>
 
-     <li><p><i>Waiting:</i> Set the <code
-     title="dom-media-error">error</code> attribute to a new
-     <code>MediaError</code> object whose <code
-     title="dom-MediaError-code">code</code> attribute is set to <code
-     title="dom-MediaError-MEDIA_ERR_NONE_SUPPORTED">MEDIA_ERR_NONE_SUPPORTED</code>.</p></li>
-
-     <li><p>Set the element's <code
+     <li><p><i>Waiting:</i> Set the element's <code
      title="dom-media-networkState">networkState</code> attribute to
      the <span
      title="dom-media-NETWORK_NO_SOURCE">NETWORK_NO_SOURCE</span>
      value</p></li>
-
-     <li><p><span>Queue a task</span> to <span>fire a progress
-     event</span> called <code title="event-error">error</code> at the
-     <span>media element</span>.</p></li>
 
      <li><p>Set the element's <span>delaying-the-load-event flag</span>
      to false. This stops <span title="delay the load event">delaying
