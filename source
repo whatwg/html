@@ -48535,6 +48535,331 @@ interface <dfn>Function</dfn> {
   </div>
 
 
+  <h3 id="timers">Timers</h3>
+
+  <p>The <code title="dom-windowtimers-setTimeout">setTimeout()</code>
+  and <code title="dom-windowtimers-setInterval">setInterval()</code>
+  methods allow authors to schedule timer-based callbacks.</p>
+
+<!-- HereBeDragons is just meant to prevent this from compiling in random WebIDL implementations -->
+<pre class="idl">[HereBeDragons, NoInterfaceObject] interface <dfn>WindowTimers</dfn> {
+  long <span title="dom-windowtimers-setTimeout">setTimeout</span>(in any handler, [Optional] in any timeout, [Variadic] in any args);
+  void <span title="dom-windowtimers-clearTimeout">clearTimeout</span>(in long handle);
+  long <span title="dom-windowtimers-setInterval">setInterval</span>(in any handler, [Optional] in any timeout, [Variadic] in any args);
+  void <span title="dom-windowtimers-clearInterval">clearInterval</span>(in long handle);
+};</pre>
+
+  <dl class="domintro">
+
+   <dt><var title="">handle</var> = <var title="">window</var> . <code title="dom-windowtimers-setTimeout">setTimeout</code>( <var title="">handler</var> [, <var title="">timeout</var> [, <var title="">arguments</var> ] ] )</dt>
+
+   <dd>
+
+    <p>Schedules a timeout to run <var title="">handler</var> after
+    <var title="">timeout</var> milliseconds. Any <var
+    title="">arguments</var> are passed straight through to the <var
+    title="">handler</var>.</p>
+
+   </dd>
+
+   <dt><var title="">handle</var> = <var title="">window</var> . <code title="dom-windowtimers-setTimeout">setTimeout</code>( <var title="">code</var> [, <var title="">timeout</var> ] )</dt>
+
+   <dd>
+
+    <p>Schedules a timeout to compile and run <var title="">code</var>
+    after <var title="">timeout</var> milliseconds.</p>
+
+   </dd>
+
+   <dt><var title="">handle</var> = <var title="">window</var> . <code title="dom-windowtimers-setInterval">setInterval</code>( <var title="">handler</var> [, <var title="">timeout</var> [, <var title="">arguments</var> ] ] )</dt>
+
+   <dd>
+
+    <p>Schedules a timeout to run <var title="">handler</var> every
+    <var title="">timeout</var> milliseconds. Any <var
+    title="">arguments</var> are passed straight through to the <var
+    title="">handler</var>.</p>
+
+   </dd>
+
+   <dt><var title="">handle</var> = <var title="">window</var> . <code title="dom-windowtimers-setInterval">setInterval</code>( <var title="">code</var> [, <var title="">timeout</var> ] )</dt>
+
+   <dd>
+
+    <p>Schedules a timeout to compile and run <var title="">code</var>
+    every <var title="">timeout</var> milliseconds.</p>
+
+   </dd>
+
+  </dl>
+
+  <p class="note">This API does not guarantee that timers will fire
+  exactly on schedule. Delays due to CPU load, other tasks, etc, are
+  to be expected.</p>
+
+  <div class="impl">
+
+  <p>The <code>WindowTimers</code> interface must be implemented by
+  objects implementing the <code>Window</code> object. (It is also
+  implemented by objects implementing the <code>WorkerUtils</code>
+  interface as part of Web Workers.)</p>
+
+  <p>Each object that implements the <code>WindowTimers</code>
+  interface has a <dfn>list of active timeouts</dfn> and a <dfn>list
+  of active intervals</dfn>. Each entry in these lists is identified
+  by a number, which must be unique within its list for the lifetime
+  of the object that implements the <code>WindowTimers</code>
+  interface.</p>
+
+  <hr>
+
+  <p>The <dfn
+  title="dom-windowtimers-setTimeout"><code>setTimeout()</code></dfn>
+  method must run the following steps:
+
+  <ol>
+
+   <li><p><span>Get the timed task</span>, and let <var
+   title="">task</var> be the result.</p></li>
+
+   <li><p><span>Get the timeout</span>, and let <var
+   title="">timeout</var> be the result.</p></li>
+
+   <li><p>If the currently running <span
+   title="concept-task">task</span> is a task that was created by
+   either the <code
+   title="dom-windowtimers-setTimeout">setTimeout()</code> method, and
+   <var title="">timeout</var> is less than 4, then increase <var
+   title="">timeout</var> to 4.</p></li>
+
+   <li><p>Add an entry to the <span>list of active timeouts</span>,
+   identified by a user-agent defined integer that is greater than
+   zero.</p></li>
+
+   <li><p>Return the number identifying the newly added entry in the
+   <span>list of active timeouts</span>, and then continue running
+   this algorithm asynchronously.</p></li>
+
+   <li>
+
+    <p>If <var title="">context</var> is a <code>Window</code> object,
+    wait until the <code>Document</code> associated with <var
+    title="">context</var> has been <span>fully active</span> for a
+    further <var title="">timeout</var> milliseconds (not necessarily
+    consecutively).</p>
+
+    <p>Otherwise, if <var title="">context</var> is a
+    <code>WorkerUtils</code> object, wait until <var
+    title="">timeout</var> milliseconds have passed with the worker
+    not suspended (not necessarily consecutively).</p>
+
+    <p>Otherwise, act as described in the specification that defines
+    that the <code>WindowTimers</code> interface is implemented by
+    some other object.</p>
+
+   </li>
+
+   <li><p>Wait until any invocations of this algorithm started before
+   this one whose <var title="">timeout</var> is equal to or less than
+   this one's have completed.</p></li>
+
+   <li><p>If the entry in the <span>list of active timeouts</span>
+   that was added in the earlier step has been cleared, then abort
+   this algorithm.</p></li>
+
+   <li><p><span title="queue a task">Queue</span> the <var
+   title="">task</var> <span
+   title="concept-task">task</span>.</p></li>
+
+  </ol>
+
+  <p>The <dfn
+  title="dom-windowtimers-clearTimeout"><code>clearTimeout()</code></dfn>
+  method must clear the entry identified as <var title="">handle</var>
+  from the <span>list of active timeouts</span> of the
+  <code>WindowTimers</code> object on which the method was invoked,
+  where <var title="">handle</var> is the argument passed to the
+  method.</p>
+
+  <hr>
+
+  <p>The <dfn
+  title="dom-windowtimers-setInterval"><code>setInterval()</code></dfn>
+  method must run the following steps:
+
+  <ol>
+
+   <li><p><span>Get the timed task</span>, and let <var
+   title="">task</var> be the result.</p></li>
+
+   <li><p><span>Get the timeout</span>, and let <var
+   title="">timeout</var> be the result.</p></li>
+
+   <li><p>If <var title="">timeout</var> is less than 10, then
+   increase <var title="">timeout</var> to 10.</p></li> <!-- (but see
+   note below about IE) -->
+
+   <li><p>Add an entry to the <span>list of active intervals</span>,
+   identified by a user-agent defined integer that is greater than
+   zero.</p></li>
+
+   <li><p>Return the number identifying the newly added entry in the
+   <span>list of active intervals</span>, and then continue running
+   this algorithm asynchronously.</p></li>
+
+   <!-- Note: IE doesn't actually run intervals with duration zero, it
+   aborts roughly here in the algorithm for them. -->
+
+   <li>
+
+    <p><i>Wait:</i> If <var title="">context</var> is a
+    <code>Window</code> object, wait until the <code>Document</code>
+    associated with <var title="">context</var> has been <span>fully
+    active</span> for a further <var title="">interval</var>
+    milliseconds (not necessarily consecutively).</p>
+
+    <p>Otherwise, if <var title="">context</var> is a
+    <code>WorkerUtils</code> object, wait until <var
+    title="">interval</var> milliseconds have passed with the worker
+    not suspended (not necessarily consecutively).</p>
+
+    <p>Otherwise, act as described in the specification that defines
+    that the <code>WindowTimers</code> interface is implemented by
+    some other object.</p>
+
+   </li>
+
+   <li><p>If the entry in the <span>list of active intervals</span>
+   that was added in the earlier step has been cleared, then abort
+   this algorithm.</p></li>
+
+   <li><p><span title="queue a task">Queue</span> the <var
+   title="">task</var> <span
+   title="concept-task">task</span>.</p></li>
+
+   <li><p>Return to the step labeled <i>wait</i>.</p></li>
+
+  </ol>
+
+  <p>The <dfn
+  title="dom-windowtimers-clearInterval"><code>clearInterval()</code></dfn>
+  method must clear the entry identified as <var title="">handle</var>
+  from the <span>list of active intervals</span> of the
+  <code>WindowTimers</code> object on which the method was invoked,
+  where <var title="">handle</var> is the argument passed to the
+  method.</p>
+
+  <hr>
+
+  <p>When the above methods are to <dfn>get the timed task</dfn>, they
+  must run the following steps:</p>
+
+  <ol>
+
+   <li>
+  
+    <p>If the first argument to the method is an object that has an
+    internal [[Call]] method, then return a <span
+    title="concept-task">task</span> that calls that [[Call]] method
+    with as its arguments the third and subsequent arguments to the
+    method (if any), and aborth these steps.</p>
+
+    <p>Otherwise, continue with the remaining steps.</p>
+ 
+   </li>
+
+   <li><p>Apply the ToString() conversion operator to the first
+   argument to the method, and let <var title="">script source</var>
+   be the result.</p></li>
+
+   <li><p>Let <var title="">script language</var> be
+   JavaScript.</p></li>
+
+   <li><p>Let <var title="">context</var> be the object on which the
+   method is implemented (a <code>Window</code> or
+   <code>WorkerUtils</code> object).</p></li>
+
+   <li>
+
+    <p>If <var title="">context</var> is a <code>Window</code> object,
+    let <var title="">global object</var> be <var
+    title="">context</var>, let <var title="">browsing context</var>
+    be the <span>browsing context</span> with which <var
+    title="">global object</var> is associated, let <var
+    title="">character encoding</var> be the <span title="document's
+    character encoding">character encoding</span> of the
+    <code>Document</code> associated with <var title="">global
+    object</var> (<a href="#sce-not-copy">this is a reference, not a
+    copy</a>), and let <var title="">base URL</var> be the <span
+    title="document base URL">base URL</span> of the
+    <code>Document</code> associated with <var title="">global
+    object</var> (<a href="#sbu-not-copy">this is a reference, not a
+    copy</a>).</p>
+
+    <p>Otherwise, if <var title="">context</var> is a
+    <code>WorkerUtils</code> object, let <var title="">global
+    object</var>, <var title="">browsing context</var>, <var
+    title="">character encoding</var>, and <var title="">base
+    URL</var> be the <span>script's global object</span>,
+    <span>script's browsing context</span>, <span>script's URL
+    character encoding</span>, and <span>script's base URL</span>
+    (respectively) of the <span title="concept-script">script</span>
+    that the <span>run a worker</span> algorithm created when it
+    created <var title="">context</var>.</p>
+
+    <p>Otherwise, act as described in the specification that defines
+    that the <code>WindowTimers</code> interface is implemented by
+    some other object.</p>
+
+   </li>
+
+   <li><p>Return a <span title="concept-task">task</span> that <span
+   title="create a script">creates a script</span> using <var
+   title="">script source</var> as the script source, <var
+   title="">scripting language</var> as the scripting language, <var
+   title="">global object</var> as the global object, <var
+   title="">browsing context</var> as the browsing context, <var
+   title="">character encoding</var> as the character encoding, and
+   <var title="">base URL</var> as the base URL.</p></li>
+
+  </ol>
+
+  <p>When the above methods are to <dfn>get the timeout</dfn>, they
+  must run the following steps:</p>
+
+  <ol>
+
+   <li><p>Let <var title="">timeout</var> be the second argument to
+   the method, or zero if the argument was omitted.</p></li>
+
+   <li><p>Apply the ToString() conversion operator to <var
+   title="">timeout</var>, and let <var title="">timeout</var>
+   be the result.</p></li>
+
+   <li><p>Apply the ToNumber() conversion operator to <var
+   title="">timeout</var>, and let <var title="">timeout</var> be the
+   result.</p></li>
+
+   <li><p>If <var title="">timeout</var> is not a number (NaN), not
+   finite (Infinity), or negative, let <var title="">timeout</var> be
+   zero.</p></li>
+
+   <li><p>Round <var title="">timeout</var> down to the nearest
+   integer, and let <var title="">timeout</var> be the
+   result.</p></li>
+
+   <li><p>Return <var title="">timeout</var>.</p></li>
+
+  </ol>
+
+  <hr>
+
+  <p>The <span>task source</span> for these tasks is the <dfn>timer
+  task source</dfn>.</p>
+
+  </div>
+
+
 
   <h3>User prompts</h3>
 
@@ -75675,99 +76000,6 @@ S SPACER STRIKE TT U -->
   <!-- <p>XXX example here</p> -->
 
 
-
-  <h3 id="timers">Timers</h3>
-
-  <p class="XXX">This section is expected to be moved to its own
-  specification in due course. It needs a lot of work to actually make
-  it into a semi-decent spec.</p>
-
-  <p>Objects that implement the <code>Window</code> interface must
-  also implement the <code>WindowTimers</code> interface:</p>
-
-<pre class="idl">[NoInterfaceObject, ImplementedOn=<span>Window</span>] interface <dfn>WindowTimers</dfn> {
-  // timers<!-- XXX use [Variadic], [Optional] from WebIDL -->
-  long <span title="dom-windowtimers-setTimeout">setTimeout</span>(in <span>TimeoutHandler</span> handler, in long timeout);
-  long <span title="dom-windowtimers-setTimeout">setTimeout</span>(in <span>TimeoutHandler</span> handler, in long timeout, <var title="">arguments...</var>);
-  long <span title="dom-windowtimers-setTimeout">setTimeout</span>(in DOMString code, in long timeout);
-  long <span title="dom-windowtimers-setTimeout">setTimeout</span>(in DOMString code, in long timeout, in DOMString language);
-  void <span title="dom-windowtimers-clearTimeout">clearTimeout</span>(in long handle);
-  long <span title="dom-windowtimers-setInterval">setInterval</span>(in <span>TimeoutHandler</span> handler, in long timeout);
-  long <span title="dom-windowtimers-setInterval">setInterval</span>(in <span>TimeoutHandler</span> handler, in long timeout, <var title="">arguments...</var>);
-  long <span title="dom-windowtimers-setInterval">setInterval</span>(in DOMString code, in long timeout);
-  long <span title="dom-windowtimers-setInterval">setInterval</span>(in DOMString code, in long timeout, in DOMString language);
-  void <span title="dom-windowtimers-clearInterval">clearInterval</span>(in long handle);
-};
-
-[Callback=FunctionOnly, NoInterfaceObject]
-interface <dfn>TimeoutHandler</dfn> {
-  void <span title="dom-TimeoutHandler-handleEvent">handleEvent</span>([Variadic] in any args);
-};</pre>
-
-  <p>The <code title="dom-windowtimers-setTimeout">setTimeout</code>
-  and <code title="dom-windowtimers-setInterval">setInterval</code>
-  methods allow authors to schedule timer-based events.</p>
-
-  <p>The <dfn
-  title="dom-windowtimers-setTimeout"><code>setTimeout(<var
-  title="">handler</var>, <var title="">timeout</var>[, <var
-  title="">arguments...</var>])</code></dfn> method takes a reference
-  to a <code>TimeoutHandler</code> object and a length of time in
-  milliseconds. It must return a handle to the timeout created, and
-  then asynchronously wait <var title="">timeout</var> milliseconds
-  and then <span>queue a task</span> to invoke
-  <code>handleEvent()</code> on the <var title="">handler</var>
-  object. If any <var title="">arguments...</var> were provided, they
-  must be passed to the <var title="">handler</var> as arguments to
-  the <code>handleEvent()</code> function.</p>
-
-  <p>Alternatively, <dfn title=""><code>setTimeout(<var
-  title="">code</var>, <var title="">timeout</var>[, <var
-  title="">language</var>])</code></dfn> may be used. This variant
-  takes a string instead of a <code>TimeoutHandler</code>
-  object. <span class="XXX">define the actual requirements for
-  this method, as with the previous one.</span> That string must be
-  parsed using the specified <var title="">language</var> (defaulting
-  to JavaScript if the third argument is omitted) and executed in the
-  scope of the <span>browsing context</span> associated with the
-  <code>Window</code> object on which the <code
-  title="setTimeout">setTimeout()</code> method was invoked.</p>
-
-  <p class="XXX">Need to define <var title="">language</var> values;
-  need to define that the <span title="concept-script">script</span>
-  corresponding to the <var title="">code</var> argument is created
-  before the timer is set up, so that the rule on pausing the ticker,
-  below, makes sense.</p>
-
-  <p>The <dfn
-  title="dom-windowtimers-setInterval"><code>setInterval(...)</code></dfn>
-  variants must work in the same way as the <code>setTimeout</code>
-  variants except that if <var title="">timeout</var> is a value
-  greater than zero, the <span title="concept-task">task</span> that
-  invokes the <var title="">handler</var> or <code>code</code> must be
-  <span title="queue a task">queued</span> again every <var
-  title="">timeout</var> milliseconds, not just the once.</p> <!-- so
-  setInterval(x) and setInterval(x, 0) are equivalent to setTimeout(x)
-  and setTimeout(x, 0) respectively -->
-
-  <p>The <dfn
-  title="dom-windowtimers-clearTimeout"><code>clearTimeout()</code></dfn>
-  and <dfn
-  title="dom-windowtimers-clearInterval"><code>clearInterval()</code></dfn>
-  methods take one integer (the value returned by <code
-  title="dom-windowtimers-setTimeout">setTimeout()</code> and <code
-  title="dom-windowtimers-setInterval">setInterval()</code>
-  respectively) and must cancel the specified timeout. When called
-  with a value that does not correspond to an active timeout or
-  interval, the methods must return without doing anything.</p>
-
-  <p>For both <code
-  title="dom-windowtimers-setTimeout">setTimeout()</code> and <code
-  title="dom-windowtimers-setInterval">setInterval()</code>, the clock
-  upon which the timers are based must only tick while the
-  <code>Document</code> of the <span title="script's global
-  object">global object</span> of their callbacks is <span>fully
-  active</span>.</p>
 
 
 
