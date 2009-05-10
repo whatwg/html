@@ -3842,6 +3842,65 @@
   </div>
 
 
+
+  <h4>Reversed DNS identifiers</h4>
+
+  <p>A <dfn>valid reversed DNS identifier</dfn> is a string that
+  consists of a series of IDNA labels in reverse order (i.e. starting
+  with the top-level domain), the prefix of which, when reversed and
+  converted to ASCII, corresponds to a registered domain.</p>
+
+  <p class="example">For instance, the string "<code
+  title="">com.example.xn--74h</code>" is a <span>valid reversed DNS
+  identifier</span> because the string "<code
+  title="">example.com</code>" is a registered domain.</p>
+
+  <div class="impl">
+
+  <p>To check if a string is a <span>valid reversed DNS
+  identifier</span>, conformance checkers must run the following algorithm:</p>
+
+  <ol>
+
+   <li>
+
+    <p>Apply the IDNA ToASCII algorithm to the string, with both the
+    AllowUnassigned and UseSTD3ASCIIRules flags set, but between steps
+    2 and 3 of the general ToASCII/ToUnicode algorithm (i.e. after
+    splitting the domain name into individual labels), reverse the
+    order of the labels.</p>
+
+    <p>If ToASCII fails to convert one of the components of the
+    string, e.g. because it is too long or because it contains invalid
+    characters, then the string is not valid; abort these steps. <a
+    href="#refsRFC3490">[RFC3490]</a></p>
+
+   </li>
+
+   <li>
+
+    <p>Check that the end of the resulting string matches a suffix in
+    the Public Suffix List, and that there is at least one domain
+    label before the matching substring. If it does not, or if there
+    is not, then the string is not valid; abort these steps. <a
+    href="#refsPSL">[PSL]</a></p> <!-- [PSL] http://publicsuffix.org/
+    -->
+
+   </li>
+
+   <li>
+
+    <p>Check that the domain name up to the label before the prefix
+    that was matched in the previous string is a registered domain
+    name.</p>
+
+   </li>
+
+  </ol>
+
+  </div>
+
+
   <h4 id="syntax-references">References</h4>
 
   <p>A <dfn>valid hash-name reference</dfn> to an element of type <var
@@ -5820,18 +5879,18 @@
   href="#refsWEBIDL">[WEBIDL]</a></p>
 
   <p>If a reflecting DOM attribute is of the type
-  <code>DOMTokenList</code>, then on getting it must return a
-  <code>DOMTokenList</code> object whose underlying string is the
-  element's corresponding content attribute. When the
-  <code>DOMTokenList</code> object mutates its underlying string, the
+  <code>DOMTokenList</code> or <code>DOMSettableTokenList</code>, then
+  on getting it must return a <code>DOMTokenList</code> or
+  <code>DOMSettableTokenList</code> object (as appropriate) whose
+  underlying string is the element's corresponding content
+  attribute. When the object mutates its underlying string, the
   content attribute must itself be immediately mutated. When the
-  attribute is absent, then the string represented by the
-  <code>DOMTokenList</code> object is the empty string; when the
-  object mutates this empty string, the user agent must first add the
-  corresponding content attribute, and then mutate that attribute
-  instead. <code>DOMTokenList</code> attributes are always
-  read-only. The same <code>DOMTokenList</code> object must be
-  returned every time for each attribute.</p>
+  attribute is absent, then the string represented by the object is
+  the empty string; when the object mutates this empty string, the
+  user agent must first add the corresponding content attribute, and
+  then mutate that attribute instead. The same
+  <code>DOMTokenList</code> object must be returned every time for
+  each attribute.</p>
 
   <p>If a reflecting DOM attribute has the type
   <code>HTMLElement</code>, or an interface that descends from
@@ -5869,8 +5928,9 @@
   <h4>Collections</h4>
 
   <p>The <code>HTMLCollection</code>,
-  <code>HTMLFormControlsCollection</code>, and
-  <code>HTMLOptionsCollection</code> interfaces represent various
+  <code>HTMLFormControlsCollection</code>,
+  <code>HTMLOptionsCollection</code>, and
+  <code>HTMLPropertyCollection</code> interfaces represent various
   lists of DOM nodes. Collectively, objects implementing these
   interfaces are called <dfn>collections</dfn>.</p>
 
@@ -5931,6 +5991,7 @@ interface <dfn>HTMLCollection</dfn> {
 
    <dt><var title="">element</var> = <var title="">collection</var> . <code title="dom-HTMLCollection-item">namedItem</code>(<var title="">name</var>)</dt>
    <dt><var title="">collection</var>[<var title="">name</var>]</dt>
+   <dt><var title="">collection</var>(<var title="">name</var>)</dt>
    <dd>
     <p>Returns the first item with ID or name <var title="">name</var>
     from the collection.</p>
@@ -6035,6 +6096,7 @@ interface <dfn>RadioNodeList</dfn> : <span>NodeList</span> {
    <dt><var title="">element</var> = <var title="">collection</var> . <code title="dom-HTMLFormControlsCollection-item">namedItem</code>(<var title="">name</var>)</dt>
    <dt><var title="">radioNodeList</var> = <var title="">collection</var> . <code title="dom-HTMLFormControlsCollection-item">namedItem</code>(<var title="">name</var>)</dt>
    <dt><var title="">collection</var>[<var title="">name</var>]</dt>
+   <dt><var title="">collection</var>(<var title="">name</var>)</dt>
    <dd>
     <p>Returns the item with ID or <code title="attr-fe-name">name</code> <var title="">name</var> from the collection.</p>
     <p>If there are multiple matching items, then a <code>RadioNodeList</code> object containing all those elements is returned.</p>
@@ -6205,6 +6267,7 @@ interface <dfn>HTMLOptionsCollection</dfn> {
 
    <dt><var title="">element</var> = <var title="">collection</var> . <code title="dom-HTMLOptionsCollection-item">namedItem</code>(<var title="">name</var>)</dt>
    <dt><var title="">collection</var>[<var title="">name</var>]</dt>
+   <dt><var title="">collection</var>(<var title="">name</var>)</dt>
    <dd>
     <p>Returns the item with ID or <code title="attr-option-name">name</code> <var title="">name</var> from the collection.</p>
     <p>If there are multiple matching items, then a <code>NodeList</code> object containing all those elements is returned.</p>
@@ -6375,6 +6438,145 @@ interface <dfn>HTMLOptionsCollection</dfn> {
   </ol>
 
   <!-- see also http://ln.hixie.ch/?start=1161042744&count=1 -->
+
+  </div>
+
+
+  <h5>HTMLPropertyCollection</h5>
+
+  <p>The <code>HTMLPropertyCollection</code> interface represents a
+  <span title="collections">collection</span> of elements that add
+  name-value pairs to a particular <span
+  title="concept-item">item</span> in the <span>microdata</span>
+  model.</p>
+
+  <pre class="idl">[Callable=<span title="dom-HTMLPropertyCollection-namedItem">namedItem</span>]
+interface <dfn>HTMLPropertyCollection</dfn> {
+  readonly attribute unsigned long <span title="dom-HTMLPropertyCollection-length">length</span>;
+  readonly attribute <span>DOMStringList</span> <span title="dom-HTMLPropertyCollection-names">names</span>;
+  [IndexGetter] <span>HTMLElement</span> <span title="dom-HTMLPropertyCollection-item">item</span>(in unsigned long index);
+  [NameGetter] Object <span title="dom-HTMLPropertyCollection-namedItem">namedItem</span>(in DOMString name);
+};
+
+typedef sequence&lt;DOMString> <dfn>DOMStringArray</dfn>;
+
+interface <dfn>PropertyNodeList</dfn> : <span>NodeList</span> {
+          attribute <span>DOMStringArray</span> <span title="dom-PropertyNodeList-content">content</span>;
+};</pre>
+
+  <dl class="domintro">
+
+   <dt><var title="">collection</var> . <code title="dom-HTMLPropertyCollection-length">length</code></dt>
+   <dd>
+    <p>Returns the number of elements in the collection.</p>
+   </dd>
+
+   <dt><var title="">collection</var> . <code title="dom-HTMLPropertyCollection-names">names</code></dt>
+   <dd>
+    <p>Returns a <code>DOMStringList</code> with the <span>property names</span> of the elements in the collection.</p>
+   </dd>
+
+   <dt><var title="">element</var> = <var title="">collection</var> . <code title="dom-HTMLPropertyCollection-item">item</code>(<var title="">index</var>)</dt>
+   <dt><var title="">collection</var>[<var title="">index</var>]</dt>
+   <dd>
+    <p>Returns the element with index <var title="">index</var> from the collection. The items are sorted in <span>tree order</span>.</p>
+    <p>Returns null if <var title="">index</var> is out of range.</p>
+   </dd>
+
+   <dt><var title="">element</var> = <var title="">collection</var> . <code title="dom-HTMLPropertyCollection-item">namedItem</code>(<var title="">name</var>)</dt>
+   <dt><var title="">radioNodeList</var> = <var title="">collection</var> . <code title="dom-HTMLPropertyCollection-item">namedItem</code>(<var title="">name</var>)</dt>
+   <dt><var title="">collection</var>[<var title="">name</var>]</dt>
+   <dt><var title="">collection</var>(<var title="">name</var>)</dt>
+   <dd>
+    <p>Returns the element with that adds the property named <var title="">name</var> from the collection.</p>
+    <p>If there are multiple matching elements, then a <code>PropertyNodeList</code> object containing all those elements is returned.</p>
+    <p>Returns null if no element adds the property named <var title="">name</var>.</p>
+   </dd>
+
+   <dt><var title="">propertyNodeList</var> . <var title="">content</var></dt>
+
+   <dd>
+
+    <p>Returns an array of the various values that the relevant elements have.</p>
+
+   </dd>
+
+  </dl>
+
+  <div class="impl">
+
+  <hr>
+
+  <p>The object's <span>indices of the supported indexed
+  properties</span> are the numbers in the range zero to one less than
+  the number of nodes <span>represented by the collection</span>. If
+  there are no such elements, then there are no <span>supported
+  indexed properties</span>.</p>
+
+  <p>The <dfn
+  title="dom-HTMLPropertyCollection-length"><code>length</code></dfn>
+  attribute must return the number of nodes <span>represented by the
+  collection</span>.</p>
+
+  <p>The <dfn
+  title="dom-HTMLPropertyCollection-names"><code>names</code></dfn>
+  attribute must return a live <code>DOMStringList</code> object
+  giving the <span>property names</span> of all the elements
+  <span>represented by the collection</span>. The same object must be
+  returned each time.</p>
+
+  <p>The <dfn
+  title="dom-HTMLPropertyCollection-item"><code>item(<var
+  title="">index</var>)</code></dfn> method must return the <var
+  title="">index</var>th node in the collection. If there is no <var
+  title="">index</var>th node in the collection, then the method must
+  return null.</p>
+
+  <p>The <span>names of the supported named properties</span> consist
+  of the <span>property names</span> of all the elements
+  <span>represented by the collection</span>.</p>
+
+  <p>The <dfn
+  title="dom-HTMLPropertyCollection-namedItem"><code>namedItem(<var
+  title="">name</var>)</code></dfn> method must act according to the
+  following algorithm:</p>
+
+  <ol>
+
+   <li>If, at the time the method is called, there is exactly one node
+   in the collection that has a <span title="property names">property
+   name</span> equal to <var title="">name</var>, then return that
+   node and stop the algorithm.</li>
+
+   <li>Otherwise, if there are no nodes in the collection that have a
+   <span title="property names">property name</span> equal to <var
+   title="">name</var>, then return null and stop the algorithm.</li>
+
+   <li>Otherwise, create a <code>PropertyNodeList</code> object
+   representing a live view of the <code>HTMLPropertyCollection</code>
+   object, further filtered so that the only nodes in the
+   <code>RadioNodeList</code> object are those that have a <span
+   title="property names">property name</span> equal to <var
+   title="">name</var>. The nodes in the <code>PropertyNodeList</code>
+   object must be sorted in <span>tree order</span>.</li>
+
+   <li>Return that <code>PropertyNodeList</code> object.</li>
+
+  </ol>
+
+  <hr>
+
+  <p>A members of the <code>PropertyNodeList</code> interface
+  inherited from the <code>NodeList</code> interface must behave as
+  they would on a <code>NodeList</code> object.</p>
+
+  <p>The <dfn
+  title="dom-PropertyNodeList-content"><code>content</code></dfn> DOM
+  attribute on the <code>PropertyNodeList</code> object, on getting,
+  must return a newly constructed <code>DOMStringArray</code> whose
+  values are the values obtained from the <code
+  title="dom-content">content</code> DOM property of each of the
+  elements represented by the object, in <span>tree order</span>.</p>
 
   </div>
 
@@ -6572,6 +6774,43 @@ interface <dfn>HTMLOptionsCollection</dfn> {
 
   </div>
 
+
+  <h4>DOMSettableTokenList</h4>
+
+  <p>The <code>DOMSettableTokenList</code> interface is the same as the
+  <code>DOMTokenList</code> interface, except that it allows the
+  underlying string to be directly changed.</p>
+
+  <pre class="idl">[<span title="dom-tokenlist-toString">Stringifies</span>] interface <dfn>DOMSettableTokenList</dfn> : <span>DOMTokenList</span> {
+            attribute DOMString <span title="dom-DOMSettableTokenList-value">value</span>;
+};</pre>
+
+  <dl class="domintro">
+
+   <dt><var title="">tokenlist</var> . <code title="dom-DOMSettableTokenList-value">value</code></dt>
+   <dd>
+    <p>Returns the underlying string.</p>
+    <p>Can be set, to change the underlying string.</p>
+   </dd>
+
+  </dl>
+
+  <div class="impl">
+
+  <p>An object implementing the <code>DOMSettableTokenList</code>
+  interface must act as defined for the <code>DOMTokenList</code>
+  interface, except for the <code
+  title="dom-DOMSettableTokenList-value">value</code> attribute defined
+  here.</p>
+
+  <p>The <dfn
+  title="dom-DOMSettableTokenList-value"><code>value</code></dfn>
+  attribute must return the underlying string on getting, and must
+  replace the underlying string with the new value on setting.</p>
+
+  </div>
+
+
   <div class="impl">
 
   <h4>Safe passing of structured data</h4>
@@ -6705,7 +6944,6 @@ interface <dfn>HTMLOptionsCollection</dfn> {
   </dl>
 
   </div>
-
 
 
   <h4>DOMStringMap</h4>
@@ -6988,6 +7226,7 @@ interface <dfn>HTMLDocument</dfn> {
   readonly attribute <span>HTMLCollection</span> <span title="dom-document-forms">forms</span>;
   readonly attribute <span>HTMLCollection</span> <span title="dom-document-anchors">anchors</span>;
   readonly attribute <span>HTMLCollection</span> <span title="dom-document-scripts">scripts</span>;
+  readonly attribute <span>HTMLCollection</span> <span title="dom-document-items">items</span>;
   NodeList <span title="dom-document-getElementsByName">getElementsByName</span>(in DOMString elementName);
   NodeList <span title="dom-document-getElementsByClassName">getElementsByClassName</span>(in DOMString classNames);
 
@@ -8019,6 +8258,13 @@ interface <dfn>HTMLDocument</dfn> {
   readonly attribute <span>DOMTokenList</span> <span title="dom-classList">classList</span>;
   readonly attribute <span>DOMStringMap</span> <span title="dom-dataset">dataset</span>;
 
+  // <span>microdata</span>
+  [PutForwards=<span title="dom-DOMSettableTokenList-value">value</span>] readonly attribute <span>DOMSettableTokenList</span> <span title="dom-item">item</span>;
+  [PutForwards=<span title="dom-DOMSettableTokenList-value">value</span>] readonly attribute <span>DOMSettableTokenList</span> <span title="dom-property">property</span>;
+  readonly attribute <span>HTMLPropertyCollection</span> <span title="dom-properties">properties</span>;
+           attribute DOMString <span title="dom-content">content</span>;
+           attribute <span>HTMLElement</span> <span title="dom-subject">subject</span>;
+
   // <span>user interaction</span>
            attribute boolean <span title="dom-hidden">hidden</span>;
   void <span title="dom-click">click</span>();
@@ -8125,10 +8371,13 @@ interface <dfn>HTMLDocument</dfn> {
    <li><code title="attr-dir">dir</code></li>
    <li><code title="attr-draggable">draggable</code></li>
    <li><code title="attr-id">id</code></li>
+   <li><code title="attr-item">item</code></li>
    <li><code title="attr-hidden">hidden</code></li>
    <li><code title="attr-lang">lang</code></li>
-   <li><code title="attr-style">style</code></li>
+   <li><code title="attr-property">property</code></li>
    <li><code title="attr-spellcheck">spellcheck</code></li>
+   <li><code title="attr-style">style</code></li>
+   <li><code title="attr-subject">subject</code></li>
    <li><code title="attr-tabindex">tabindex</code></li>
    <li><code title="attr-title">title</code></li>
   </ul>
@@ -10480,9 +10729,11 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
   <dl class="element">
    <dt>Categories</dt>
    <dd><span>Metadata content</span>.</dd>
+   <dd>If the <code title="attr-property">property</code> attribute is present: <span>flow content</span>.</dd>
    <dt>Contexts in which this element may be used:</dt>
    <dd>Where <span>metadata content</span> is expected.</dd>
    <dd>In a <code>noscript</code> element that is a child of a <code>head</code> element.</dd>
+   <dd>If the <code title="attr-property">property</code> attribute is present: where <span>flow content</span> is expected.</dd>
    <dt>Content model:</dt>
    <dd>Empty.</dd>
    <dt>Content attributes:</dt>
@@ -10838,11 +11089,13 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
   <dl class="element">
    <dt>Categories</dt>
    <dd><span>Metadata content</span>.</dd>
+   <dd>If the <code title="attr-property">property</code> attribute is present: <span>flow content</span>.</dd>
    <dt>Contexts in which this element may be used:</dt>
    <dd>If the <code title="attr-meta-charset">charset</code> attribute is present, or if the element is in the <span title="attr-meta-http-equiv-content-type">Encoding declaration state</span>: in a <code>head</code> element.</dd>
    <dd>If the <code title="attr-meta-http-equiv">http-equiv</code> attribute is present, and the element is not in the <span title="attr-meta-http-equiv-content-type">Encoding declaration state</span>: in a <code>head</code> element.</dd>
    <dd>If the <code title="attr-meta-http-equiv">http-equiv</code> attribute is present, and the element is not in the <span title="attr-meta-http-equiv-content-type">Encoding declaration state</span>: in a <code>noscript</code> element that is a child of a <code>head</code> element.</dd>
    <dd>If the <code title="attr-meta-name">name</code> attribute is present: where <span>metadata content</span> is expected.</dd>
+   <dd>If the <code title="attr-property">property</code> attribute is present: where <span>flow content</span> is expected.</dd>
    <dt>Content model:</dt>
    <dd>Empty.</dd>
    <dt>Content attributes:</dt>
@@ -10854,7 +11107,6 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
    <dt>DOM interface:</dt>
    <dd>
 <pre class="idl">interface <dfn>HTMLMetaElement</dfn> : <span>HTMLElement</span> {
-           attribute DOMString <span title="dom-meta-content">content</span>;
            attribute DOMString <span title="dom-meta-name">name</span>;
            attribute DOMString <span title="dom-meta-httpEquiv">httpEquiv</span>;
 };</pre>
@@ -10876,14 +11128,16 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
   title="attr-meta-charset">charset</code> attribute.</p>
 
   <p>Exactly one of the <code title="attr-meta-name">name</code>,
-  <code title="attr-meta-http-equiv">http-equiv</code>, and <code
-  title="attr-meta-charset">charset</code> attributes must be
+  <code title="attr-meta-http-equiv">http-equiv</code>, <code
+  title="attr-meta-charset">charset</code>, and <code
+  title="attr-property">property</code> attributes must be
   specified.</p>
 
-  <p>If either <code title="attr-meta-name">name</code> or <code
-  title="attr-meta-http-equiv">http-equiv</code> is specified, then
-  the <code title="attr-meta-content">content</code> attribute must
-  also be specified. Otherwise, it must be omitted.</p>
+  <p>If either <code title="attr-meta-name">name</code>, <code
+  title="attr-meta-http-equiv">http-equiv</code>, or <code
+  title="attr-property">property</code> is specified, then the <code
+  title="attr-meta-content">content</code> attribute must also be
+  specified. Otherwise, it must be omitted.</p>
 
   <p>The <dfn title="attr-meta-charset"><code>charset</code></dfn>
   attribute specifies the character encoding used by the
@@ -10922,21 +11176,11 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
   then the value part of the metadata name/value pair is the empty
   string.</p>
 
-  <p>If a <code>meta</code> element has the <code
-  title="attr-meta-http-equiv">http-equiv</code> attribute specified,
-  it must be either in a <code>head</code> element or in a
-  <code>noscript</code> element that itself is in a <code>head</code>
-  element. If a <code>meta</code> element does not have the <code
-  title="attr-meta-http-equiv">http-equiv</code> attribute specified,
-  it must be in a <code>head</code> element.</p>
-
   <div class="impl">
 
-  <p>The DOM attributes <dfn
-  title="dom-meta-name"><code>name</code></dfn> and <dfn
-  title="dom-meta-content"><code>content</code></dfn> must
-  <span>reflect</span> the respective content attributes of the same
-  name. The DOM attribute <dfn
+  <p>The <dfn title="dom-meta-name"><code>name</code></dfn> DOM
+  attribute must <span>reflect</span> the content attribute of the
+  same name. The DOM attribute <dfn
   title="dom-meta-httpEquiv"><code>httpEquiv</code></dfn> must
   <span>reflect</span> the content attribute <code
   title="attr-meta-http-equiv">http-equiv</code>.</p>
@@ -45555,6 +45799,684 @@ explain that only direct children of the <menu> matter
   href="#refsSELECTORS">[SELECTORS]</a></p>
 
   </div>
+
+
+
+  <h2><dfn>Microdata</dfn></h2>
+
+  <h3>Introduction</h3>
+
+  <p class="XXX">...</p>
+
+
+  <h3>Encoding microdata</h3>
+
+  <h4>The microdata model</h4>
+
+  <p>The microdata model consists of groups of name-value pairs known
+  as <dfn title="concept-item">items</dfn>.</p>
+
+  <p>Each group has zero or more types, each name has one or more
+  values, and each value is either a string or another group of
+  name-value pairs.</p>
+
+
+  <h4>Items: the <dfn title="attr-item"><code>item</code></dfn> attribute</h4>
+
+  <p>Every <span title="HTML elements">HTML element</span> may have an
+  <code title="attr-item">item</code> attribute specified.</p>
+
+  <p>An element with the <code title="attr-item">item</code> attribute
+  specified creates a new <span title="concept-item">item</span>, a
+  group of name-value pairs.</p>
+
+  <p>The attribute, if specified, must have a value that is an
+  <span>unordered set of unique space-separated tokens</span>
+  representing the types (if any) of the <span
+  title="concept-item">item</span>.</p>
+
+  <p>Each token must be either:</p>
+
+  <ul>
+
+   <li>A <span>valid URL</span> that is an <span>absolute URL</span>,
+   or</li>
+
+   <li>A <span>valid reversed DNS identifier</span>, or</li>
+<!--
+   <li>A <span>predefined type</span>.</li>
+-->
+  </ul>
+<!--
+  <p>If any of the tokens are a <span>predefined type</span>, then
+  there must not be any other tokens that are <span title="predefined
+  type">predefined types</span>.</p>
+-->
+  <p>The <dfn>item types</dfn> of an element with a <code
+  title="attr-item">item</code> attribute are the tokens that the
+  element's <code title="attr-item">item</code> attribute is found to
+  contain when its value is <span title="split a string on
+  spaces">split on spaces</span>.</p>
+
+
+  <h4>Associating names with items</h4>
+
+  <p>The <dfn title="attr-subject"><code>subject</code></dfn>
+  attribute may be specified on any <span title="HTML elements">HTML
+  element</span> to associate the element with an element with an
+  <code title="attr-item">item</code> attribute. If the <code
+  title="attr-subject">subject</code> attribute is specified, the
+  attribute's value must be the ID of an element with an <code
+  title="attr-item">item</code> attribute, in the same
+  <code>Document</code> as the element with the <code
+  title="attr-subject">subject</code> attribute.</p>
+
+  <p>An element's <dfn
+  title="concept-item-corresponding">corresponding item</dfn> is
+  determined by its position in the DOM and by any <code
+  title="attr-subject">subject</code> attributes on the element, and
+  is defined as follows:</p>
+
+  <dl>
+
+   <dt>If the element has neither <code
+   title="attr-subject">subject</code> attribute nor an ancestor with
+   an <code title="attr-item">item</code> attribute specified</dt>
+
+   <dd><p>The element has no <span
+   title="concept-item-corresponding">corresponding
+   item</span>.</p></dd>
+
+   <dt>If the element has no <code title="attr-subject">subject</code>
+   attribute but does have an ancestor with an <code
+   title="attr-item">item</code> attribute specified</dt>
+
+   <dd><p>The nearest ancestor element with the <code
+   title="attr-item">item</code> attribute specified is the element's
+   <span title="concept-item-corresponding">corresponding
+   item</span>.</p></dd>
+
+   <dt>If the element has a <code title="attr-subject">subject</code>
+   attribute</dt>
+
+   <dd><p>If there is an element in the document with an ID equal to
+   the value of the <code title="attr-subject">subject</code>
+   attribute, and if the first such element has an <code
+   title="attr-item">item</code> attribute specified, then that
+   element is the <span
+   title="concept-item-corresponding">corresponding
+   item</span>. Otherwise, there is no <span
+   title="concept-item-corresponding">corresponding
+   item</span>.</p></dd>
+
+  </dl>
+
+  <p>The list of elements that create <span
+  title="concept-item">items</span> but do not themselves have a <span
+  title="concept-item-corresponding">corresponding item</span> forms
+  the list of <dfn>top-level microdata items</dfn>.</p>
+
+
+  <h4>Names: the <dfn title="attr-property"><code>property</code></dfn> attribute</h4>
+
+  <p>Every <span title="HTML elements">HTML element</span> that has a
+  <span title="concept-item-corresponding">corresponding item</span>
+  may have a <code title="attr-property">property</code> attribute
+  specified.</p>
+
+  <p>An element with the <code title="attr-property">property</code>
+  attribute specified adds one or more name-value pairs to its
+  <span title="concept-item-corresponding">corresponding item</span>.</p>
+
+  <p>The <code title="attr-property">property</code> attribute, if
+  specified, must have a value that is an <span>unordered set of
+  unique space-separated tokens</span> representing the names of the
+  name-value pairs that it adds. The attribute's value must have at
+  least one token.</p>
+
+  <p>Each token must be either:</p>
+
+  <ul>
+
+   <li>A <span>valid URL</span> that is an <span>absolute URL</span>,
+   or</li>
+
+   <li>A <span>valid reversed DNS identifier</span>, or</li>
+
+   <li>If its <span title="concept-item-corresponding">corresponding
+   item</span>'s <code title="attr-item">item</code> attribute has no
+   tokens: a string containing neither a U+003A COLON character (:), a
+   U+002E FULL STOP character (.), nor a U+0020 SPACE character, or</li>
+<!--
+   <li>If its <span title="concept-item-corresponding">corresponding
+   item</span>'s <code title="attr-item">item</code> attribute
+   included a <span>predefined type</span>: one of the <span
+   title="predefined name">predefined names</span> for that particular
+   <span>predefined type</span>.</li>
+-->
+  </ul>
+
+  <p>The <dfn>property names</dfn> of an element are the tokens that
+  the element's <code title="attr-property">property</code> attribute
+  is found to contain when its value is <span title="split a string on
+  spaces">split on spaces</span>.</p>
+
+
+  <h4>Values</h4>
+
+  <p>The <dfn title="concept-property-value">property value</dfn> of a
+  name-value pair added by an element with a <code
+  title="attr-property">property</code> attribute depends on the
+  element, as follows:</p>
+
+  <dl>
+
+   <dt>If the element also has an <code title="attr-item">item</code>
+   attribute</dt>
+
+   <dd><p>The value is the <span title="concept-item">item</span>
+   created by the element.</p></dd>
+
+
+   <dt>If the element is a <code>meta</code> element</dt>
+
+   <dd><p>The value is the value of the element's <code
+   title="attr-content">content</code> attribute, if any, or the empty
+   string if there is no such attribute.</p></dd>
+
+
+   <dt>If the element is an <code>embed</code>, <code>iframe</code>,
+   <code>img</code>, <code>source</code>, or <code>video</code>
+   element</dt>
+
+   <dd><p>The value is the <span>absolute URL</span> that results from
+   <span title="resolve a url">resolving</span> the value of the
+   element's <code title="">src</code> attribute relative to the
+   element at the time the attribute is set, or the empty string if
+   there is no such attribute or if <span title="resolve a
+   url">resolving</span> it results in an error.</p></dd>
+
+
+   <dt>If the element is an <code>a</code>, <code>area</code>, or
+   <code>link</code> element</dt>
+
+   <dd><p>The value is the <span>absolute URL</span> that results from
+   <span title="resolve a url">resolving</span> the value of the
+   element's <code title="">href</code> attribute relative to the
+   element at the time the attribute is set, or the empty string if
+   there is no such attribute or if <span title="resolve a
+   url">resolving</span> it results in an error.</p></dd>
+
+
+   <dt>If the element is an <code>object</code> element</dt>
+
+   <dd><p>The value is the <span>absolute URL</span> that results from
+   <span title="resolve a url">resolving</span> the value of the
+   element's <code title="">data</code> attribute relative to the
+   element at the time the attribute is set, or the empty string if
+   there is no such attribute or if <span title="resolve a
+   url">resolving</span> it results in an error.</p></dd>
+
+
+   <dt>If the element is a <code>time</code> element with a <code
+   title="attr-datetime">datetime</code> attribute</dt>
+
+   <dd><p>The value is the value of the element's <code
+   title="attr-datetime">datetime</code> attribute.</p></dd>
+
+
+   <dt>Otherwise</dt>
+
+   <dd><p>The value is the element's
+   <code>textContent</code>.</p></dd>
+
+  </dl>
+
+
+
+  <h3>Microdata DOM API</h3>
+
+  <dl class="domintro">
+
+   <dt><var title="">document</var> . <code title="dom-items">items</code></dt>
+
+   <dd>
+
+    <p>Returns an <code>HTMLCollection</code> of the elements in the <code>Document</code> that create <span title="concept-item">items</span> and that are not part of other <span title="concept-item">items</span>.</p>
+
+   </dd>
+
+   <dt><var title="">element</var> . <code title="dom-property">properties</code></dt>
+
+   <dd>
+
+    <p>If the element has a <code title="attr-item">item</code>
+    attribute, returns an <code>HTMLPropertyCollection</code> object
+    with all the element's properties. Otherwise, an empty
+    <code>HTMLPropertyCollection</code> object.</p>
+
+   </dd>
+
+   <dt><var title="">element</var> . <code title="dom-content">content</code> [ = <var title="">value</var> ]</dt>
+
+   <dd>
+
+    <p>Returns the element's <span
+    title="concept-property-value">value</span>.</p>
+
+    <p>Can be set, to change the element's <span
+    title="concept-property-value">value</span>.</p>
+
+   </dd>
+
+  </dl>
+
+  <div class="impl">
+
+  <p>The <dfn
+  title="dom-document-items"><code>document.items</code></dfn>
+  attribute must return an <code>HTMLCollection</code> rooted at the
+  <code>Document</code> node, whose filter matches only elements in
+  the list of <span>top-level microdata items</span>.</p>
+
+  <p>The <dfn title="dom-item"><code>item</code></dfn> DOM attribute
+  on elements must <span>reflect</span> the element's <code
+  title="attr-item">item</code> content attribute.</p>
+
+  <p>The <dfn title="dom-property"><code>property</code></dfn> DOM
+  attribute on elements must <span>reflect</span> the element's <code
+  title="attr-property">property</code> content attribute.</p>
+
+  <p>The <dfn title="dom-properties"><code>properties</code></dfn> DOM
+  attribute on elements must return an
+  <code>HTMLPropertyCollection</code> rooted at the
+  <code>Document</code> node, whose filter matches only elements that
+  have <span>property names</span> and have a <span
+  title="concept-item-corresponding">corresponding item</span> that is
+  equal to the element on which the attribute was invoked.</p>
+
+  <p>The <dfn title="dom-content"><code>content</code></dfn> DOM
+  attribute's behavior depends on the element, as follows:</p>
+
+  <dl>
+
+   <dt>If the element is a <code>meta</code> element</dt>
+
+   <dd><p>The attribute must act as it would if it was <span
+   title="reflect">reflecting</span> the element's <code
+   title="attr-meta-content">content</code> content
+   attribute.</p></dd>
+
+
+   <dt>If the element is an <code>embed</code>, <code>iframe</code>,
+   <code>img</code>, <code>source</code>, or <code>video</code>
+   element</dt>
+
+   <dd><p>The attribute must act as it would if it was <span
+   title="reflect">reflecting</span> the element's <code
+   title="">src</code> content attribute.</p></dd>
+
+
+   <dt>If the element is an <code>a</code>, <code>area</code>, or
+   <code>link</code> element</dt>
+
+   <dd><p>The attribute must act as it would if it was <span
+   title="reflect">reflecting</span> the element's <code
+   title="">href</code> content attribute.</p></dd>
+
+
+   <dt>If the element is an <code>object</code> element</dt>
+
+   <dd><p>The attribute must act as it would if it was <span
+   title="reflect">reflecting</span> the element's <code
+   title="">data</code> content attribute.</p></dd>
+
+
+   <dt>If the element is a <code>time</code> element with a <code
+   title="attr-datetime">datetime</code> attribute</dt>
+
+   <dd><p>The attribute must act as it would if it was <span
+   title="reflect">reflecting</span> the element's <code
+   title="">datetime</code> content attribute.</p></dd>
+
+
+   <dt>Otherwise</dt>
+
+   <dd><p>The attribute must act the same as the element's
+   <code>textContent</code> attribute.</p></dd>
+
+  </dl> 
+
+  <p>The <dfn title="dom-subject"><code>subject</code></dfn> DOM
+  attribute on elements must <span>reflect</span> the element's <code
+  title="attr-subject">subject</code> content attribute.</p>
+
+  </div>
+
+
+
+  <h3>Converting HTML to oher formats</h3>
+
+
+  <h4>JSON</h4>
+
+  <p>Given a node <var title="">node</var> in a <code>Document</code>,
+  a user agent must run the following algorithm to extract that node's
+  microdata into a JSON form:</p>
+
+  <ol>
+
+   <li><p>Let <var title="">result</var> be an empty object.</p></li>
+
+   <li><p>Let <var title="">items</var> be an empty array.</p></li>
+
+   <li><p>For <var title="">node</var> and each element that is a
+   descendant of <var title="">node</var>, check if the element is a
+   <span title="top-level microdata items">top-level microdata
+   item</span>, and if it is then <span>get the object</span> for that
+   element and add it to <var title="">items</var>.</p></li>
+
+   <li><p>Add an entry to <var title="">result</var> called "<code
+   title="">items</code>" whose value is the array <var
+   title="">items</var>.</p></li>
+
+   <li><p>Return the result of serializing <var title="">result</var>
+   to JSON.</p></li>
+
+  </ol>
+
+  <p>When the user agent is to <dfn>get the object</dfn> for an item
+  <var title="">item</var>, it must run the following substeps:</p>
+
+  <ol>
+
+   <li><p>Let <var title="">result</var> be an empty object.</p></li>
+
+   <li><p>Let <var title="">types</var> be an empty array.</p></li>
+
+   <li><p>For each <span title="item types">item type</span> <var
+   title="">type</var> of <var title="">item</var>, append <var
+   title="">type</var> to <var title="">types</var>.</p></li>
+
+   <li><p>Add an entry to <var title="">result</var> called "<code
+   title="">type</code>" whose value is the array <var
+   title="">types</var>.</p></li>
+
+   <li><p>Let <var title="">properties</var> be an empty
+   object.</p></li>
+
+   <li>
+
+    <p>For each element <var title="">element</var> that has one or
+    more <span>property names</span> and whose <span
+    title="concept-item-corresponding">corresponding item</span> is
+    <var title="">item</var>, run the following substeps:</p>
+
+    <ol>
+
+     <li><p>Let <var title="">value</var> be the <span
+     title="concept-property-value">property value</span> of <var
+     title="">element</var>.</p></li>
+
+     <li><p>If <var title="">value</var> is an element, then <span>get
+     the object</span> for the element <var title="">value</var>, and
+     then replace <var title="">value</var> with the object returned
+     from those steps.</p></li>
+
+     <li>
+
+      <p>For each name <var title="">name</var> in <var
+      title="">element</var>'s <span>property names</span>, run the
+      following substeps:</p>
+
+      <ol>
+
+       <li><p>If there is no entry named <var title="">name</var> in
+       <var title="">properties</var>, then add an entry named <var
+       title="">name</var> to <var title="">properties</var> whose
+       value is an empty array.</p></li>
+
+       <li><p>Append <var title="">value</var> to the entry named <var
+       title="">name</var> in <var title="">properties</var>.</p></li>
+
+      </ol>
+
+     </li>
+
+    </ol>
+
+   </li>
+
+   <li><p>Add an entry to <var title="">result</var> called "<code
+   title="">properties</code>" whose value is the array <var
+   title="">properties</var>.</p></li>
+
+   <li><p>Return <var title="">result</var>.</p></li>
+
+  </ol>
+
+
+  <h4>RDF</h4>
+
+  <p>To convert a <code>Document</code> to RDF, a user agent must run
+  the following algorithm:</p>
+
+  <ol>
+
+   <li>
+
+    <p>If <span>the <code>title</code> element</span> is not null,
+    then generate the following triple:</p>
+
+    <dl>
+     <dt>subject   <dd> <span>the document's current address</span>
+     <dt>predicate <dd> <code title="">http://purl.org/dc/terms/title</code>
+     <dt>object    <dd> the <code>textContent</code> of <span>the <code>title</code> element</span>
+    </dl>
+
+   </li>
+
+   <li>
+
+    <p>For each <code>a</code>, <code>area</code>, and
+    <code>link</code> element in the <code>Document</code>, run these
+    substeps:</p>
+
+    <ol>
+
+     <li><p>If the element does not have a <code title="">rel</code>
+     attribute, then skip this element.</p></li>
+
+     <li><p>If the element does not have an <code title="">href</code>
+     attribute, then skip this element.</p></li>
+
+     <li><p>If <span title="resolve a URL">resolving</span> the
+     element's <code title="">href</code> attribute relative to the
+     element is not successful, then skip this element.</p></li>
+
+     <li><p>Otherwise, <span title="split a string on spaces">split
+     the value of the element's <code title="">rel</code> attribute on
+     spaces</span>, obtaining <var title="">list of tokens</var>.</p></li>
+
+     <li><p><span title="converted to lowercase">Convert each token in
+     <var title="">list of tokens</var> to lowercase</span>.</p></li>
+
+     <li><p>If <var title="">list of tokens</var> contains both the
+     tokens <code title="rel-alternate">alternate</code> and <code
+     title="rel-stylesheet">stylesheet</code>, then remove them both
+     and replace them with the single token <code
+     title="">alternate-stylesheet</code>.</p></li>
+
+     <li><p>If <var title="">list of tokens</var> contains more than
+     one instance of the token <code title="rel-up">up</code>, then
+     remove all such tokens.</p></li>
+
+     <li>
+
+      <p>For each token <var title="">token</var> in <var
+      title="">list of tokens</var> that contains neither a U+003A
+      COLON character (:) nor a U+002E FULL STOP character (.),
+      generate the following triple:</p>
+
+      <dl>
+       <dt>subject   <dd> <span>the document's current address</span>
+       <dt>predicate <dd> the concatenation of the string "<code title="">http://www.w3.org/1999/xhtml/vocab#</code>" and <var title="">token</var>
+       <dt>object    <dd> the <span>absolute URL</span> that results from <span title="resolve a URL">resolving</span> the value of the element's <code title="">href</code> attribute relative to the element
+      </dl>
+
+     </li>
+
+    </ol>
+
+   </li>
+
+   <li>
+
+    <p>For each <code>meta</code> element in the <code>Document</code>
+    that has a <code title="attr-meta-name">name</code> attribute and
+    a <code title="attr-meta-content">content</code> attribute, if the
+    value of the <code title="attr-meta-name">name</code> attribute
+    contains neither a U+003A COLON character (:) nor a U+002E FULL
+    STOP character (.), generate the following triple:</p>
+
+    <dl>
+     <dt>subject   <dd> <span>the document's current address</span>
+     <dt>predicate <dd> the concatenation of the string "<code title="">http://www.w3.org/1999/xhtml/vocab#</code>" and value of the element's <code title="attr-meta-name">name</code> attribute, <span>converted to lowercase</span>
+     <dt>object    <dd> the value of the element's <code title="attr-meta-content">content</code> attribute
+    </dl>
+
+   </li>
+
+   <li>
+
+    <p>For each <code>article</code>, <code>section</code>,
+    <code>blockquote</code>, and <code>q</code> element in the
+    <code>Document</code> that has a <code title="">cite</code>
+    attribute that <span title="resolve a url">resolves</span>
+    successfully relative to the element, generate the following
+    triple:</p>
+
+    <dl>
+     <dt>subject   <dd> <span>the document's current address</span>
+     <dt>predicate <dd> <code title="">http://purl.org/dc/terms/source</code>
+     <dt>object    <dd> the <span>absolute URL</span> that results from <span title="resolve a URL">resolving</span> the value of the element's <code title="">cite</code> attribute relative to the element
+    </dl>
+
+   </li>
+
+   <li>
+
+    <p>For each element that is also a <span title="top-level
+    microdata items">top-level microdata item</span>, <span
+    title="generate the triples for an item">generate the triples for
+    the item</span>. (Nothing is done with the returned subject.)</p>
+
+   </li>
+
+  </ol>
+
+  <p>When the user agent is to <dfn>generate the triples for an
+  item</dfn> <var title="">item</var>, it must follow the following
+  steps:</p>
+
+  <ol>
+
+   <li><p>If there is exactly one element whose <span
+   title="concept-item-corresponding">corresponding item</span> is
+   <var title="">item</var> and that has as one of its <span>property
+   names</span> the string "<code title="">about</code>", and the
+   <span title="concept-property-value">property value</span> of that
+   element is an <span>absolute URL</span>, let <var
+   title="">subject</var> be that <span>absolute
+   URL</span>. Otherwise, let <var title="">subject</var> be a new
+   blank node.</p></li>
+
+   <li>
+
+    <p>For each <span title="item types">item type</span> <var
+    title="">type</var> of <var title="">item</var>, run the following
+    substeps:</p>
+
+    <ol>
+
+     <li><p>If <var title="">type</var> is not an <span>absolute
+     URL</span>, then let <var title="">type</var> be the result of
+     concatenating the string "<code
+     title="">http://www.w3.org/1999/xhtml/custom#</code>" with <var
+     title="">type</var>.</p></li>
+
+     <li>
+
+      <p>Generate the following triple:</p>
+
+      <dl>
+       <dt>subject   <dd> <var title="">subject</var>
+       <dt>predicate <dd> <code title="">http://www.w3.org/1999/02/22-rdf-syntax-ns#type</code>
+       <dt>object    <dd> <var title="">type</var>
+      </dl>
+
+     </li>
+
+    </ol>
+
+   </li>
+
+   <li>
+
+    <p>For each element <var title="">element</var> that has one or
+    more <span>property names</span> and whose <span
+    title="concept-item-corresponding">corresponding item</span> is
+    <var title="">item</var>, run the following substeps:</p>
+
+    <ol>
+
+     <li><p>Let <var title="">value</var> be the <span
+     title="concept-property-value">property value</span> of <var
+     title="">element</var>.</p></li>
+
+     <li><p>If <var title="">value</var> is an element, then <span
+     title="generate the triples for an item">generate the triples for
+     the element <var title="">value</var></span>, and then replace
+     <var title="">value</var> with the subject returned from those
+     steps.</p></li>
+
+     <li>
+
+      <p>For each name <var title="">name</var> in <var
+      title="">element</var>'s <span>property names</span>, run the
+      following substeps:</p>
+
+      <ol>
+
+       <li><p>If <var title="">name</var> is not an <span>absolute
+       URL</span>, then let <var title="">name</var> be the result of
+       concatenating the string "<code
+       title="">http://www.w3.org/1999/xhtml/custom#</code>" with <var
+       title="">name</var>.</p></li>
+
+       <li>
+
+        <p>Generate the following triple:</p>
+
+        <dl>
+         <dt>subject   <dd> <var title="">subject</var>
+         <dt>predicate <dd> <var title="">name</var>
+         <dt>object    <dd> <var title="">value</var>
+        </dl>
+
+       </li>
+
+      </ol>
+
+     </li>
+
+    </ol>
+
+   </li>
+
+   <li><p>Return <var title="">subject</var>.</p></li>
+
+  </ol>
 
 
 
