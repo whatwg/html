@@ -6525,8 +6525,10 @@ interface <dfn id=propertynodelist>PropertyNodeList</dfn> : <span>NodeList</span
   <p>The <dfn id=dom-htmlpropertycollection-names title=dom-HTMLPropertyCollection-names><code>names</code></dfn>
   attribute must return a live <code>DOMStringList</code> object
   giving the <a href=#property-names>property names</a> of all the elements
-  <a href=#represented-by-the-collection>represented by the collection</a>. The same object must be
-  returned each time.</p>
+  <a href=#represented-by-the-collection>represented by the collection</a>, listed in <a href=#tree-order>tree
+  order</a>, but with duplicates removed, leaving only the first
+  occurrence of each name. The same object must be returned each
+  time.</p>
 
   <p>The <dfn id=dom-htmlpropertycollection-item title=dom-HTMLPropertyCollection-item><code>item(<var title="">index</var>)</code></dfn> method must return the <var title="">index</var>th node in the collection. If there is no <var title="">index</var>th node in the collection, then the method must
   return null.</p>
@@ -40880,7 +40882,8 @@ explain that only direct children of the <menu> matter
 
   <p>The <code title=dom-document-items><a href=#dom-document-items>document.items</a></code> DOM
   attribute provides access to all the <a href=#top-level-microdata-items>top-level microdata
-  items</a>.</p>
+  items</a>. This attribute returns an <code><a href=#htmlcollection-0>HTMLCollection</a></code>,
+  which can be enumerated.</p>
 
   <p>Each <a href=#concept-item title=concept-item>item</a> is represented in the
   DOM by the element on which the relevant <code title=attr-item><a href=#items:-the-item-attribute>item</a></code> attribute is found. The various types
@@ -40908,7 +40911,93 @@ explain that only direct children of the <menu> matter
 
   </div>
 
-  <!-- XXX ... -->
+  <p>Once an element representing an <a href=#concept-item title=concept-item>item</a> has been obtained, its properties
+  can be extracted using the <code title=dom-properties><a href=#dom-properties>properties</a></code> DOM attribute. This
+  attribute returns an <code><a href=#htmlpropertycollection-0>HTMLPropertyCollection</a></code>, which can
+  be enumerated to go through each element that adds one or more
+  properties to the item. It can also be indexed by name, which will
+  return the property with that name (if there is just one).</p>
+
+  <p>Each element that adds a property also has a <code title=dom-content><a href=#dom-content>content</a></code> DOM attribute that returns its
+  value.
+
+  <div class=example>
+
+   <p>This sample uses the function above to get the first item of
+   type "net.example.user" and then pops up an alert using the
+   "net.example.name" property from that item.</p>
+
+   <pre>var user = getItems('net.example.user')[0];
+alert('Hello ' + user.properties['net.example.name'].content + '!');</pre>
+
+  </div>
+
+  <p>When an item has multiple properties with the same name, the
+  <code><a href=#htmlpropertycollection-0>HTMLPropertyCollection</a></code> returns a
+  <code><a href=#propertynodelist>PropertyNodeList</a></code> object with all those properties
+  instead of returning just one. The <code><a href=#propertynodelist>PropertyNodeList</a></code>
+  object can be used to obtained all the values at once using
+  <em>its</em> <code title=dom-PropertyNodeList-content><a href=#dom-propertynodelist-content>content</a></code> attribute, which
+  returns an array of all the values.</p>
+
+  <div class=example>
+
+   <p>In an earlier example, a "com.example.feline" item had two
+   "com.example.color" values. This script looks up such items and
+   then lists all their values. Because it doesn't know ahead of time
+   if the item has zero, one, or more colors, it checks whether the
+   value returned from the <code><a href=#htmlpropertycollection-0>HTMLPropertyCollection</a></code> is a
+   <code><a href=#propertynodelist>PropertyNodeList</a></code> (multiple colors), just a regular
+   element (one color), or null (no colors) before using it.</p>
+
+   <pre>var cat = getItems('com.example.feline')[0];
+var colors = cat.properties['com.example.color'];
+var result;
+if (!colors) {
+  result = 'Color unknown.';
+} else if (colors instanceof PropertyNodeList) {
+  result = 'Colors:';
+  for (var i = 0; i 
+
+  </pre></div>
+
+  <p>It's also possible to get a list of all the <a href=#property-names>property
+  names</a> using the object's <code title=dom-HTMLPropertyCollection-names><a href=#dom-htmlpropertycollection-names>names</a></code> DOM
+  attribute.</p>
+
+  <div class=example>
+
+   <p>This example creates a big list with a nested list for each item
+   on the page, each with of all the property names used in that
+   item./p&gt;
+
+   <pre>var outer = document.createElement('ul');
+for (var item = 0; item 
+
+   <p>If faced with the following from an earlier example:</p>
+
+   <pre>&lt;section item="org.example.animal.cat com.example.feline"&gt;
+ &lt;h1 property="org.example.name com.example.fn"&gt;Hedral&lt;/h1&gt;
+ &lt;p property="org.example.desc"&gt;Hedral is a male american domestic
+ shorthair, with a fluffy &lt;span
+ property="com.example.color"&gt;black&lt;/span&gt; fur with &lt;span
+ property="com.example.color"&gt;white&lt;/span&gt; paws and belly.&lt;/p&gt;
+ &lt;img property="org.example.img" src="hedral.jpeg" alt="" title="Hedral, age 18 months"&gt;
+&lt;/section&gt;</pre>
+
+   <p>...it would result in the following output:</p>
+
+   </pre><ul><li>
+     <ul><li>org.example.name</li>
+      <li>com.example.fn</li>
+      <li>org.example.desc</li>
+      <li>com.example.color</li>
+      <li>org.example.img</li>
+     </ul></li>
+   </ul><p>(The duplicate occurrence of "com.example.color" is not included
+   in the list.)</p>
+
+  </div>
 
 
 
@@ -41034,7 +41123,9 @@ explain that only direct children of the <menu> matter
   </ul><p>The <dfn id=property-names>property names</dfn> of an element are the tokens that
   the element's <code title=attr-property><a href=#names:-the-property-attribute>property</a></code> attribute
   is found to contain when its value is <a href=#split-a-string-on-spaces title="split a string on
-  spaces">split on spaces</a>.</p>
+  spaces">split on spaces</a>, with the order preserved but with
+  duplicates removed (leaving only the first occurrence of each
+  name).</p>
 
 
   <h4 id=values><span class=secno>5.2.5 </span>Values</h4>

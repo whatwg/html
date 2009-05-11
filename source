@@ -6522,8 +6522,10 @@ interface <dfn>PropertyNodeList</dfn> : <span>NodeList</span> {
   title="dom-HTMLPropertyCollection-names"><code>names</code></dfn>
   attribute must return a live <code>DOMStringList</code> object
   giving the <span>property names</span> of all the elements
-  <span>represented by the collection</span>. The same object must be
-  returned each time.</p>
+  <span>represented by the collection</span>, listed in <span>tree
+  order</span>, but with duplicates removed, leaving only the first
+  occurrence of each name. The same object must be returned each
+  time.</p>
 
   <p>The <dfn
   title="dom-HTMLPropertyCollection-item"><code>item(<var
@@ -46119,7 +46121,8 @@ explain that only direct children of the <menu> matter
 
   <p>The <code title="dom-document-items">document.items</code> DOM
   attribute provides access to all the <span>top-level microdata
-  items</span>.</p>
+  items</span>. This attribute returns an <code>HTMLCollection</code>,
+  which can be enumerated.</p>
 
   <p>Each <span title="concept-item">item</span> is represented in the
   DOM by the element on which the relevant <code
@@ -46149,7 +46152,118 @@ explain that only direct children of the <menu> matter
 
   </div>
 
-  <!-- XXX ... -->
+  <p>Once an element representing an <span
+  title="concept-item">item</span> has been obtained, its properties
+  can be extracted using the <code
+  title="dom-properties">properties</code> DOM attribute. This
+  attribute returns an <code>HTMLPropertyCollection</code>, which can
+  be enumerated to go through each element that adds one or more
+  properties to the item. It can also be indexed by name, which will
+  return the property with that name (if there is just one).</p>
+
+  <p>Each element that adds a property also has a <code
+  title="dom-content">content</code> DOM attribute that returns its
+  value.
+
+  <div class="example">
+
+   <p>This sample uses the function above to get the first item of
+   type "net.example.user" and then pops up an alert using the
+   "net.example.name" property from that item.</p>
+
+   <pre>var user = getItems('net.example.user')[0];
+alert('Hello ' + user.properties['net.example.name'].content + '!');</pre>
+
+  </div>
+
+  <p>When an item has multiple properties with the same name, the
+  <code>HTMLPropertyCollection</code> returns a
+  <code>PropertyNodeList</code> object with all those properties
+  instead of returning just one. The <code>PropertyNodeList</code>
+  object can be used to obtained all the values at once using
+  <em>its</em> <code
+  title="dom-PropertyNodeList-content">content</code> attribute, which
+  returns an array of all the values.</p>
+
+  <div class="example">
+
+   <p>In an earlier example, a "com.example.feline" item had two
+   "com.example.color" values. This script looks up such items and
+   then lists all their values. Because it doesn't know ahead of time
+   if the item has zero, one, or more colors, it checks whether the
+   value returned from the <code>HTMLPropertyCollection</code> is a
+   <code>PropertyNodeList</code> (multiple colors), just a regular
+   element (one color), or null (no colors) before using it.</p>
+
+   <pre>var cat = getItems('com.example.feline')[0];
+var colors = cat.properties['com.example.color'];
+var result;
+if (!colors) {
+  result = 'Color unknown.';
+} else if (colors instanceof PropertyNodeList) {
+  result = 'Colors:';
+  for (var i = 0; i < colors.content.length; i += 1)
+    result += ' ' + colors.content[i];
+} else {
+  result = 'Color: ' + colors.content;
+}</pre>
+
+  </div>
+
+  <p>It's also possible to get a list of all the <span>property
+  names</span> using the object's <code
+  title="dom-HTMLPropertyCollection-names">names</code> DOM
+  attribute.</p>
+
+  <div class="example">
+
+   <p>This example creates a big list with a nested list for each item
+   on the page, each with of all the property names used in that
+   item./p>
+
+   <pre>var outer = document.createElement('ul');
+for (var item = 0; item < document.items.length; item += 1) {
+  var itemLi = document.createElement('li');
+  var inner = document.createElement('ul');
+  for (var name = 0; name < document.items[item].names.length; name += 1) {
+    var propLi = document.createElement('li');
+    propLi.appendChild(document.createTextNode(document.items[item].names[name]));
+    inner.appendChild(propLi);
+  }
+  itemLi.appendChild(inner);
+  outer.appendChild(itemLi);
+}
+document.body.appendChild(outer);</pre>
+
+   <p>If faced with the following from an earlier example:</p>
+
+   <pre>&lt;section item="org.example.animal.cat com.example.feline">
+ &lt;h1 property="org.example.name com.example.fn">Hedral&lt;/h1>
+ &lt;p property="org.example.desc">Hedral is a male american domestic
+ shorthair, with a fluffy &lt;span
+ property="com.example.color">black&lt;/span> fur with &lt;span
+ property="com.example.color">white&lt;/span> paws and belly.&lt;/p>
+ &lt;img property="org.example.img" src="hedral.jpeg" alt="" title="Hedral, age 18 months">
+&lt;/section></pre>
+
+   <p>...it would result in the following output:</p>
+
+   <ul>
+    <li>
+     <ul>
+      <li>org.example.name</li>
+      <li>com.example.fn</li>
+      <li>org.example.desc</li>
+      <li>com.example.color</li>
+      <li>org.example.img</li>
+     </ul>
+    </li>
+   </ul>
+
+   <p>(The duplicate occurrence of "com.example.color" is not included
+   in the list.)</p>
+
+  </div>
 
 
 
@@ -46303,7 +46417,9 @@ explain that only direct children of the <menu> matter
   <p>The <dfn>property names</dfn> of an element are the tokens that
   the element's <code title="attr-property">property</code> attribute
   is found to contain when its value is <span title="split a string on
-  spaces">split on spaces</span>.</p>
+  spaces">split on spaces</span>, with the order preserved but with
+  duplicates removed (leaving only the first occurrence of each
+  name).</p>
 
 
   <h4>Values</h4>
