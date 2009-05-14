@@ -682,7 +682,9 @@
    <li><a href=#predefined-vocabularies><span class=secno>5.4 </span>Predefined vocabularies</a>
     <ol>
      <li><a href=#vcard><span class=secno>5.4.1 </span>vCard</a></li>
-     <li><a href=#vevent><span class=secno>5.4.2 </span>vEvent</a></li>
+     <li><a href=#vevent><span class=secno>5.4.2 </span>vEvent</a>
+      <ol>
+       <li><a href=#examples><span class=secno>5.4.2.1 </span>Examples</a></ol></li>
      <li><a href=#bibtex><span class=secno>5.4.3 </span>BibTeX</a></li>
      <li><a href=#rdf><span class=secno>5.4.4 </span>RDF</a></ol></li>
    <li><a href=#converting-html-to-other-formats><span class=secno>5.5 </span>Converting HTML to other formats</a>
@@ -42993,13 +42995,91 @@ document.body.appendChild(outer);</pre>
 
     </ul></li>
 
-  </ol><!--XXX
+  </ol><h5 id=examples><span class=secno>5.4.2.1 </span>Examples</h5>
 
-  <h5>Examples</h5>
+<!-- get more from http://www.ietf.org/rfc/rfc2445.txt -->
 
-from http://www.ietf.org/rfc/rfc2445.txt
+  <div class=example>
 
---><h4 id=bibtex><span class=secno>5.4.3 </span>BibTeX</h4>
+   <p>Here is an example of a page that uses the <code title=md-vevent><a href=#md-vevent>vevent</a></code> vocabulary to mark up an event:</p>
+
+   <pre>&lt;body item="vevent"&gt;
+ ...
+ &lt;h1 property="summary"&gt;Bluesday Tuesday: Money Road&lt;/h1&gt;
+ ...
+ &lt;time property="dtstart" datetime="2009-05-05T19:00:00Z"&gt;May 5th @ 7pm&lt;/time&gt;
+ (until &lt;time property="dtend" datetime="2009-05-05T21:00:00Z"&gt;9pm&lt;/time&gt;)
+ ...
+ &lt;a href="http://livebrum.co.uk/2009/05/05/bluesday-tuesday-money-road"
+    rel="bookmark" property="url"&gt;Link to this page&lt;/a&gt;
+ ...
+ &lt;p&gt;Location: &lt;span property="location"&gt;The RoadHouse&lt;/span&gt;&lt;/p&gt;
+ ...
+ &lt;p&gt;&lt;input type=button value="Add to Calendar"
+           onclick="location = getCalendar(this)"&gt;&lt;/p&gt;
+ ...
+ &lt;meta property="description" content="via livebrum.co.uk"&gt;
+&lt;/body&gt;</pre>
+
+   <p>The "<code title="">getCalendar()</code>" method could look like
+   this:</p>
+
+   <pre>function getCalendar(node) {
+  while (node &amp;&amp; !node.item.has('vevent'))
+    node = node.parentNode;
+  if (!node) {
+    alert('No event data found.');
+    return;
+  }
+  var stamp = new Date();
+  var stampString = '' + stamp.getUTCFullYear() + (stamp.getUTCMonth() + 1) + stamp.getUTCDate() + 'T' +
+                         stamp.getUTCHours() + stamp.getUTCMinutes() + stamp.getUTCSeconds() + 'Z';
+  var calendar = 'BEGIN:VCALENDAR\r\nPRODID:HTML5\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nDTSTAMP:' + stampString + '\r\n';
+  for (var propIndex = 0; propIndex &lt; node.properties.length; propIndex += 1) {
+    var prop = node.properties[propIndex];
+    var value = prop.content;
+    var parameters = '';
+    if (prop.localName == 'time') {
+      value = value.replace(/[:-]/g, '');
+      if (prop.date &amp;&amp; prop.time)
+        parameters = ';VALUE=DATE';
+      else
+        parameters = ';VALUE=DATE-TIME';
+    } else {
+      value = value.replace(/\\/g, '\\n');
+      value = value.replace(/;/g, '\\;');
+      value = value.replace(/,/g, \\,');
+      value = value.replace(/[\r\n]/g, '\\n');
+    }
+    for (var nameIndex = 0; nameIndex &lt; prop.itemprop.length; nameIndex += 1) {
+      var name = prop.itemprop[nameIndex];
+      if (!name.match(':') &amp;&amp; !name.match('.')) {
+        calendar += name.toUpperCase() + parameters + ':' + value + '\r\n';
+      }
+    }
+  }
+  calendar += 'END:VEVENT\r\nEND:VCALENDAR\r\n';
+  return 'data:text/calendar;component=vevent,' + encodeURI(calendar);
+}</pre>
+
+   <p>The same page could offer some markup, such as the following,
+   for copy-and-pasting into blogs:</p>
+
+   <pre>&lt;div item="vevent"&gt;
+ &lt;p&gt;I'm going to
+ &lt;strong property="summary"&gt;Bluesday Tuesday: Money Road&lt;/strong&gt;,
+ &lt;time property="dtstart" datetime="2009-05-05T19:00:00Z"&gt;May 5th at 7pm&lt;/time&gt;
+ to &lt;time property="dtend" content="2009-05-05T21:00:00Z"&gt;9pm&lt;/time&gt;,
+ at &lt;span property="location"&gt;The RoadHouse&lt;/span&gt;!&lt;/p&gt;
+ &lt;p&gt;&lt;a href="http://livebrum.co.uk/2009/05/05/bluesday-tuesday-money-road"
+       property="url"&gt;See this event on livebrum.co.uk&lt;/a&gt;.&lt;/p&gt;
+ &lt;meta property="description" content="via livebrum.co.uk"&gt;
+&lt;/div&gt;</pre>
+
+  </div>
+
+
+  <h4 id=bibtex><span class=secno>5.4.3 </span>BibTeX</h4>
 
   <p>An item with the <a href=#predefined-type>predefined type</a> <dfn id=md-bibtex title=md-bibtex><code>bibtex</code></dfn> represents a
   bibliography entry.</p>
