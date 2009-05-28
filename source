@@ -9836,6 +9836,20 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
    document to be unloaded</span>, then these steps must be
    aborted.</p></li>
 
+   <!-- XXX should some task sources be emptied here? e.g. what about
+   timeouts that fired after this algorithm started but before the
+   list of timeouts was cleared in the previous step? or database
+   transaction callbacks that were queued after the task that started
+   this algorithm?
+
+   This is what the 'discard a document' algorithm does:
+
+     "any <span title="concept-task">tasks</span> associated with the
+     <code>Document</code> in any <span>task source</span> must be
+     removed without being run"
+
+    -->
+
    <li><p>If the document has an <span>active parser</span><!--XXX
    xref-->, then stop that parser, and throw away any pending content
    in the input stream. <span class="XXX">what about if it
@@ -52922,6 +52936,11 @@ interface <dfn>Window</dfn> {
   reference">has a strong reference of its own</span> to its
   <code>Document</code> object.</p>
 
+  <p class="note">Whenever a <code>Document</code> object is <span
+  title="discard a Document">discarded</span>, it is also removed from
+  the list of <span>the worker's <code>Document</code>s</span> of each
+  worker whose list contains that <code>Document</code>.</p>
+
   <p>When <dfn>a <em><span>browsing context</span></em> is
   discarded</dfn>, the strong reference from the user agent itself to
   the <span>browsing context</span> must be severed, and all the
@@ -54845,8 +54864,8 @@ interface <dfn>Function</dfn> {
   title="handler-window-onerror">onerror</code> <span title="event
   handler attributes">event handler attribute</span> of the
   <span>script's global object</span>. If the error is still <i
-  title="">not handled</i> after this, then the error should be
-  reported to the user.</p>
+  title="concept-error-nothandled">not handled</i> after this, then
+  the error should be reported to the user.</p>
 
   <hr>
 
@@ -54854,8 +54873,9 @@ interface <dfn>Function</dfn> {
   error">report an error</dfn> <var title="">error</var> using the
   <span title="event handler attributes">event handler
   attribute</span> <var title="">onerror</var>, it must run these
-  steps, after which the error is either <i title="">handled</i> or <i
-  title="">not handled</i>:</p>
+  steps, after which the error is either <dfn
+  title="concept-error-handled"><i>handled</i></dfn> or <dfn
+  title="concept-error-nothandled"><i>not handled</i></dfn>:</p>
 
   <dl class="switch">
 
@@ -54872,8 +54892,8 @@ interface <dfn>Function</dfn> {
     the line number in that resource on which the error occurred.</p>
 
     <p>If the function returns false, then the error is <i
-    title="">handled</i>. Otherwise, the error is <i title="">not
-    handled</i>.</p>
+    title="concept-error-handled">handled</i>. Otherwise, the error is
+    <i title="concept-error-nothandled">not handled</i>.</p>
 
     <p>Any exceptions thrown or errors caused by this function must be
     reported to the user immediately after the error that the function
@@ -54886,7 +54906,7 @@ interface <dfn>Function</dfn> {
 
    <dd>
 
-    <p>The error is <i title="">not handled</i>.</p>
+    <p>The error is <i title="concept-error-nothandled">not handled</i>.</p>
 
    </dd>
 
@@ -59757,6 +59777,10 @@ user reload must be equivalent to .reload()
    the <code>Document</code>'s <code>Window</code> object, roll them
    back (without invoking any of the callbacks) and set <var
    title="">salvageable</var> to false.</p>
+
+   <li><p>Empty the <code>Document</code>'s <code>Window</code>'s
+   <span>list of active timeouts</span> and its <span>list of active
+   intervals</span>.</p></li>
 
    <li><p>If <var title="">salvageable</var> and <var
    title="">recycle</var> are both false, <span title="discard a
@@ -67529,8 +67553,8 @@ XXX Once we resolve the style="" issue, address these:
   // also implements everything on <span>WorkerUtils</span>
 
   void <span title="dom-WorkerGlobalScope-close">close</span>();
-           attribute <span>EventListener</span> <span title="handler-WorkerGlobalScope-onclose">onclose</span>;
-           attribute <span>EventListener</span> <span title="handler-WorkerGlobalScope-onerror">onerror</span>;
+<!-- v2-onclose           attribute <span>EventListener</span> <span title="handler-WorkerGlobalScope-onclose">onclose</span>;
+-->           attribute <span>EventListener</span> <span title="handler-WorkerGlobalScope-onerror">onerror</span>;
 };</pre>
 
   <p>Objects implementing the <code>WorkerGlobalScope</code> interface
@@ -67550,25 +67574,28 @@ XXX Once we resolve the style="" issue, address these:
   <hr>
 
   <p>When a script invokes the <dfn
-  title="dom-WorkerGlobalScope-close"><code>close()</code></dfn> method on
-  a <code>WorkerGlobalScope</code> object, the user agent must run the
-  following steps:</p>
+  title="dom-WorkerGlobalScope-close"><code>close()</code></dfn>
+  method on a <code>WorkerGlobalScope</code> object, the user agent
+  must run the following steps (atomically):</p>
 
   <ol>
 
+   <li><p>Discard any <span title="concept-task">tasks</span> that
+   have been added to the <span>event loop</span>'s <span title="task
+   queue">task queues</span>.</p>
+
+<!-- v2-onclose
    <li><p><span>Queue a task</span> to <span>fire a simple
    event</span> called <code title="event-close">close</code> at the
    <code>WorkerGlobalScope</code> object.</p></li>
+-->
 
    <li><p>Set the worker's <code>WorkerGlobalScope</code> object's
    <span title="dom-WorkerGlobalScope-closing">closing</span> flag to
-   true.</p></li>
+   true. (This prevents any further tasks from being queued.)</p></li>
 
-   <li><p>For each <code>MessagePort</code> object that is entangled
-   with another port and that has one (but only one) port whose owner
-   is the <code>WorkerGlobalScope</code> object on which the method
-   was invoked (this would include, for instance, the implicit port in
-   used for dedicated workers), disentangle the two ports.</p></li>
+   <li><p>Disentangle all the ports in the list of <span>the worker's
+   ports</span>.</p></li>
 
   </ol>
 
@@ -67581,7 +67608,7 @@ XXX Once we resolve the style="" issue, address these:
    <thead>
     <tr><th><span title="event handler attributes">event handler attribute</span> <th><span>Event handler event type</span>
    <tbody>
-    <tr><td><dfn title="handler-WorkerGlobalScope-onclose"><code>onclose</code></dfn> <td> <code title="event-close">close</code>
+<!-- v2-onclose    <tr><td><dfn title="handler-WorkerGlobalScope-onclose"><code>onclose</code></dfn> <td> <code title="event-close">close</code> -->
     <tr><td><dfn title="handler-WorkerGlobalScope-onerror"><code>onerror</code></dfn> <td> <code title="event-error">error</code>
   </table>
 
@@ -67614,10 +67641,11 @@ XXX Once we resolve the style="" issue, address these:
   method of the same name on the port, with the same arguments, and
   returned the same return value.</p>
 
-  <p>The following are the <span>event handler attributes</span> (and their corresponding <span
-  title="event handler event type">event handler event types</span>)
-  that must be supported, as DOM attributes, by objects implementing
-  the <code>DedicatedWorkerGlobalScope</code> interface:</p>
+  <p>The following are the <span>event handler attributes</span> (and
+  their corresponding <span title="event handler event type">event
+  handler event types</span>) that must be supported, as DOM
+  attributes, by objects implementing the
+  <code>DedicatedWorkerGlobalScope</code> interface:</p>
 
   <table>
    <thead>
@@ -67653,10 +67681,11 @@ XXX Once we resolve the style="" issue, address these:
   that can be used to obtain a reference to the worker using the
   <code>SharedWorker</code> constructor.</p>
 
-  <p>The following are the <span>event handler attributes</span> (and their corresponding <span
-  title="event handler event type">event handler event types</span>)
-  that must be supported, as DOM attributes, by objects implementing
-  the <code>SharedWorkerGlobalScope</code> interface:</p>
+  <p>The following are the <span>event handler attributes</span> (and
+  their corresponding <span title="event handler event type">event
+  handler event types</span>) that must be supported, as DOM
+  attributes, by objects implementing the
+  <code>SharedWorkerGlobalScope</code> interface:</p>
 
   <table>
    <thead>
@@ -67672,7 +67701,7 @@ XXX Once we resolve the style="" issue, address these:
 
   <p class="note">The <dfn
   title="dom-SharedWorkerGlobalScope-applicationCache"><code>applicationCache</code></dfn>
-  returns the <code>ApplicationCache</code> object for the
+  attribute returns the <code>ApplicationCache</code> object for the
   worker.</p><!-- normative conf criteria is in the appcache section
   -->
 
@@ -67824,85 +67853,62 @@ XXX Once we resolve the style="" issue, address these:
   <code>MessagePort</code> in the case of <span
   title="DedicatedWorkerGlobalScope">dedicated workers</span>.</p>
 
-  <hr>
+  <p>Each <code>WorkerGlobalScope</code> also has a list of <dfn>the
+  worker's <code>Document</code>s</dfn>. Initially this list is empty;
+  it is populated when the worker is created.</p>
 
-  <p>A worker is said to be a <dfn>permissible worker</dfn> if
-  either:</p>
+  <p>Whenever a <code>Document</code> <var title="">d</var> is <dfn
+  title="add a document to the worker's documents">added to the
+  worker's <code>Document</code>s</dfn>, the user agent must, for each
+  port in the list of <span>the worker's ports</span> that is
+  entangled with a second port <var title="">p</var> whose owner is a
+  <code>WorkerGlobalScope</code> object whose list of <span>the
+  worker's <code>Document</code>s</span> does not contain <var
+  title="">d</var>, <span title="add a document to the worker's
+  documents">add <var title="">d</var> to <var title="">q</var>'s
+  <code>WorkerGlobalScope</code> owner's list of <span>the worker's
+  <code>Document</code>s</span></span>.</p> <!-- suggestions welcome
+  on making this sentence into understandable English -->
 
-  <ul>
+  <p>Whenever a <code>Document</code> object is <span title="discard a
+  Document">discarded</span>, it must be removed from the list of
+  <span>the worker's <code>Document</code>s</span> of each worker
+  whose list contains that <code>Document</code>.</p>
 
-   <li>at some point past or present a <code>MessagePort</code> owned
-   by the worker was entangled with a <code>MessagePort</code> <var
-   title="">p</var> whose owner is a <code>Window</code> object whose
-   <span>active document</span> is the <code>Document</code> that was
-   that <span>browsing context</span>'s <span>active document</span>
-   when <var title="">p</var> was created, and that
-   <code>Document</code> is <span>fully active</span>, or</li>
-
-   <li>at some point past or present a <code>MessagePort</code> owned
-   by the worker was entangled with a <code>MessagePort</code> owned
-   by another worker that is currently a <span>permissible
-   worker</span>.</li>
-
-  </ul>
-
-  <hr>
-
-  <p>A worker is said to be a <dfn>protected worker</dfn> if
-  either:</p>
-
-  <ul>
-
-   <li>it has outstanding timers, database transactions, or network
-   connections, and is a <span>permissible worker</span>, or</li>
-
-   <li>there is a <span>protected worker</span> that at some point
-   past or present owned a <code>MessagePort</code> that was entangled
-   with a <code>MessagePort</code> owned by this worker.</li>
-
-  </ul>
+  <p>Given a <span>script's global scope</span> <var title="">o</var>
+  when creating or obtaining a worker, the <dfn>list of relevant
+  <code>Document</code> objects to add</dfn> depends on the type of
+  <var title="">o</var>. If <var title="">o</var> is a
+  <code>WorkerGlobalScope</code> object (i.e. if we are creating a
+  nested worker), then the relevant <code>Document</code>s are the
+  <code>Document</code>s that are in <var title="">o</var>'s own list
+  of <span>the worker's <code>Document</code>s</span>. Otherwise, <var
+  title="">o</var> is a <code>Window</code> object, and the relevant
+  <code>Document</code> is just the <code>Document</code> that is the
+  <span>active document</span> of the <code>Window</code> object <var
+  title="">o</var>.</p>
 
   <hr>
 
-  <p>A worker is said to be an <dfn>active needed worker</dfn> if either:
+  <p>A worker is said to be a <dfn>permissible worker</dfn> if its
+  list of <span>the worker's <code>Document</code>s</span> is not
+  empty.</p>
 
-  <ul>
+  <p>A worker is said to be a <dfn>protected worker</dfn> if it is a
+  <span>permissible worker</span> and either it has outstanding
+  timers, database transactions, or network connections, or its list
+  of <span>the worker's ports</span> is not empty, or its
+  <code>WorkerGlobalScope</code> is actually a
+  <code>SharedWorkerGlobalScope</code> object (i.e. the worker is a
+  shared worker).</p>
 
-   <li>the worker is a <span>protected worker</span>, or</li>
-
-   <li>at least one of the <span>the worker's ports</span> is
-   entangled with a <code>MessagePort</code> <var title="">p</var>
-   whose owner is a <code>Window</code> object whose <span>active
-   document</span> is the <code>Document</code> that was that
-   <span>browsing context</span>'s <span>active document</span> when
-   that <code>MessagePort</code> <var title="">p</var> was created,
-   and that <code>Document</code> is <span>fully active</span>,
-   or</li>
-
-   <li>at least one of the <span>the worker's ports</span> has an
-   entangled <code>MessagePort</code> owned by a
-   <code>WorkerGlobalScope</code> object that is itself an
-   <span>active needed worker</span>.</li>
-
-  </ul>
-
-  <hr>
+  <p>A worker is said to be an <dfn>active needed worker</dfn> if any
+  of the <code>Document</code> objects in <span>the worker's
+  <code>Document</code>s</span> are <span>fully active</span>.</p>
 
   <p>A worker is said to be a <dfn>suspendable worker</dfn> if it is
-  not an <span>active needed worker</span> but either:</p>
-
-  <ul>
-
-   <li>at least one of the <span>the worker's ports</span> has an
-   entangled <code>MessagePort</code> owned by a <code>Window</code>
-   object, or</li>
-
-   <li>at least one of the <span>the worker's ports</span> has an
-   entangled <code>MessagePort</code> owned by a
-   <code>WorkerGlobalScope</code> object that is itself a <span>needed
-   worker</span>.</li>
-
-  </ul>
+  not an <span>active needed worker</span> but it is a
+  <span>permissible worker</span>.</p>
 
 
   <h4>Processing model</h4>
@@ -67989,22 +67995,21 @@ XXX Once we resolve the style="" issue, address these:
     <p>Set the <span>script's base URL</span> to <var
     title="">url</var>.</p>
 
-    <p>Create a new <span>script group</span> and add the <span
-    title="concept-script">script</span> to it.</p>
-
    </li>
 
    <li>
 
     <p><strong>Closing orphan workers</strong>: Start monitoring the
-    worker such that as soon as it stops being either an <span>active
-    needed worker</span> or a <span>suspendable worker</span>, <var
-    title="">worker global scope</var>'s <span
+    worker such that no sooner than it stops being either an
+    <span>active needed worker</span> or a <span>suspendable
+    worker</span>, and no later than it stops being a
+    <span>permissible worker</span>, <var title="">worker global
+    scope</var>'s <span
     title="dom-WorkerGlobalScope-closing">closing</span> flag is set
-    to true and <span title="queue a task">a task is queued</span> to
-    <span>fire a simple event</span> called <code
+    to true<!-- v2-onclose and <span title="queue a task">a task is
+    queued</span> to <span>fire a simple event</span> called <code
     title="event-close">close</code> at <var title="">worker global
-    scope</var>.</p>
+    scope</var>-->.</p>
 
    </li>
 
@@ -68091,12 +68096,23 @@ XXX Once we resolve the style="" issue, address these:
 
    <li>
 
-    <p>Freeze the <span>script group</span>.</p>
-
-    <p class="note">This kills timers, database transactions, etc.</p>
+    <p>If there are any outstanding transactions that have callbacks
+    that involve <span title="concept-script">scripts</span> whose
+    <span title="script's global object">global object</span> is the
+    <var title="">worker global scope</var>, roll them back (without
+    invoking any of the callbacks).</p>
 
    </li>
 
+   <li>
+
+    <p>Empty the <var title="">worker global scope</var>'s <span>list
+    of active timeouts</span> and its <span>list of active
+    intervals</span>.</p>
+
+   </li>
+
+<!-- v2-onclose
    <li>
 
     <p>For each <code>Worker</code> or <code>SharedWorker</code>
@@ -68105,7 +68121,7 @@ XXX Once we resolve the style="" issue, address these:
     called <code title="event-close">close</code> at that object.</p>
 
    </li>
-
+-->
   </ol>
 
   <hr>
@@ -68116,16 +68132,19 @@ XXX Once we resolve the style="" issue, address these:
 
   <ol>
 
+<!-- v2-onclose
    <li><p>If the worker's <code>WorkerGlobalScope</code> object's
    <span title="dom-WorkerGlobalScope-closing">closing</span> flag is
    false, <span>queue a task</span> to <span>fire a simple
    event</span> called <code title="event-close">close</code> at the
    worker's <code>WorkerGlobalScope</code> object.</p></li>
+-->
 
    <li><p>Set the worker's <code>WorkerGlobalScope</code> object's <span
    title="dom-WorkerGlobalScope-closing">closing</span> flag to
    true.</p></li>
 
+<!-- v2-onclose
    <li><p>Wait a user-agent-defined amount of time. If the "<span>run
    a worker</span>" processing model defined above immediately starts
    running event listeners registered for the <code
@@ -68133,22 +68152,25 @@ XXX Once we resolve the style="" issue, address these:
    zero &mdash; the idea is that the <code
    title="event-close">close</code> event can be used to clean up
    when shutting down unexpectedly.</p></li>
+-->
 
    <li><p>If there are any <span title="concept-task">tasks</span>
    queued in the <span>event loop</span>'s <span title="task
-   queue">task queues</span> other than the <code
+   queue">task queues</span><!-- v2-onclose other than the <code
    title="event-close">close</code> event that this algorithm just
-   added, discard them without processing them.</p></li>
+   added-->, discard them without processing them.</p></li>
 
+<!-- v2-onclose
    <li><p>If the <code title="event-close">close</code> event that
    this algorithm just queued hasn't yet been dispatched, then abort
    the script currently running in the worker.</p></li>
+-->
 
    <li><p>Wait a user-agent-defined amount of time.</p></li>
 
-   <li><p>Abort the script currently running in the worker (if any
-   script is running, then it will be a handler for the <code
-   title="event-close">close</code> event).</p></li>
+   <li><p>Abort the script currently running in the worker<!--
+   v2-onclose (if any script is running, then it will be a handler for
+   the <code title="event-close">close</code> event)-->.</p></li>
 
   </ol>
 
@@ -68192,19 +68214,22 @@ XXX Once we resolve the style="" issue, address these:
 
   <p>Whenever a runtime script error occurs in one of the worker's
   scripts, if the error did not occur while handling a previous script
-  error, the user agent must <span>queue a task</span> to <span>fire a
-  simple event</span> called <code title="event-error">error</code> at
-  the <code>WorkerGlobalScope</code> object.</p>
+  error, the user agent must <span>report the error</span> using the
+  <code>WorkerGlobalScope</code> object's <code
+  title="handler-WorkerGlobalScope-onerror">onerror</code>
+  attribute.</p>
 
-  <p>For shared workers, if the error is still <i title="">not
-  handled</i> afterwards, or if the error occured while handling a
-  previous script error, the error should be reported to the user.</p>
+  <p>For shared workers, if the error is still <i
+  title="concept-error-nothandled">not handled</i> afterwards, or if
+  the error occured while handling a previous script error, the error
+  should be reported to the user.</p>
 
-  <p>For dedicated workers, if the error is still <i title="">not
-  handled</i> afterwards, or if the error occured while handling a
-  previous script error, the user agent must further <span>queue a
-  task</span> to <span>fire a worker error event</span> at the
-  <code>Worker</code> object associated with the worker.</p>
+  <p>For dedicated workers, if the error is still <i
+  title="concept-error-nothandled">not handled</i> afterwards, or if
+  the error occured while handling a previous script error, the user
+  agent must <span>queue a task</span> to <span>fire a worker error
+  event</span> at the <code>Worker</code> object associated with the
+  worker.</p>
 
   <p>When the user agent is to <dfn>fire a worker error event</dfn> at
   a <code>Worker</code> object, it must dispatch an event that uses
@@ -68260,7 +68285,7 @@ XXX Once we resolve the style="" issue, address these:
 
   <pre class="idl">interface <dfn>AbstractWorker</dfn> {
            attribute <span>EventListener</span> <span title="handler-AbstractWorker-onerror">onerror</span>;
-           attribute <span>EventListener</span> <span title="handler-AbstractWorker-onclose">onclose</span>;
+<!-- v2-onclose           attribute <span>EventListener</span> <span title="handler-AbstractWorker-onclose">onclose</span>; -->
 };</pre>
 
   <p>Objects implementing the <code>AbstractWorker</code> interface
@@ -68276,7 +68301,7 @@ XXX Once we resolve the style="" issue, address these:
     <tr><th><span title="event handler attributes">event handler attribute</span> <th><span>Event handler event type</span>
    <tbody>
     <tr><td><dfn title="handler-AbstractWorker-onerror"><code>onerror</code></dfn> <td> <code title="event-error">error</code>
-    <tr><td><dfn title="handler-AbstractWorker-onclose"><code>onclose</code></dfn> <td> <code title="event-close">close</code>
+<!-- v2-onclose    <tr><td><dfn title="handler-AbstractWorker-onclose"><code>onclose</code></dfn> <td> <code title="event-close">close</code> -->
   </table>
 
 
@@ -68344,8 +68369,9 @@ interface <dfn>Worker</dfn> : <span>AbstractWorker</span> {
 
    <li><p>If the <span>origin</span> of the resulting <span>absolute
    URL</span> is not the <span title="same origin">same</span> as the
-   origin of the script that invoked the constructor, then throw a
-   <span>security exception</span>.</p></li>
+   origin of the <span title="concept-script">script</span> that
+   invoked the constructor, then throw a <span>security
+   exception</span>.</p></li>
 
    <li><p><span>Create a new <code>DedicatedWorkerGlobalScope</code>
    object</span>. Let <var title="">worker global scope</var> be this
@@ -68356,8 +68382,9 @@ interface <dfn>Worker</dfn> : <span>AbstractWorker</span> {
    title="">worker</var> be this new object.</p></li>
 
    <li><p><span>Create a <code>MessagePort</code> object</span> owned
-   by the <span>script execution context</span> of the script that
-   invoked the method. Let this be the <var title="">outside
+   by the <span title="script's global scope">global scope</span> of
+   the <span title="concept-script">script</span> that invoked the
+   constructor. Let this be the <var title="">outside
    port</var>.</p></li>
 
    <li><p>Associate the <var title="">outside port</var> with <var
@@ -68381,6 +68408,25 @@ interface <dfn>Worker</dfn> : <span>AbstractWorker</span> {
 
    <li><p>Open <var title="">outside port</var>'s <span>port message
    queue</span>.</p></li>
+
+   <li>
+
+    <p>Let <var title="">docs</var> be the <span>list of relevant
+    <code>Document</code> objects to add</span> given the <span
+    title="script's global scope">global scope</span> of the <span
+    title="concept-script">script</span> that invoked the
+    constructor.</p>
+
+   </li>
+
+   <li>
+
+    <p><span title="add a document to the worker's documents">Add to
+    <var title="">worker global scope</var>'s list of <span>the
+    worker's <code>Document</code>s</span></span> the
+    <code>Document</code> objects in <var title="">docs</var>.</p>
+
+   </li>
 
    <li>
 
@@ -68428,6 +68474,16 @@ interface <dfn>SharedWorker</dfn> : <span>AbstractWorker</span> {
 
    <li>
 
+    <p>Let <var title="">docs</var> be the <span>list of relevant
+    <code>Document</code> objects to add</span> given the <span
+    title="script's global scope">global scope</span> of the <span
+    title="concept-script">script</span> that invoked the
+    constructor.</p>
+
+   </li>
+
+   <li>
+
     <p>Execute the following substeps atomically:</p>
 
     <ol>
@@ -68437,10 +68493,10 @@ interface <dfn>SharedWorker</dfn> : <span>AbstractWorker</span> {
      object. Let this <code>SharedWorker</code> object be <var
      title="">worker</var>.</p></li>
 
-     <li><p><span>Create a <code>MessagePort</code> object</span> owned
-     by the <span>script execution context</span> of the script that
-     invoked the method. Let this be the <var title="">outside
-     port</var>.</p></li>
+     <li><p><span>Create a <code>MessagePort</code> object</span>
+     owned by the <span title="script's global scope">global
+     scope</span> of the script that invoked the method. Let this be
+     the <var title="">outside port</var>.</p></li>
 
      <li><p>Assign <var title="">outside port</var> to the <code
      title="dom-SharedWorker-port">port</code> attribute of <var
@@ -68495,6 +68551,15 @@ interface <dfn>SharedWorker</dfn> : <span>AbstractWorker</span> {
        <span>queue a task</span> to dispatch the event at <var
        title="">worker global scope</var>.</p></li>
 
+       <li>
+
+        <p><span title="add a document to the worker's documents">Add to
+        <var title="">worker global scope</var>'s list of <span>the
+        worker's <code>Document</code>s</span></span> the
+        <code>Document</code> objects in <var title="">docs</var>.</p>
+
+       </li>
+
        <li><p>Abort all these steps.</p></li>
 
       </ol>
@@ -68524,8 +68589,8 @@ interface <dfn>SharedWorker</dfn> : <span>AbstractWorker</span> {
 
    </li>
 
-   <li><p>Return <var title="">worker</var> and perform the next step
-   asynchronously.</p></li>
+   <li><p>Return <var title="">worker</var> and perform the remaining
+   steps asynchronously.</p></li>
 
    <li><p>Create an event that uses the <code>MessageEvent</code>
    interface, with the name <code
@@ -68537,6 +68602,15 @@ interface <dfn>SharedWorker</dfn> : <span>AbstractWorker</span> {
    is an array containing only the newly created port, and <span>queue
    a task</span> to dispatch the event at <var title="">worker global
    scope</var>.</p></li>
+
+   <li>
+
+    <p><span title="add a document to the worker's documents">Add to
+    <var title="">worker global scope</var>'s list of <span>the
+    worker's <code>Document</code>s</span></span> the
+    <code>Document</code> objects in <var title="">docs</var>.</p>
+
+   </li>
 
    <li>
 
@@ -71193,8 +71267,8 @@ interface <dfn>MessageChannel</dfn> {
   <pre class="idl">typedef sequence&lt;MessagePort> <dfn>MessagePortArray</dfn>;
 
 interface <dfn>MessagePort</dfn> {
-  readonly attribute boolean <span title="dom-MessagePort-active">active</span>;
-  void <span title="dom-MessagePort-postMessage">postMessage</span>(in any message, [Optional] in <span>MessagePortArray</span> ports);<!--
+<!-- v2-onclose  readonly attribute boolean <span title="dom-MessagePort-active">active</span>;
+-->  void <span title="dom-MessagePort-postMessage">postMessage</span>(in any message, [Optional] in <span>MessagePortArray</span> ports);<!--
   <span>MessagePort</span> <span title="dom-MessagePort-startConversation">startConversation</span>(in any message);-->
   void <span title="dom-MessagePort-start">start</span>();
   void <span title="dom-MessagePort-close">close</span>();
@@ -71204,7 +71278,7 @@ interface <dfn>MessagePort</dfn> {
 };</pre>
 
   <dl class="domintro">
-
+<!-- v2-onclose
    <dt><var title="">port</var> . <code title="dom-MessagePort-active">active</code></dt>
 
    <dd>
@@ -71212,7 +71286,7 @@ interface <dfn>MessagePort</dfn> {
     <p>Returns true if the port is still active; otherwise, returns false.</p>
 
    </dd>
-
+-->
    <dt><var title="">port</var> . <code title="dom-MessagePort-poseMessage">postMessage</code>(<var title="">message</var> [, <var title="">ports</var>] )</dt>
 
    <dd>
@@ -71327,13 +71401,13 @@ interface <dfn>MessagePort</dfn> {
   </ol>
 
   <hr>
-
+<!-- v2-onclose
   <p>The <dfn title="dom-MessagePort-active"><code>active</code></dfn>
   attribute must return true if the port is entangled, and false
   otherwise.</p>
 
   <hr>
-
+-->
   <p>The <dfn
   title="dom-MessagePort-postMessage"><code>postMessage()</code></dfn>
   method, when called on a port <var title="">source port</var>, must
@@ -71531,9 +71605,11 @@ interface <dfn>MessagePort</dfn> {
 
   <h5>Ports and garbage collection</h5>
 
-  <p>User agents must act as if <code>MessagePort</code> objects have
-  a strong reference to their entangled <code>MessagePort</code>
-  object.</p>
+  <p>User agents must either act as if <code>MessagePort</code>
+  objects have a strong reference to their entangled
+  <code>MessagePort</code> object or as if each
+  <code>MessagePort</code> object's owner has a strong reference to
+  the <code>MessagePort</code> object.</p>
 
   <div class="note">
 
@@ -71542,7 +71618,7 @@ interface <dfn>MessagePort</dfn> {
    receive a message, the channel will be maintained.</p>
 
    <p>Of course, if this was to occur on both sides of the channel,
-   then both ports would be garbage collected, since they would not be
+   then both ports could be garbage collected, since they would not be
    reachable from live code, despite having a strong reference to each
    other.</p>
 
@@ -71555,7 +71631,7 @@ interface <dfn>MessagePort</dfn> {
   <code>MessagePort</code> object's <span>port message queue</span> is
   open and there exists a <code title="event-message">message</code>
   event in that queue.</p>
-  <!-- we might not need to explicitly say the first part of DOM
+  <!-- we might not need to explicitly say the first part if DOM
   Events is fixed to say that events on a task queue prevent GC -->
 
   <!-- XXX what about ports in the ports attribute of a MessageEvent

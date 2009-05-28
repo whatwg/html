@@ -39,7 +39,7 @@
   <div class=head>
    <p><a class=logo href=http://www.whatwg.org/ rel=home><img alt=WHATWG src=/images/logo></a></p>
    <h1>HTML 5</h1>
-   <h2 class="no-num no-toc" id=draft-recommendation-&mdash;-date:-01-jan-1901>Draft Recommendation &mdash; 27 May 2009</h2>
+   <h2 class="no-num no-toc" id=draft-recommendation-&mdash;-date:-01-jan-1901>Draft Recommendation &mdash; 28 May 2009</h2>
    <p>You can take part in this work. <a href=http://www.whatwg.org/mailing-list>Join the working group's discussion list.</a></p>
    <p><strong>Web designers!</strong> We have a <a href=http://blog.whatwg.org/faq/>FAQ</a>, a <a href=http://forums.whatwg.org/>forum</a>, and a <a href=http://www.whatwg.org/mailing-list#help>help mailing list</a> for you!</p>
    <dl><dt>Multiple-page version:</dt>
@@ -9481,6 +9481,20 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
    parameter set to true. If the user <a href=#refused-to-allow-the-document-to-be-unloaded>refused to allow the
    document to be unloaded</a>, then these steps must be
    aborted.</li>
+
+   <!-- XXX should some task sources be emptied here? e.g. what about
+   timeouts that fired after this algorithm started but before the
+   list of timeouts was cleared in the previous step? or database
+   transaction callbacks that were queued after the task that started
+   this algorithm?
+
+   This is what the 'discard a document' algorithm does:
+
+     "any <span title="concept-task">tasks</span> associated with the
+     <code>Document</code> in any <span>task source</span> must be
+     removed without being run"
+
+    -->
 
    <li><p>If the document has an <span>active parser</span><!--XXX
    xref-->, then stop that parser, and throw away any pending content
@@ -46462,6 +46476,10 @@ interface <dfn id=window>Window</dfn> {
   reference">has a strong reference of its own</a> to its
   <code>Document</code> object.</p>
 
+  <p class=note>Whenever a <code>Document</code> object is <a href=#discard-a-document title="discard a Document">discarded</a>, it is also removed from
+  the list of <span>the worker's <code>Document</code>s</span> of each
+  worker whose list contains that <code>Document</code>.</p>
+
   <p>When <dfn id=a-browsing-context-is-discarded>a <em><span>browsing context</span></em> is
   discarded</dfn>, the strong reference from the user agent itself to
   the <a href=#browsing-context>browsing context</a> must be severed, and all the
@@ -48113,14 +48131,14 @@ interface <dfn id=function>Function</dfn> {
   associated with a <code>Document</code>, the user agent must
   <a href=#report-the-error>report the error</a> using the <code title=handler-window-onerror><a href=#handler-window-onerror>onerror</a></code> <a href=#event-handler-attributes-0 title="event
   handler attributes">event handler attribute</a> of the
-  <a href="#script's-global-object">script's global object</a>. If the error is still <i title="">not handled</i> after this, then the error should be
-  reported to the user.</p>
+  <a href="#script's-global-object">script's global object</a>. If the error is still <i title=concept-error-nothandled><a href=#concept-error-nothandled>not handled</a></i> after this, then
+  the error should be reported to the user.</p>
 
   <hr><p>When the user agent is required to <dfn id=report-the-error title="report the
   error">report an error</dfn> <var title="">error</var> using the
   <a href=#event-handler-attributes-0 title="event handler attributes">event handler
   attribute</a> <var title="">onerror</var>, it must run these
-  steps, after which the error is either <i title="">handled</i> or <i title="">not handled</i>:</p>
+  steps, after which the error is either <dfn id=concept-error-handled title=concept-error-handled><i>handled</i></dfn> or <dfn id=concept-error-nothandled title=concept-error-nothandled><i>not handled</i></dfn>:</p>
 
   <dl class=switch><dt>If the value of <var title="">onerror</var> is a
    <code><a href=#function>Function</a></code></dt>
@@ -48134,8 +48152,8 @@ interface <dfn id=function>Function</dfn> {
     the resource in which the error occurred, and the third must give
     the line number in that resource on which the error occurred.</p>
 
-    <p>If the function returns false, then the error is <i title="">handled</i>. Otherwise, the error is <i title="">not
-    handled</i>.</p>
+    <p>If the function returns false, then the error is <i title=concept-error-handled><a href=#concept-error-handled>handled</a></i>. Otherwise, the error is
+    <i title=concept-error-nothandled><a href=#concept-error-nothandled>not handled</a></i>.</p>
 
     <p>Any exceptions thrown or errors caused by this function must be
     reported to the user immediately after the error that the function
@@ -48148,7 +48166,7 @@ interface <dfn id=function>Function</dfn> {
 
    <dd>
 
-    <p>The error is <i title="">not handled</i>.</p>
+    <p>The error is <i title=concept-error-nothandled><a href=#concept-error-nothandled>not handled</a></i>.</p>
 
    </dd>
 
@@ -52331,6 +52349,10 @@ user reload must be equivalent to .reload()
    whose <a href="#script's-global-object" title="script's global object">global object</a> is
    the <code>Document</code>'s <code><a href=#window>Window</a></code> object, roll them
    back (without invoking any of the callbacks) and set <var title="">salvageable</var> to false.</p>
+
+   <li><p>Empty the <code>Document</code>'s <code><a href=#window>Window</a></code>'s
+   <a href=#list-of-active-timeouts>list of active timeouts</a> and its <a href=#list-of-active-intervals>list of active
+   intervals</a>.</li>
 
    <li><p>If <var title="">salvageable</var> and <var title="">recycle</var> are both false, <a href=#discard-a-document title="discard a
    document">discard the <code>Document</code></a>.</li>
@@ -57884,8 +57906,8 @@ interface <dfn id=messagechannel>MessageChannel</dfn> {
   <pre class=idl>typedef sequence&lt;MessagePort&gt; <dfn id=messageportarray>MessagePortArray</dfn>;
 
 interface <dfn id=messageport>MessagePort</dfn> {
-  readonly attribute boolean <a href=#dom-messageport-active title=dom-MessagePort-active>active</a>;
-  void <a href=#dom-messageport-postmessage title=dom-MessagePort-postMessage>postMessage</a>(in any message, [Optional] in <a href=#messageportarray>MessagePortArray</a> ports);<!--
+<!-- v2-onclose  readonly attribute boolean <span title="dom-MessagePort-active">active</span>;
+-->  void <a href=#dom-messageport-postmessage title=dom-MessagePort-postMessage>postMessage</a>(in any message, [Optional] in <a href=#messageportarray>MessagePortArray</a> ports);<!--
   <span>MessagePort</span> <span title="dom-MessagePort-startConversation">startConversation</span>(in any message);-->
   void <a href=#dom-messageport-start title=dom-MessagePort-start>start</a>();
   void <a href=#dom-messageport-close title=dom-MessagePort-close>close</a>();
@@ -57894,15 +57916,15 @@ interface <dfn id=messageport>MessagePort</dfn> {
            attribute <a href=#function>Function</a> <a href=#handler-messageport-onmessage title=handler-MessagePort-onmessage>onmessage</a>;
 };</pre>
 
-  <dl class=domintro><dt><var title="">port</var> . <code title=dom-MessagePort-active><a href=#dom-messageport-active>active</a></code></dt>
+  <dl class=domintro><!-- v2-onclose
+   <dt><var title="">port</var> . <code title="dom-MessagePort-active">active</code></dt>
 
    <dd>
 
     <p>Returns true if the port is still active; otherwise, returns false.</p>
 
    </dd>
-
-   <dt><var title="">port</var> . <code title=dom-MessagePort-poseMessage>postMessage</code>(<var title="">message</var> [, <var title="">ports</var>] )</dt>
+--><dt><var title="">port</var> . <code title=dom-MessagePort-poseMessage>postMessage</code>(<var title="">message</var> [, <var title="">ports</var>] )</dt>
 
    <dd>
 
@@ -57997,11 +58019,13 @@ interface <dfn id=messageport>MessagePort</dfn> {
    <li><p>Return <var title="">new port</var>. It is the
    clone.</li>
 
-  </ol><hr><p>The <dfn id=dom-messageport-active title=dom-MessagePort-active><code>active</code></dfn>
+  </ol><hr><!-- v2-onclose
+  <p>The <dfn title="dom-MessagePort-active"><code>active</code></dfn>
   attribute must return true if the port is entangled, and false
   otherwise.</p>
 
-  <hr><p>The <dfn id=dom-messageport-postmessage title=dom-MessagePort-postMessage><code>postMessage()</code></dfn>
+  <hr>
+--><p>The <dfn id=dom-messageport-postmessage title=dom-MessagePort-postMessage><code>postMessage()</code></dfn>
   method, when called on a port <var title="">source port</var>, must
   cause the user agent to run the following steps:</p>
 
@@ -58168,9 +58192,11 @@ interface <dfn id=messageport>MessagePort</dfn> {
 
   <h5 id=ports-and-garbage-collection><span class=secno>8.3.3.1 </span>Ports and garbage collection</h5>
 
-  <p>User agents must act as if <code><a href=#messageport>MessagePort</a></code> objects have
-  a strong reference to their entangled <code><a href=#messageport>MessagePort</a></code>
-  object.</p>
+  <p>User agents must either act as if <code><a href=#messageport>MessagePort</a></code>
+  objects have a strong reference to their entangled
+  <code><a href=#messageport>MessagePort</a></code> object or as if each
+  <code><a href=#messageport>MessagePort</a></code> object's owner has a strong reference to
+  the <code><a href=#messageport>MessagePort</a></code> object.</p>
 
   <div class=note>
 
@@ -58179,7 +58205,7 @@ interface <dfn id=messageport>MessagePort</dfn> {
    receive a message, the channel will be maintained.</p>
 
    <p>Of course, if this was to occur on both sides of the channel,
-   then both ports would be garbage collected, since they would not be
+   then both ports could be garbage collected, since they would not be
    reachable from live code, despite having a strong reference to each
    other.</p>
 
@@ -58192,7 +58218,7 @@ interface <dfn id=messageport>MessagePort</dfn> {
   <code><a href=#messageport>MessagePort</a></code> object's <a href=#port-message-queue>port message queue</a> is
   open and there exists a <code title=event-message><a href=#event-message>message</a></code>
   event in that queue.</p>
-  <!-- we might not need to explicitly say the first part of DOM
+  <!-- we might not need to explicitly say the first part if DOM
   Events is fixed to say that events on a task queue prevent GC -->
 
   <!-- XXX what about ports in the ports attribute of a MessageEvent
