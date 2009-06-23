@@ -39,7 +39,7 @@
   <div class=head>
    <p><a class=logo href=http://www.whatwg.org/ rel=home><img alt=WHATWG src=/images/logo></a></p>
    <h1>HTML 5</h1>
-   <h2 class="no-num no-toc" id=draft-standard-&mdash;-date:-01-jan-1901>Draft Standard &mdash; 17 June 2009</h2>
+   <h2 class="no-num no-toc" id=draft-standard-&mdash;-date:-01-jan-1901>Draft Standard &mdash; 23 June 2009</h2>
    <p>You can take part in this work. <a href=http://www.whatwg.org/mailing-list>Join the working group's discussion list.</a></p>
    <p><strong>Web designers!</strong> We have a <a href=http://blog.whatwg.org/faq/>FAQ</a>, a <a href=http://forums.whatwg.org/>forum</a>, and a <a href=http://www.whatwg.org/mailing-list#help>help mailing list</a> for you!</p>
    <dl><dt>Multiple-page version:</dt>
@@ -992,7 +992,12 @@
        <li><a href=#the-after-after-body-insertion-mode><span class=secno>9.2.5.24 </span>The "after after body" insertion mode</a></li>
        <li><a href=#the-after-after-frameset-insertion-mode><span class=secno>9.2.5.25 </span>The "after after frameset" insertion mode</a></ol></li>
      <li><a href=#the-end><span class=secno>9.2.6 </span>The end</a></li>
-     <li><a href=#coercing-an-html-dom-into-an-infoset><span class=secno>9.2.7 </span>Coercing an HTML DOM into an infoset</a></ol></li>
+     <li><a href=#coercing-an-html-dom-into-an-infoset><span class=secno>9.2.7 </span>Coercing an HTML DOM into an infoset</a></li>
+     <li><a href=#an-introduction-to-error-handling-in-the-parser><span class=secno>9.2.8 </span>An introduction to error handling in the parser</a>
+      <ol>
+       <li><a href=#misnested-tags:-b-i-/b-/i><span class=secno>9.2.8.1 </span>Misnested tags: &lt;b&gt;&lt;i&gt;&lt;/b&gt;&lt;/i&gt;</a></li>
+       <li><a href=#misnested-tags:-b-p-/b-/p><span class=secno>9.2.8.2 </span>Misnested tags: &lt;b&gt;&lt;p&gt;&lt;/b&gt;&lt;/p&gt;</a></li>
+       <li><a href=#unexpected-markup-in-tables><span class=secno>9.2.8.3 </span>Unexpected markup in tables</a></ol></ol></li>
    <li><a href=#namespaces><span class=secno>9.3 </span>Namespaces</a></li>
    <li><a href=#serializing-html-fragments><span class=secno>9.4 </span>Serializing HTML fragments</a></li>
    <li><a href=#parsing-html-fragments><span class=secno>9.5 </span>Parsing HTML fragments</a></li>
@@ -58369,6 +58374,7 @@ interface <dfn id=messageport>MessagePort</dfn> {
   pause flag</dfn>, which must be initially set to false.</p>
 
 
+
   <h4 id=the-input-stream><span class=secno>9.2.2 </span>The <dfn>input stream</dfn></h4>
 
   <p>The stream of Unicode characters that comprises the input to the
@@ -59192,8 +59198,13 @@ interface <dfn id=messageport>MessagePort</dfn> {
   category, and scope markers. The scope markers are inserted when
   entering <code><a href=#the-applet-element>applet</a></code> elements, buttons, <code><a href=#the-object-element>object</a></code>
   elements, marquees, table cells, and table captions, and are used to
-  prevent formatting from "leaking" into <code><a href=#the-applet-element>applet</a></code> elements,
-  buttons, <code><a href=#the-object-element>object</a></code> elements, marquees, and tables.</p>
+  prevent formatting from "leaking" <em>into</em> <code><a href=#the-applet-element>applet</a></code>
+  elements, buttons, <code><a href=#the-object-element>object</a></code> elements, marquees, and
+  tables.</p>
+
+  <p class=note>The scope markers are unrelated to the concept of an
+  element being <a href=#has-an-element-in-scope title="has an element in scope">in
+  scope</a>.</p>
 
   <p>In addition, each element in the <a href=#list-of-active-formatting-elements>list of active formatting
   elements</a> is associated with the token for which it was
@@ -60970,9 +60981,9 @@ document.body.appendChild(text);
   must be inserted into the <i><a href=#foster-parent-element>foster parent element</a></i>, and the
   <a href=#current-table>current table</a> must be marked as
   <dfn id=tainted>tainted</dfn>. (Once the <a href=#current-table>current table</a> has been
-  <a href=#tainted>tainted</a>, whitespace characters are inserted into the
-  <i><a href=#foster-parent-element>foster parent element</a></i> instead of the <a href=#current-node>current
-  node</a>.)</p>
+  <a href=#tainted>tainted</a>, <a href=#space-character title="space character">space
+  characters</a> are inserted into the <i><a href=#foster-parent-element>foster parent element</a></i>
+  instead of the <a href=#current-node>current node</a>.)</p>
 
   <p>The <dfn id=foster-parent-element>foster parent element</dfn> is the parent element of the
   last <code><a href=#the-table-element>table</a></code> element in the <a href=#stack-of-open-elements>stack of open
@@ -64400,7 +64411,192 @@ http://lxr.mozilla.org/seamonkey/search?string=nested
 
 
 
-  <h3 id=namespaces><span class=secno>9.3 </span>Namespaces</h3>
+  <h4 id=an-introduction-to-error-handling-in-the-parser><span class=secno>9.2.8 </span>An introduction to error handling in the parser</h4>
+
+  <p><em>This section is non-normative.</em></p>
+
+  <p>This section examines some erroneous markup and discusses how
+  the <a href=#html-parser>HTML parser</a> handles these cases.</p>
+
+
+  <h5 id=misnested-tags:-b-i-/b-/i><span class=secno>9.2.8.1 </span>Misnested tags: &lt;b&gt;&lt;i&gt;&lt;/b&gt;&lt;/i&gt;</h5>
+
+  <p><em>This section is non-normative.</em></p>
+
+  <p>The most-often discussed example of erroneous markup is as
+  follows:</p>
+
+  <pre>&lt;p&gt;1&lt;b&gt;2&lt;i&gt;3&lt;/b&gt;4&lt;/i&gt;5&lt;/p&gt;</pre>
+
+  <p>The parsing of this markup is straightforward up to the "3". At
+  this point, the DOM looks like this:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-p-element>p</a></code><ul><li class=t3><code>#text</code>: <span title="">1</span><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">2</span><li class=t1><code><a href=#the-i-element>i</a></code><ul><li class=t3><code>#text</code>: <span title="">3</span></ul></ul></ul></ul></ul></ul><p>Here, the <a href=#stack-of-open-elements>stack of open elements</a> has five elements
+  on it: <code><a href=#the-html-element>html</a></code>, <code><a href=#the-body-element>body</a></code>, <code><a href=#the-p-element>p</a></code>,
+  <code><a href=#the-b-element>b</a></code>, and <code><a href=#the-i-element>i</a></code>. The <a href=#list-of-active-formatting-elements>list of active
+  formatting elements</a> just has two: <code><a href=#the-b-element>b</a></code> and
+  <code><a href=#the-i-element>i</a></code>. The <a href=#insertion-mode>insertion mode</a> is "<a href=#parsing-main-inbody title="insertion mode: in body">in body</a>".</p>
+
+  <p>Upon receiving the end tag token with the tag name "b", the "<a href=#adoptionAgency>adoption agency algorithm</a>" is
+  invoked. This is a simple case, in that the <var title="">formatting
+  element</var> is the <code><a href=#the-b-element>b</a></code> element, and there is no
+  <var title="">furthest block</var>. Thus, the <a href=#stack-of-open-elements>stack of open
+  elements</a> ends up with just three elements: <code><a href=#the-html-element>html</a></code>,
+  <code><a href=#the-body-element>body</a></code>, and <code><a href=#the-p-element>p</a></code>, while the <a href=#list-of-active-formatting-elements>list of
+  active formatting elements</a> has just one: <code><a href=#the-i-element>i</a></code>. The
+  DOM tree is unmodified at this point.</p>
+
+  <p>The next token is a character ("4"), triggers the <a href=#reconstruct-the-active-formatting-elements title="reconstruct the active formatting elements">reconstruction of
+  the active formatting elements</a>, in this case just the
+  <code><a href=#the-i-element>i</a></code> element. A new <code><a href=#the-i-element>i</a></code> element is thus created
+  for the "4" text node. After the end tag token for the "i" is also
+  received, and the "5" text node is inserted, the DOM looks as
+  follows:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-p-element>p</a></code><ul><li class=t3><code>#text</code>: <span title="">1</span><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">2</span><li class=t1><code><a href=#the-i-element>i</a></code><ul><li class=t3><code>#text</code>: <span title="">3</span></ul></ul><li class=t1><code><a href=#the-i-element>i</a></code><ul><li class=t3><code>#text</code>: <span title="">4</span></ul><li class=t3><code>#text</code>: <span title="">5</span></ul></ul></ul></ul><h5 id=misnested-tags:-b-p-/b-/p><span class=secno>9.2.8.2 </span>Misnested tags: &lt;b&gt;&lt;p&gt;&lt;/b&gt;&lt;/p&gt;</h5>
+
+  <p><em>This section is non-normative.</em></p>
+
+  <p>A case similar to the previous one is the following:</p>
+
+  <pre>&lt;b&gt;1&lt;p&gt;2&lt;/b&gt;3&lt;/p&gt;</pre>
+
+  <p>Up to the "2" the parsing here is straightforward:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">1</span><li class=t1><code><a href=#the-p-element>p</a></code><ul><li class=t3><code>#text</code>: <span title="">2</span></ul></ul></ul></ul></ul><p>The interesting part is when the end tag token with the tag name
+  "b" is parsed.</p>
+
+  <p>Before that token is seen, the <a href=#stack-of-open-elements>stack of open
+  elements</a> has four elements on it: <code><a href=#the-html-element>html</a></code>,
+  <code><a href=#the-body-element>body</a></code>, <code><a href=#the-b-element>b</a></code>, and <code><a href=#the-p-element>p</a></code>. The
+  <a href=#list-of-active-formatting-elements>list of active formatting elements</a> just has the one:
+  <code><a href=#the-b-element>b</a></code>. The <a href=#insertion-mode>insertion mode</a> is "<a href=#parsing-main-inbody title="insertion mode: in body">in body</a>".</p>
+
+  <p>Upon receiving the end tag token with the tag name "b", the "<a href=#adoptionAgency>adoption agency algorithm</a>" is invoked, as
+  in the previous example. However, in this case, there <em>is</em> a
+  <var title="">furthest block</var>, namely the <code><a href=#the-p-element>p</a></code> element. Thus,
+  this time the adoption agency algorithm isn't skipped over.</p>
+
+  <p>The <var title="">common ancestor</var> is the <code><a href=#the-body-element>body</a></code>
+  element. A conceptual "bookmark" marks the position of the
+  <code><a href=#the-b-element>b</a></code> in the <a href=#list-of-active-formatting-elements>list of active formatting
+  elements</a>, but since that list has only one element in it,
+  it won't have much effect.</p>
+
+  <p>As the algorithm progresses, <var title="">node</var> ends up set
+  to the formatting element (<code><a href=#the-b-element>b</a></code>), and <var title="">last
+  node</var> ends up set to the <var title="">furthest block</var>
+  (<code><a href=#the-p-element>p</a></code>).</p>
+
+  <p>The <var title="">last node</var> gets appended (moved) to the
+  <var title="">common ancestor</var>, so that the DOM looks like:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">1</span></ul><li class=t1><code><a href=#the-p-element>p</a></code><ul><li class=t3><code>#text</code>: <span title="">2</span></ul></ul></ul></ul><p>A new <code><a href=#the-b-element>b</a></code> element is created, and the children of the
+  <code><a href=#the-p-element>p</a></code> element are moved to it:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">1</span></ul><li class=t1><code><a href=#the-p-element>p</a></code></ul></ul></ul><ul class=domTree><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">2</span></ul></ul><p>Finally, the new <code><a href=#the-b-element>b</a></code> element is appended to the
+  <code><a href=#the-p-element>p</a></code> element, so that the DOM looks like:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">1</span></ul><li class=t1><code><a href=#the-p-element>p</a></code><ul><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">2</span></ul></ul></ul></ul></ul><p>The <code><a href=#the-b-element>b</a></code> element is removed from the <a href=#list-of-active-formatting-elements>list of
+  active formatting elements</a> and the <a href=#stack-of-open-elements>stack of open
+  elements</a>, so that when the "3" is parsed, it is appended to
+  the <code><a href=#the-p-element>p</a></code> element:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">1</span></ul><li class=t1><code><a href=#the-p-element>p</a></code><ul><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">2</span></ul><li class=t3><code>#text</code>: <span title="">3</span></ul></ul></ul></ul><h5 id=unexpected-markup-in-tables><span class=secno>9.2.8.3 </span>Unexpected markup in tables</h5>
+
+  <p><em>This section is non-normative.</em></p>
+
+  <p>Error handling in tables is, for historical reasons, especially
+  strange. For example, consider the following markup:</p>
+
+  <pre>&lt;table&gt;<strong>&lt;b&gt;</strong>&lt;tr&gt;&lt;td&gt;aaa&lt;/td&gt;&lt;/tr&gt;<strong>bbb</strong>&lt;/table&gt;ccc</pre>
+
+  <p>The highlighted <code><a href=#the-b-element>b</a></code> element start tag is not allowed
+  directly inside a table like that, and the parser handles this case
+  by placing the element <em>before</em> the table. (This is called <i title="foster parent"><a href=#foster-parent>foster parenting</a></i>.) This can be seen by
+  examining the DOM tree as it stands just after the
+  <code><a href=#the-table-element>table</a></code> element's start tag has been seen:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-table-element>table</a></code></ul></ul></ul><p>...and then immediately after the <code><a href=#the-b-element>b</a></code> element start
+  tag has been seen:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-b-element>b</a></code><li class=t1><code><a href=#the-table-element>table</a></code></ul></ul></ul><p>At this point, the <a href=#stack-of-open-elements>stack of open elements</a> has on it
+  the elements <code><a href=#the-html-element>html</a></code>, <code><a href=#the-body-element>body</a></code>,
+  <code><a href=#the-table-element>table</a></code>, and <code><a href=#the-b-element>b</a></code> (in that order, despite the
+  resulting DOM tree); the <a href=#list-of-active-formatting-elements>list of active formatting
+  elements</a> just has the <code><a href=#the-b-element>b</a></code> element in it; the
+  <a href=#insertion-mode>insertion mode</a> is "<a href=#parsing-main-intable title="insertion mode: in
+  table">in table</a>"; and the <code><a href=#the-table-element>table</a></code> element is
+  <a href=#tainted>tainted</a>.</p>
+
+  <p>The <code><a href=#the-tr-element>tr</a></code> start tag causes the <code><a href=#the-b-element>b</a></code> element
+  to be popped off the stack and a <code><a href=#the-tbody-element>tbody</a></code> start tag to be
+  implied; the <code><a href=#the-tbody-element>tbody</a></code> and <code><a href=#the-tr-element>tr</a></code> elements are
+  then handled in a rather straight-forward manner, taking the parser
+  through the "<a href=#parsing-main-intbody title="insertion mode: in table body">in table
+  body</a>" and "<a href=#parsing-main-intr title="insertion mode: in row">in
+  row</a>" insertion modes, after which the DOM looks as
+  follows:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-b-element>b</a></code><li class=t1><code><a href=#the-table-element>table</a></code><ul><li class=t1><code><a href=#the-tbody-element>tbody</a></code><ul><li class=t1><code><a href=#the-tr-element>tr</a></code></ul></ul></ul></ul></ul><p>Here, the <a href=#stack-of-open-elements>stack of open elements</a> has on it the
+  elements <code><a href=#the-html-element>html</a></code>, <code><a href=#the-body-element>body</a></code>, <code><a href=#the-table-element>table</a></code>,
+  <code><a href=#the-tbody-element>tbody</a></code>, and <code><a href=#the-tr-element>tr</a></code>; the <a href=#list-of-active-formatting-elements>list of active
+  formatting elements</a> still has the <code><a href=#the-b-element>b</a></code> element in
+  it; the <a href=#insertion-mode>insertion mode</a> is "<a href=#parsing-main-intr title="insertion mode:
+  in row">in row</a>"; and the <code><a href=#the-table-element>table</a></code> element is still
+  <a href=#tainted>tainted</a>.</p>
+
+  <p>The <code><a href=#the-td-element>td</a></code> element start tag token, after putting a
+  <code><a href=#the-td-element>td</a></code> element on the tree, puts a marker on the <a href=#list-of-active-formatting-elements>list
+  of active formatting elements</a> (it also switches to the "<a href=#parsing-main-intd title="insertion mode: in cell">in cell</a>" <a href=#insertion-mode>insertion
+  mode</a>).</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-b-element>b</a></code><li class=t1><code><a href=#the-table-element>table</a></code><ul><li class=t1><code><a href=#the-tbody-element>tbody</a></code><ul><li class=t1><code><a href=#the-tr-element>tr</a></code><ul><li class=t1><code><a href=#the-td-element>td</a></code></ul></ul></ul></ul></ul></ul><p>The marker means that when the "aaa" character tokens are seen,
+  no <code><a href=#the-b-element>b</a></code> element is created to hold the resulting text
+  node:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-b-element>b</a></code><li class=t1><code><a href=#the-table-element>table</a></code><ul><li class=t1><code><a href=#the-tbody-element>tbody</a></code><ul><li class=t1><code><a href=#the-tr-element>tr</a></code><ul><li class=t1><code><a href=#the-td-element>td</a></code><ul><li class=t3><code>#text</code>: <span title="">aaa</span></ul></ul></ul></ul></ul></ul></ul><p>The end tags are handled in a straight-forward manner; after
+  handling them, the <a href=#stack-of-open-elements>stack of open elements</a> has on it the
+  elements <code><a href=#the-html-element>html</a></code>, <code><a href=#the-body-element>body</a></code>, <code><a href=#the-table-element>table</a></code>,
+  and <code><a href=#the-tbody-element>tbody</a></code>; the <a href=#list-of-active-formatting-elements>list of active formatting
+  elements</a> still has the <code><a href=#the-b-element>b</a></code> element in it (the
+  marker having been removed by the "td" end tag token); the
+  <a href=#insertion-mode>insertion mode</a> is "<a href=#parsing-main-intbody title="insertion mode: in
+  table body">in table body</a>"; and the <code><a href=#the-table-element>table</a></code>
+  element is still <a href=#tainted>tainted</a>.</p>
+
+  <p>Thus it is that the "bbb" character tokens are found. When <a href=#reconstruct-the-active-formatting-elements title="reconstruct the active formatting elements">the active
+  formatting elements are reconstructed</a>, a <code><a href=#the-b-element>b</a></code>
+  element is created and <a href=#foster-parent title="foster parent">foster
+  parented</a>, and then the "bbb" text node is appended to it:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-b-element>b</a></code><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">bbb</span></ul><li class=t1><code><a href=#the-table-element>table</a></code><ul><li class=t1><code><a href=#the-tbody-element>tbody</a></code><ul><li class=t1><code><a href=#the-tr-element>tr</a></code><ul><li class=t1><code><a href=#the-td-element>td</a></code><ul><li class=t3><code>#text</code>: <span title="">aaa</span></ul></ul></ul></ul></ul></ul></ul><p>The <a href=#stack-of-open-elements>stack of open elements</a> has on it the elements
+  <code><a href=#the-html-element>html</a></code>, <code><a href=#the-body-element>body</a></code>, <code><a href=#the-table-element>table</a></code>,
+  <code><a href=#the-tbody-element>tbody</a></code>, and the new <code><a href=#the-b-element>b</a></code> (again, note that
+  this doesn't match the resulting tree!); the <a href=#list-of-active-formatting-elements>list of active
+  formatting elements</a> has the new <code><a href=#the-b-element>b</a></code> element in it;
+  the <a href=#insertion-mode>insertion mode</a> is still "<a href=#parsing-main-intbody title="insertion
+  mode: in table body">in table body</a>"; and the
+  <code><a href=#the-table-element>table</a></code> element is still <a href=#tainted>tainted</a>.</p>
+
+  <p>Had the character tokens been <a href=#space-character title="space character">space
+  characters</a> instead of "bbb", the result would have been the
+  same, but only because the table is <a href=#tainted>tainted</a>. Had the
+  <code><a href=#the-b-element>b</a></code> element's start tag been before the
+  <code><a href=#the-table-element>table</a></code> instead of after, then the table wouldn't have
+  been <a href=#tainted>tainted</a> and such <a href=#space-character title="space
+  character">space characters</a> would just be appended to the
+  <code><a href=#the-tbody-element>tbody</a></code> element.</p>
+
+  <p>Finally, the <code><a href=#the-table-element>table</a></code> is closed by a "table" end
+  tag. This pops all the nodes from the <a href=#stack-of-open-elements>stack of open
+  elements</a> up to and including the <code><a href=#the-table-element>table</a></code> element,
+  but it doesn't affect the <a href=#list-of-active-formatting-elements>list of active formatting
+  elements</a>, so the "ccc" character tokens after the table
+  result in yet another <code><a href=#the-b-element>b</a></code> element being created, this
+  time after the table:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-b-element>b</a></code><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">bbb</span></ul><li class=t1><code><a href=#the-table-element>table</a></code><ul><li class=t1><code><a href=#the-tbody-element>tbody</a></code><ul><li class=t1><code><a href=#the-tr-element>tr</a></code><ul><li class=t1><code><a href=#the-td-element>td</a></code><ul><li class=t3><code>#text</code>: <span title="">aaa</span></ul></ul></ul></ul><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">ccc</span></ul></ul></ul></ul><h3 id=namespaces><span class=secno>9.3 </span>Namespaces</h3>
 
   <p>The <dfn id=html-namespace-0>HTML namespace</dfn> is: <code>http://www.w3.org/1999/xhtml</code></p>
 

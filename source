@@ -71813,6 +71813,7 @@ interface <dfn>MessagePort</dfn> {
   pause flag</dfn>, which must be initially set to false.</p>
 
 
+
   <h4>The <dfn>input stream</dfn></h4>
 
   <p>The stream of Unicode characters that comprises the input to the
@@ -72783,8 +72784,13 @@ interface <dfn>MessagePort</dfn> {
   category, and scope markers. The scope markers are inserted when
   entering <code>applet</code> elements, buttons, <code>object</code>
   elements, marquees, table cells, and table captions, and are used to
-  prevent formatting from "leaking" into <code>applet</code> elements,
-  buttons, <code>object</code> elements, marquees, and tables.</p>
+  prevent formatting from "leaking" <em>into</em> <code>applet</code>
+  elements, buttons, <code>object</code> elements, marquees, and
+  tables.</p>
+
+  <p class="note">The scope markers are unrelated to the concept of an
+  element being <span title="has an element in scope">in
+  scope</span>.</p>
 
   <p>In addition, each element in the <span>list of active formatting
   elements</span> is associated with the token for which it was
@@ -74806,9 +74812,9 @@ document.body.appendChild(text);
   must be inserted into the <i>foster parent element</i>, and the
   <span>current table</span> must be marked as
   <dfn>tainted</dfn>. (Once the <span>current table</span> has been
-  <span>tainted</span>, whitespace characters are inserted into the
-  <i>foster parent element</i> instead of the <span>current
-  node</span>.)</p>
+  <span>tainted</span>, <span title="space character">space
+  characters</span> are inserted into the <i>foster parent element</i>
+  instead of the <span>current node</span>.)</p>
 
   <p>The <dfn>foster parent element</dfn> is the parent element of the
   last <code>table</code> element in the <span>stack of open
@@ -78543,6 +78549,233 @@ http://lxr.mozilla.org/seamonkey/search?string=nested
   if the user agent is using the rules above to then generate an
   actual element in the DOM with the name <code
   title="">aU00003AU00003A</code> for that start tag.</p>
+
+
+
+  <h4>An introduction to error handling in the parser</h4>
+
+  <p><em>This section is non-normative.</em></p>
+
+  <p>This section examines some erroneous markup and discusses how
+  the <span>HTML parser</span> handles these cases.</p>
+
+
+  <h5>Misnested tags: &lt;b>&lt;i>&lt;/b>&lt;/i></h5>
+
+  <p><em>This section is non-normative.</em></p>
+
+  <p>The most-often discussed example of erroneous markup is as
+  follows:</p>
+
+  <pre>&lt;p>1&lt;b>2&lt;i>3&lt;/b>4&lt;/i>5&lt;/p></pre>
+
+  <p>The parsing of this markup is straightforward up to the "3". At
+  this point, the DOM looks like this:</p>
+
+  <ul class="domTree"><li class="t1"><code>html</code><ul><li class="t1"><code>head</code></li><li class="t1"><code>body</code><ul><li class="t1"><code>p</code><ul><li class="t3"><code>#text</code>: <span title="">1</span></li><li class="t1"><code>b</code><ul><li class="t3"><code>#text</code>: <span title="">2</span></li><li class="t1"><code>i</code><ul><li class="t3"><code>#text</code>: <span title="">3</span></li></ul></li></ul></li></ul></li></ul></li></ul></li></ul>
+
+  <p>Here, the <span>stack of open elements</span> has five elements
+  on it: <code>html</code>, <code>body</code>, <code>p</code>,
+  <code>b</code>, and <code>i</code>. The <span>list of active
+  formatting elements</span> just has two: <code>b</code> and
+  <code>i</code>. The <span>insertion mode</span> is "<span
+  title="insertion mode: in body">in body</span>".</p>
+
+  <p>Upon receiving the end tag token with the tag name "b", the "<a
+  href="#adoptionAgency">adoption agency algorithm</a>" is
+  invoked. This is a simple case, in that the <var title="">formatting
+  element</var> is the <code>b</code> element, and there is no
+  <var title="">furthest block</var>. Thus, the <span>stack of open
+  elements</span> ends up with just three elements: <code>html</code>,
+  <code>body</code>, and <code>p</code>, while the <span>list of
+  active formatting elements</span> has just one: <code>i</code>. The
+  DOM tree is unmodified at this point.</p>
+
+  <p>The next token is a character ("4"), triggers the <span
+  title="reconstruct the active formatting elements">reconstruction of
+  the active formatting elements</span>, in this case just the
+  <code>i</code> element. A new <code>i</code> element is thus created
+  for the "4" text node. After the end tag token for the "i" is also
+  received, and the "5" text node is inserted, the DOM looks as
+  follows:</p>
+
+  <ul class="domTree"><li class="t1"><code>html</code><ul><li class="t1"><code>head</code></li><li class="t1"><code>body</code><ul><li class="t1"><code>p</code><ul><li class="t3"><code>#text</code>: <span title="">1</span></li><li class="t1"><code>b</code><ul><li class="t3"><code>#text</code>: <span title="">2</span></li><li class="t1"><code>i</code><ul><li class="t3"><code>#text</code>: <span title="">3</span></li></ul></li></ul></li><li class="t1"><code>i</code><ul><li class="t3"><code>#text</code>: <span title="">4</span></li></ul></li><li class="t3"><code>#text</code>: <span title="">5</span></li></ul></li></ul></li></ul></li></ul>
+
+
+  <h5>Misnested tags: &lt;b>&lt;p>&lt;/b>&lt;/p></h5>
+
+  <p><em>This section is non-normative.</em></p>
+
+  <p>A case similar to the previous one is the following:</p>
+
+  <pre>&lt;b>1&lt;p>2&lt;/b>3&lt;/p></pre>
+
+  <p>Up to the "2" the parsing here is straightforward:</p>
+
+  <ul class="domTree"><li class="t1"><code>html</code><ul><li class="t1"><code>head</code></li><li class="t1"><code>body</code><ul><li class="t1"><code>b</code><ul><li class="t3"><code>#text</code>: <span title="">1</span></li><li class="t1"><code>p</code><ul><li class="t3"><code>#text</code>: <span title="">2</span></li></ul></li></ul></li></ul></li></ul></li></ul>
+
+  <p>The interesting part is when the end tag token with the tag name
+  "b" is parsed.</p>
+
+  <p>Before that token is seen, the <span>stack of open
+  elements</span> has four elements on it: <code>html</code>,
+  <code>body</code>, <code>b</code>, and <code>p</code>. The
+  <span>list of active formatting elements</span> just has the one:
+  <code>b</code>. The <span>insertion mode</span> is "<span
+  title="insertion mode: in body">in body</span>".</p>
+
+  <p>Upon receiving the end tag token with the tag name "b", the "<a
+  href="#adoptionAgency">adoption agency algorithm</a>" is invoked, as
+  in the previous example. However, in this case, there <em>is</em> a
+  <var title="">furthest block</var>, namely the <code>p</code> element. Thus,
+  this time the adoption agency algorithm isn't skipped over.</p>
+
+  <p>The <var title="">common ancestor</var> is the <code>body</code>
+  element. A conceptual "bookmark" marks the position of the
+  <code>b</code> in the <span>list of active formatting
+  elements</span>, but since that list has only one element in it,
+  it won't have much effect.</p>
+
+  <p>As the algorithm progresses, <var title="">node</var> ends up set
+  to the formatting element (<code>b</code>), and <var title="">last
+  node</var> ends up set to the <var title="">furthest block</var>
+  (<code>p</code>).</p>
+
+  <p>The <var title="">last node</var> gets appended (moved) to the
+  <var title="">common ancestor</var>, so that the DOM looks like:</p>
+
+  <ul class="domTree"><li class="t1"><code>html</code><ul><li class="t1"><code>head</code></li><li class="t1"><code>body</code><ul><li class="t1"><code>b</code><ul><li class="t3"><code>#text</code>: <span title="">1</span></li></ul></li><li class="t1"><code>p</code><ul><li class="t3"><code>#text</code>: <span title="">2</span></li></ul></li></ul></li></ul></li></ul>
+
+  <p>A new <code>b</code> element is created, and the children of the
+  <code>p</code> element are moved to it:</p>
+
+  <ul class="domTree"><li class="t1"><code>html</code><ul><li class="t1"><code>head</code></li><li class="t1"><code>body</code><ul><li class="t1"><code>b</code><ul><li class="t3"><code>#text</code>: <span title="">1</span></li></ul></li><li class="t1"><code>p</code></li></ul></li></ul></li></ul>
+  <ul class="domTree"><li class="t1"><code>b</code><ul><li class="t3"><code>#text</code>: <span title="">2</span></li></ul></li></ul>
+
+  <p>Finally, the new <code>b</code> element is appended to the
+  <code>p</code> element, so that the DOM looks like:</p>
+
+  <ul class="domTree"><li class="t1"><code>html</code><ul><li class="t1"><code>head</code></li><li class="t1"><code>body</code><ul><li class="t1"><code>b</code><ul><li class="t3"><code>#text</code>: <span title="">1</span></li></ul></li><li class="t1"><code>p</code><ul><li class="t1"><code>b</code><ul><li class="t3"><code>#text</code>: <span title="">2</span></li></ul></li></ul></li></ul></li></ul></li></ul>
+
+  <p>The <code>b</code> element is removed from the <span>list of
+  active formatting elements</span> and the <span>stack of open
+  elements</span>, so that when the "3" is parsed, it is appended to
+  the <code>p</code> element:</p>
+
+  <ul class="domTree"><li class="t1"><code>html</code><ul><li class="t1"><code>head</code></li><li class="t1"><code>body</code><ul><li class="t1"><code>b</code><ul><li class="t3"><code>#text</code>: <span title="">1</span></li></ul></li><li class="t1"><code>p</code><ul><li class="t1"><code>b</code><ul><li class="t3"><code>#text</code>: <span title="">2</span></li></ul></li><li class="t3"><code>#text</code>: <span title="">3</span></li></ul></li></ul></li></ul></li></ul>
+
+
+  <h5>Unexpected markup in tables</h5>
+
+  <p><em>This section is non-normative.</em></p>
+
+  <p>Error handling in tables is, for historical reasons, especially
+  strange. For example, consider the following markup:</p>
+
+  <pre>&lt;table><strong>&lt;b></strong>&lt;tr>&lt;td>aaa&lt;/td>&lt;/tr><strong>bbb</strong>&lt;/table>ccc</pre>
+
+  <p>The highlighted <code>b</code> element start tag is not allowed
+  directly inside a table like that, and the parser handles this case
+  by placing the element <em>before</em> the table. (This is called <i
+  title="foster parent">foster parenting</i>.) This can be seen by
+  examining the DOM tree as it stands just after the
+  <code>table</code> element's start tag has been seen:</p>
+
+  <ul class="domTree"><li class="t1"><code>html</code><ul><li class="t1"><code>head</code></li><li class="t1"><code>body</code><ul><li class="t1"><code>table</code></li></ul></li></ul></li></ul>
+
+  <p>...and then immediately after the <code>b</code> element start
+  tag has been seen:</p>
+
+  <ul class="domTree"><li class="t1"><code>html</code><ul><li class="t1"><code>head</code></li><li class="t1"><code>body</code><ul><li class="t1"><code>b</code></li><li class="t1"><code>table</code></li></ul></li></ul></li></ul>
+
+  <p>At this point, the <span>stack of open elements</span> has on it
+  the elements <code>html</code>, <code>body</code>,
+  <code>table</code>, and <code>b</code> (in that order, despite the
+  resulting DOM tree); the <span>list of active formatting
+  elements</span> just has the <code>b</code> element in it; the
+  <span>insertion mode</span> is "<span title="insertion mode: in
+  table">in table</span>"; and the <code>table</code> element is
+  <span>tainted</span>.</p>
+
+  <p>The <code>tr</code> start tag causes the <code>b</code> element
+  to be popped off the stack and a <code>tbody</code> start tag to be
+  implied; the <code>tbody</code> and <code>tr</code> elements are
+  then handled in a rather straight-forward manner, taking the parser
+  through the "<span title="insertion mode: in table body">in table
+  body</span>" and "<span title="insertion mode: in row">in
+  row</span>" insertion modes, after which the DOM looks as
+  follows:</p>
+
+  <ul class="domTree"><li class="t1"><code>html</code><ul><li class="t1"><code>head</code></li><li class="t1"><code>body</code><ul><li class="t1"><code>b</code></li><li class="t1"><code>table</code><ul><li class="t1"><code>tbody</code><ul><li class="t1"><code>tr</code></li></ul></li></ul></li></ul></li></ul></li></ul>
+
+  <p>Here, the <span>stack of open elements</span> has on it the
+  elements <code>html</code>, <code>body</code>, <code>table</code>,
+  <code>tbody</code>, and <code>tr</code>; the <span>list of active
+  formatting elements</span> still has the <code>b</code> element in
+  it; the <span>insertion mode</span> is "<span title="insertion mode:
+  in row">in row</span>"; and the <code>table</code> element is still
+  <span>tainted</span>.</p>
+
+  <p>The <code>td</code> element start tag token, after putting a
+  <code>td</code> element on the tree, puts a marker on the <span>list
+  of active formatting elements</span> (it also switches to the "<span
+  title="insertion mode: in cell">in cell</span>" <span>insertion
+  mode</span>).</p>
+
+  <ul class="domTree"><li class="t1"><code>html</code><ul><li class="t1"><code>head</code></li><li class="t1"><code>body</code><ul><li class="t1"><code>b</code></li><li class="t1"><code>table</code><ul><li class="t1"><code>tbody</code><ul><li class="t1"><code>tr</code><ul><li class="t1"><code>td</code></li></ul></li></ul></li></ul></li></ul></li></ul></li></ul>
+
+  <p>The marker means that when the "aaa" character tokens are seen,
+  no <code>b</code> element is created to hold the resulting text
+  node:</p>
+
+  <ul class="domTree"><li class="t1"><code>html</code><ul><li class="t1"><code>head</code></li><li class="t1"><code>body</code><ul><li class="t1"><code>b</code></li><li class="t1"><code>table</code><ul><li class="t1"><code>tbody</code><ul><li class="t1"><code>tr</code><ul><li class="t1"><code>td</code><ul><li class="t3"><code>#text</code>: <span title="">aaa</span></li></ul></li></ul></li></ul></li></ul></li></ul></li></ul></li></ul>
+
+  <p>The end tags are handled in a straight-forward manner; after
+  handling them, the <span>stack of open elements</span> has on it the
+  elements <code>html</code>, <code>body</code>, <code>table</code>,
+  and <code>tbody</code>; the <span>list of active formatting
+  elements</span> still has the <code>b</code> element in it (the
+  marker having been removed by the "td" end tag token); the
+  <span>insertion mode</span> is "<span title="insertion mode: in
+  table body">in table body</span>"; and the <code>table</code>
+  element is still <span>tainted</span>.</p>
+
+  <p>Thus it is that the "bbb" character tokens are found. When <span
+  title="reconstruct the active formatting elements">the active
+  formatting elements are reconstructed</span>, a <code>b</code>
+  element is created and <span title="foster parent">foster
+  parented</span>, and then the "bbb" text node is appended to it:</p>
+
+  <ul class="domTree"><li class="t1"><code>html</code><ul><li class="t1"><code>head</code></li><li class="t1"><code>body</code><ul><li class="t1"><code>b</code></li><li class="t1"><code>b</code><ul><li class="t3"><code>#text</code>: <span title="">bbb</span></li></ul></li><li class="t1"><code>table</code><ul><li class="t1"><code>tbody</code><ul><li class="t1"><code>tr</code><ul><li class="t1"><code>td</code><ul><li class="t3"><code>#text</code>: <span title="">aaa</span></li></ul></li></ul></li></ul></li></ul></li></ul></li></ul></li></ul>
+
+  <p>The <span>stack of open elements</span> has on it the elements
+  <code>html</code>, <code>body</code>, <code>table</code>,
+  <code>tbody</code>, and the new <code>b</code> (again, note that
+  this doesn't match the resulting tree!); the <span>list of active
+  formatting elements</span> has the new <code>b</code> element in it;
+  the <span>insertion mode</span> is still "<span title="insertion
+  mode: in table body">in table body</span>"; and the
+  <code>table</code> element is still <span>tainted</span>.</p>
+
+  <p>Had the character tokens been <span title="space character">space
+  characters</span> instead of "bbb", the result would have been the
+  same, but only because the table is <span>tainted</span>. Had the
+  <code>b</code> element's start tag been before the
+  <code>table</code> instead of after, then the table wouldn't have
+  been <span>tainted</span> and such <span title="space
+  character">space characters</span> would just be appended to the
+  <code>tbody</code> element.</p>
+
+  <p>Finally, the <code>table</code> is closed by a "table" end
+  tag. This pops all the nodes from the <span>stack of open
+  elements</span> up to and including the <code>table</code> element,
+  but it doesn't affect the <span>list of active formatting
+  elements</span>, so the "ccc" character tokens after the table
+  result in yet another <code>b</code> element being created, this
+  time after the table:</p>
+
+  <ul class="domTree"><li class="t1"><code>html</code><ul><li class="t1"><code>head</code></li><li class="t1"><code>body</code><ul><li class="t1"><code>b</code></li><li class="t1"><code>b</code><ul><li class="t3"><code>#text</code>: <span title="">bbb</span></li></ul></li><li class="t1"><code>table</code><ul><li class="t1"><code>tbody</code><ul><li class="t1"><code>tr</code><ul><li class="t1"><code>td</code><ul><li class="t3"><code>#text</code>: <span title="">aaa</span></li></ul></li></ul></li></ul></li></ul></li><li class="t1"><code>b</code><ul><li class="t3"><code>#text</code>: <span title="">ccc</span></li></ul></li></ul></li></ul></li></ul>
+
 
 
 
