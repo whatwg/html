@@ -55686,7 +55686,103 @@ interface <dfn>Function</dfn> {
 
   <p><em>This section is non-normative.</em></p>
 
-  <p class="XXX">...</p>
+  <p>In order to enable users to continue interacting with Web
+  applications and documents even when their network connection is
+  unavailable &mdash; for instance, because they are traveling outside
+  of their ISP's coverage area &mdash; authors can provide a manifest
+  which lists the files that are needed for the Web application to
+  work offline and which causes the user's browser to keep a copy of
+  the files for use offline.</p>
+
+  <p>To illustrate this, consider a simple clock applet consisting of
+  an HTML page "<code title="">clock.html</code>", a CSS style sheet
+  "<code title="">clock.css</code>", and a JavaScript script "<code
+  title="">clock.js</code>".</p>
+
+  <p>Before adding the manifest, three three files might look like
+  this:</p>
+
+  <pre>EXAMPLE offline/clock/clock1.html</pre>
+  <pre>EXAMPLE offline/clock/clock1.css</pre>
+  <pre>EXAMPLE offline/clock/clock1.js</pre>
+
+  <p>If the user tries to open the "<code title="">clock.html</code>"
+  page while offline, though, the user agent (unless it happens to
+  have it still in the local cache) will fail with an error.</p>
+
+  <p>The author can instead provide a manifest of the three files:</p>
+
+  <pre>EXAMPLE offline/clock/clock2.manifest</pre>
+
+  <p>With a small change to the HTML file, the manifest (served as
+  <code title="">text/cache-manifest</code>) is linked to the
+  application:</p>
+
+  <pre>EXAMPLE offline/clock/clock2.html</pre>
+
+  <p>Now, if the user goes to the page, the browser will cache the
+  files and make them available even when the user is offline.</p>
+
+
+  <h5>Event summary</h5>
+
+  <p>When the user visits a page that declares a manifest, the browser
+  will try to update the cache. It does this by fetching a copy of the
+  manifest and, if the manifest has changed since the user agent last
+  saw it, redownloading all the resources it mentions and caching them
+  anew.</p>
+
+  <p>As this is going on, a number of events get fired to keep the
+  script updated as to the state of the cache update, so that the user
+  can be notified appropriately. The events are as follows:</p>
+
+  <table>
+   <thead>
+    <tr>
+     <th> Event name
+     <th> Occasion
+     <th> Next events
+   <tbody>
+    <tr>
+     <td> <dfn title="event-appcache-checking"><code>checking</code></dfn>
+     <td> The user agent is checking for an update, or attempting to download the manifest for the first time.
+     <td> <code title="event-appcache-noupdate">noupdate</code>, <code title="event-appcache-downloading">downloading</code>, <code title="event-appcache-obsolete">obsolete</code>, <code title="event-appcache-error">error</code>
+    <tr>
+     <td> <dfn title="event-appcache-noupdate"><code>noupdate</code></dfn>
+     <td> The manifest hadn't changed.
+     <td> (Last event in sequence.)
+    <tr>
+     <td> <dfn title="event-appcache-downloading"><code>downloading</code></dfn>
+     <td> The user agent has found an update and is fetching it, or is downloading the resources listed by the manifest for the first time.
+     <td> <code title="event-appcache-progress">progress</code>, <code title="event-appcache-error">error</code>, <code title="event-appcache-cached">cached</code>, <code title="event-appcache-updateready">updateready</code>
+    <tr>
+     <td> <dfn title="event-appcache-progress"><code>progress</code></dfn>
+     <td> The user agent is downloading resources listed by the manifest.
+     <td> <code title="event-appcache-progress">progress</code>, <code title="event-appcache-error">error</code>, <code title="event-appcache-cached">cached</code>, <code title="event-appcache-updateready">updateready</code>
+    <tr>
+     <td> <dfn title="event-appcache-cached"><code>cached</code></dfn>
+     <td> The resources listed in the manifest have been downloaded, and the application is now cached.
+     <td> Last event in sequence.
+    <tr>
+     <td> <dfn title="event-appcache-updateready"><code>updateready</code></dfn>
+     <td> The resources listed in the manifest have been newly redownloaded, and the script can use <code title="dom-appcache-swapCache">swapCache()</code> to switch to the new cache.
+     <td> Last event in sequence.
+    <tr>
+     <td> <dfn title="event-appcache-obsolete"><code>obsolete</code></dfn>
+     <td> The manifest was found to have become a 404 or 410 page, so the application cache is being deleted.
+     <td> Last event in sequence.
+    <tr>
+     <td rowspan=4> <dfn title="event-appcache-error"><code>error</code></dfn>
+     <td> The manifest was a 404 or 410 page, so the attempt to cache the application has been aborted.
+     <td rowspan=3> Last event in sequence.
+    <tr>
+     <td> The manifest hadn't changed, but the page referencing the manifest failed to download properly.
+    <tr>
+     <td> A fatal error occured while fetching the resources listed in the manifest.
+    <tr>
+     <td> The manifest changed while the update was being run.
+     <td> The user agent will try fetching the files again momentarily.
+  </table>
 
 
 
@@ -56407,7 +56503,7 @@ style/default.css</pre>
      title="">cache group</var> is <i>checking</i> or
      <i>downloading</i>, then <span>queue a task</span> to <span>fire
      a simple event</span> called <code
-     title="event-checking">checking</code> at the
+     title="event-appcache-checking">checking</code> at the
      <code>ApplicationCache</code> singleton of that <span>cache
      host</span>. The default action of this event should be the
      display of some sort of user interface indicating to the user
@@ -56419,7 +56515,7 @@ style/default.css</pre>
      title="concept-appcache-status">status</span> of <var
      title="">cache group</var> is <i>downloading</i>, then also
      <span>queue a task</span> to <span>fire a simple event</span>
-     called <code title="event-downloading">downloading</code> that is
+     called <code title="event-appcache-downloading">downloading</code> that is
      cancelable at the <code>ApplicationCache</code> singleton of that
      <span>cache host</span>. The default action of this event should
      be the display of some sort of user interface indicating to the
@@ -56438,7 +56534,7 @@ style/default.css</pre>
      <span>application cache</span> in <var title="">cache
      group</var>, <span>queue a task</span> to <span>fire a simple
      event</span> that is cancelable called <code
-     title="event-checking">checking</code> at the
+     title="event-appcache-checking">checking</code> at the
      <code>ApplicationCache</code> singleton of the <span>cache
      host</span>. The default action of these events should be the
      display of some sort of user interface indicating to the user
@@ -56460,7 +56556,7 @@ style/default.css</pre>
    <li><p>If this is a <span title="concept-appcache-cache">cache
    attempt</span>, then this algorithm was invoked with a <span>cache
    host</span>; <span>queue a task</span> to <span>fire a simple
-   event</span> called <code title="event-checking">checking</code>
+   event</span> called <code title="event-appcache-checking">checking</code>
    that is cancelable at the <code>ApplicationCache</code> singleton
    of that <span>cache host</span>. The default action of this event
    should be the display of some sort of user interface indicating to
@@ -56504,7 +56600,7 @@ style/default.css</pre>
      <li><p>For each <span>cache host</span> associated with an
      <span>application cache</span> in <var title="">cache
      group</var>, <span>queue a task</span> to <span>fire a simple
-     event</span> called <code title="event-obsolete">obsolete</code>
+     event</span> called <code title="event-appcache-obsolete">obsolete</code>
      that is cancelable at the <code>ApplicationCache</code> singleton
      of the <span>cache host</span>. The default action of these
      events should be the display of some sort of user interface
@@ -56515,8 +56611,8 @@ style/default.css</pre>
      title="concept-appcache-pending-masters">list of pending master
      entries</span>, <span>queue a task</span> to <span>fire a simple
      event</span> that is cancelable called <code
-     title="event-error">error</code> (not <code
-     title="event-obsolete">obsolete</code>!) at the
+     title="event-appcache-error">error</code> (not <code
+     title="event-appcache-obsolete">obsolete</code>!) at the
      <code>ApplicationCache</code> singleton of the <span>cache
      host</span> the <code>Document</code> for this entry, if there
      still is one. The default action of this event should be the
@@ -56584,7 +56680,7 @@ style/default.css</pre>
       <p>If the download failed (e.g. the connection times out, or the
       user cancels the download), then <span>queue a task</span> to
       <span>fire a simple event</span> that is cancelable called <code
-      title="event-error">error</code> at the
+      title="event-appcache-error">error</code> at the
       <code>ApplicationCache</code> singleton of the <span>cache
       host</span> the <code>Document</code> for this entry, if there
       still is one. The default action of this event should be the
@@ -56609,7 +56705,7 @@ style/default.css</pre>
      <span>application cache</span> in <var title="">cache
      group</var>, <span>queue a task</span> to <span>fire a simple
      event</span> that is cancelable called <code
-     title="event-noupdate">noupdate</code> at the
+     title="event-appcache-noupdate">noupdate</code> at the
      <code>ApplicationCache</code> singleton of the <span>cache
      host</span>. The default action of these events should be the
      display of some sort of user interface indicating to the user
@@ -56650,7 +56746,7 @@ style/default.css</pre>
    <span>application cache</span> in <var title="">cache group</var>,
    <span>queue a task</span> to <span>fire a simple event</span> that
    is cancelable called <code
-   title="event-downloading">downloading</code> at the
+   title="event-appcache-downloading">downloading</code> at the
    <code>ApplicationCache</code> singleton of the <span>cache
    host</span>. The default action of these events should be the
    display of some sort of user interface indicating to the user that
@@ -56707,7 +56803,7 @@ style/default.css</pre>
      <span>application cache</span> in <var title="">cache
      group</var>, <span>queue a task</span> to <span>fire a simple
      event</span> that is cancelable called <code
-     title="event-progress">progress</code> at the
+     title="event-appcache-progress">progress</code> at the
      <code>ApplicationCache</code> singleton of the <span>cache
      host</span>. The default action of these events should be the
      display of some sort of user interface indicating to the user
@@ -56861,7 +56957,7 @@ style/default.css</pre>
 
      <li><p><span>Queue a task</span> to <span>fire a simple
      event</span> that is cancelable called <code
-     title="event-error">error</code> at the
+     title="event-appcache-error">error</code> at the
      <code>ApplicationCache</code> singleton of the
      <code>Document</code> for this entry, if there still is one. The
      default action of this event should be the display of some sort
@@ -56943,7 +57039,7 @@ style/default.css</pre>
     with an <span>application cache</span> in <var title="">cache
     group</var>, <span>queue a task</span> to <span>fire a simple
     event</span> that is cancelable called <code
-    title="event-cached">cached</code> at the
+    title="event-appcache-cached">cached</code> at the
     <code>ApplicationCache</code> singleton of the <span>cache
     host</span>. The default action of these events should be the
     display of some sort of user interface indicating to the user that
@@ -56955,7 +57051,7 @@ style/default.css</pre>
     <span>cache host</span> associated with an <span>application
     cache</span> in <var title="">cache group</var>, <span>queue a
     task</span> to <span>fire a simple event</span> that is cancelable
-    called <code title="event-updateready">updateready</code> at the
+    called <code title="event-appcache-updateready">updateready</code> at the
     <code>ApplicationCache</code> singleton of the <span>cache
     host</span>. The default action of these events should be the
     display of some sort of user interface indicating to the user that
@@ -56994,7 +57090,7 @@ style/default.css</pre>
 
      <li><p><span>Queue a task</span> to <span>fire a simple
      event</span> that is cancelable called <code
-     title="event-error">error</code> at the
+     title="event-appcache-error">error</code> at the
      <code>ApplicationCache</code> singleton of the
      <code>Document</code> for this entry, if there still is one. The
      default action of these events should be the display of some sort
@@ -57008,7 +57104,7 @@ style/default.css</pre>
    <li><p>For each <span>cache host</span> still associated with an
    <span>application cache</span> in <var title="">cache group</var>,
    <span>queue a task</span> to <span>fire a simple event</span> that
-   is cancelable called <code title="event-error">error</code> at the
+   is cancelable called <code title="event-appcache-error">error</code> at the
    <code>ApplicationCache</code> singleton of the <span>cache
    host</span>. The default action of these events should be the
    display of some sort of user interface indicating to the user that
@@ -57497,14 +57593,14 @@ style/default.css</pre>
    <thead>
     <tr><th><span title="event handler attributes">event handler attribute</span> <th><span>Event handler event type</span>
    <tbody>
-    <tr><td><dfn title="handler-appcache-onchecking"><code>onchecking</code></dfn> <td> <code title="event-checking">checking</code>
-    <tr><td><dfn title="handler-appcache-onerror"><code>onerror</code></dfn> <td> <code title="event-error">error</code>
-    <tr><td><dfn title="handler-appcache-onnoupdate"><code>onnoupdate</code></dfn> <td> <code title="event-noupdate">noupdate</code>
-    <tr><td><dfn title="handler-appcache-ondownloading"><code>ondownloading</code></dfn> <td> <code title="event-downloading">downloading</code>
-    <tr><td><dfn title="handler-appcache-onprogress"><code>onprogress</code></dfn> <td> <code title="event-progress">progress</code>
-    <tr><td><dfn title="handler-appcache-onupdateready"><code>onupdateready</code></dfn> <td> <code title="event-updateready">updateready</code>
-    <tr><td><dfn title="handler-appcache-oncached"><code>oncached</code></dfn> <td> <code title="event-cached">cached</code>
-    <tr><td><dfn title="handler-appcache-onobsolete"><code>onobsolete</code></dfn> <td> <code title="event-obsolete">obsolete</code>
+    <tr><td><dfn title="handler-appcache-onchecking"><code>onchecking</code></dfn> <td> <code title="event-appcache-checking">checking</code>
+    <tr><td><dfn title="handler-appcache-onerror"><code>onerror</code></dfn> <td> <code title="event-appcache-error">error</code>
+    <tr><td><dfn title="handler-appcache-onnoupdate"><code>onnoupdate</code></dfn> <td> <code title="event-appcache-noupdate">noupdate</code>
+    <tr><td><dfn title="handler-appcache-ondownloading"><code>ondownloading</code></dfn> <td> <code title="event-appcache-downloading">downloading</code>
+    <tr><td><dfn title="handler-appcache-onprogress"><code>onprogress</code></dfn> <td> <code title="event-appcache-progress">progress</code>
+    <tr><td><dfn title="handler-appcache-onupdateready"><code>onupdateready</code></dfn> <td> <code title="event-appcache-updateready">updateready</code>
+    <tr><td><dfn title="handler-appcache-oncached"><code>oncached</code></dfn> <td> <code title="event-appcache-cached">cached</code>
+    <tr><td><dfn title="handler-appcache-onobsolete"><code>onobsolete</code></dfn> <td> <code title="event-appcache-obsolete">obsolete</code>
   </table>
 
   </div>
