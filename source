@@ -70920,9 +70920,8 @@ function receiver(e) {
     target origin to "<code title="">*</code>".</p>
 
     <p>Throws an <code>INVALID_STATE_ERR</code> if the <var
-    title="">ports</var> array is not null and it contains
-    either null entries, duplicate ports, or ports that are not
-    entangled.</p>
+    title="">ports</var> array is not null and it contains either null
+    entries or duplicate ports.</p>
 
    </dd>
 
@@ -71066,10 +71065,8 @@ function receiver(e) {
 
    <li> <!-- NEW STEP -->
 
-    <p>If any of the entries in <var title="">ports</var> are
-    null, if any of the entries in <var title="">ports</var>
-    are not entangled <code>MessagePort</code> objects, or if any
-    <code>MessagePort</code> object is listed in <var
+    <p>If any of the entries in <var title="">ports</var> are null, or
+    if any <code>MessagePort</code> object is listed in <var
     title="">ports</var> more than once, then throw an
     <code>INVALID_STATE_ERR</code> exception.</p>
 
@@ -71292,9 +71289,8 @@ interface <dfn>MessagePort</dfn> {
     ports.</p>
 
     <p>Throws an <code>INVALID_STATE_ERR</code> if the <var
-    title="">ports</var> array is not null and it contains
-    either null entries, duplicate ports, ports that are not
-    entangled, or the source or target port.</p>
+    title="">ports</var> array is not null and it contains either null
+    entries, duplicate ports, or the source or target port.</p>
 
    </dd>
 
@@ -71368,17 +71364,10 @@ interface <dfn>MessagePort</dfn> {
   <p>When the user agent is to <dfn>clone a port</dfn> <var
   title="">original port</var>, with the clone being owned by <var
   title="">owner</var>, it must run the following steps, which return
-  either a new <code>MessagePort</code> object or an exception for the
-  caller to raise. These steps must be run atomically.</p>
+  a new <code>MessagePort</code> object. These steps must be run
+  atomically.</p>
 
   <ol>
-
-   <li><p>If the <var title="">original port</var> is not entangled
-   without another port, then return an <code>INVALID_STATE_ERR</code>
-   exception and abort all these steps.</p></li>
-
-   <li><p>Let the <var title="">remote port</var> be the port with
-   which the <var title="">original port</var> is entangled.</p></li>
 
    <li><p><span>Create a new <code>MessagePort</code> object</span>
    owned by <var title="">owner</var>, and let <var title="">new
@@ -71390,10 +71379,24 @@ interface <dfn>MessagePort</dfn> {
    <var title="">new port</var>'s <span>port message queue</span> in
    its initial disabled state.</p></li>
 
-   <li><p><span>Entangle</span> the <var title="">remote port</var>
-   and <var title="">new port</var> objects. The <var
-   title="">original port</var> object will be disentangled by this
-   process.</p></li>
+   <li>
+
+    <p>If the <var title="">original port</var> is entangled with
+    another port, then run these substeps:</p>
+
+    <ol>
+
+     <li><p>Let the <var title="">remote port</var> be the port with
+     which the <var title="">original port</var> is entangled.</p></li>
+
+     <li><p><span>Entangle</span> the <var title="">remote port</var>
+     and <var title="">new port</var> objects. The <var
+     title="">original port</var> object will be disentangled by this
+     process.</p></li>
+
+    </ol>
+
+   </li>
 
    <li><p>Return <var title="">new port</var>. It is the
    clone.</p></li>
@@ -71415,51 +71418,48 @@ interface <dfn>MessagePort</dfn> {
 
   <ol>
 
-   <li><p>Let <var title="">message</var> be the method's first
-   argument.</p></li>
-
-   <li><p>Let <var title="">data port</var> be the method's second
-   argument, if any.</p></li>
-
-   <li><p>Let <var title="">message clone</var> be the result of
-   obtaining a <span>structured clone</span> of the <var
-   title="">message</var> argument. If this throws an exception, then
-   throw that exception and abort these steps.</p></li>
-
-   <li><p>If the <var title="">source port</var> is not entangled with
-   another port, then return and abort these steps.</p></li>
-   <!-- we don't raise an exception because this can happen moment's
-   notice. we don't return false because if the port is _about_
-   to be closed, the message might not be listened for anyway. -->
-
    <li><p>Let <var title="">target port</var> be the port with which
-   <var title="">source port</var> is entangled.</p></li>
+   <var title="">source port</var> is entangled, if any.</p></li>
+
+   <li><p>If the method was called with a second argument <var
+   title="">ports</var> and that argument isn't null, then, if any of
+   the entries in <var title="">ports</var> are null, or if any
+   <code>MessagePort</code> object is listed in <var
+   title="">ports</var> more than once, or if any of the entries in
+   <var title="">ports</var> are either the <var title="">source
+   port</var> or the <var title="">target port</var> (if any), then
+   throw an <code>INVALID_STATE_ERR</code> exception.</p></li>
+
+   <li><p>If there is no <var title="">target port</var> (i.e. if <var
+   title="">source port</var> is not entangled), then abort these
+   steps.</p></li>
+   <!-- we don't raise an exception if there is no target port because
+   this can happen at a moment's notice. we don't return false because
+   if the port is _about_ to be closed, the message might not be
+   listened for anyway. -->
 
    <li><p>Create an event that uses the <code>MessageEvent</code>
    interface, with the name <code
    title="event-message">message</code>, which does not bubble, is not
    cancelable, and has no default action.</p></li>
 
+   <li><p>Let <var title="">message</var> be the method's first
+   argument.</p></li>
+
+   <li><p>Let <var title="">message clone</var> be the result of
+   obtaining a <span>structured clone</span> of <var
+   title="">message</var>. If this throws an exception, then throw
+   that exception and abort these steps.</p></li>
+
    <li><p>Let the <code title="dom-MessageEvent-data">data</code>
    attribute of the event have the value of <var title="">message
    clone</var>.</p></li>
 
    <li><p>If the method was called with a second argument <var
-   title="">ports</var> and that argument isn't null, then run
-   the following substeps:</p>
+   title="">ports</var> and that argument isn't null, then run the
+   following substeps:</p>
 
     <ol>
-
-     <li>
-
-      <p>If any of the entries in <var title="">ports</var> are
-      null, if any of the entries in <var title="">ports</var>
-      are not entangled <code>MessagePort</code> objects, or if any
-      <code>MessagePort</code> object is listed in <var
-      title="">ports</var> more than once, then throw an
-      <code>INVALID_STATE_ERR</code> exception.</p>
-
-     </li>
 
      <li>
 
@@ -71485,9 +71485,6 @@ interface <dfn>MessagePort</dfn> {
     </ol>
 
    </li>
-
-   <li><p>Return from the method, but continue with these
-   steps.</p></li>
 
    <li><p>Add the event to the <span>port message queue</span> of <var
    title="">target port</var>.</p></li>
