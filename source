@@ -72671,6 +72671,7 @@ interface <dfn>MessagePort</dfn> {
   title="insertion mode: in body">in body</span>", "<span
   title="insertion mode: in CDATA/RCDATA">in CDATA/RCDATA</span>",
   "<span title="insertion mode: in table">in table</span>", "<span
+  title="insertion mode: in table text">in table text</span>", "<span
   title="insertion mode: in caption">in caption</span>", "<span
   title="insertion mode: in column group">in column group</span>",
   "<span title="insertion mode: in table body">in table body</span>",
@@ -72692,8 +72693,7 @@ interface <dfn>MessagePort</dfn> {
 
   <p>Seven of these modes, namely "<span title="insertion mode: in
   head">in head</span>", "<span title="insertion mode: in body">in
-  body</span>", "<span title="insertion mode: in CDATA/RCDATA">in
-  CDATA/RCDATA</span>", "<span title="insertion mode: in table">in
+  body</span>", "<span title="insertion mode: in table">in
   table</span>", "<span title="insertion mode: in table body">in table
   body</span>", "<span title="insertion mode: in row">in row</span>",
   "<span title="insertion mode: in cell">in cell</span>", and "<span
@@ -72709,10 +72709,10 @@ interface <dfn>MessagePort</dfn> {
   to a new value.</p>
 
   <p>When the insertion mode is switched to "<span title="insertion
-  mode: in CDATA/RCDATA">in CDATA/RCDATA</span>", the <dfn>original
-  insertion mode</dfn> is also set. This is the insertion mode to
-  which the tree construction stage will return when the corresponding
-  end tag is parsed.</p>
+  mode: in CDATA/RCDATA">in CDATA/RCDATA</span>" or "<span
+  title="insertion mode: in table text">in table text</span>", the
+  <dfn>original insertion mode</dfn> is also set. This is the
+  insertion mode to which the tree construction stage will return.</p>
 
   <p>When the insertion mode is switched to "<span title="insertion
   mode: in foreign content">in foreign content</span>", the
@@ -74782,7 +74782,10 @@ document.body.appendChild(text);
       <td>Three adjacent text nodes before the table, containing "A", "B", and "CC" respectively. (This is caused by <span title="foster parent">foster parenting</span>.)
      <tr>
       <td><pre>A&lt;table>&lt;tr>&nbsp;B&lt;/tr>&nbsp;B&lt;/table></pre>
-      <td>Two adjacent text nodes before the table, containing "A" and "B&nbsp;B" respectively, and one text node inside the table with a single space character. (This is caused by <span title="foster parent">foster parenting</span> and <span title="tainted">tainting</span>.)
+      <td>Two adjacent text nodes before the table, containing "A" and "&nbsp;B&nbsp;B" (space-B-space-B) respectively. (This is caused by <span title="foster parent">foster parenting</span>.)
+     <tr>
+      <td><pre>A&lt;table>&lt;tr>&nbsp;B&lt;/tr>&nbsp;&lt;/em>C&lt;/table></pre>
+      <td>Three adjacent text nodes before the table, containing "A", "&nbsp;B" (space-B), and "C" respectively, and one text node inside the table (as a child of a <code>tbody</code>) with a single space character. (Space characters separated from non-space characters by non-character tokens are not affected by <span title="foster parent">foster parenting</span>, even if those other tokens then get ignored.)
    </table>
 
   </div>
@@ -75039,12 +75042,7 @@ document.body.appendChild(text);
 
   <p>When a node <var title="">node</var> is to be <dfn title="foster
   parent">foster parented</dfn>, the node <var title="">node</var>
-  must be inserted into the <i>foster parent element</i>, and the
-  <span>current table</span> must be marked as
-  <dfn>tainted</dfn>. (Once the <span>current table</span> has been
-  <span>tainted</span>, <span title="space character">space
-  characters</span> are inserted into the <i>foster parent element</i>
-  instead of the <span>current node</span>.)</p>
+  must be inserted into the <i>foster parent element</i>.</p>
 
   <p>The <dfn>foster parent element</dfn> is the parent element of the
   last <code>table</code> element in the <span>stack of open
@@ -77245,16 +77243,18 @@ document.body.appendChild(text);
 
   <dl class="switch">
 
-   <dt>A character token that is one of U+0009 CHARACTER
-   TABULATION, U+000A LINE FEED (LF), U+000C FORM FEED (FF),
-   <!--U+000D CARRIAGE RETURN (CR),--> or U+0020 SPACE</dt>
+   <dt>A character token</dt>
    <dd>
 
-    <p>If the <span>current table</span> is <span>tainted</span>, then
-    act as described in the "anything else" entry below.</p>
+     <p>Let the <dfn><var>pending table character tokens</var></dfn>
+     be an empty list of tokens.</p>
 
-    <p>Otherwise, <span title="insert a character">insert the
-    character</span> into the <span>current node</span>.</p>
+     <p>Let the <span>original insertion mode</span> be the current
+     <span>insertion mode</span>.</p>
+
+     <p>Switch the <span>insertion mode</span> to "<span
+     title="insertion mode: in table text">in table text</span>" and
+     reprocess the token.</p>
 
    </dd>
 
@@ -77428,6 +77428,47 @@ document.body.appendChild(text);
   <p class="note">The <span>current node</span> being an
   <code>html</code> element after this process is a <span>fragment
   case</span>.</p>
+
+
+
+  <h5 id="parsing-main-intabletext">The "<dfn title="insertion mode: in table text">in table text</dfn>" insertion mode</h5>
+
+  <p>When the <span>insertion mode</span> is "<span title="insertion
+  mode: in table text">in table text</span>", tokens must be handled
+  as follows:</p>
+
+  <dl class="switch">
+
+   <dt>A character token</dt>
+   <dd>
+
+    <p>Append the character token to the <var>pending table character
+    tokens</var> list.</p>
+
+   </dd>
+
+
+   <dt>Anything else</dt>
+   <dd>
+
+    <p>If any of the tokens in the <var>pending table character
+    tokens</var> list are character tokens that are not one of U+0009
+    CHARACTER TABULATION, U+000A LINE FEED (LF), U+000C FORM FEED
+    (FF), <!--U+000D CARRIAGE RETURN (CR),--> or U+0020 SPACE, then
+    reprocess those character tokens using the rules given in the
+    "anything else" entry in the <span title="insertion mode: in
+    table">in table</span>" insertion mode.</p>
+
+    <p>Otherwise, <span title="insert a character">insert the
+    characters</span> given by the <var>pending table character
+    tokens</var> list into the <span>current node</span>.</p>
+
+    <p>Switch the <span>insertion mode</span> to the <span>original
+    insertion mode</span> and reprocess the token.</p>
+
+   </dd>
+
+  </dl>
 
 
   <h5 id="parsing-main-incaption">The "<dfn title="insertion mode: in caption">in caption</dfn>" insertion mode</h5>
@@ -78976,10 +79017,9 @@ http://lxr.mozilla.org/seamonkey/search?string=nested
   the elements <code>html</code>, <code>body</code>,
   <code>table</code>, and <code>b</code> (in that order, despite the
   resulting DOM tree); the <span>list of active formatting
-  elements</span> just has the <code>b</code> element in it; the
+  elements</span> just has the <code>b</code> element in it; and the
   <span>insertion mode</span> is "<span title="insertion mode: in
-  table">in table</span>"; and the <code>table</code> element is
-  <span>tainted</span>.</p>
+  table">in table</span>".</p>
 
   <p>The <code>tr</code> start tag causes the <code>b</code> element
   to be popped off the stack and a <code>tbody</code> start tag to be
@@ -78996,9 +79036,8 @@ http://lxr.mozilla.org/seamonkey/search?string=nested
   elements <code>html</code>, <code>body</code>, <code>table</code>,
   <code>tbody</code>, and <code>tr</code>; the <span>list of active
   formatting elements</span> still has the <code>b</code> element in
-  it; the <span>insertion mode</span> is "<span title="insertion mode:
-  in row">in row</span>"; and the <code>table</code> element is still
-  <span>tainted</span>.</p>
+  it; and the <span>insertion mode</span> is "<span title="insertion
+  mode: in row">in row</span>".</p>
 
   <p>The <code>td</code> element start tag token, after putting a
   <code>td</code> element on the tree, puts a marker on the <span>list
@@ -79019,16 +79058,28 @@ http://lxr.mozilla.org/seamonkey/search?string=nested
   elements <code>html</code>, <code>body</code>, <code>table</code>,
   and <code>tbody</code>; the <span>list of active formatting
   elements</span> still has the <code>b</code> element in it (the
-  marker having been removed by the "td" end tag token); the
+  marker having been removed by the "td" end tag token); and the
   <span>insertion mode</span> is "<span title="insertion mode: in
-  table body">in table body</span>"; and the <code>table</code>
-  element is still <span>tainted</span>.</p>
+  table body">in table body</span>".</p>
 
-  <p>Thus it is that the "bbb" character tokens are found. When <span
-  title="reconstruct the active formatting elements">the active
-  formatting elements are reconstructed</span>, a <code>b</code>
-  element is created and <span title="foster parent">foster
-  parented</span>, and then the "bbb" text node is appended to it:</p>
+  <p>Thus it is that the "bbb" character tokens are found. These
+  trigger the "<span title="insertion mode: in table text">in table
+  text</span>" insertion mode to be used (with the <span>original
+  insertion mode</span> set to "<span title="insertion mode: in table
+  body">in table body</span>"). The character tokens are collected,
+  and when the next token (the <code>table</code> element end tag) is
+  seen, they are processed as a group. Since they are not all spaces,
+  they are handled as per the "anything else" rules in the "<span
+  title="insertion mode: in table">in table</span>" insertion mode,
+  which defer to the "<span title="insertion mode: in body">in
+  body</span>" insertion mode but with <span title="foster
+  parent">foster parenting</span>.</p>
+
+  <p>When <span title="reconstruct the active formatting elements">the
+  active formatting elements are reconstructed</span>, a
+  <code>b</code> element is created and <span title="foster
+  parent">foster parented</span>, and then the "bbb" text node is
+  appended to it:</p>
 
   <ul class="domTree"><li class="t1"><code>html</code><ul><li class="t1"><code>head</code></li><li class="t1"><code>body</code><ul><li class="t1"><code>b</code></li><li class="t1"><code>b</code><ul><li class="t3"><code>#text</code>: <span title="">bbb</span></li></ul></li><li class="t1"><code>table</code><ul><li class="t1"><code>tbody</code><ul><li class="t1"><code>tr</code><ul><li class="t1"><code>td</code><ul><li class="t3"><code>#text</code>: <span title="">aaa</span></li></ul></li></ul></li></ul></li></ul></li></ul></li></ul></li></ul>
 
@@ -79037,18 +79088,13 @@ http://lxr.mozilla.org/seamonkey/search?string=nested
   <code>tbody</code>, and the new <code>b</code> (again, note that
   this doesn't match the resulting tree!); the <span>list of active
   formatting elements</span> has the new <code>b</code> element in it;
-  the <span>insertion mode</span> is still "<span title="insertion
-  mode: in table body">in table body</span>"; and the
-  <code>table</code> element is still <span>tainted</span>.</p>
+  and the <span>insertion mode</span> is still "<span title="insertion
+  mode: in table body">in table body</span>".</p>
 
-  <p>Had the character tokens been <span title="space character">space
-  characters</span> instead of "bbb", the result would have been the
-  same, but only because the table is <span>tainted</span>. Had the
-  <code>b</code> element's start tag been before the
-  <code>table</code> instead of after, then the table wouldn't have
-  been <span>tainted</span> and such <span title="space
-  character">space characters</span> would just be appended to the
-  <code>tbody</code> element.</p>
+  <p>Had the character tokens been only <span title="space
+  character">space characters</span> instead of "bbb", then those
+  <span title="space character">space characters</span> would just be
+  appended to the <code>tbody</code> element.</p>
 
   <p>Finally, the <code>table</code> is closed by a "table" end
   tag. This pops all the nodes from the <span>stack of open
