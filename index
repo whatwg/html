@@ -951,7 +951,8 @@
       <ol>
        <li><a href=#misnested-tags:-b-i-/b-/i><span class=secno>9.2.8.1 </span>Misnested tags: &lt;b&gt;&lt;i&gt;&lt;/b&gt;&lt;/i&gt;</a></li>
        <li><a href=#misnested-tags:-b-p-/b-/p><span class=secno>9.2.8.2 </span>Misnested tags: &lt;b&gt;&lt;p&gt;&lt;/b&gt;&lt;/p&gt;</a></li>
-       <li><a href=#unexpected-markup-in-tables><span class=secno>9.2.8.3 </span>Unexpected markup in tables</a></ol></ol></li>
+       <li><a href=#unexpected-markup-in-tables><span class=secno>9.2.8.3 </span>Unexpected markup in tables</a></li>
+       <li><a href=#scripts-that-modify-the-page-as-it-is-being-parsed><span class=secno>9.2.8.4 </span>Scripts that modify the page as it is being parsed</a></ol></ol></li>
    <li><a href=#namespaces><span class=secno>9.3 </span>Namespaces</a></li>
    <li><a href=#serializing-html-fragments><span class=secno>9.4 </span>Serializing HTML fragments</a></li>
    <li><a href=#parsing-html-fragments><span class=secno>9.5 </span>Parsing HTML fragments</a></li>
@@ -65082,7 +65083,66 @@ http://lxr.mozilla.org/seamonkey/search?string=nested
   result in yet another <code><a href=#the-b-element>b</a></code> element being created, this
   time after the table:</p>
 
-  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-b-element>b</a></code><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">bbb</span></ul><li class=t1><code><a href=#the-table-element>table</a></code><ul><li class=t1><code><a href=#the-tbody-element>tbody</a></code><ul><li class=t1><code><a href=#the-tr-element>tr</a></code><ul><li class=t1><code><a href=#the-td-element>td</a></code><ul><li class=t3><code>#text</code>: <span title="">aaa</span></ul></ul></ul></ul><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">ccc</span></ul></ul></ul></ul><h3 id=namespaces><span class=secno>9.3 </span>Namespaces</h3>
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-b-element>b</a></code><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">bbb</span></ul><li class=t1><code><a href=#the-table-element>table</a></code><ul><li class=t1><code><a href=#the-tbody-element>tbody</a></code><ul><li class=t1><code><a href=#the-tr-element>tr</a></code><ul><li class=t1><code><a href=#the-td-element>td</a></code><ul><li class=t3><code>#text</code>: <span title="">aaa</span></ul></ul></ul></ul><li class=t1><code><a href=#the-b-element>b</a></code><ul><li class=t3><code>#text</code>: <span title="">ccc</span></ul></ul></ul></ul><h5 id=scripts-that-modify-the-page-as-it-is-being-parsed><span class=secno>9.2.8.4 </span>Scripts that modify the page as it is being parsed</h5>
+
+  <p><i>This section is non-normative.</i></p>
+
+  <p>Consider the following markup, which for this example we will
+  assume is the document with <a href=#url>URL</a> <code title="">http://example.com/inner</code>, being rendered as the
+  content of an <code><a href=#the-iframe-element>iframe</a></code> in another document with the
+  <a href=#url>URL</a> <code title="">http://example.com/outer</code>:</p>
+
+  <pre>&lt;div id=a&gt;
+ &lt;script&gt;
+  var div = document.getElementById('a');
+  parent.document.body.appendChild(div);
+ &lt;/script&gt;
+ &lt;script&gt;
+  alert(document.URL);
+ &lt;/script&gt;
+&lt;/div&gt;
+&lt;script&gt;
+ alert(document.URL);
+&lt;/script&gt;</pre>
+
+  <p>Up to the first "script" end tag, before the script is parsed,
+  the result is relatively straightforward:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#the-div-element>div</a></code> <span class=t2><code class="attribute name">id</code>="<code class="attribute value"><a href=#the-a-element>a</a></code>"</span><ul><li class=t3><code>#text</code>: <span title="">
+ </span><li class=t1><code><a href=#script>script</a></code><ul><li class=t3><code>#text</code>: <pre>  var div = document.getElementById('a');
+  parent.document.body.appendChild(div);</pre></ul></ul></ul></ul></ul><p>After the script is parsed, though, the <code><a href=#the-div-element>div</a></code> element
+  and its child <code><a href=#script>script</a></code> element are gone:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code></ul></ul><p>They are, at this point, in the <code>Document</code> of the
+  aforementioned outer <a href=#browsing-context>browsing context</a>. However, the
+  <a href=#stack-of-open-elements>stack of open elements</a> <em>still contains the
+  <code><a href=#the-div-element>div</a></code> element</em>.</p>
+
+  <p>Thus, when the second <code><a href=#script>script</a></code> element is parsed, it
+  is inserted <em>into the outer <code>Document</code>
+  object</em>.</p>
+
+  <p>This also means that the <a href="#script's-global-object">script's global object</a> is
+  the outer <a href=#browsing-context>browsing context</a>'s <code><a href=#window>Window</a></code>
+  object, <em>not</em> the <code><a href=#window>Window</a></code> object inside the
+  <code><a href=#the-iframe-element>iframe</a></code>.</p>
+
+  <p class=note>This isn't a security problem since the script that
+  moves the <code><a href=#the-div-element>div</a></code> into the outer <code>Document</code> can
+  only do so because they have the two <code>Document</code> object
+  have the same <a href=#origin-0>origin</a>.</p>
+
+  <p>Thus, the first alert says "http://example.com/outer".</p>
+
+  <p>Once the <code><a href=#the-div-element>div</a></code> element's end tag is parsed, the
+  <code><a href=#the-div-element>div</a></code> element is popped off the stack, and so the next
+  <code><a href=#script>script</a></code> element is in the inner <code>Document</code>:</p>
+
+  <ul class=domTree><li class=t1><code><a href=#the-html-element>html</a></code><ul><li class=t1><code><a href=#the-head-element>head</a></code><li class=t1><code><a href=#the-body-element>body</a></code><ul><li class=t1><code><a href=#script>script</a></code><ul><li class=t3><code>#text</code>: <span title="">alert(document.URL);</span></ul></ul></ul></ul><p>This second alert will say "http://example.com/inner".</p>
+
+
+
+  <h3 id=namespaces><span class=secno>9.3 </span>Namespaces</h3>
 
   <p>The <dfn id=html-namespace-0>HTML namespace</dfn> is: <code>http://www.w3.org/1999/xhtml</code></p>
 
