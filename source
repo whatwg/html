@@ -69713,12 +69713,13 @@ interface <dfn>WebSocket</dfn> {
   const unsigned short <span title="dom-WebSocket-OPEN">OPEN</span> = 1;
   const unsigned short <span title="dom-WebSocket-CLOSED">CLOSED</span> = 2;
   readonly attribute unsigned short <span title="dom-WebSocket-readyState">readyState</span>;
+  readonly attribute unsigned long <span title="dom-WebSocket-bufferedAmount">bufferedAmount</span>;
 
   // networking
            attribute <span>Function</span> <span title="handler-WebSocket-onopen">onopen</span>;
            attribute <span>Function</span> <span title="handler-WebSocket-onmessage">onmessage</span>;
            attribute <span>Function</span> <span title="handler-WebSocket-onclose">onclose</span>;
-  void <span title="dom-WebSocket-send">send</span>(in DOMString data);
+  boolean <span title="dom-WebSocket-send">send</span>(in DOMString data);
   void <span title="dom-WebSocket-close">close</span>();
 };</pre>
 
@@ -69866,7 +69867,14 @@ interface <dfn>WebSocket</dfn> {
   unpaired surrogates, then it must raise <code>SYNTAX_ERR</code>. If
   the connection <em>is</em> established, and the string has no
   unpaired surrogates, then the user agent must <span>send <var
-  title="">data</var> using the Web Socket</span>.</p>
+  title="">data</var> using the Web Socket</span>. If the data cannot
+  be sent, e.g. because it would need to be buffered but the buffer is
+  full, the user agent must <span>close the Web Socket
+  connection</span>. The method must then return true if the
+  connection is still established (and the data was queued or sent
+  successfully), or false if the connection is closed (e.g. because
+  the user agent just had a buffer overflow and failed to send the
+  data).</p>
 
   <p>The <dfn
   title="dom-WebSocket-close"><code>close()</code></dfn>
@@ -69877,6 +69885,16 @@ interface <dfn>WebSocket</dfn> {
   the <code title="dom-WebSocket-readyState">readyState</code>
   attribute's value to change, as <a href="#closeWebSocket">described
   below</a>.</p>
+
+  <hr>
+
+  <p>The <dfn
+  title="dom-WebSocket-bufferedAmount"><code>bufferedAmount</code></dfn>
+  attribute must return the number of bytes that have been queued but
+  not yet sent. If the connection is closed, this attribute's value
+  will only increase with each call to the <code
+  title="dom-WebSocket-send">send()</code> method (the number does not
+  reset to zero once the connection closes).</p>
 
   <hr>
 
@@ -70733,6 +70751,10 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
    <li><p>Send a 0xff byte to the server.</p></li>
 
   </ol>
+
+  <p>If at any point there is a fatal problem with sending data to the
+  server, the user agent must <span>fail the Web Socket
+  connection</span>.</p>
 
   <!-- v2: People often request the ability to send binary blobs over
   this API; we should also look into allowing name/value pairs,
