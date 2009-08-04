@@ -70012,6 +70012,9 @@ interface <dfn>WebSocket</dfn> {
 
   <ol>
 
+   <!-- beware, this is very similar to the steps for what happens
+   during a redirect, in the protocol section -->
+
    <li><p><span title="parse a url">Parse</span> the <var
    title="">url</var> argument.</p></li>
 
@@ -70458,12 +70461,12 @@ WebSocket-Protocol: sample</pre>
 
    <li>
 
-    <p>If the user agent is configured to use a proxy when using the
-    Web Socket protocol to connect to host <var title="">host</var>
-    and/or port <var title="">port</var>, then connect to that proxy
-    and ask it to open a TCP/IP connection to the host given by <var
-    title="">host</var> and the port given by <var
-    title="">port</var>.</p>
+    <p><i>Connect</i>: If the user agent is configured to use a proxy
+    when using the Web Socket protocol to connect to host <var
+    title="">host</var> and/or port <var title="">port</var>, then
+    connect to that proxy and ask it to open a TCP/IP connection to
+    the host given by <var title="">host</var> and the port given by
+    <var title="">port</var>.</p>
 
     <div class="example">
 
@@ -70634,37 +70637,88 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
 
    <li>
 
-    <p>Read the first 85 bytes from the server. If the connection
-    closes before 85 bytes are received, or if the first 85 bytes
-    aren't exactly equal to the following bytes, then <span>fail the
-    Web Socket connection</span> and abort these steps.</p>
+    <p>Read bytes from the server until either the connection closes,
+    or a 0x0a byte is read. Let <var title="">header</var> be these
+    bytes, including the 0x0a byte.</p>
+
+    <p>If <var title="">header</var> is not at least two bytes long,
+    or if the last two bytes aren't 0x0d and 0x0a respectively, then
+    <span>fail the Web Socket connection</span> and abort these
+    steps.</p>
+
+    <p>User agents may apply a timeout to this step, <span title="fail
+    the Web Socket connection">failing the Web Socket
+    connection</span> if the server does not send back data in a
+    suitable time period.</p>
+
+   </li>
+
+   <li>
+
+    <p>If <var title="">header</var> consists of 44 bytes that exactly
+    match the following, then let <var title="">mode</var> be <i
+    title="">normal</i>.</p>
 
     <pre>48 54 54 50 2f 31 2e 31  20 31 30 31 20 57 65 62
 20 53 6f 63 6b 65 74 20  50 72 6f 74 6f 63 6f 6c
-20 48 61 6e 64 73 68 61  6b 65 0d 0a 55 70 67 72
-61 64 65 3a 20 57 65 62  53 6f 63 6b 65 74 0d 0a
-43 6f 6e 6e 65 63 74 69  6f 6e 3a 20 55 70 67 72
-61 64 65 0d 0a</pre>
+20 48 61 6e 64 73 68 61  6b 65 0d 0a</pre>
 
     <p class="note">The string
-    "HTTP/1.1&nbsp;101&nbsp;Web&nbsp;Socket&nbsp;Protocol&nbsp;Handshake", CRLF, the
-    string "Upgrade:&nbsp;WebSocket", CRLF, the string
-    "Connection:&nbsp;Upgrade", CRLF.</p>
+    "HTTP/1.1&nbsp;101&nbsp;Web&nbsp;Socket&nbsp;Protocol&nbsp;Handshake"
+    followed by a CRLF pair.</p>
 
-    <!-- v2 if we ever support the server requiring credentials, this
-    is where it goes -->
+    <p>Otherwise, let <var title="">code</var> be the substring of
+    <var title="">header</var> that starts from the byte after the
+    first 0x20 byte, and ends with the byte before the second 0x20
+    byte. If there are not at least two 0x20 bytes in <var
+    title="">header</var>, then <span>fail the Web Socket
+    connection</span> and abort these steps.</p>
+
+    <p>If <var title="">code</var>, interpreted as ASCII, is either
+    "<code title="">301</code>", "<code title="">302</code>", "<code
+    title="">303</code>", "<code title="">307</code>", then let <var
+    title="">mode</var> be <i title="">redirect</i>.
+
+    <p>If <var title="">code</var>, interpreted as ASCII, is "<code
+    title="">401</code>", then let <var title="">mode</var> be <i
+    title="">authenticate</i>.
+
+    <p>Otherwise, <span>fail the Web Socket connection</span> and
+    abort these steps.</p>
+
+   </li>
+
+   <li>
+
+    <p>If <var title="">mode</var> is <i title="">normal</i>, then
+    read 41 bytes from the server.</p>
+
+    <p>If the connection closes before 41 bytes are received, or if
+    the 41 bytes aren't exactly equal to the following bytes, then
+    <span>fail the Web Socket connection</span> and abort these
+    steps.</p>
+
+    <pre>55 70 67 72 61 64 65 3a  20 57 65 62 53 6f 63 6b
+65 74 0d 0a 43 6f 6e 6e  65 63 74 69 6f 6e 3a 20
+55 70 67 72 61 64 65 0d  0a</pre>
+
+    <p class="note">The string "Upgrade:&nbsp;WebSocket", CRLF, the
+    string "Connection:&nbsp;Upgrade", CRLF.</p>
 
     <p>User agents may apply a timeout to this step, <span title="fail
     the Web Socket connection">failing the Web Socket
     connection</span> if the server does not respond with the above
     bytes within a suitable time period.</p>
 
+    <p class="note">This step is skipped if <var title="">mode</var>
+    is <i title="">redirect</i> or <i title="">authenticate</i>.</p>
+
    </li>
 
    <li><p>Let <var title="">headers</var> be a list of name-value
    pairs, initially empty.</p></li>
 
-   <li id="ws-ua-header-loop"><p><i>Header</i>: Let <var
+   <li id="ws-ua-header-loop"><p><i title="">Header</i>: Let <var
    title="">name</var> and <var title="">value</var> be empty byte
    arrays.</p></li>
 
@@ -70818,23 +70872,7 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
 
    <li id="ws-ua-headers-processing">
 
-    <p><i>Headers processing</i>: If there is not exactly one entry
-    in the <var title="">headers</var> list whose name is "<code
-    title="">websocket-origin</code>", or if there is not exactly one
-    entry in the <var title="">headers</var> list whose name is "<code
-    title="">websocket-location</code>", or if the <var
-    title="">protocol</var> was specified but there is not exactly one
-    entry in the <var title="">headers</var> list whose name is "<code
-    title="">websocket-protocol</code>", or if there are any entries
-    in the <var title="">headers</var> list whose names are the empty
-    string, then <span>fail the Web Socket connection</span> and abort
-    these steps.</p>
-
-   </li>
-
-   <li>
-
-    <p>Read a byte from the server.</p>
+    <p><i>Headers processing</i>: Read a byte from the server.</p>
 
     <p>If the connection closes before this byte is received, or if
     the byte is not a 0x0a byte (ASCII LF), then <span>fail the Web
@@ -70847,8 +70885,18 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
 
    <li>
 
-    <p>Handle each entry in the <var title="">headers</var> list as
-    follows:</p>
+    <p>If <var title="">mode</var> is <i title="">normal</i>, then: If
+    there is not exactly one entry in the <var title="">headers</var>
+    list whose name is "<code title="">websocket-origin</code>", or if
+    there is not exactly one entry in the <var title="">headers</var>
+    list whose name is "<code title="">websocket-location</code>", or
+    if the <var title="">protocol</var> was specified but there is not
+    exactly one entry in the <var title="">headers</var> list whose
+    name is "<code title="">websocket-protocol</code>", or if there
+    are any entries in the <var title="">headers</var> list whose
+    names are the empty string, then <span>fail the Web Socket
+    connection</span> and abort these steps. Otherwise, handle each
+    entry in the <var title="">headers</var> list as follows:</p>
 
     <dl class="switch">
 
@@ -70918,6 +70966,114 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
      href="#refsRFC2109">[RFC2109]</a> <a
      href="#refsRFC2965">[RFC2965]</a></p></dd>
 
+
+     <dt>Any other name</dt>
+
+     <dd>Ignore it.</dd>
+
+    </dl>
+
+    <hr>
+
+    <p>If <var title="">mode</var> is <i title="">redirect</i>, then:
+    If there is not exactly one entry in the <var
+    title="">headers</var> list whose name is "<code
+    title="">location</code>", then <span>fail the Web Socket
+    connection</span> and abort these steps. Otherwise, handle each
+    entry in the <var title="">headers</var> list as follows:</p>
+
+    <dl class="switch">
+
+     <dt>If the entry's name is "<code
+     title="">location</code>"</dt>
+
+     <dd>
+
+      <!-- this is very similar to the constructor's steps -->
+
+      <p><span title="parse a url">Parse</span> the value of the
+      entry. If this fails, or if the parsed <span>URL</span> does not
+      have a <span title="url-scheme">&lt;scheme&gt;</span> component
+      whose value is either "<code title="">ws</code>" or "<code
+      title="">wss</code>", when compared in an <span>ASCII
+      case-insensitive</span> manner, then <span>fail the Web Socket
+      connection</span> and abort these steps.</p>
+
+      <p>If <var title="">secure</var> is true but the newly parsed
+      <span>URL</span>'s <span
+      title="url-scheme">&lt;scheme&gt;</span> component is an
+      <span>ASCII case-insensitive</span> match for "<code
+      title="">ws</code>", then <span>fail the Web Socket
+      connection</span> and abort these steps. Otherwise, if <var
+      title="">secure</var> is false but the newly parsed
+      <span>URL</span>'s <span
+      title="url-scheme">&lt;scheme&gt;</span> component is an
+      <span>ASCII case-insensitive</span> match for "<code
+      title="">wss</code>", then set <var title="">secure</var> to
+      true.</p>
+
+      <p>Let <var title="">host</var> be the value of the <span
+      title="url-host">&lt;host&gt;</span> component of <var
+      title="">url</var>, <span>converted to ASCII
+      lowercase</span>.</p>
+
+      <p>If <var title="">url</var> has a <span
+      title="url-port">&lt;port&gt;</span> component, then let <var
+      title="">port</var> be that component's value; otherwise, there
+      is no explicit <var title="">port</var>.</p>
+
+      <p>If there is an explicit <var title="">port</var> and the user
+      agent is configured to block access to that port, then
+      <span>fail the Web Socket connection</span> and abort these
+      steps.</p>
+
+      <p>Let <var title="">resource name</var> be the value of the
+      <span title="url-path">&lt;path&gt;</span> component (which
+      might be empty) of <var title="">url</var>.</p>
+
+      <p>If <var title="">resource name</var> is the empty string, set
+      it to a single character U+002F SOLIDUS (/).</p>
+
+      <p>If <var title="">url</var> has a <span
+      title="url-query">&lt;query&gt;</span> component, then append a
+      single U+003F QUESTION MARK (?) character to <var
+      title="">resource name</var>, followed by the value of the <span
+      title="url-query">&lt;query&gt;</span> component.</p>
+
+      <p>Close the connection if the server has not already done
+      so.</p>
+
+      <p>Jump back to the first step of this algorithm.</p>
+
+     </dd>
+
+
+     <dt>Any other name</dt>
+
+     <dd>Ignore it.</dd>
+
+    </dl>
+
+    <hr>
+
+    <p>If <var title="">mode</var> is <i title="">authenticate</i>,
+    then: If there is not exactly one entry in the <var
+    title="">headers</var> list whose name is "<code
+    title="">www-authenticate</code>", then <span>fail the Web Socket
+    connection</span> and abort these steps. Otherwise, handle each
+    entry in the <var title="">headers</var> list as follows:</p>
+
+    <dl class="switch">
+
+     <dt>If the entry's name is "<code
+     title="">www-authenticate</code>"</dt>
+
+     <dd><p>Obtain credentials in a manner consistent with the
+     requirements for handling the <code>WWW-Authenticate</code>
+     header in HTTP, and then close the connection (if the server has
+     not already done so) and jump back to the step labeled
+     <i>connect</i>, including the relevant authentication headers in
+     the new request. <a href="#refsRFC2616">[RFC2616]</a></p></dd>
 
      <dt>Any other name</dt>
 
