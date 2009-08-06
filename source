@@ -60255,9 +60255,9 @@ style/default.css</pre>
 
   <pre class="idl">interface <dfn>Storage</dfn> {
   readonly attribute unsigned long <span title="dom-Storage-length">length</span>;
-  [IndexGetter] DOMString <span title="dom-Storage-key">key</span>(in unsigned long index);
-  [NameGetter] DOMString <span title="dom-Storage-getItem">getItem</span>(in DOMString key);
-  [NameSetter, NameCreator] void <span title="dom-Storage-setItem">setItem</span>(in DOMString key, in DOMString data);
+  [IndexGetter] any <span title="dom-Storage-key">key</span>(in unsigned long index);
+  [NameGetter] any <span title="dom-Storage-getItem">getItem</span>(in DOMString key);
+  [NameSetter, NameCreator] void <span title="dom-Storage-setItem">setItem</span>(in DOMString key, in any data);
   [NameDeleter] void <span title="dom-Storage-removeItem">removeItem</span>(in DOMString key);
   void <span title="dom-Storage-clear">clear</span>();
 };</pre>
@@ -60271,12 +60271,10 @@ style/default.css</pre>
   -->
 
   <p>Each <code>Storage</code> object provides access to a list of
-  key/value pairs, which are sometimes called items. Keys and values
-  are strings. Any string (including the empty string) is a valid
-  key.</p>
-
-  <p class="note">To store more structured data, authors may consider
-  using the <a href="#sql">SQL interfaces</a> instead.</p>
+  key/value pairs, which are sometimes called items. Keys are
+  strings. Any string (including the empty string) is a valid
+  key. Values can be any data type supported by the <span>structured
+  clone</span> algorithm.</p>
 
   <p>Each <code>Storage</code> object is associated with a list of
   key/value pairs when it is created, as defined in the sections on
@@ -60316,24 +60314,38 @@ style/default.css</pre>
   currently present in the list associated with the object.</p>
 
   <p>The <dfn title="dom-Storage-getItem"><code>getItem(<var
-  title="">key</var>)</code></dfn> method must return the current
-  value associated with the given <var title="">key</var>. If the
-  given <var title="">key</var> does not exist in the list associated
-  with the object then this method must return null.</p>
+  title="">key</var>)</code></dfn> method must return a
+  <span>structured clone</span> of the current value associated with
+  the given <var title="">key</var>. If the given <var
+  title="">key</var> does not exist in the list associated with the
+  object then this method must return null.</p>
 
   <p>The <dfn title="dom-Storage-setItem"><code>setItem(<var
   title="">key</var>, <var title="">value</var>)</code></dfn> method
-  must first check if a key/value pair with the given <var
-  title="">key</var> already exists in the list associated with the
-  object.</p>
+  must first create a <span>structured clone</span> of the given <var
+  title="">value</var>. If this raises an exception, then the
+  exception must be thrown and the list associated with the object is
+  left unchanged. If constructing the stuctured clone would involve
+  constructing a new <code>ImageData</code> object, then throw a
+  <code>NOT_SUPPORTED_ERR</code> exception instead.</p>
+
+  <!-- ImageData isn't supported because reading such objects is
+  synchronous, and getData() is synchronous, and therefore if the
+  stored data is in deep storage, it would be very painful to have a
+  script grab the value and immediately try to read the image
+  data. -->
+
+  <p>Otherwise, the user agent must then check if a key/value pair
+  with the given <var title="">key</var> already exists in the list
+  associated with the object.</p>
 
   <p>If it does not, then a new key/value pair must be added to the
-  list, with the given <var title="">key</var> and <var
-  title="">value</var>.</p>
+  list, with the given <var title="">key</var> and with its value set
+  to the newly obtained clone of <var title="">value</var>.</p>
 
   <p>If the given <var title="">key</var> <em>does</em> exist in the
-  list, then it must have its value updated to the value given in the
-  <var title="">value</var> argument.</p>
+  list, then it must have its value updated to the newly obtained
+  clone of <var title="">value</var>.</p>
 
   <p>If it couldn't set the new value, the method must raise an
   <code>QUOTA_EXCEEDED_ERR</code> exception. (Setting could fail if,
@@ -60528,16 +60540,17 @@ style/default.css</pre>
   <p>The <span>task source</span> for this task is the <span>DOM
   manipulation task source</span>.</p>
 
-  <p>If the event is being fired due to an invocation of the
-  <code title="dom-Storage-setItem">setItem()</code> or <code
+  <p>If the event is being fired due to an invocation of the <code
+  title="dom-Storage-setItem">setItem()</code> or <code
   title="dom-Storage-removeItem">removeItem()</code> methods, the
   event must have its <code title="dom-StorageEvent-key">key</code>
   attribute set to the name of the key in question, its <code
-  title="dom-StorageEvent-oldValue">oldValue</code> attribute set to
-  the old value of the key in question, or null if the key is newly
-  added, and its <code title="dom-StorageEvent-newValue">newValue</code>
-  attribute set to the new value of the key in question, or null if
-  the key was removed.</p>
+  title="dom-StorageEvent-oldValue">oldValue</code> attribute set to a
+  <span>structured clone</span> of the old value of the key in
+  question, or null if the key is newly added, and its <code
+  title="dom-StorageEvent-newValue">newValue</code> attribute set to a
+  <span>structured clone</span> of the new value of the key in
+  question, or null if the key was removed.</p>
 
   <p>Otherwise, if the event is being fired due to an invocation of
   the <code title="dom-Storage-clear">clear()</code> method, the event
@@ -60566,13 +60579,13 @@ style/default.css</pre>
 
   <pre class="idl">interface <dfn>StorageEvent</dfn> : Event {
   readonly attribute DOMString <span title="dom-StorageEvent-key">key</span>;
-  readonly attribute DOMString <span title="dom-StorageEvent-oldValue">oldValue</span>;
-  readonly attribute DOMString <span title="dom-StorageEvent-newValue">newValue</span>;
+  readonly attribute any <span title="dom-StorageEvent-oldValue">oldValue</span>;
+  readonly attribute any <span title="dom-StorageEvent-newValue">newValue</span>;
   readonly attribute DOMString <span title="dom-StorageEvent-url">url</span>;
   readonly attribute <span>WindowProxy</span> <span title="dom-StorageEvent-source">source</span>;
   readonly attribute <span>Storage</span> <span title="dom-StorageEvent-storageArea">storageArea</span>;
-  void <span title="dom-StorageEvent-initStorageEvent">initStorageEvent</span>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString keyArg, in DOMString oldValueArg, in DOMString newValueArg, in DOMString urlArg, in <span>WindowProxy</span> sourceArg, in <span>Storage</span> storageAreaArg);
-  void <span title="dom-StorageEvent-initStorageEventNS">initStorageEventNS</span>(in DOMString namespaceURI, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString keyArg, in DOMString oldValueArg, in DOMString newValueArg, in DOMString urlArg, in <span>WindowProxy</span> sourceArg, in <span>Storage</span> storageAreaArg);
+  void <span title="dom-StorageEvent-initStorageEvent">initStorageEvent</span>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString keyArg, in any oldValueArg, in any newValueArg, in DOMString urlArg, in <span>WindowProxy</span> sourceArg, in <span>Storage</span> storageAreaArg);
+  void <span title="dom-StorageEvent-initStorageEventNS">initStorageEventNS</span>(in DOMString namespaceURI, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString keyArg, in any oldValueArg, in any newValueArg, in DOMString urlArg, in <span>WindowProxy</span> sourceArg, in <span>Storage</span> storageAreaArg);
 };</pre>
 
   <p>The <dfn
