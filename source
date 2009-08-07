@@ -71227,13 +71227,6 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
 
   </ol>
 
-  <p>To <dfn>fail the Web Socket connection</dfn>, the user agent must
-  <span>close the Web Socket connection</span>, and may report the
-  problem to the user (which would be especially useful for
-  developers). However, user agents must not convey the failure
-  information to the script that attempted the connection in a way
-  distinguishable from the Web Socket being closed normally.</p>
-
 
   <h6>Data framing</h6>
 
@@ -71313,7 +71306,11 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
        <li><p>Let <var title="">raw data</var> be an empty byte array.</p></li>
 
        <li id="ws-cd-data"><p><i>Data</i>: Read a byte, let <var
-       title="">b</var> be that byte.</p></li>
+       title="">b</var> be that byte. If the client runs out of
+       resources for buffering the incoming data, or hits an
+       artificial resource limit intended to avoid resource
+       starvation, then it must <span>fail the Web Socket
+       connection</span> and abort these steps.</p>
 
        <li><p>If <var title="">b</var> is not 0xff, then append <var
        title="">b</var> to <var title="">raw data</var> and return to
@@ -71368,6 +71365,20 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
   this API; we should also look into allowing name/value pairs,
   arrays, and numbers using send() instead of just strings and binary
   data. -->
+
+
+  <h6>Closing the connection</h6>
+
+  <p>To <dfn>fail the Web Socket connection</dfn>, the user agent must
+  <span>close the Web Socket connection</span>, and may report the
+  problem to the user (which would be especially useful for
+  developers). However, user agents must not convey the failure
+  information to the script that attempted the connection in a way
+  distinguishable from the Web Socket being closed normally.</p>
+
+  <p>Except as indicated above or as specified by the application
+  layer (e.g. a script using the Web Socket API), user agents should
+  not close the connection.</p>
 
 
   <h6>Handling errors in UTF-8</h6>
@@ -71585,19 +71596,146 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
 
   <h5>Security considerations</h5>
 
-  <p class="XXX">...</p>
+  <p>While this protocol is intended to be used by scripts in Web
+  pages, it can also be used directly by hosts. Such hosts are acting
+  on their own behalf, and can therefore send fake "Origin" headers,
+  misleading the server. Servers should therefore be careful about
+  assuming that they are talking directly to scripts from known
+  origins, and must consider that they might be accessed in unexpected
+  ways. In particular, a server should not trust that any input is
+  valid.</p>
 
-  <!-- should mention that servers should only echo the origin if they
-  want to talk to any origin -->
+  <p class="example">For example, if the server uses input as part of
+  SQL queries, all input text should be escaped before being passed to
+  the SQL server, lest the server be susceptible to SQL injection.</p>
 
-  <!-- should mention that clients and server can just bail if they
-  run out of resources (or hit an artificial resource limit intended
-  to avoid resource starvation) trying to read a frame -->
+  <hr>
+
+  <p>Servers that are not intended to process input from any Web page
+  but only for certain sites should verify the "Origin" header is an
+  origin they expect, and should only respond with the corresponding
+  "WebSocket-Origin" if it is an accepted origin. Servers that only
+  accept input from one origin can just send back that value in the
+  "WebSocket-Origin" header, without bothering to check the client's
+  value.</p>
+
+  <hr>
+
+  <p>If at any time a server is faced with data that it does not
+  understand, or that violates some criteria by which the server
+  determines safety of input, or when the server sees a handshake that
+  does not correspond to the values the server is expecting
+  (e.g. incorrect path or origin), the server should just
+  disconnect. It is always safe to disconnect.</p>
 
 
   <h5>IANA considerations</h5>
 
-  <p class="XXX">...(two URI schemes, two ports, HTTP Upgrade keyword)</p>
+  <h6>Registrarion of ws: scheme</h6>
+
+  <dl>
+
+   <dt>URI scheme name.</dt>
+   <dd>ws</dd>
+
+   <dt>Status.</dt>
+   <dd>Permanent.</dd>
+
+   <dt>URI scheme syntax.</dt>
+   <dd>"ws" ":" hier-part [ "?" query ]</dd>
+
+   <dt>URI scheme semantics.</dt>
+   <dd>The only operation for this scheme is to open a connection
+   using the Web Socket protocol.</dd>
+
+   <dt>Encoding considerations.</dt>
+   <dd>UTF-8 only.</dd>
+
+   <dt>Applications/protocols that use this URI scheme name.</dt>
+   <dd>Web Socket protocol.</dd>
+
+   <dt>Interoperability considerations.</dt>
+   <dd>None.</dd>
+
+   <dt>Security considerations.</dt>
+   <dd>See "Security considerations" section above.</dd>
+
+   <dt>Contact.</dt>
+   <dd>Ian Hickson &lt;ian@hixie.ch></dd>
+
+   <dt>Author/Change controller.</dt>
+   <dd>Ian Hickson &lt;ian@hixie.ch></dd>
+
+   <dt>References.</dt>
+   <dd>This document.</dd>
+
+  </dl>
+
+
+  <h6>Registrarion of wss: scheme</h6>
+
+  <dl>
+
+   <dt>URI scheme name.</dt>
+   <dd>wss</dd>
+
+   <dt>Status.</dt>
+   <dd>Permanent.</dd>
+
+   <dt>URI scheme syntax.</dt>
+   <dd>"wss" ":" hier-part [ "?" query ]</dd>
+
+   <dt>URI scheme semantics.</dt>
+   <dd>The only operation for this scheme is to open a connection
+   using the Web Socket protocol, encrypted using TLS.</dd>
+
+   <dt>Encoding considerations.</dt>
+   <dd>UTF-8 only.</dd>
+
+   <dt>Applications/protocols that use this URI scheme name.</dt>
+   <dd>Web Socket protocol over TLS.</dd>
+
+   <dt>Interoperability considerations.</dt>
+   <dd>None.</dd>
+
+   <dt>Security considerations.</dt>
+   <dd>See "Security considerations" section above.</dd>
+
+   <dt>Contact.</dt>
+   <dd>Ian Hickson &lt;ian@hixie.ch></dd>
+
+   <dt>Author/Change controller.</dt>
+   <dd>Ian Hickson &lt;ian@hixie.ch></dd>
+
+   <dt>References.</dt>
+   <dd>This document.</dd>
+
+  </dl>
+
+
+  <h6>Registration of ports 81 and 815</h6>
+
+  <p>See IANA ticket #257454 for port 81 and IANA ticket #257455 for
+  port 815.</p>
+
+
+  <h6>HTTP Upgrade keyword</h6>
+
+  <dl>
+
+   <dt>Name of token.</dt>
+   <dd>WebSocket</dd>
+
+   <dt>Author/Change controller.</dt>
+   <dd>Ian Hickson &lt;ian@hixie.ch></dd>
+
+   <dt>Contact.</dt>
+   <dd>Ian Hickson &lt;ian@hixie.ch></dd>
+
+   <dt>References.</dt>
+   <dd>This document.</dd>
+
+  </dl>
 
   <!--END websocket-protocol-->
   <!--END websocket-->
