@@ -70421,7 +70421,7 @@ interface <dfn>WebSocket</dfn> {
   <pre>GET /demo HTTP/1.1
 Upgrade: WebSocket
 Connection: Upgrade
-Host: example.com
+Host: example.com:81
 Origin: http://example.com
 WebSocket-Protocol: sample</pre>
 
@@ -70442,6 +70442,13 @@ WebSocket-Protocol: sample</pre>
   <p>Data is sent in the form of UTF-8 text. Each frame of data starts
   with a 0x00 byte and ends with a 0xFF byte, with the UTF-8 text in
   between.</p>
+
+  <p>The Web Socket protocol uses this framing so that specifications
+  that use the Web Socket protocol can expose such connections using
+  an event-based mechanism instead of requiring users of those
+  specifications to implement buffering and piecing together of
+  messages manually.</p>
+
 
 
 
@@ -70464,7 +70471,9 @@ WebSocket-Protocol: sample</pre>
 
 
 
-  <h5>Parsing Web Socket URLs</h5>
+  <h5>Web Socket URLs</h5>
+
+  <h6>Parsing Web Socket URLs</h6>
 
   <p>The steps to <dfn>parse a Web Socket URL's components</dfn> from
   a string <var title="">url</var> are as follows. These steps return
@@ -70530,6 +70539,39 @@ WebSocket-Protocol: sample</pre>
   </ol>
 
 
+  <h6>Constructing Web Socket URLs</h6>
+
+  <p>The steps to <dfn>construct a Web Socket URL</dfn> from a <var
+  title="">host</var>, a <var title="">port</var>, a <var
+  title="">resource name</var>, and a <var title="">secure</var> flag,
+  are as follows:</p>
+
+  <ol>
+
+   <li>Let <var title="">url</var> be the empty string.</li>
+
+   <li>If the <var title="">secure</var> flag is false, then append
+   the string "<code title="">ws://</code>" to <var
+   title="">url</var>. Otherwise, append the string "<code
+   title="">wss://</code>" to <var title="">url</var>.</li>
+
+   <li>Append <var title="">host</var> to <var
+   title="">url</var>.</li>
+
+   <li>If the <var title="">secure</var> flag is false and port is
+   not 81, or if the <var title="">secure</var> flag is true and
+   port is not 815, then append the string "<code title="">:</code>"
+   followed by <var title="">port</var> to <var
+   title="">url</var>.</li>
+
+   <li>Append <var title="">resource name</var> to <var
+   title="">url</var>.</li>
+
+   <li>Return <var title="">url</var>.</li>
+
+  </ol>
+
+
   <h5>Client-side requirements</h5>
 
   <p><i>This section only applies to user agents, not to
@@ -70544,14 +70586,14 @@ WebSocket-Protocol: sample</pre>
 
   <p>When the user agent is to <dfn>establish a Web Socket
   connection</dfn> to a host <var title="">host</var>, on a port <var
-  title="">port</var>, from an origin <var title="">origin</var>, with
-  a flag <var title="">secure</var>, with a particular <var
-  title="">resource name</var>, and optionally with a particular <var
-  title="">protocol</var>, it must run the following steps.</p>
-
-  <p class="note">The <var title="">host</var> and <var
-  title="">origin</var> strings will be all-lowercase when this
-  algorithm is invoked.</p>
+  title="">port</var>, from an origin whose <span title="ASCII
+  serialization of an origin">ASCII serialization</span> is <var
+  title="">origin</var>, with a flag <var title="">secure</var>, with
+  a string giving a <var title="">resource name</var>, and optionally
+  with a string giving a <var title="">protocol</var>, it must run the
+  following steps. The <var title="">resource name</var> string must
+  start with a U+002F SOLIDUS (/) character. <a
+  href="#refsORIGIN">[ORIGIN]</a></p>
 
   <ol>
 
@@ -70616,6 +70658,18 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
     configured for HTTPS connections over the proxy configured for
     HTTP connections.</p>
 
+    <p>For the purpose of proxy autoconfiguration scripts, the
+    <span>URL</span> to pass the function must be constructed from
+    <var title="">host</var>, <var title="">port</var>, <var
+    title="">resource name</var>, and the <var title="">secure</var>
+    flag using the steps to <span>construct a Web Socket
+    URL</span>.</p>
+
+    <p class="note">The WebSocket protocol can be identified in proxy
+    autoconfiguration scripts from the scheme ("<code
+    title="">ws:</code>" for unencrypted connections and "<code
+    title="">wss:</code>" for encrypted connections).</p>
+
    </li>
 
    <li><p>If the connection could not be opened, then <span>fail the
@@ -70656,8 +70710,14 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
 
     <pre>48 6f 73 74 3a 20</pre>
 
-    <p>Send the <var title="">host</var> value, encoded as
-    US-ASCII.</p>
+    <p>Send the <var title="">host</var> value, <span>converted to
+    ASCII lowercase</span>, and encoded as US-ASCII.</p>
+
+    <p>If <var title="">secure</var> is false, and <var
+    title="">port</var> is not 80, or if <var title="">secure</var> is
+    true, and <var title="">port</var> is not 443, then send an 0x3a
+    byte (":") followed by the value of <var title="">port</var>,
+    expressed as a base-ten integer, encoded as US-ASCII.</p>
 
     <p>Send the following bytes:</p>
 
@@ -70673,7 +70733,8 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
 
     <pre>4f 72 69 67 69 6e 3a 20</pre>
 
-    <p>Send the <var title="">origin</var> value, encoded as US-ASCII.</p>
+    <p>Send the <var title="">origin</var> value, <span>converted to
+    ASCII lowercase</span>, encoded as US-ASCII. <a href="#refsORIGIN">[ORIGIN]</a></p>
 
     <p class="note">The <var title="">origin</var> value is a string
     that was passed to this algorithm.</p>
@@ -71022,9 +71083,9 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
      title="">websocket-origin</code>"</dt>
 
      <dd><p>If the value is not exactly equal to <var
-     title="">origin</var>, <span>converted to ASCII lowercase</span>, then
-     <span>fail the Web Socket connection</span> and abort these
-     steps.</p></dd>
+     title="">origin</var>, <span>converted to ASCII lowercase</span>,
+     then <span>fail the Web Socket connection</span> and abort these
+     steps. <a href="#refsORIGIN">[ORIGIN]</a></p></dd>
 
 
      <dt>If the entry's name is "<code
@@ -71032,30 +71093,12 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
 
      <dd>
 
-      <p>If the value is not exactly equal to a string consisting of
-      the following components in the same order, then <span>fail the
-      Web Socket connection</span> and abort these steps:</p>
-
-      <ol>
-
-       <li>The string "<code title="">ws</code>" if <var
-       title="">secure</var> is false and "<code
-       title="">wss</code>" if <var title="">secure</var> is
-       true</li>
-
-       <li>The three characters "<code title="">://</code>".</li>
-
-       <li>The value of <var title="">host</var>.</li>
-
-       <li>If <var title="">secure</var> is false and <var
-       title="">port</var> is not 81, or if <var title="">secure</var>
-       is true and <var title="">port</var> is not 815: a "<code
-       title="">:</code>" character followed by the value of <var
-       title="">port</var>.</li>
-
-       <li>The value of <var title="">resource name</var>.</li>
-
-      </ol>
+      <p>If the value is not exactly equal to a string obtained from
+      the steps to <span>construct a Web Socket URL</span> from <var
+      title="">host</var>, <var title="">port</var>, <var
+      title="">resource name</var>, and the <var title="">secure</var>
+      flag, then <span>fail the Web Socket connection</span> and abort
+      these steps.</p>
 
      </dd>
 
@@ -71372,7 +71415,8 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
   by a U+003A COLON (":") and a U+0020 SPACE, followed by the <span
   title="ASCII serialization of an origin">ASCII serialization</span>
   of the origin from which the server is willing to accept
-  connections, followed by a CRLF pair (0x0d 0x0a).</p>
+  connections, followed by a CRLF pair (0x0d 0x0a). <a
+  href="#refsORIGIN">[ORIGIN]</a></p>
 
   <div class="example">
 
@@ -71394,6 +71438,10 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
    <pre>WebSocket-Location: ws://example.com:80/demo</pre>
 
   </div>
+
+  <p class="note">Do not include the port if it is the default port
+  for Web Socket protocol connections of the type in question (81 for
+  unencrypted connections and 815 for encrypted connections).</p>
 
   <p>Send another CRLF pair (0x0d 0x0a).</p>
 
@@ -71708,6 +71756,62 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
    <dd>This document.</dd>
 
   </dl>
+
+
+  <h5>Using the Web Socket protocol from other specifications</h5>
+
+  <p>The Web Socket protocol is intended to be used by another
+  specification to provide a generic mechanism for dynamic
+  author-defined content, e.g. in a specification defining a scripted
+  API.</p>
+
+  <p>Such a specification first needs to "<span>establish a Web Socket
+  connection</span>", providing that algorithm with:</p>
+
+  <ul>
+
+   <li>The destination, consisting of a <var title="">host</var> and a
+   <var title="">port</var>.</li>
+
+   <li>A <var title="">resource name</var>, which allows for multiple
+   services to be identified at one host and port.</li>
+
+   <li>A <var title="">secure</var> flag, which is true if the
+   connection is to be encrypted, and false otherwise.</li>
+
+   <li>An <span>ASCII serialization of an origin</span> that is being
+   made responsible for the connection. <a
+   href="#refsORIGIN">[ORIGIN]</a></li>
+
+   <li>Optionally a string identifying a <span>protocol</span> that is
+   to be layered over the Web Socket connection.</li>
+
+  </ul>
+
+  <p>The <var title="">host</var>, <var title="">port</var>, <var
+  title="">resource name</var>, and <var title="">secure</var> flag
+  are usually obtained from a <span>URL</span> using the steps to
+  <span>parse a Web Socket URL's components</span>. These steps fail
+  if the URL does not specify a Web Socket.</p>
+
+  <p>If a connection can be established, then it is said that the
+  "<span>Web Socket connection is established</span>".</p>
+
+  <p>If at any time the connection is to be closed, then the
+  specification needs to use the "<span>close the Web Socket
+  connection</span>" algorithm.</p>
+
+  <p>When the connection is closed, for any reason including failure
+  to establish the connection in the first place, it is said that the
+  "<span>Web Socket connection is closed</span>".</p>
+
+  <p>While a connection is open, the specification will need to handle
+  the cases when "<span>a Web Socket message has been received</span>"
+  with text <var title="">data</var>.</p>
+
+  <p>To send some text <var title="">data</var> to an open connection,
+  the specification needs to "<span>send <var title="">data</var>
+  using the Web Socket</span>".</p>
 
   <!--END websocket-protocol-->
   <!--END websocket-->
