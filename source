@@ -60904,24 +60904,59 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
   <h5>Synchronous database API</h5>
 
   <pre class="idl">interface <dfn>DatabaseSync</dfn> {
-  <span>SQLTransactionSync</span> <span title="dom-database-sync-transaction">transaction</span>();
-  <span>SQLTransactionSync</span> <span title="dom-database-sync-readTransaction">readTransaction</span>();
+  void <span title="dom-database-sync-transaction">transaction</span>(in <span>SQLTransactionSyncCallback</span> callback);
+  void <span title="dom-database-sync-readTransaction">readTransaction</span>(in <span>SQLTransactionSyncCallback</span> callback);
 
   readonly attribute DOMString <span title="dom-database-sync-version">version</span>;
-  <span>SQLTransactionSync</span> <span title="dom-database-sync-changeVersion">changeVersion</span>(in DOMString oldVersion, in DOMString newVersion);
+  void <span title="dom-database-sync-changeVersion">changeVersion</span>(in DOMString oldVersion, in DOMString newVersion, in <span>SQLTransactionSyncCallback</span> callback);
+};
+
+[Callback=FunctionOnly, NoInterfaceObject]
+interface <dfn>SQLTransactionSyncCallback</dfn> {
+  void <span title="dom-sqltransactionsynccallback-handleEvent">handleEvent</span>(in <span>SQLTransactionSync</span> transaction);
 };</pre>
 
   <p>The <dfn
   title="dom-database-sync-transaction"><code>transaction()</code></dfn>
-  method must <span>create a <code>SQLTransactionSync</code>
-  object</span> for a read/write transaction, and return that
-  object.</p>
-
-  <p>The <dfn
+  and <dfn
   title="dom-database-sync-readTransaction"><code>readTransaction()</code></dfn>
-  method must <span>create a <code>SQLTransactionSync</code>
-  object</span> for a read/only transaction, and return that
-  object.</p>
+  methods must run the following steps:</p>
+
+  <ol>
+
+   <li><p>If the method was the <code
+   title="dom-database-sync-transaction">transaction()</code> method,
+   <span>create a <code>SQLTransactionSync</code> object</span> for a
+   read/write transaction. Otherwise, <span>create a
+   <code>SQLTransactionSync</code> object</span> for a read-only
+   transaction. In either case, if this throws an exception, then
+   rethrow it and abort these steps. Otherwise, let <var
+   title="">transaction</var> be the newly created
+   <code>SQLTransactionSync</code> object.</p></li>
+
+   <li><p>If the first argument is null, rollback the transaction,
+   throw a <code>SQLException</code> exception, and abort these
+   steps. (<span title="dom-sqlerror-code-0">Error code
+   0</span>.)</p></li>
+
+   <li><p>Invoke the callback given by the first argument, passing it
+   the <var title="">transaction</var> object as its only
+   argument.</p></li>
+
+   <li><p>Mark the <code>SQLTransactionSync</code> object as <i
+   title="">stale</i>.</p>
+
+   <li><p>If the callback was terminated by an exception, then
+   rollback the transaction, rethrow that exception, and abort these
+   steps.</p></li>
+
+   <li><p>Commit the transaction.</p></li>
+
+   <li><p>If an error occurred in the committing of the transaction,
+   rollback the transaction, throw a <code>SQLException</code>
+   exception, and abort these steps.</p></li>
+
+  </ol>
 
   <p>On getting, the <dfn
   title="dom-database-sync-version"><code>version</code></dfn>
@@ -60940,25 +60975,38 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
 
    <li><p><span>Create a <code>SQLTransactionSync</code> object</span>
    for a read/write transaction. If this throws an exception, then
-   rethrow it and abort these steps.</p></li>
+   rethrow it and abort these steps. Otherwise, let <var
+   title="">transaction</var> be the newly created
+   <code>SQLTransactionSync</code> object.</p></li>
 
    <li><p>Check that the value of the first argument to the <code
    title="dom-database-sync-changeVersion">changeVersion()</code>
    method exactly matches the database's actual version. If it does
-   not, then throw a <code>SQLTransactionSync</code> object and abort
+   not, then throw a <code>SQLException</code> exception and abort
    these steps. (<span title="dom-sqlerror-code-2">Error code
    2</span>.)</p></li>
 
-   <li><p>Return the <code>SQLTransactionSync</code> object.</p></li>
+   <li><p>If the third argument is null, rollback the transaction,
+   throw a <code>SQLException</code> exception, and abort these steps.
+   (<span title="dom-sqlerror-code-0">Error code
+   0</span>.)</p></li>
 
-  </ol>
+   <li><p>Invoke the callback given by the third argument, passing it
+   the <var title="">transaction</var> object as its only
+   argument.</p></li>
 
-  <p>When the <code>SQLTransactionSync</code> object's <code
-  title="dom-sqltransaction-sync-commit">commit()</code> method is
-  invoked, when the steps for that method invoke the <i>postcommit
-  operation</i>, the user agent must run the following steps:</p>
+   <li><p>Mark the <code>SQLTransactionSync</code> object as <i
+   title="">stale</i>.</p>
 
-  <ol>
+   <li><p>If the callback was terminated by an exception, then
+   rollback the transaction, rethrow the exception, and abort these
+   steps.</p></li>
+
+   <li><p>Commit the transaction.</p></li>
+
+   <li><p>If an error occurred in the committing of the transaction,
+   rollback the transaction, throw a <code>SQLException</code>
+   exception, and abort these steps.</p></li>
 
    <li>Change the database's actual version to the value of the second
    argument to the <code
@@ -61014,8 +61062,6 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
 
 interface <dfn>SQLTransactionSync</dfn> {
   <span>SQLResultSet</span> <span title="dom-sqltransaction-sync-executeSql">executeSql</span>(in DOMString sqlStatement, optional in <span>ObjectArray</span> arguments);
-  void <span title="dom-sqltransaction-sync-commit">commit</span>();
-  void <span title="dom-sqltransaction-sync-rollback">rollback</span>();
 };</pre>
 
   <p>A <code>SQLTransactionSync</code> object is initially <i
@@ -61063,50 +61109,6 @@ interface <dfn>SQLTransactionSync</dfn> {
    object.</p></li>
 
   </ol>
-
-  <hr>
-
-  <p>When the <dfn
-  title="dom-sqltransaction-sync-commit"><code>commit()</code></dfn>
-  method is invoked, the user agent must run the following
-  algorithm:</p>
-
-  <ol>
-
-   <li><p>Commit the transaction.</p></li>
-
-   <li><p>Mark the <code>SQLTransactionSync</code> object as <i
-   title="">stale</i>.</p>
-
-   <li><p>If appropriate (i.e. if the <code
-   title="dom-database-sync-changeVersion">changeVersion()</code>
-   method created the <code>SQLTransactionSync</code> object), invoke
-   the <i>postcommit operation</i>.</p>
-
-   <li><p>If an error occurred in the committing of the transaction,
-   throw a <code>SQLException</code> exception.</p></li>
-
-  </ol>
-
-  <hr>
-
-  <p>When the <dfn
-  title="dom-sqltransaction-sync-rollback"><code>rollback()</code></dfn>
-  method is invoked, the user agent must run the following
-  algorithm:</p>
-
-  <ol>
-
-   <li><p>Rollback the transaction.</p></li>
-
-   <li><p>Mark the <code>SQLTransactionSync</code> object as <i
-   title="">stale</i>.</p>
-
-  </ol>
-
-  <p>If a <code>SQLTransactionSync</code> object is garbage collected
-  while still <i title="">fresh</i>, the user agent must rollback the
-  transaction.</p>
 
 
 
