@@ -4628,6 +4628,20 @@ a.setAttribute('href', 'http://example.com/'); // change the content attribute d
 
   </ol>
 
+  <p>If the user agent can determine the actual length of the file
+  being <span title="fetch">fetched</span> for an instance of this
+  algorithm, and if that length is finite, then that length is the
+  file's <dfn title="concept-fetch-total">size</dfn>. Otherwise, the
+  subject of the algorithm (that is, the file being fetched) has no
+  known <span title="concept-fetch-total">size</span>. (For example,
+  the HTTP <code title="http-content-length">Content-Length</code>
+  header might provide this information.)</p>
+
+  <p>The user agent must also keep track of the <dfn
+  title="concept-fetch-loaded">number of bytes downloaded</dfn> for
+  each instance of this algorithm. This number must exclude any
+  out-of-band metadata, such as HTTP headers.</p>
+
   <p class="note">The <span>application cache</span> processing model
   introduces some <a href="#changesToNetworkingModel">changes to the
   networking model</a> to handle the returning of cached
@@ -22417,9 +22431,13 @@ interface <dfn>CueRangeCallback</dfn> {
    <code>MediaError</code> object whose <code
    title="dom-MediaError-code">code</code> attribute is set to <code
    title="dom-MediaError-MEDIA_ERR_ABORTED">MEDIA_ERR_ABORTED</code>,
-   and <span>fire a progress event</span> called <code
-   title="event-abort">abort</code> at the <span>media
-   element</span>.</p></li>
+   <span>fire a progress event</span> called <code
+   title="event-abort">abort</code> at the <span>media element</span>,
+   in the context of the <span title="fetch">fetching process</span>
+   that is in progress for the element, and <span>fire a progress
+   event</span> called <code title="event-loadend">loadend</code> at
+   the <span>media element</span>, in the context of the same <span
+   title="fetch">fetching process</span>.</p></li>
 
    <li><p>Set the <code title="dom-media-error">error</code> attribute
    to null and the <span>autoplaying flag</span> to true.</p></li>
@@ -22533,7 +22551,8 @@ interface <dfn>CueRangeCallback</dfn> {
 
    <li><p>&#x231B; <span>Queue a task</span> to <span>fire a progress
    event</span> called <code title="event-loadstart">loadstart</code>
-   at the <span>media element</span>.</p></li>
+   at the <span>media element</span>, with no relevant <span
+   title="fetch">fetching process</span>.</p></li>
 
    <li>
 
@@ -22577,7 +22596,19 @@ interface <dfn>CueRangeCallback</dfn> {
 
      <li><p><span>Queue a task</span> to <span>fire a progress
      event</span> called <code title="event-error">error</code> at the
-     <span>media element</span>.</p></li>
+     <span>media element</span>, in the context of the <span
+     title="fetch">fetching process</span> that was used to try to
+     obtain the <span>media resource</span> in the <span
+     title="concept-media-load-resource">resource fetch
+     algorithm</span>.</p></li>
+
+     <li><p><span>Queue a task</span> to <span>fire a progress
+     event</span> called <code title="event-loadend">loadend</code> at
+     the <span>media element</span>, in the context of the <span
+     title="fetch">fetching process</span> that was used to try to
+     obtain the <span>media resource</span> in the <span
+     title="concept-media-load-resource">resource fetch
+     algorithm</span>.</p></li>
 
      <li><p>Set the element's <span>delaying-the-load-event flag</span>
      to false. This stops <span title="delay the load event">delaying
@@ -22693,7 +22724,12 @@ interface <dfn>CueRangeCallback</dfn> {
      <li><p><i title="">Failed</i>: <span>Queue a task</span> to
      <span>fire a simple event</span> called <code
      title="event-error">error</code> at the <var
-     title="">candidate</var> element.</p></li>
+     title="">candidate</var> element, in the context of the <span
+     title="fetch">fetching process</span> that was used to try to
+     obtain <var title="">candidate</var>'s corresponding <span>media
+     resource</span> in the <span
+     title="concept-media-load-resource">resource fetch
+     algorithm</span>.</p></li>
 
      <li><p>Asynchronously <span>await a stable state</span>. The
      <span>synchronous section</span> consists of all the remaining
@@ -22786,15 +22822,19 @@ interface <dfn>CueRangeCallback</dfn> {
     <p>Begin to <span>fetch</span> the <var title="">current media
     resource</var>.</p>
 
-    <p>Every 350ms (&#xB1;200ms) or for every byte received,
-    whichever is <em>least</em> frequent, <span>queue a task</span>
-    to <span>fire a progress event</span> called <code
-    title="event-progress">progress</code> at the element.</p>
+    <p>Every 350ms (&#xB1;200ms) or for every byte received, whichever
+    is <em>least</em> frequent, <span>queue a task</span> to
+    <span>fire a progress event</span> called <code
+    title="event-progress">progress</code> at the element, in the
+    context of the <span title="fetch">fetching process</span> started
+    by this instance of this algorithm.</p>
 
     <p>If at any point the user agent has received no data for more
     than about three seconds, then <span>queue a task</span> to
     <span>fire a progress event</span> called <code
-    title="event-stalled">stalled</code> at the element.</p>
+    title="event-stalled">stalled</code> at the element, in the
+    context of the <span title="fetch">fetching process</span> started
+    by this instance of this algorithm.</p>
 
     <p>User agents may allow users to selectively block or slow
     <span>media data</span> downloads. When a <span>media
@@ -22806,16 +22846,17 @@ interface <dfn>CueRangeCallback</dfn> {
 
     <p>User agents may decide to not download more content at any
     time, e.g. after buffering five minutes of a one hour media
-    resource, while waiting for the user to decide whether to play
-    the resource or not, or while waiting for user input in an
-    interactive resource. When a <span>media element</span>'s
-    download has been suspended, the user agent must set the <code
+    resource, while waiting for the user to decide whether to play the
+    resource or not, or while waiting for user input in an interactive
+    resource. When a <span>media element</span>'s download has been
+    suspended, the user agent must set the <code
     title="dom-media-networkState">networkState</code> to <code
-    title="dom-media-NETWORK_IDLE">NETWORK_IDLE</code> and
-    <span>queue a task</span> to <span>fire a progress event</span>
-    called <code title="event-suspend">suspend</code> at the
-    element. If and when downloading of the resource resumes, the
-    user agent must set the <code
+    title="dom-media-NETWORK_IDLE">NETWORK_IDLE</code> and <span>queue
+    a task</span> to <span>fire a progress event</span> called <code
+    title="event-suspend">suspend</code> at the element, in the
+    context of the <span title="fetch">fetching process</span> started
+    by this instance of this algorithm. If and when downloading of the
+    resource resumes, the user agent must set the <code
     title="dom-media-networkState">networkState</code> to <code
     title="dom-media-NETWORK_LOADING">NETWORK_LOADING</code>.</p>
 
@@ -22994,7 +23035,9 @@ interface <dfn>CueRangeCallback</dfn> {
 
       <p><span>Queue a task</span> to <span>fire a progress
       event</span> called <code title="event-progress">progress</code>
-      at the element.</p>
+      at the <span>media element</span>, in the context of the <span
+      title="fetch">fetching process</span> started by this instance
+      of this algorithm.</p>
 
      </dd>
 
@@ -23022,7 +23065,15 @@ interface <dfn>CueRangeCallback</dfn> {
 
        <li><p><span>Queue a task</span> to <span>fire a progress
        event</span> called <code title="event-error">error</code> at
-       the <span>media element</span>.</p></li>
+       the <span>media element</span>, in the context of the <span
+       title="fetch">fetching process</span> started by this instance
+       of this algorithm.</p></li>
+
+       <li><p><span>Queue a task</span> to <span>fire a progress
+       event</span> called <code title="event-loadend">loadend</code>
+       at the <span>media element</span>, in the context of the <span
+       title="fetch">fetching process</span> started by this instance
+       of this algorithm.</p></li>
 
        <li><p>Set the element's <code
        title="dom-media-networkState">networkState</code> attribute to
@@ -23067,7 +23118,15 @@ interface <dfn>CueRangeCallback</dfn> {
 
        <li><p><span>Queue a task</span> to <span>fire a progress
        event</span> called <code title="event-error">error</code> at
-       the <span>media element</span>.</p></li>
+       the <span>media element</span>, in the context of the <span
+       title="fetch">fetching process</span> started by this instance
+       of this algorithm.</p></li>
+
+       <li><p><span>Queue a task</span> to <span>fire a progress
+       event</span> called <code title="event-loadend">loadend</code>
+       at the <span>media element</span>, in the context of the <span
+       title="fetch">fetching process</span> started by this instance
+       of this algorithm.</p></li>
 
        <li><p>Set the element's <code
        title="dom-media-networkState">networkState</code> attribute to
@@ -23114,7 +23173,15 @@ interface <dfn>CueRangeCallback</dfn> {
 
        <li><p><span>Queue a task</span> to <span>fire a progress
        event</span> called <code title="event-abort">abort</code> at
-       the <span>media element</span>.</p></li>
+       the <span>media element</span>, in the context of the <span
+       title="fetch">fetching process</span> started by this instance
+       of this algorithm.</p></li>
+
+       <li><p><span>Queue a task</span> to <span>fire a progress
+       event</span> called <code title="event-loadend">loadend</code>
+       at the <span>media element</span>, in the context of the <span
+       title="fetch">fetching process</span> started by this instance
+       of this algorithm.</p></li>
 
        <li><p>If the <span>media element</span>'s <code
        title="dom-media-readyState">readyState</code> attribute has a
@@ -23165,21 +23232,32 @@ interface <dfn>CueRangeCallback</dfn> {
     title="queue a task">queued</span> the last <span
     title="concept-task">task</span> as part of <span
     title="fetch">fetching</span> the <span>media resource</span>
-    (i.e. once the download has completed), the user agent must move
-    on to the next step. This might never happen, e.g. when streaming
-    an infinite resource such as Web radio.</p>
+    (i.e. once the download has completed), if the fetching process
+    completes without errors, including decoding the media data, then,
+    the user agent must move on to the next step. This might never
+    happen, e.g. when streaming an infinite resource such as Web
+    radio.</p>
 
    </li>
 
-   <li><p>If the fetching process completes without errors, including
-   decoding the media data, then set the <code
+   <li><p>Set the <code
    title="dom-media-networkState">networkState</code> attribute to
-   <code title="dom-media-NETWORK_LOADED">NETWORK_LOADED</code>, and
-   <span>queue a task</span> to <span>fire a progress event</span>
-   called <code title="event-load">load</code> at the
-   element.</p></li>
+   <code
+   title="dom-media-NETWORK_LOADED">NETWORK_LOADED</code>.</p></li>
 
-   <li><p>Then, abort the overall <span
+   <li><p><span>Queue a task</span> to <span>fire a progress
+   event</span> called <code title="event-load">load</code> at the
+   <span>media element</span>, in the context of the <span
+   title="fetch">fetching process</span> started by this instance of
+   this algorithm.</p></li>
+
+   <li><p><span>Queue a task</span> to <span>fire a progress
+   event</span> called <code title="event-loadend">loadend</code> at
+   the <span>media element</span>, in the context of the <span
+   title="fetch">fetching process</span> started by this instance of
+   this algorithm.</p></li>
+
+   <li><p>Finally, abort the overall <span
    title="concept-media-load-algorithm">resource selection
    algorithm</span>.</p></li>
 
@@ -23526,7 +23604,7 @@ interface <dfn>CueRangeCallback</dfn> {
     <p class="note">A <code
     title="event-loadedmetadata">loadedmetadata</code> DOM event <a
     href="#fire-loadedmetadata">will be fired</a> as part of the <code
-    title="dom-event-load">load()</code> algorithm.</p>
+    title="dom-media-load">load()</code> algorithm.</p>
 
    </dd>
 
@@ -23542,7 +23620,7 @@ interface <dfn>CueRangeCallback</dfn> {
 
     <p id="fire-loadeddata">If this is the first time this occurs for
     this <span>media element</span> since the <code
-    title="dom-event-load">load()</code> algorithm was last invoked,
+    title="dom-media-load">load()</code> algorithm was last invoked,
     the user agent must <span>queue a task</span> to <span>fire a
     simple event</span> called <code
     title="event-loadeddata">loadeddata</code> at the element.</p>
@@ -24677,6 +24755,11 @@ interface <dfn>CueRangeCallback</dfn> {
      <td>An error occurs while fetching the <span>media data</span>.
      <td><code title="dom-media-error">error</code> is an object with the code <code title="dom-MediaError-MEDIA_ERR_NETWORK">MEDIA_ERR_NETWORK</code> or higher.
          <code title="dom-media-networkState">networkState</code> equals either <code title="dom-media-NETWORK_EMPTY">NETWORK_EMPTY</code> or <code title="dom-media-NETWORK_LOADED">NETWORK_LOADED</code>, depending on when the download was aborted.
+    <tr>
+     <td><dfn title="event-loadend"><code>loadend</code></dfn>
+     <td><code>ProgressEvent</code> <a href="#refsPROGRESS">[PROGRESS]</a>
+     <td>The user agent stops fetching the <span>media data</span>, for whatever reason.
+     <td>One of <code title="event-load">load</code>, <code title="event-abort">abort</code>, or <code title="event-error">error</code> has just fired.
     <tr>
      <td><dfn title="event-emptied"><code>emptied</code></dfn>
      <td><code>Event</code>
@@ -54640,10 +54723,32 @@ interface <dfn>Function</dfn> {
   and which uses the <code>Event</code> interface, must be dispatched
   at the given target.</p>
 
-  <p class="XXX"><dfn title="fire a progress event">Firing a
-  progress event called <var title="">e</var></dfn> means something
-  that hasn't yet been defined, in the <a
-  href="#refsPROGRESS">[PROGRESS]</a> spec.</p>
+  <p><dfn title="fire a progress event">Firing a progress event called
+  <var title="">e</var></dfn>, optionally in the context of a
+  particular instance of the <span title="fetch">fetching
+  algorithm</span>, means that an event with the name <var
+  title="">e</var>, with no namespace, which does not bubble (unless
+  otherwise stated) and is not cancelable (unless otherwise stated),
+  and which uses the <code>ProgressEvent</code> interface, must be
+  dispatched at the given target. If there is a <span
+  title="fetch">fetching algorithm</span>, then the <code
+  title="dom-ProgressEvents-lengthComputable">lengthComputable</code>
+  attribute must be set to true if the <span title="fetch">fetching
+  algorithm</span>'s subject has a known <span
+  title="concept-fetch-total">size</span>; the <code
+  title="dom-ProgressEvents-total">total</code> attribute must be set
+  to the subject's <span title="concept-fetch-total">size</span> if it
+  is known and zero otherwise; and the <code
+  title="dom-ProgressEvents-loaded">loaded</code> attribute must be
+  set to the <span title="concept-fetch-loaded">number of bytes
+  downloaded</span>, excluding HTTP headers <span
+  title="concept-http-equivalent-headers">or
+  equivalent</span>. Otherwise, the <code
+  title="dom-ProgressEvents-lengthComputable">lengthComputable</code>
+  attribute must be set to false, and the <code
+  title="dom-ProgressEvents-total">total</code> and the <code
+  title="dom-ProgressEvents-loaded">loaded</code> attributes must be
+  set to zero. <a href="#refsPROGRESS">[PROGRESS]</a></p>
 
   <p>The default action of these event is to do nothing unless
   otherwise stated.</p>
