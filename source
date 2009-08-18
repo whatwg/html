@@ -60639,8 +60639,8 @@ interface <span>WindowLocalStorage</span> {
 
 function showDocCount(db, span) {
   db.readTransaction(function (t) {
-    t.executeSql('SELECT COUNT(*) FROM docids', [], function (t, r) {
-      span.textContent = rows.count;
+    t.executeSql('SELECT COUNT(*) AS c FROM docids', [], function (t, r) {
+      span.textContent = r.rows[0].c;
     }, function (t, e) {
       // couldn't read database
       span.textContent = '(unknown: ' + e.message + ')';
@@ -60657,15 +60657,36 @@ prepareDatabase(function(db) {
   alert(e.message);
 });</pre>
 
-<!-- XXX
-include an example that does something like the following to show
-you should never embed strings straight into the statement, even when you
-have a variable and unknowable number of literals coming:
-   var q = "";
-   for each (var i in array)
-     q += (q == "" ? "" : ", ") + "?";
-   executeSql('SELECT rowid FROM t WHERE c IN (' + q + ')', array, ...);
--->
+  <hr>
+
+  <p>The <code
+  title="dom-sqltransaction-executeSql">executeSql()</code> method has
+  an argument intended to allow variables to be substituted into
+  statements without risking SQL injection vulnerabilities:</p>
+
+  <pre>db.readTransaction(function (t) {
+  t.executeSql('SELECT title, author FROM docs WHERE id=?', [id], function (t, data) {
+    report(data.rows[0].title, data.rows[0].author);
+  });
+});
+
+  <hr>
+
+  <p>Sometimes, there might be an arbitrary number of variables to
+  substitute in. Even in these case, the right solution is to
+  construct the query using only "?" characters, and then to pass the
+  variables in as the second argument:</p>
+
+<pre>function findDocs(db, resultCallback) {
+  var q = "";
+  for each (var i in labels)
+    q += (q == "" ? "" : ", ") + "?";
+  db.readTransaction(function (t) {
+    t.executeSql('SELECT id FROM docs WHERE label IN (' + q + ')', labels, function (t, data) {
+      resultCallback(data);
+    });
+  });
+}</pre>
 
 
   <!--BOILERPLATE middle-w3c-api-intro-->
