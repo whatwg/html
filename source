@@ -60719,47 +60719,118 @@ have a variable and unknowable number of literals coming:
 
   <pre class="idl">[Supplemental, NoInterfaceObject]
 interface <span>WindowDatabase</span> {
-  <span>Database</span> <span title="dom-opendatabase">openDatabase</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize);
+  <span>Database</span> <span title="dom-opendatabase">openDatabase</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize, in optional <span>DatabaseCallback</span> creationCallback);
 };
 <span>Window</span> implements <span>WindowDatabase</span>;
 
 [Supplemental, NoInterfaceObject]
 interface <span>WorkerUtilsDatabase</span> {
-  <span>Database</span> <span title="dom-opendatabase">openDatabase</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize);
-  <span>DatabaseSync</span> <span title="dom-opendatabase-sync">openDatabaseSync</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize);
+  <span>Database</span> <span title="dom-opendatabase">openDatabase</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize, in optional <span>DatabaseCallback</span> creationCallback);
+  <span>DatabaseSync</span> <span title="dom-opendatabase-sync">openDatabaseSync</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize, in optional <span>DatabaseCallback</span> creationCallback);
 };
-<span>WorkerUtils</span> implements <span>WorkerUtilsDatabase</span>;</pre>
+<span>WorkerUtils</span> implements <span>WorkerUtilsDatabase</span>;
+
+[Callback=FunctionOnly, NoInterfaceObject]
+interface <dfn>DatabaseCallback</dfn> {
+  void <span title="dom-databasecallback-handleEvent">handleEvent</span>(in <span>Database</span> database);
+};</pre>
 
   <p>The <dfn
   title="dom-opendatabase"><code>openDatabase()</code></dfn> method on
-  the <code>Window</code> and <code>WorkerUtils</code> interfaces must
-  return a newly constructed <code>Database</code> object that
-  represents the database requested.</p>
-
-  <p>The <dfn
+  the <code>Window</code> and <code>WorkerUtils</code> interfaces and
+  the <dfn
   title="dom-opendatabase-sync"><code>openDatabaseSync()</code></dfn>
-  method on the <code>WorkerUtils</code> interfaces must return a
-  newly constructed <code>DatabaseSync</code> object that represents
-  the database requested.</p>
+  method on the <code>WorkerUtils</code> interface take the following
+  arguments: a database name, a database version, a display name, an
+  estimated size &mdash; in bytes &mdash; of the data that will be
+  stored in the database, and optionally a callback to be invoked if
+  the database has not yet been created.</p>
 
-  <p>These methods take four arguments: a database name, a database
-  version, a display name, and an estimated size, in bytes, of the
-  data that will be stored in the database.</p>
+  When invoked, these methods must run the following steps:</p>
 
-  <p>The database requested is the one with the given database
-  name from the appropriate <span>origin</span>.</p>
+  <ol>
 
-  <p>The <code title="dom-opendatabase">openDatabase()</code> method
-  on the <code>Window</code> object must use and create databases from
-  the <span>origin</span> of the <span>active document</span> of the
-  <span>browsing context</span> of the <code>Window</code> object on
-  which the method was invoked.</p>
+   <li>
 
-  <p>The <code title="dom-opendatabase">openDatabase()</code> and
-  <code title="dom-opendatabase-sync">openDatabaseSync()</code>
-  methods on the <code>WorkerUtils</code> object must use and create
-  databases from the <span>origin</span> of the scripts in the
-  worker.</p>
+    <p>The user agent may raise a <code>SECURITY_ERR</code> exception
+    instead of returning a <code>Database</code> object if the request
+    violates a policy decision (e.g. if the user agent is configured
+    to not allow the page to open databases).</p>
+
+   </li>
+
+   <li>
+
+    <p>For the method on the <code>Window</code> object: let <var
+    title="">origin</var> be the <span>origin</span> of the
+    <span>active document</span> of the <span>browsing context</span>
+    of the <code>Window</code> object on which the method was
+    invoked.</p>
+
+    <p>For the methods on the <code>WorkerUtils</code> object: let
+    <var title="">origin</var> be the <span>origin</span> of the
+    scripts in the worker.</p>
+
+   </li>
+
+   <li><p>If the database version provided is not the empty string,
+   and there is already a database with the given name from the origin
+   <var title="">origin</var>, but the database has a different
+   version than the version provided, then throw an
+   <code>INVALID_STATE_ERR</code> exception and abort these
+   steps.</p></li>
+
+   <li>
+
+    <p>If no database with the given name from the origin <var
+    title="">origin</var> exists, then create the database, let its
+    version be the given database version (which might be the empty
+    string), and let <var title="">created</var> be true. Otherwise,
+    let <var title="">created</var> be false.</p>
+
+   </li>
+
+   <li>
+
+    <p>For the <code title="dom-opendatabase">openDatabase()</code>
+    methods: let <var title="">result</var> be a newly constructed
+    <code>Database</code> object representing the database with the
+    given database name from the origin <var
+    title="">origin</var>.</p>
+
+    <p>For the <code
+    title="dom-opendatabase-sync">openDatabaseSync()</code> method:
+    let <var title="">result</var> be a newly constructed
+    <code>DatabaseSync</code> object representing the database with
+    the given database name from the origin <var
+    title="">origin</var>.</p>
+
+   </li>
+
+   <li>
+
+    <p>If <var title="">created</var> is false or if no callback was
+    passed to the method, skip this step. Otherwise:</p>
+
+    <p>For the <code title="dom-opendatabase">openDatabase()</code>
+    methods: <span>queue a task</span> to to invoke the callback with
+    <var title="">result</var> as its only argument.</p>
+
+    <p>For the <code
+    title="dom-opendatabase-sync">openDatabaseSync()</code> method:
+    invoke the callback with <var title="">result</var> as its only
+    argument. If the callback throws an exception, rethrow that
+    exception and abort these steps.</p>
+
+   </li>
+
+   <li>
+
+    <p>Return <var title="">result</var>.</p>
+
+   </li>
+
+  </ol>
 
   <p>All strings including the empty string are valid database
   names. Database names must be compared in a
@@ -60770,28 +60841,11 @@ interface <span>WorkerUtilsDatabase</span> {
   names by mapping database names (e.g. using a hashing algorithm) to
   the supported set of names.</p>
 
-  <p>If the database version provided is not the empty string, and the
-  database already exists but has a different version, or no version,
-  then the method must raise an <code>INVALID_STATE_ERR</code>
-  exception.</p>
-
   <p>The version that the database was opened with is the <dfn
   title="concept-database-expected-version">expected version</dfn> of
   this <code>Database</code> or <code>DatabaseSync</code> object. It
   can be the empty string, in which case there is no expected version
   &mdash; any version is fine.</p>
-
-  <p>Otherwise, if the database version provided is the empty string,
-  or if the database doesn't yet exist, or if the database exists and
-  the version requested is the same as the current version associated
-  with the database, then the method must return an object
-  representing the database that has the name that was given. If no
-  such database exists, it must be created first.</p>
-
-  <p>The user agent may raise a <code>SECURITY_ERR</code> exception
-  instead of returning a <code>Database</code> object if the request
-  violates a policy decision (e.g. if the user agent is configured to
-  not allow the page to open databases).</p>
 
   <p>User agents are expected to use the display name and the
   estimated database size to optimize the user experience. For
