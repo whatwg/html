@@ -60630,41 +60630,11 @@ interface <span>WindowLocalStorage</span> {
   actual work, in this case <code title="">showDocCount()</code>.</p>
 
   <pre>function prepareDatabase(ready, error) {
-  // first open the database with no version to see if it exists
-  var db = openDatabase('documents', '', 'Offline document storage', 5*1024*1024);
-  if (db.version == '') {
-    // database didn't exist
+  return openDatabase('documents', '1.0', 'Offline document storage', 5*1024*1024, function (db) {
     db.changeVersion('', '1.0', function (t) {
-      // create the tables
       t.executeSql('CREATE TABLE docids (id, name)');
-    }, function (e) {
-      // in case of error:
-      if (db.version == '1.0') {
-        // the database got upgraded while we were trying to do it.
-        // (there's a race condition between us checking db.version and
-        // calling changeVersion(), so this is possible if the user opened this
-        // page twice at the same time)
-        // let's try reopening it
-        getDatabase(ready, error);
-      } else {
-        // some other error occurred
-        error(e);
-      }
-    }, function () {
-      // in case of success:
-      getDatabase(ready, error);
-    });
-  } else {
-    getDatabase(ready, error);
-  }
-}
-
-function getDatabase(ready, error) {
-  try {
-    ready(openDatabase('documents', '1.0', 'Offline document storage', 5*1024*1024);
-  } catch (e) {
-    error(e);
-  }
+    }, error);
+  });
 }
 
 function showDocCount(db, span) {
@@ -60744,9 +60714,16 @@ interface <dfn>DatabaseCallback</dfn> {
   arguments: a database name, a database version, a display name, an
   estimated size &mdash; in bytes &mdash; of the data that will be
   stored in the database, and optionally a callback to be invoked if
-  the database has not yet been created.</p>
+  the database has not yet been created. The callback, if provided, is
+  intended to be used to call <code
+  title="dom-database-changeVersion">changeVersion()</code>; the
+  callback is invoked with the database having the empty string as its
+  version regardless of the given database version. If the callback is
+  not provided, the database is created with the given database
+  version as its version.</p>
 
-  When invoked, these methods must run the following steps:</p>
+  <p>When invoked, these methods must run the following steps, with all
+  but the last two steps being run atomically:</p>
 
   <ol>
 
@@ -60783,10 +60760,13 @@ interface <dfn>DatabaseCallback</dfn> {
    <li>
 
     <p>If no database with the given name from the origin <var
-    title="">origin</var> exists, then create the database, let its
-    version be the given database version (which might be the empty
-    string), and let <var title="">created</var> be true. Otherwise,
-    let <var title="">created</var> be false.</p>
+    title="">origin</var> exists, then create the database and let
+    <var title="">created</var> be true. Otherwise, let <var
+    title="">created</var> be false.</p>
+
+    <p>If a callback was passed to the method, then let the database's
+    version be the empty string. Otherwise, let its version be the
+    given database version</p>
 
    </li>
 
@@ -60967,7 +60947,7 @@ interface <dfn>DatabaseCallback</dfn> {
   void <span title="dom-database-readTransaction">readTransaction</span>(in <span>SQLTransactionCallback</span> callback, optional in <span>SQLTransactionErrorCallback</span> errorCallback, optional in <span>SQLVoidCallback</span> successCallback);
 
   readonly attribute DOMString <span title="dom-database-version">version</span>;
-  void <span title="dom-database-changeVersion">changeVersion</span>(in DOMString oldVersion, in DOMString newVersion, in <span>SQLTransactionCallback</span> callback, in <span>SQLTransactionErrorCallback</span> errorCallback, in <span>SQLVoidCallback</span> successCallback);
+  void <span title="dom-database-changeVersion">changeVersion</span>(in DOMString oldVersion, in DOMString newVersion, in <span>SQLTransactionCallback</span> callback, in <span>SQLTransactionErrorCallback</span> errorCallback, in optional <span>SQLVoidCallback</span> successCallback);
 };
 
 [Callback=FunctionOnly, NoInterfaceObject]
