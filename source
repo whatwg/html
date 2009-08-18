@@ -60614,9 +60614,81 @@ interface <span>WindowLocalStorage</span> {
 
   <p><i>This section is non-normative.</i></p>
 
-  <p class="XXX">...</p>
+  <p>This specification introduces a set of APIs to manipulate
+  client-side databases using SQL.</p>
 
-<!-- include an example that does something like the following to show
+  <p>The API is asynchronous, so authors are likely to find anonymous
+  functions (lambdas) very useful in using this API.</p>
+
+  <p>Here is an example of a script using this API. First, a function
+  <code title="">prepareDatabase()</code> is defined. This function
+  tries to create the database if necessary, giving it one table
+  called "docids" with two columns ("id" and "name"). If it is
+  successful, or if the table doesn't need creating, it calls a
+  section function, <code title="">getDatabase()</code>, which obtains
+  a handle to the database, and then calls the function to do the
+  actual work, in this case <code title="">showDocCount()</code>.</p>
+
+  <pre>function prepareDatabase(ready, error) {
+  // first open the database with no version to see if it exists
+  var db = openDatabase('documents', '', 'Offline document storage', 5*1024*1024);
+  if (db.version == '') {
+    // database didn't exist
+    db.changeVersion('', '1.0', function (t) {
+      // create the tables
+      t.executeSql('CREATE TABLE docids (id, name)');
+    }, function (e) {
+      // in case of error:
+      if (db.version == '1.0') {
+        // the database got upgraded while we were trying to do it.
+        // (there's a race condition between us checking db.version and
+        // calling changeVersion(), so this is possible if the user opened this
+        // page twice at the same time)
+        // let's try reopening it
+        getDatabase(ready, error);
+      } else {
+        // some other error occurred
+        error(e);
+      }
+    }, function () {
+      // in case of success:
+      getDatabase(ready, error);
+    });
+  } else {
+    getDatabase(ready, error);
+  }
+}
+
+function getDatabase(ready, error) {
+  try {
+    ready(openDatabase('documents', '1.0', 'Offline document storage', 5*1024*1024);
+  } catch (e) {
+    error(e);
+  }
+}
+
+function showDocCount(db, span) {
+  db.readTransaction(function (t) {
+    t.executeSql('SELECT COUNT(*) FROM docids', [], function (t, r) {
+      span.textContent = rows.count;
+    }, function (t, e) {
+      // couldn't read database
+      span.textContent = '(unknown: ' + e.message + ')';
+    });
+  });
+}
+
+prepareDatabase(function(db) {
+  // got database
+  var span = document.getElementById('doc-count');
+  showDocCount(db, span);
+}, function (e) {
+  // error getting database
+  alert(e.message);
+});</pre>
+
+<!-- XXX
+include an example that does something like the following to show
 you should never embed strings straight into the statement, even when you
 have a variable and unknowable number of literals coming:
    var q = "";
