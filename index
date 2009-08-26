@@ -52121,12 +52121,15 @@ style/default.css</pre>
    URL</a> that was found earlier in this algorithm as the
    <a href=#url>URL</a> of the entry.</li>
 
-   <li><p>If the third argument is present, set <a href="#the-document's-current-address">the document's
-   current address</a> to the <a href=#absolute-url>absolute URL</a> that was
-   found earlier in this algorithm.</p>
+   <li>
 
-    <p class=note>Since this is not a <em><a href=#navigate title=navigate>navigation</a></em> of the <a href=#browsing-context>browsing
-    context</a>, it does not cause a <code title=event-hashchange>hashchange</code> event to be fired.</p>
+    <p>If the third argument is present, set <a href="#the-document's-current-address">the document's
+    current address</a> to the <a href=#absolute-url>absolute URL</a> that was
+    found earlier in this algorithm.</p>
+
+    <p class=note>Since this is neither a <a href=#navigate title=navigate>navigation</a> of the <a href=#browsing-context>browsing
+    context</a> nor a <a href=#traverse-the-history title="traverse the history">history
+    traversal</a>, it does not cause a <code title=event-hashchange>hashchange</code> event to be fired.</p>
 
    </li>
 
@@ -52182,14 +52185,12 @@ style/default.css</pre>
     <dl class=switch><dt>If the <a href=#current-document-readiness>current document readiness</a> is set to the
      string "complete"</dt>
 
-     <dd><p><a href=#queue-a-task>Queue a task</a> to fire a <dfn id=event-popstate title=event-popstate><code>popstate</code></dfn> event in no
+     <dd><p>Synchronously fire a <dfn id=event-popstate title=event-popstate><code>popstate</code></dfn> event in no
      namespace on the <code><a href=#window>Window</a></code> object of the
      <code>Document</code>, using the <code><a href=#popstateevent>PopStateEvent</a></code>
      interface, with the <code title=dom-PopStateEvent-state><a href=#dom-popstateevent-state>state</a></code> attribute set to the
      value of <var title="">state</var>. This event must bubble but
-     not be cancelable and has no default action. The <a href=#task-source>task
-     source</a> for this task is the <a href=#dom-manipulation-task-source>DOM manipulation task
-     source</a>.</dd>
+     not be cancelable and has no default action.</dd>
 
      <dt>Otherwise</dt>
 
@@ -52864,11 +52865,12 @@ style/default.css</pre>
        object representing the new resource and its
        <code>Document</code> object and related state.</li>
 
-       <li><p><a href=#traverse-the-history>Traverse the history</a> to the new entry.</li>
+       <li><p><a href=#traverse-the-history>Traverse the history</a> to the new entry. If
+       the navigation was initiated with <a href=#replacement-enabled>replacement
+       enabled</a>, then the traversal must itself be initiated
+       with <a href=#replacement-enabled>replacement enabled</a>.</p>
 
-       <li><p>If the navigation was initiated with <dfn id=replacement-enabled>replacement
-       enabled</dfn>, remove the entry immediately before the new
-       <a href=#current-entry>current entry</a> in the session history.</li>
+       </li>
 
       </ol></dd>
 
@@ -53203,8 +53205,8 @@ style/default.css</pre>
   <h4 id=history-traversal><span class=secno>6.11.9 </span>History traversal</h4>
 
   <p>When a user agent is required to <dfn id=traverse-the-history>traverse the history</dfn>
-  to a <i>specified entry</i>, the user agent must act as
-  follows:</p>
+  to a <i>specified entry</i>, optionally with <a href=#replacement-enabled>replacement
+  enabled</a>, the user agent must act as follows:</p>
 
   <ol><li><p>If there is no longer a <code>Document</code> object for the
    entry in question, the user agent must <a href=#navigate>navigate</a> the
@@ -53215,7 +53217,8 @@ style/default.css</pre>
    <em>is</em> a <code>Document</code> object and so this step gets
    skipped. The navigation must be done using the same <a href=#source-browsing-context>source
    browsing context</a> as was used the first time this entry was
-   created.</li>
+   created. (This can never happen with <a href=#replacement-enabled>replacement
+   enabled</a>.)</li>
 
    <li><p>If appropriate, update the <a href=#current-entry>current entry</a> in the
    <a href=#browsing-context>browsing context</a>'s <code>Document</code> object's
@@ -53273,21 +53276,24 @@ style/default.css</pre>
    <li><p>Set <a href="#the-document's-current-address">the document's current address</a> to the URL
    of the <i>specified entry</i>.</li>
 
+   <li><p>If the <i>specified entry</i> has a URL that differs from
+   the <a href=#current-entry>current entry</a>'s only by its fragment identifier,
+   and the two share the same <code>Document</code> object, then let
+   <var title="">hash changed</var> be true. Otherwise, let <var title="">hash changed</var> be false.</li>
+
+   <li><p>If the traversal was initiated with <dfn id=replacement-enabled>replacement
+   enabled</dfn>, remove the entry immediately before the
+   <span>specified entry</span> in the session history.</p>
+
    <li><p>If the <i>specified entry</i> is a state object or the
    first entry for a <code>Document</code>, the user agent must <a href=#activating-state-object-entries title="activate the state object">activate that
    entry</a>.</li>
 
-   <li><p>If the <i>specified entry</i> has a URL that differs from
-   the <a href=#current-entry>current entry</a>'s only by its fragment identifier,
-   and the two share the same <code>Document</code> object, then
-   first, <!--if the <code>Document</code>'s <span>current document
-   readiness</span> is the string "complete", then--> <a href=#queue-a-task>queue a
-   task</a> to <a href=#fire-a-simple-event>fire a simple event</a> with the name <code title=event-hashchange>hashchange</code> at the <a href=#browsing-context>browsing
+   <li><p>If <var title="">hash changed</var> is true, then first,
+   synchronously <a href=#fire-a-simple-event>fire a simple event</a> with the name <code title=event-hashchange>hashchange</code> at the <a href=#browsing-context>browsing
    context</a>'s <code><a href=#window>Window</a></code> object; and second, if the new
    URL has a fragment identifier, <a href=#scroll-to-the-fragment-identifier>scroll to the fragment
-   identifier</a>. The <a href=#task-source>task source</a> for the task that
-   fires the <code title=event-hashchange>hashchange</code> event is
-   the <a href=#dom-manipulation-task-source>DOM manipulation task source</a>.</li>
+   identifier</a>.</li>
 
    <li><p>User agents may also update other aspects of the document
    view when the location changes in this way, for instance the scroll
