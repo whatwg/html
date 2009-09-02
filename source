@@ -61691,7 +61691,7 @@ interface <dfn>DatabaseCallback</dfn> {
   void <span title="dom-database-readTransaction">readTransaction</span>(in <span>SQLTransactionCallback</span> callback, optional in <span>SQLTransactionErrorCallback</span> errorCallback, optional in <span>SQLVoidCallback</span> successCallback);
 
   readonly attribute DOMString <span title="dom-database-version">version</span>;
-  void <span title="dom-database-changeVersion">changeVersion</span>(in DOMString oldVersion, in DOMString newVersion, in <span>SQLTransactionCallback</span> callback, in <span>SQLTransactionErrorCallback</span> errorCallback, in optional <span>SQLVoidCallback</span> successCallback);
+  void <span title="dom-database-changeVersion">changeVersion</span>(in DOMString oldVersion, in DOMString newVersion, in optional <span>SQLTransactionCallback</span> callback, in optional <span>SQLTransactionErrorCallback</span> errorCallback, in optional <span>SQLVoidCallback</span> successCallback);
 };
 
 [Callback=FunctionOnly, NoInterfaceObject]
@@ -61770,6 +61770,9 @@ interface <dfn>SQLTransactionErrorCallback</dfn> {
   </ol>
 
   <p>...and the <i>mode</i> being read/write.</p>
+
+  <p>If any of the optional arguments are omitted, then they must be
+  treated as if they were null.</p>
 
 
   <h6>Executing SQL statements</h6>
@@ -61869,19 +61872,14 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
    title="dom-database-changeVersion">changeVersion()</code>
    method.)</p></li>
 
-   <li><p><span>Queue a task</span> to invoke the <i>transaction
-   callback</i> with the aforementioned <code>SQLTransaction</code>
-   object as its only argument, and wait for that task to be
-   run.</p></li>
+   <li><p>If the <i>transaction callback</i> is not null, <span>queue
+   a task</span> to invoke the <i>transaction callback</i> with the
+   aforementioned <code>SQLTransaction</code> object as its only
+   argument, and wait for that task to be run.</p></li>
 
-   <li><p>If the callback couldn't be called (e.g. it was null), or if
-   the callback was invoked and raised an exception, jump to the last
+   <li><p>If the callback raised an exception, jump to the last
    step.</p></li>
-<!--
-   <li><p>If the callback could be called and returned false, let
-   <i>callback-canceled</i> be true. Otherwise, let it be
-   false.</p></li>
--->
+
    <li><p>While there are any statements queued up in the transaction,
    perform the following steps for each queued up statement in the
    transaction, oldest first. Each statement has a statement,
@@ -61902,11 +61900,11 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
      <li><p>Create a <code>SQLResultSet</code> object that represents
      the result of the statement.</p></li>
 
-     <li><p>If the statement has a result set callback, <span>queue a
-     task</span> to invoke it with the <code>SQLTransaction</code>
-     object as its first argument and the new
-     <code>SQLResultSet</code> object as its second argument, and wait
-     for that task to be run.</p></li>
+     <li><p>If the statement has a result set callback that is not
+     null, <span>queue a task</span> to invoke it with the
+     <code>SQLTransaction</code> object as its first argument and the
+     new <code>SQLResultSet</code> object as its second argument, and
+     wait for that task to be run.</p></li>
 
      <li><p>If the callback was invoked and raised an exception, jump
      to the last step in the overall steps.</p></li>
@@ -61922,11 +61920,11 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
 
     <ol>
 
-     <li><p>If the statement had an associated error callback, then
-     <span>queue a task</span> to invoke that error callback with the
-     <code>SQLTransaction</code> object and a newly constructed
-     <code>SQLError</code> object that represents the error that
-     caused these substeps to be run as the two arguments,
+     <li><p>If the statement had an associated error callback that is
+     not null, then <span>queue a task</span> to invoke that error
+     callback with the <code>SQLTransaction</code> object and a newly
+     constructed <code>SQLError</code> object that represents the
+     error that caused these substeps to be run as the two arguments,
      respectively, and wait for the task to be run.</p></li>
 
      <li><p>If the error callback returns false, then move on to the
@@ -61958,16 +61956,16 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
    </li>
 
    <li><p><span>Queue a task</span> to invoke the <i>success
-   callback</i>.</p></li>
+   callback</i>, if it is not null.</p></li>
 
    <li><p>End these steps. The next step is only used when something
    goes wrong.</p></li>
 
    <li><p><span>Queue a task</span> to invoke the <i>error
-   callback</i> with a newly constructed <code>SQLError</code> object
-   that represents the last error to have occurred in this
-   transaction. Rollback the transaction. Any still-pending statements
-   in the transaction are discarded.</p></li>
+   callback</i>, if it is not null, with a newly constructed
+   <code>SQLError</code> object that represents the last error to have
+   occurred in this transaction. Rollback the transaction. Any
+   still-pending statements in the transaction are discarded.</p></li>
 
   </ol>
 
@@ -61983,7 +61981,7 @@ interface <dfn>SQLStatementErrorCallback</dfn> {
   void <span title="dom-database-sync-readTransaction">readTransaction</span>(in <span>SQLTransactionSyncCallback</span> callback);
 
   readonly attribute DOMString <span title="dom-database-sync-version">version</span>;
-  void <span title="dom-database-sync-changeVersion">changeVersion</span>(in DOMString oldVersion, in DOMString newVersion, in <span>SQLTransactionSyncCallback</span> callback);
+  void <span title="dom-database-sync-changeVersion">changeVersion</span>(in DOMString oldVersion, in DOMString newVersion, optional in <span>SQLTransactionSyncCallback</span> callback);
 };
 
 [Callback=FunctionOnly, NoInterfaceObject]
@@ -62061,14 +62059,9 @@ interface <dfn>SQLTransactionSyncCallback</dfn> {
    these steps. (<span title="dom-sqlerror-code-2">Error code
    2</span>.)</p></li>
 
-   <li><p>If the third argument is null, rollback the transaction,
-   throw a <code>SQLException</code> exception, and abort these steps.
-   (<span title="dom-sqlerror-code-0">Error code
-   0</span>.)</p></li>
-
-   <li><p>Invoke the callback given by the third argument, passing it
-   the <var title="">transaction</var> object as its only
-   argument.</p></li>
+   <li><p>If the third argument is not null, invoke the callback given
+   by the third argument, passing it the <var
+   title="">transaction</var> object as its only argument.</p></li>
 
    <li><p>Mark the <code>SQLTransactionSync</code> object as <i
    title="">stale</i>.</p>
@@ -62131,7 +62124,8 @@ interface <dfn>SQLTransactionSyncCallback</dfn> {
   title="dom-database-sync-readTransaction">readTransaction()</code>,
   and <code
   title="dom-database-sync-changeVersion">changeVersion()</code>
-  methods return <code>SQLTransactionSync</code> objects.</p>
+  methods invoke callbacks that are passed
+  <code>SQLTransactionSync</code> objects.</p>
 
   <pre class="idl">// typedef sequence&lt;any> <span>ObjectArray</span>;
 
