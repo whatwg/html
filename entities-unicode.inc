@@ -96,6 +96,7 @@
      <tr> <td> <code title="">Atilde;</code> </td> <td> U+000C3 </td> </tr>
      <tr> <td> <code title="">Auml;</code> </td> <td> U+000C4 </td> </tr>
      <tr> <td> <code title="">Aring;</code> </td> <td> U+000C5 </td> </tr>
+     <tr> <td> <code title="">angst;</code> </td> <td> U+000C5 </td> </tr>
      <tr> <td> <code title="">AElig;</code> </td> <td> U+000C6 </td> </tr>
      <tr> <td> <code title="">Ccedil;</code> </td> <td> U+000C7 </td> </tr>
      <tr> <td> <code title="">Egrave;</code> </td> <td> U+000C8 </td> </tr>
@@ -319,6 +320,7 @@
      <tr> <td> <code title="">Chi;</code> </td> <td> U+003A7 </td> </tr>
      <tr> <td> <code title="">Psi;</code> </td> <td> U+003A8 </td> </tr>
      <tr> <td> <code title="">Omega;</code> </td> <td> U+003A9 </td> </tr>
+     <tr> <td> <code title="">ohm;</code> </td> <td> U+003A9 </td> </tr>
      <tr> <td> <code title="">alpha;</code> </td> <td> U+003B1 </td> </tr>
      <tr> <td> <code title="">beta;</code> </td> <td> U+003B2 </td> </tr>
      <tr> <td> <code title="">gamma;</code> </td> <td> U+003B3 </td> </tr>
@@ -586,12 +588,10 @@
      <tr> <td> <code title="">TRADE;</code> </td> <td> U+02122 </td> </tr>
      <tr> <td> <code title="">integers;</code> </td> <td> U+02124 </td> </tr>
      <tr> <td> <code title="">Zopf;</code> </td> <td> U+02124 </td> </tr>
-     <tr> <td> <code title="">ohm;</code> </td> <td> U+02126 </td> </tr>
      <tr> <td> <code title="">mho;</code> </td> <td> U+02127 </td> </tr>
      <tr> <td> <code title="">Zfr;</code> </td> <td> U+02128 </td> </tr>
      <tr> <td> <code title="">zeetrf;</code> </td> <td> U+02128 </td> </tr>
      <tr> <td> <code title="">iiota;</code> </td> <td> U+02129 </td> </tr>
-     <tr> <td> <code title="">angst;</code> </td> <td> U+0212B </td> </tr>
      <tr> <td> <code title="">bernou;</code> </td> <td> U+0212C </td> </tr>
      <tr> <td> <code title="">Bernoullis;</code> </td> <td> U+0212C </td> </tr>
      <tr> <td> <code title="">Bscr;</code> </td> <td> U+0212C </td> </tr>
