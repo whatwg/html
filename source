@@ -21507,39 +21507,80 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
   overriding the sandbox to the user if an option to do so is
   provided.</p>
 
-  <p>When the element is created with a <code
-  title="attr-embed-src">src</code> attribute, and whenever the <code
-  title="attr-embed-src">src</code> attribute is subsequently set, and
-  whenever the <code title="attr-embed-type">type</code> attribute is
-  set or removed while the element has a <code
-  title="attr-embed-src">src</code> attribute, if the element is not
-  in a sandboxed browsing context, not a descendant of a <span>media
-  element</span>, and not a descendant of an <code>object</code>
-  element that is not showing its <span>fallback content</span>, the
-  user agent must <span title="resolve a url">resolve</span> the value
-  of the attribute, relative to the element, and if that is
-  successful, should <span>fetch</span> the resulting <span>absolute
-  URL</span>. The <span title="concept-task">task</span> that is <span
-  title="queue a task">queued</span> by the <span>networking task
-  source</span> once the resource has been <span
-  title="fetch">fetched</span> must find and instantiate an
-  appropriate <span>plugin</span> based on the <span
-  title="concept-embed-type">content's type</span>, and hand that
-  <span>plugin</span> the content of the resource, replacing any
-  previously instantiated plugin for the element. <!-- Note that this
-  doesn't happen when the base URL changes. --></p>
+  <p>An <code>embed</code> element is said to be <dfn
+  title="concept-embed-active">potentially active</dfn> when the
+  following conditions are all met simultaneously:</p>
 
-  <p>Fetching the resource must <span>delay the load event</span> of
-  the element's document.</p>
-  <!-- if we add load/error events, then replace the previous
-  paragraph with the text one: -->
-  <!-- similar text in various places -->
-  <!--<p>Fetching the resource must <span>delay the load event</span>
-  of the element's document until the final <span
-  title="concept-task">task</span> that is <span title="queue a
-  task">queued</span> by the <span>networking task source</span> once
-  the resource has been <span title="fetch">fetched</span> has been
-  run.</p>-->
+  <ul class="brief">
+   <li>The element is <span title="in a document">in a <code>Document</code></span>.</li>
+   <li>The element has either a <code title="attr-embed-src">src</code> attribute set or a <code title="attr-embed-type">type</code> attribute set (or both).</li>
+   <li>The element is not in a sandboxed browsing context.</li>
+   <li>The element is not a descendant of a <span>media element</span>.</li>
+   <li>The element is not a descendant of an <code>object</code> element that is not showing its <span>fallback content</span>.</li>
+  </ul>
+
+  <p>Whenever an <code>embed</code> element that was not <span
+  title="concept-embed-active">potentially active</span> becomes <span
+  title="concept-embed-active">potentially active</span>, and whenever
+  a <span title="concept-embed-active">potentially active</span>
+  <code>embed</code> element's <code
+  title="attr-embed-type">src</code> attribute is set, changed, or
+  removed, and whenever a <span
+  title="concept-embed-active">potentially active</span>
+  <code>embed</code> element's <code
+  title="attr-embed-type">type</code> attribute is set, changed, or
+  removed, the appropriate set of steps from the following is then
+  applied:</p>
+
+  <dl class="switch">
+
+   <dt>If the element has a <code title="attr-embed-src">src</code>
+   attribute set</dt>
+
+   <dd>
+
+    <p>The user agent must <span title="resolve a url">resolve</span>
+    the value of the element's <code title="attr-embed-src">src</code>
+    attribute, relative to the element. If that is successful, the
+    user agent should <span>fetch</span> the resulting <span>absolute
+    URL</span>. The <span title="concept-task">task</span> that is
+    <span title="queue a task">queued</span> by the <span>networking
+    task source</span> once the resource has been <span
+    title="fetch">fetched</span> must find and instantiate an
+    appropriate <span>plugin</span> based on the <span
+    title="concept-embed-type">content's type</span>, and hand that
+    <span>plugin</span> the content of the resource, replacing any
+    previously instantiated plugin for the element.</p> <!-- Note that
+    this doesn't happen when the base URL changes. -->
+
+    <p>Fetching the resource must <span>delay the load event</span> of
+    the element's document.</p>
+    <!-- if we add load/error events, then replace the previous
+    paragraph with the text one: -->
+    <!-- similar text in various places -->
+    <!--<p>Fetching the resource must <span>delay the load
+    event</span> of the element's document until the final <span
+    title="concept-task">task</span> that is <span title="queue a
+    task">queued</span> by the <span>networking task source</span>
+    once the resource has been <span title="fetch">fetched</span> has
+    been run.</p>-->
+
+   </dd>
+
+   <dt>If the element has no <code title="attr-embed-src">src</code>
+   attribute set</dt>
+
+   <dd><p>The user agent should find and instantiate an appropriate
+   <span>plugin</span> based on the value of the <code
+   title="attr-embed-type">type</code> attribute.</p>
+
+  </dl>
+
+  <p>Whenever an <code>embed</code> element that was <span
+  title="concept-embed-active">potentially active</span> stops being
+  <span title="concept-embed-active">potentially active</span>, any
+  <span>plugin</span> that had been instantiated for that element must
+  be unloaded.</p>
 
   <p>The <dfn title="concept-embed-type">type of the content</dfn>
   being embedded is defined as follows:</p>
@@ -21581,6 +21622,11 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
 
   </ol>
 
+  <p>The <code>embed</code> element has no <span>fallback
+  content</span>. If the user agent can't find a suitable plugin, then
+  the user agent must use a default plugin. (This default could be as
+  simple as saying "Unsupported Format".)</p>
+
   <p>Whether the resource is fetched successfully or not (e.g. whether
   the response code was a 2xx code <span
   title="concept-http-equivalent-codes">or equivalent</span>) must be
@@ -21590,18 +21636,6 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
   <p class="note">This allows servers to return data for plugins even
   with error responses (e.g. HTTP 500 Internal Server Error codes can
   still contain plugin data).</p>
-
-  <p>When the element is created with a <code
-  title="attr-embed-type">type</code> attribute and no <code
-  title="attr-embed-src">src</code> attribute, and whenever the <code
-  title="attr-embed-type">type</code> attribute is subsequently set,
-  so long as no <code title="attr-embed-src">src</code> attribute is
-  set, and whenever the <code title="attr-embed-src">src</code>
-  attribute is removed when the element has a <code
-  title="attr-embed-type">type</code> attribute, if the element is not
-  in a sandboxed browsing context, user agents should find and
-  instantiate an appropriate <span>plugin</span> based on the value of
-  the <code title="attr-embed-type">type</code> attribute.</p>
 
   </div>
 
@@ -21625,11 +21659,6 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
   <code>embed</code> element supports a scriptable interface, the
   <code>HTMLEmbedElement</code> object representing the element should
   expose that interface while the element is instantiated.</p>
-
-  <p>The <code>embed</code> element has no <span>fallback
-  content</span>. If the user agent can't find a suitable plugin, then
-  the user agent must use a default plugin. (This default could be as
-  simple as saying "Unsupported Format".)</p>
 
   </div>
 
@@ -21737,18 +21766,23 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
 
   <div class="impl">
 
-  <p>When the element is created, and subsequently whenever the <code
-  title="attr-object-classid">classid</code> attribute changes or is
-  removed, or, if the <code title="attr-object-classid">classid</code>
-  attribute is not present, whenever the <code
-  title="attr-object-data">data</code> attribute changes or is
-  removed, or, if neither <code
-  title="attr-object-classid">classid</code> attribute nor the <code
+  <p>When the element is created, and subsequently whenever the
+  element is <span title="insert an element into a document">inserted
+  into a document</span>, <span title="insert an element into a
+  document">removed from a document</span>; and whenever an ancestor
+  <code>object</code> element changes to or from showing its
+  <span>fallback content</span>; and whenever the element's <code
+  title="attr-object-classid">classid</code> attribute is set,
+  changed, or removed; and, when its <code
+  title="attr-object-classid">classid</code> attribute is not present,
+  whenever its <code title="attr-object-data">data</code> attribute is
+  set, changed, or removed; and, when neither its <code
+  title="attr-object-classid">classid</code> attribute nor its <code
   title="attr-object-data">data</code> attribute are present, whenever
-  the <code title="attr-object-type">type</code> attribute changes or
-  is removed, the user agent must run the following steps to determine
-  what the <code>object</code> element represents:</p> <!-- Changing
-  the base URL doesn't trigger this. -->
+  its <code title="attr-object-type">type</code> attribute is set,
+  changed, or removed: the user agent must run the following steps to
+  (re)determine what the <code>object</code> element represents:</p>
+  <!-- Changing the base URL doesn't trigger this. -->
 
   <ol>
 
@@ -21756,8 +21790,10 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
 
     <p>If the element has an ancestor <span>media element</span>, or
     has an ancestor <code>object</code> element that is <em>not</em>
-    showing its <span>fallback content</span>, then jump to the last
-    step in the overall set of steps (fallback).</p>
+    showing its <span>fallback content</span>, or if the element is
+    not <span title="in a document">in a <code>Document</code></span>,
+    then jump to the last step in the overall set of steps
+    (fallback).</p>
 
    </li>
 
@@ -22059,7 +22095,8 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
    <li><p>(Fallback.) The <code>object</code> element
    <span>represents</span> the element's children, ignoring any
    leading <code>param</code> element children. This is the element's
-   <span>fallback content</span>.</li>
+   <span>fallback content</span>. If the element has an instantiated
+   <span>plugin</span>, then unload it.</p></li>
 
   </ol>
 
