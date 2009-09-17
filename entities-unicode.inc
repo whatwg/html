@@ -1661,7 +1661,6 @@
      <tr> <td> <code title="">rtriltri;</code> </td> <td> U+029CE </td> </tr>
      <tr> <td> <code title="">LeftTriangleBar;</code> </td> <td> U+029CF </td> </tr>
      <tr> <td> <code title="">RightTriangleBar;</code> </td> <td> U+029D0 </td> </tr>
-     <tr> <td> <code title="">race;</code> </td> <td> U+029DA </td> </tr>
      <tr> <td> <code title="">iinfin;</code> </td> <td> U+029DC </td> </tr>
      <tr> <td> <code title="">infintie;</code> </td> <td> U+029DD </td> </tr>
      <tr> <td> <code title="">nvinfin;</code> </td> <td> U+029DE </td> </tr>
