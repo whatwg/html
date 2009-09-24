@@ -1474,6 +1474,8 @@
      <tr> <td> <code title="">VerticalSeparator;</code> </td> <td> U+02758 </td> </tr>
      <tr> <td> <code title="">lbbrk;</code> </td> <td> U+02772 </td> </tr>
      <tr> <td> <code title="">rbbrk;</code> </td> <td> U+02773 </td> </tr>
+     <tr> <td> <code title="">bsolhsub;</code> </td> <td> U+027C8 </td> </tr>
+     <tr> <td> <code title="">suphsol;</code> </td> <td> U+027C9 </td> </tr>
      <tr> <td> <code title="">lobrk;</code> </td> <td> U+027E6 </td> </tr>
      <tr> <td> <code title="">LeftDoubleBracket;</code> </td> <td> U+027E6 </td> </tr>
      <tr> <td> <code title="">robrk;</code> </td> <td> U+027E7 </td> </tr>
