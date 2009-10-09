@@ -12787,9 +12787,11 @@ people expect to have work and what is necessary.
   title="attr-script-defer">defer</code> behavior instead of the
   synchronous blocking behavior that is the default.</p>
 
-  <p>If the <code title="attr-script-defer">defer</code> attribute is
-  specified, the <code title="attr-script-src">src</code> attribute
-  must also be specified.</p>
+  <p>If one or both of the <code
+  title="attr-script-defer">defer</code> and <code
+  title="attr-script-async">async</code> attributes are specified, the
+  <code title="attr-script-src">src</code> attribute must also be
+  specified.</p>
 
   <p>Changing the <code title="attr-script-src">src</code>, <code
   title="attr-script-type">type</code>, <code
@@ -12989,40 +12991,22 @@ people expect to have work and what is necessary.
 
     <dl class="switch">
 
-     <dt>If the document is still being parsed, and the element has a
-     <code title="attr-script-defer">defer</code> attribute, and the
-     element has a <code title="attr-script-src">src</code> attribute,
-     and the element does not have an <code
+     <dt>If the element has a <code title="attr-script-src">src</code>
+     attribute, and the element has a <code
+     title="attr-script-defer">defer</code> attribute, and the element
+     has been flagged as <span>"parser-inserted"</span>, and the
+     element does not have an <code
      title="attr-script-async">async</code> attribute</dt>
 
      <dd>The element must be added to the end of the <span>list of
      scripts that will execute when the document has finished
-     parsing</span>.
-
-     </dd>
-
-
-     <dt>If the element has an <code
-     title="attr-script-async">async</code> attribute and a <code
-     title="attr-script-src">src</code> attribute</dt>
-
-     <dd>The element must be added to the end of the <span>list of
-     scripts that will execute asynchronously</span>.</dd>
-
-
-     <dt>If the element has an <code
-     title="attr-script-async">async</code> attribute but no <code
-     title="attr-script-src">src</code> attribute, and the <span>list
-     of scripts that will execute asynchronously</span> is not
-     empty</dt>
-
-     <dd>The element must be added to the end of the <span>list of
-     scripts that will execute asynchronously</span>.</dd>
+     parsing</span>.</dd>
 
 
      <dt>If the element has a <code title="attr-script-src">src</code>
-     attribute and has been flagged as
-     <span>"parser-inserted"</span></dt>
+     attribute, and the element has been flagged as
+     <span>"parser-inserted"</span>, and the element does not have an
+     <code title="attr-script-async">async</code> attribute</dt>
 
      <dd>The element is the <dfn>pending external script</dfn>. (There
      can only be one such script at a time.)</dd>
@@ -13055,12 +13039,10 @@ people expect to have work and what is necessary.
   the resource has been <span title="fetch">fetched</span> (defined
   below) has been run.</p>
 
-  <p><dfn>When a script completes loading</dfn>: If the
-  <code>script</code> element was added to one of the lists mentioned
-  above and the document is still being parsed, then the parser
-  handles it. Otherwise, the UA must run the following steps as the
-  <span title="concept-task">task</span> that the <span>networking
-  task source</span> places on the <span>task queue</span>:</p>
+  <p><dfn>When a script completes loading</dfn>: The UA must run the
+  following steps as the <span title="concept-task">task</span> that
+  the <span>networking task source</span> places on the <span>task
+  queue</span>:</p>
 
   <dl class="switch">
 
@@ -13071,6 +13053,13 @@ people expect to have work and what is necessary.
    <dd>
 
     <ol>
+
+     <li>
+
+      <p>If the script's <code>Document</code> is still being parsed,
+      then the parser handles it. Abort these steps.</p>
+
+     </li>
 
      <li>
 
@@ -13099,55 +13088,6 @@ people expect to have work and what is necessary.
       <p>If there are any more entries in the list, and if the script
       associated with the element that is now the first in the list is
       already loaded, then jump back to step 2 to execute it.</p>
-
-     </li>
-
-    </ol>
-
-    <p class="note">The scripts in the <span>list of scripts that will
-    execute when the document has finished parsing</span> can also get
-    executed prematurely if the <code
-    title="dom-innerHTML">innerHTML</code> attribute is set on a node
-    in the document.</p>
-
-   </dd>
-
-   <dt>If the <code>script</code> element was added to the <dfn>list
-   of scripts that will execute asynchronously</dfn>:</dt>
-
-   <dd>
-
-    <ol>
-
-     <li>
-
-      <p>If the script is not the first element in the list, then do
-      nothing yet. Stop going through these steps.</p>
-
-     </li>
-
-     <li>
-
-      <p><span title="executing a script block">Execute the script
-      block</span> (the first element in the list).</p>
-
-     </li>
-
-     <li>
-
-      <p>Remove the <code>script</code> element from the list
-      (i.e. shift out the first entry in the list).</p>
-
-     </li>
-
-     <li>
-
-      <p>If there are any more scripts in the list, and the element
-      now at the head of the list had no <code
-      title="attr-script-src">src</code> attribute when it was added
-      to the list, or had one, but its associated script has finished
-      loading, then jump back to step 2 to execute the script
-      associated with this element.</p>
 
      </li>
 
@@ -78935,13 +78875,7 @@ interface <dfn>MessagePort</dfn> {
   <p>Before each step of the tokenizer, the user agent must first
   check the <span>parser pause flag</span>. If it is true, then the
   tokenizer must abort the processing of any nested invocations of the
-  tokenizer, yielding control back to the caller. If it is false, then
-  the user agent may then check to see if either one of the scripts in
-  the <span>list of scripts that will execute as soon as
-  possible</span> or the first script in the <span>list of scripts
-  that will execute asynchronously</span>, has <span>completed
-  loading</span>. If one has, then it must be <span title="executing a
-  script block">executed</span> and removed from its list.</p>
+  tokenizer, yielding control back to the caller.</p>
 
   <p>The tokenizer state machine consists of the states defined in the
   following subsections.</p>
@@ -84524,25 +84458,20 @@ document.body.appendChild(text);
 
   <p>First, the user agent must set the <span>current document
   readiness</span> to "interactive" and the <span>insertion
-  point</span> to undefined.</p>
+  point</span> to undefined.</p> <!-- this also synchronously fires an
+  event -->
 
   <p>Then, the user agent must then make a list of all the scripts
   that are in the <span>list of scripts that will execute when the
-  document has finished parsing</span>, the <span>list of scripts that
-  will execute asynchronously</span>, and the <span>list of scripts
+  document has finished parsing</span> and the <span>list of scripts
   that will execute as soon as possible</span>. This is the <dfn>list
   of scripts pending after the parser stopped</dfn>.</p>
 
-  <p>The rules for <span>when a script completes loading</span> start
-  applying (script execution is no longer managed by the parser).</p>
-
-  <p>If any of the scripts in the <span>list of scripts that will
-  execute as soon as possible</span> have <span>completed
-  loading</span>, or if the <span>list of scripts that will execute
-  asynchronously</span> is not empty and the first script in that list
-  has <span>completed loading</span>, then the user agent must act as
-  if those scripts just completed loading, following the rules given
-  for that in the <code>script</code> element definition.</p>
+  <p>The document is no longer being parsed, so the rules for
+  <span>when a script completes loading</span> for the <span>list of
+  scripts that will execute when the document has finished
+  parsing</span> start applying (script execution for that list is no
+  longer managed by the parser).</p>
 
   <p>If the <span>list of scripts that will execute when the document
   has finished parsing</span> is not empty, and the first item in this
@@ -84576,7 +84505,8 @@ document.body.appendChild(text);
   <ol>
 
    <li><span>Queue a task</span> to set the <span>current document
-   readiness</span> to "complete".</li>
+   readiness</span> to "complete".</li> <!-- this also fires an event
+   synchronously during the task -->
 
    <li>If the <code>Document</code> is in a <span>browsing
    context</span>, then <span>queue a task</span> to <span>fire a
