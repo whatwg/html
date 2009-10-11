@@ -10173,7 +10173,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
 
    <li>
 
-    <p>If there is a <span>pending external script</span>, then the
+    <p>If there is a <span>pending parsing-blocking script</span>, then the
     method must now return without further processing of the
     <span>input stream</span>.</p>
 
@@ -11099,25 +11099,15 @@ gave me some of the songs they wrote. I love sharing my music.&lt;/p>
   followed and 404 responses must cause the external resource to not
   be applied.)</p>
 
-  <!-- similar text in various places -->
-  <p>Fetching external resources must <span>delay the load
-  event</span> of the element's document until the <span
-  title="concept-task">task</span> that is <span title="queue a
-  task">queued</span> by the <span>networking task source</span> once
-  the resource has been <span title="fetch">fetched</span> (defined
-  below) has been run.</p>
-
-  <!-- the next paragraph is similar to text in the <style> section -->
-  <p>The <span title="concept-task">task</span> that is <span
-  title="queue a task">queued</span> by the <span>networking task
-  source</span> once the resource has been <span
-  title="fetch">fetched</span> must, if the loads were successful,
-  <span>queue a task</span> to <span>fire a simple event</span> named
-  <code title="event-load">load</code> at the <code>link</code>
-  element; otherwise, if the resource or one of its subresources
-  failed to completely load for any reason (e.g. DNS error, HTTP 404
-  response, a connection being prematurely closed, unsupported
-  Content-Type), it must instead <span>queue a task</span> to
+  <!-- the next few paragraph are similar to text in the <style> section -->
+  <p>Once the attempts to obtain the resource and its critical
+  subresources are complete, the user agent must, if the loads were
+  successful, <span>queue a task</span> to <span>fire a simple
+  event</span> named <code title="event-load">load</code> at the
+  <code>link</code> element, or, if the resource or one of its
+  critical subresources failed to completely load for any reason
+  (e.g. DNS error, HTTP 404 response, a connection being prematurely
+  closed, unsupported Content-Type), <span>queue a task</span> to
   <span>fire a simple event</span> named <code
   title="event-error">error</code> at the <code>link</code>
   element. Non-network errors in processing the resource or its
@@ -11127,6 +11117,15 @@ gave me some of the songs they wrote. I love sharing my music.&lt;/p>
   <p>The <span>task source</span> for these <span
   title="concept-task">tasks</span> is the <span>DOM manipulation
   task source</span>.</p>
+
+  <p>The element must <span>delay the load event</span> of the
+  element's document until all the attempts to obtain the resource and
+  its critical subresources are complete.</p>
+
+  <p>Which resources are considered critical or not is defind by the
+  relevant specification. For CSS resources, only <code
+  title="">@import</code> rules introduce critical subresources; other
+  resources, e.g. fonts or backgrounds, are not.</p>
 
   <hr>
 
@@ -11265,9 +11264,8 @@ gave me some of the songs they wrote. I love sharing my music.&lt;/p>
   resource link type has a default type defined, then the user agent
   must assume that the resource is of that type.</p>
 
-  <p class="note">The <code
-  title="link-type-stylesheet">stylesheet</code> link type defines
-  rules for processing the resource's <span
+  <p class="note">The <code title="rel-stylesheet">stylesheet</code>
+  link type defines rules for processing the resource's <span
   title="Content-Type">Content-Type metadata</span>.</p>
 
   <p>Once the user agent has established the type of the resource, the
@@ -12390,10 +12388,6 @@ people expect to have work and what is necessary.
 
   </div>
 
-  <p>However, if the link is an <span>external resource link</span>,
-  then the <code title="attr-link-media">media</code> attribute is
-  prescriptive.
-
   <p>The <dfn title="attr-style-media"><code>media</code></dfn>
   attribute says which media the styles apply to. The value must be a
   <span>valid media query</span>.  <span class="impl">The user agent
@@ -12470,27 +12464,34 @@ people expect to have work and what is necessary.
   when the processor is invoked.<!-- so dynamic changes to the base
   URL don't affect the CSS --></p>
 
-  <!-- the next paragraph is similar to text in the <link> section -->
-  <p>Once the element has been evaluated, if it had no subresources or
-  once all the subresources it uses have been <span
-  title="fetch">fetched</span>, the user agent must <span>queue a
-  task</span> to <span>fire a simple event</span> named <code
-  title="event-load">load</code> at the <code>style</code> element. If
-  the resource has a subresource that fails to completely load for any
-  reason (e.g. DNS error, HTTP 404 response, the connection being
-  prematurely closed, unsupported Content-Type), the user agent must
-  instead <span>queue a task</span> to <span>fire a simple
-  event</span> named <code title="event-error">error</code> at the
-  <code>style</code> element. Non-network errors in the processing of
-  the element's contents or its subresources (e.g. CSS parse errors)
-  are not failures for the purposes of this paragraph. The
-  <code>style</code> element must <span>delay the load event</span> of
-  the element's document until one of these <span
-  title="concept-task">tasks</span> has been queued.</p>
+  <!-- the next few paragraph are similar to text in the <style> section -->
+  <p>Once the attempts to obtain the style sheet's critical
+  subresources, if any, are complete, or, if the style sheet has no
+  critical subresources, once the style sheet has been parsed and
+  processed, the user agent must, if the loads were successful or
+  there were none, <span>queue a task</span> to <span>fire a simple
+  event</span> named <code title="event-load">load</code> at the
+  <code>style</code> element, or, if one of the style sheet's critical
+  subresources failed to completely load for any reason (e.g. DNS
+  error, HTTP 404 response, a connection being prematurely closed,
+  unsupported Content-Type), <span>queue a task</span> to <span>fire a
+  simple event</span> named <code title="event-error">error</code> at
+  the <code>style</code> element. Non-network errors in processing the
+  style sheet or its subresources (e.g. CSS parse errors, PNG decoding
+  errors) are not failures for the purposes of this paragraph.</p>
 
   <p>The <span>task source</span> for these <span
-  title="concept-task">tasks</span> is the <span>DOM manipulation
-  task source</span>.</p>
+  title="concept-task">tasks</span> is the <span>DOM manipulation task
+  source</span>.</p>
+
+  <p>The element must <span>delay the load event</span> of the
+  element's document until all the attempts to obtain the style
+  sheet's critical subresources, if any, are complete.</p>
+
+  <p>Which resources are considered critical or not is defind by the
+  relevant specification. For CSS resources, only <code
+  title="">@import</code> rules introduce critical subresources; other
+  resources, e.g. fonts or backgrounds, are not.</p>
 
   </div>
 
@@ -12652,8 +12653,38 @@ people expect to have work and what is necessary.
   style sheets are defined in the CSS object model specification. <a
   href="#refsCSSOM">[CSSOM]</a></p>
 
-  </div>
+  <hr>
 
+  <p>Style sheets, whether added by a <code>link</code> element, a
+  <code>style</code> element, an <code>&lt;?xml-stylesheet></code> PI,
+  an HTTP <code title="http-link">Link:</code> header, or some other
+  mechanism, have a <dfn>style sheet ready</dfn> flag, which is
+  initially unset.</p>
+
+  <p>When a style sheet is ready to be applied, its <span>style sheet
+  ready</span> flag must be set. If the style sheet referenced no
+  other resources (e.g. it was an internal style sheet given by a
+  <code>style</code> element with no <code title="">@import</code>
+  rules), then the style rules must be synchronously made available to
+  script; otherwise, the style rules must only be made available to
+  script once the <span>event loop</span> reaches its "update the
+  rendering" step.</p>
+
+  <p>A style sheet in the context of the <code>Document</code> of an
+  <span>HTML parser</span> or <span>XML parser</span> is said to be
+  <dfn>a style sheet blocking scripts</dfn> if the element was created
+  by that <code>Document</code>'s parser, and the element is either a
+  <code>style</code> element or a <code>link</code> element that was
+  an <span title="rel-stylesheet">external resource link that
+  contributes to the styling processing model</span> when the element
+  was created by the parser, and the element's style sheet was enabled
+  when the element was created by the parser, and the element's
+  <span>style sheet ready</span> flag is not yet set, and, the last
+  time the <span>event loop</span> reached step 1, the element was
+  <span title="in a document">in that
+  <code>Document</code></span>.</p>
+
+  </div>
 
 
 
@@ -12807,27 +12838,40 @@ people expect to have work and what is necessary.
 
   <div class="impl">
 
-  <p><code>script</code> elements have four associated pieces of
-  metadata. The first is a flag indicating whether or not the script
-  block has been <dfn>"already executed"</dfn>. Initially,
+  <p>A <code>script</code> element has several associated pieces of
+  state.</p>
+
+  <p>The first is a flag indicating whether or not the script block
+  has been <dfn>"already started"</dfn>. Initially,
   <code>script</code> elements must have this flag unset (script
-  blocks, when created, are not "already executed"). When a
-  <code>script</code> element is cloned, the "already executed" flag,
-  if set, must be propagated to the clone when it is created. The
-  second is a flag indicating whether the element was
+  blocks, when created, are not "already started"). When a
+  <code>script</code> element is cloned, the "already started" flag,
+  if set, must be propagated to the clone when it is created.</p>
+
+  <p>The second is a flag indicating whether the element was
   <dfn>"parser-inserted"</dfn>. This flag is set by the <span>HTML
   parser</span> and is used to handle <code
-  title="dom-document-write">document.write()</code> calls. The third
-  and fourth pieces of metadata are <dfn><var>the script block's
-  type</var></dfn> and <dfn><var>the script block's character
+  title="dom-document-write">document.write()</code> calls.</p>
+
+  <p>The third is a flag indicating whether or not the script block is
+  <dfn>"ready to be parser-executed"</dfn>. Initially,
+  <code>script</code> elements must have this flag unset (script
+  blocks, when created, are not "ready to be parser-executed"). This
+  flag is used only for elements that are also
+  <span>"parser-inserted"</span>, to let the parser know when to
+  execute the script.</p>
+
+  <p>The fourth and fifth pieces of state are <dfn><var>the script
+  block's type</var></dfn> and <dfn><var>the script block's character
   encoding</var></dfn>. They are determined when the script is run,
   based on the attributes on the element at that time.</p>
 
   <p>When a <code>script</code> element that is neither marked as
-  having <span>"already executed"</span> nor marked as being
+  having <span>"already started"</span> nor marked as being
   <span>"parser-inserted"</span> experiences one of the events listed
-  in the following list, the user agent must <span title="running a
-  script">run</span> the <code>script</code> element:</p>
+  in the following list, the user agent must synchronously <span
+  title="running a script">run</span> the <code>script</code>
+  element:</p>
 
   <ul>
 
@@ -12935,7 +12979,7 @@ people expect to have work and what is necessary.
    <li>
 
     <p>The user agent must set the element's <span>"already
-    executed"</span> flag.</p>
+    started"</span> flag.</p>
 
    </li>
 
@@ -12963,13 +13007,6 @@ people expect to have work and what is necessary.
     Content-Type</span> to it. If this returns an encoding, and the
     user agent supports that encoding, then let <var>the script
     block's character encoding</var> be that encoding.</p>
-
-    <p>Once the fetching process has completed, and the script has
-    <dfn>completed loading</dfn>, the user agent will have to complete
-    <span title="when a script completes loading">the steps described
-    below</span>. (If the parser is still active at that time, those
-    steps defer to the parser to handle the execution of pending
-    scripts.)</p>
 
     <p>For performance reasons, user agents may start fetching the
     script as soon as the attribute is set, instead, in the hope that
@@ -12999,25 +13036,75 @@ people expect to have work and what is necessary.
      element does not have an <code
      title="attr-script-async">async</code> attribute</dt>
 
-     <dd>The element must be added to the end of the <span>list of
-     scripts that will execute when the document has finished
-     parsing</span>.</dd>
+     <dd>
+
+      <p>The element must be added to the end of the <dfn>list of
+      scripts that will execute when the document has finished
+      parsing</dfn>.</p>
+
+      <p>The <span title="concept-task">task</span> that the
+      <span>networking task source</span> places on the <span>task
+      queue</span> once the <span title="fetch">fetching
+      algorithm</span> has completed must set the element's
+      <span>"ready to be parser-executed"</span> flag. The parser will
+      handle executing the script.</p>
+
+     </dd>
 
 
      <dt>If the element has a <code title="attr-script-src">src</code>
      attribute, and the element has been flagged as
      <span>"parser-inserted"</span>, and the element does not have an
-     <code title="attr-script-async">async</code> attribute</dt>
+     <code title="attr-script-async">async</code> attribute, or</dt>
 
-     <dd>The element is the <dfn>pending external script</dfn>. (There
-     can only be one such script at a time.)</dd>
+     <dd>
+
+      <p>The element is the <span>pending parsing-blocking
+      script</span>. (There can only be one such script at a
+      time.)</p>
+
+      <p>The <span title="concept-task">task</span> that the
+      <span>networking task source</span> places on the <span>task
+      queue</span> once the <span title="fetch">fetching
+      algorithm</span> has completed must set the element's
+      <span>"ready to be parser-executed"</span> flag. The parser will
+      handle executing the script.</p>
+
+     </dd>
+
+
+     <dt>If the element does not have a <code
+     title="attr-script-src">src</code> attribute, but there is
+     <span>a style sheet blocking scripts</span>, and the element has
+     been flagged as <span>"parser-inserted"</span></dt>
+
+     <dd>
+
+      <p>The element is the <span>pending parsing-blocking
+      script</span>. (There can only be one such script at a
+      time.)</p>
+
+      <p>Set the element's <span>"ready to be parser-executed"</span>
+      flag. The parser will handle executing the script.</p>
+
+     </dd>
 
 
      <dt>If the element has a <code title="attr-script-src">src</code>
      attribute</dt>
 
-     <dd>The element must be added to the end of the <span>list of
-     scripts that will execute as soon as possible</span>.</dd>
+     <dd>
+
+      <p>The element must be added to the end of the <dfn>list of
+      scripts that will execute as soon as possible</dfn>.</p>
+
+      <p>The <span title="concept-task">task</span> that the
+      <span>networking task source</span> places on the <span>task
+      queue</span> once the <span title="fetch">fetching
+      algorithm</span> has completed must <span title="executing a
+      script block">execute the script block</span>.
+
+     </dd>
 
 
      <dt>Otherwise</dt>
@@ -13038,89 +13125,10 @@ people expect to have work and what is necessary.
   title="concept-task">task</span> that is <span title="queue a
   task">queued</span> by the <span>networking task source</span> once
   the resource has been <span title="fetch">fetched</span> (defined
-  below) has been run.</p>
+  above) has been run.</p>
 
-  <p><dfn>When a script completes loading</dfn>: The UA must run the
-  following steps as the <span title="concept-task">task</span> that
-  the <span>networking task source</span> places on the <span>task
-  queue</span>:</p>
-
-  <dl class="switch">
-
-   <dt>If the <code>script</code> element was added to the <dfn>list
-   of scripts that will execute when the document has finished
-   parsing</dfn>:</dt>
-
-   <dd>
-
-    <ol>
-
-     <li>
-
-      <p>If the script's <code>Document</code> is still being parsed,
-      then the parser handles it. Abort these steps.</p>
-
-     </li>
-
-     <li>
-
-      <p>If the <code>script</code> element is not the first element
-      in the list, then do nothing yet. Stop going through these
-      steps.</p>
-
-     </li>
-
-     <li>
-
-      <p>Otherwise, <span title="executing a script block">execute the
-      script block</span> (the first element in the list).</p>
-
-     </li>
-
-     <li>
-
-      <p>Remove the <code>script</code> element from the list
-      (i.e. shift out the first entry in the list).</p>
-
-     </li>
-
-     <li>
-
-      <p>If there are any more entries in the list, and if the script
-      associated with the element that is now the first in the list is
-      already loaded, then jump back to step 2 to execute it.</p>
-
-     </li>
-
-    </ol>
-
-   </dd>
-
-   <dt>If the <code>script</code> element was added to the <dfn>list
-   of scripts that will execute as soon as possible</dfn>:</dt>
-
-   <dd>
-
-    <ol>
-
-     <li>
-
-      <p><span title="executing a script block">Execute the
-      script block</span>.</p>
-
-     </li>
-
-     <li>
-
-      <p>Remove the <code>script</code> element from the list.</p>
-
-     </li>
-
-    </ol>
-
-   </dd>
-
-  </dl>
+  <p>The <dfn>pending parsing-blocking script</dfn> is used by the
+  parser.</p>
 
   <p><dfn title="executing a script block">Executing a script
   block</dfn>: When the steps above require that the script block be
@@ -56860,6 +56868,35 @@ interface <dfn>Window</dfn> {
 
   <hr>
 
+  <p>When an algorithm says to <dfn>spin the event loop</dfn> until
+  a condition <var title="">goal</var> is met, the user agent must run
+  the following steps:</p>
+
+  <ol>
+
+   <li><p>Let <var title="">task source</var> be the <span>task
+   source</span> of the currently running <span
+   title="concept-task">task</span>.</p></li>
+
+   <li><p>Stop the currently running <span
+   title="concept-task">task</span>, allowing the <span>event
+   loop</span> to resume, but continue these steps
+   asynchronously.</p></li>
+
+   <li><p>Wait until the condition <var title="">goal</var> is
+   met.</p></li>
+
+   <li><p><span>Queue a task</span> to continue running these steps,
+   using the <span>task source</span> <var title="">task
+   source</var>. Wait until this task runs before continuing these
+   steps.</p></li>
+
+   <li><p>Return to the caller.</p></li>
+
+  </ol>
+
+  <hr>
+
   <p>Some of the algorithms in this specification, for historical
   reasons, require the user agent to <dfn>pause</dfn> while running a
   <span title="concept-task">task</span> until some condition has been
@@ -81390,7 +81427,7 @@ document.body.appendChild(text);
      <li><p>If the parser was originally created for the <span>HTML
      fragment parsing algorithm</span>, then mark the
      <code>script</code> element as <span>"already
-     executed"</span>. (<span>fragment case</span>)</p></li>
+     started"</span>. (<span>fragment case</span>)</p></li>
 
      <li><p>Append the new element to the <span>current node</span>
      and push it onto the <span>stack of open
@@ -82948,7 +82985,7 @@ document.body.appendChild(text);
 
     <p>If the <span>current node</span> is a <code>script</code>
     element, mark the <code>script</code> element as <span>"already
-    executed"</span>.</p>
+    started"</span>.</p>
 
     <p>Pop the <span>current node</span> off the <span>stack of open
     elements</span>.</p>
@@ -82995,7 +83032,7 @@ document.body.appendChild(text);
     might be the "undefined" value.)</p>
 
     <p id="scriptTagParserResumes">At this stage, if there is a
-    <span>pending external script</span>, then:</p>
+    <span>pending parsing-blocking script</span>, then:</p>
 
     <dl class="switch">
 
@@ -83025,11 +83062,25 @@ document.body.appendChild(text);
       <ol>
 
        <li><p>Let <var title="">the script</var> be the <span>pending
-       external script</span>. There is no longer a <span>pending
-       external script</span>.</p></li>
+       parsing-blocking script</span>. There is no longer a <span>pending
+       parsing-blocking script</span>.</p></li>
 
-       <li><p><span>Pause</span> until the script has <span>completed
-       loading</span>.</p></li>
+       <li><p>Block the <span title="tokenization">tokenizer</span>
+       for this instance of the <span>HTML parser</span>, such that
+       the <span>event loop</span> will not run <span
+       title="concept-task">tasks</span> that invoke the <span
+       title="tokenization">tokenizer</span>.</p></li>
+
+       <li><p><span>Spin the event loop</span> until there is no <span
+       title="a style sheet blocking scripts">style sheet blocking
+       scripts</span> and <var title="">the script</var>'s
+       <span>"ready to be parser-executed"</span> flag is set.</p></li>
+
+       <li><p>Unblock the <span title="tokenization">tokenizer</span>
+       for this instance of the <span>HTML parser</span>, such that
+       <span title="concept-task">tasks</span> that invoke the <span
+       title="tokenization">tokenizer</span> can again be
+       run.</p></li>
 
        <li><p>Let the <span>insertion point</span> be just before the
        <span>next input character</span>.</p></li>
@@ -83038,8 +83089,8 @@ document.body.appendChild(text);
        by one (it should be zero before this step, so this sets it to
        one).</p></li>
 
-       <li><p><span title="executing a script block">Execute the
-       script</span>.</p></li>
+       <li><p><span title="executing a script block">Execute</span>
+       <var title="">the script</var>.</p></li>
 
        <li><p>Decrement the parser's <span>script nesting level</span>
        by one. If the parser's <span>script nesting level</span> is
@@ -83049,7 +83100,7 @@ document.body.appendChild(text);
        <li><p>Let the <span>insertion point</span> be undefined
        again.</p></li>
 
-       <li><p>If there is once again a <span>pending external
+       <li><p>If there is once again a <span>pending parsing-blocking
        script</span>, then repeat these steps from step 1.</p></li>
 
       </ol>
@@ -84490,86 +84541,87 @@ document.body.appendChild(text);
   <h4>The end</h4>
 
   <p>Once the user agent <dfn title="stop parsing">stops parsing</dfn>
-  the document, the user agent must follow the steps in this
-  section.</p>
-
-  <!-- this happens as part of one of the tasks that runs the parser -->
-
-  <p>First, the user agent must set the <span>current document
-  readiness</span> to "interactive" and the <span>insertion
-  point</span> to undefined.</p> <!-- this also synchronously fires an
-  event -->
-
-  <p>Then, the user agent must then make a list of all the scripts
-  that are in the <span>list of scripts that will execute when the
-  document has finished parsing</span> and the <span>list of scripts
-  that will execute as soon as possible</span>. This is the <dfn>list
-  of scripts pending after the parser stopped</dfn>.</p>
-
-  <p>The document is no longer being parsed, so the rules for
-  <span>when a script completes loading</span> for the <span>list of
-  scripts that will execute when the document has finished
-  parsing</span> start applying (script execution for that list is no
-  longer managed by the parser).</p>
-
-  <p>If the <span>list of scripts that will execute when the document
-  has finished parsing</span> is not empty, and the first item in this
-  list has already <span>completed loading</span>, then the user agent
-  must act as if that script just finished loading.</p>
-
-  <p class="note">By this point, there will be no scripts that have
-  loaded but have not yet been executed.</p>
-
-  <hr>
-
-  <!-- async -->
-
-  <p>Once all the scripts on the <span>list of scripts pending after
-  the parser stopped</span> have <span>completed loading</span> and
-  been <span title="executing a script block">executed</span>, the
-  user agent must <span>queue a task</span> to <span>fire a simple
-  event</span> named <code
-  title="event-DOMContentLoaded">DOMContentLoaded</code> at the
-  <code>Document</code>. (If the list is empty, this happens
-  immediately.)</p>
-
-  <hr>
-
-  <!-- async -->
-
-  <p>Once everything that <dfn title="delay the load event">delays the
-  load event</dfn> of the document has completed, the user agent must
-  run the following steps:</p>
+  the document, the user agent must run the following steps:</p>
 
   <ol>
 
-   <li><span>Queue a task</span> to set the <span>current document
-   readiness</span> to "complete".</li> <!-- this also fires an event
-   synchronously during the task -->
+   <!-- this happens as part of one of the tasks that runs the parser -->
 
-   <li>If the <code>Document</code> is in a <span>browsing
+   <li><p>Set the <span>current document readiness</span> to
+   "interactive" <!-- this also synchronously fires an event --> and
+   the <span>insertion point</span> to undefined.</p></li>
+
+   <li><p>If the <span>list of scripts that will execute when the
+   document has finished parsing</span> is not empty, run these
+   substeps:</p>
+
+    <ol>
+
+     <li><p><span>Spin the event loop</span> until the first
+     <code>script</code> in the <span>list of scripts that will
+     execute when the document has finished parsing</span> has its
+     <span>"ready to be parser-executed"</span> flag set <em>and</em> there
+     is no <span title="a style sheet blocking scripts">style sheet
+     blocking scripts</span>.</p></li>
+
+     <li><p><span title="executing a script block">Execute</span> the
+     first <code>script</code> in the <span>list of scripts that will
+     execute when the document has finished parsing</span>.</p></li>
+
+     <li><p>Remove the first <code>script</code> element from the
+     <span>list of scripts that will execute when the document has
+     finished parsing</span> (i.e. shift out the first entry in the
+     list).</p></li>
+ 
+     <li><p>If the <span>list of scripts that will execute when the
+     document has finished parsing</span> is still not empty, repeat
+     these substeps again from substep 1.</p>
+
+    </ol>
+
+   </li>
+
+   <li><p><span>Spin the event loop</span> until the the <span>list of
+   scripts that will execute as soon as possible</span> is
+   empty.</p></li>
+
+   <li><p><span>Queue a task</span> to <span>fire a simple
+   event</span> named <code
+   title="event-DOMContentLoaded">DOMContentLoaded</code> at the
+   <code>Document</code>.</p></li>
+
+   <li><p><span>Spin the event loop</span> until there is nothing that
+   <dfn title="delay the load event">delays the load event</dfn> in
+   the <code>Document</code>.</p></li>
+
+   <li><p><span>Queue a task</span> to set the <span>current document
+   readiness</span> to "complete". <!-- this also fires an event
+   synchronously during the task --></p></li>
+
+   <li><p>If the <code>Document</code> is in a <span>browsing
    context</span>, then <span>queue a task</span> to <span>fire a
    simple event</span> named <code title="event-load">load</code> at
    the <code>Document</code>'s <code>Window</code> object, but with
    its <code title="dom-event-target">target</code> set to the
    <code>Document</code> object (and the <code
    title="dom-event-currentTarget">currentTarget</code> set to the
-   <code>Window</code> object).</li>
+   <code>Window</code> object).</p></li>
 
-   <li>If the <code>Document</code> has a <span>pending state
+   <li><p>If the <code>Document</code> has a <span>pending state
    object</span>, then <span>queue a task</span> to fire a <code
    title="event-popstate">popstate</code> event in no namespace on the
    <code>Document</code>'s <code>Window</code> object using the
    <code>PopStateEvent</code> interface, with the <code
    title="dom-PopStateEvent-state">state</code> attribute set to the
    current value of the <span>pending state object</span>. This event
-   must bubble but not be cancelable and has no default action.</li>
+   must bubble but not be cancelable and has no default
+   action.</p></li>
 
   </ol>
 
-  <p>The <span>task source</span> for these <span
-  title="concept-task">tasks</span> is the <span>DOM manipulation
-  task source</span>.</p>
+  <p>The <span>task source</span> for the <span
+  title="concept-task">tasks</span> mentioned in this section is the
+  <span>DOM manipulation task source</span>.</p>
 
   </div>
 
@@ -85496,13 +85548,35 @@ document.body.appendChild(text);
   element, it must be marked as being <span>"parser-inserted"</span>.
   If the parser was originally created for the <span>XML fragment
   parsing algorithm</span>, then the element must be marked as
-  <span>"already executed"</span> also. When the element's end tag is
+  <span>"already started"</span> also. When the element's end tag is
   parsed, the user agent must <span title="running a
   script">run</span> the <code>script</code> element. If this causes
-  there to be a <span>pending external script</span>, then the user
-  agent must <span>pause</span> until that script has <span>completed
-  loading</span>, and then <span title="executing a script
-  block">execute it</span>.</p>
+  there to be a <span>pending parsing-blocking script</span>, then the
+  user agent must run the following steps:</p>
+
+  <ol>
+
+   <li><p>Block this instance of the <span>XML parser</span>, such
+   that the <span>event loop</span> will not run <span
+   title="concept-task">tasks</span> that invoke it.</p></li>
+
+   <li><p><span>Spin the event loop</span> until there is no <span
+   title="a style sheet blocking scripts">style sheet blocking
+   scripts</span> and the <span>pending parsing-blocking
+   script</span>'s <span>"ready to be parser-executed"</span> flag is
+   set.</p></li>
+
+   <li><p>Unblock this instance of the <span>XML parser</span>, such
+   that <span title="concept-task">tasks</span> that invoke it can
+   again be run.</p></li>
+
+   <li><p><span title="executing a script block">Execute</span> the
+   <span>pending parsing-blocking script</span>.</p></li>
+
+   <li><p>There is no longer a <span>pending parsing-blocking
+   script</span>.</p></li>
+
+  </ol>
 
   <p class="note">Since the <code
   title="dom-document-write">document.write()</code> API is not
