@@ -63274,1909 +63274,6 @@ NETWORK:
 
 
 
-  <h3>Structured client-side storage</h3>  <!--START storage--><!--END html5-->
-
-  <h4>Introduction</h4>
-
-  <p><i>This section is non-normative.</i></p>
-
-  <p>This specification introduces two related mechanisms, similar to
-  HTTP session cookies, for storing structured data on the client
-  side. <a href="#refsCOOKIES">[COOKIES]</a></p>
-
-  <p>The first is designed for scenarios where the user is carrying
-  out a single transaction, but could be carrying out multiple
-  transactions in different windows at the same time.</p>
-
-  <p>Cookies don't really handle this case well. For example, a user
-  could be buying plane tickets in two different windows, using the
-  same site. If the site used cookies to keep track of which ticket
-  the user was buying, then as the user clicked from page to page in
-  both windows, the ticket currently being purchased would "leak" from
-  one window to the other, potentially causing the user to buy two
-  tickets for the same flight without really noticing.</p>
-
-  <p>To address this, this specification introduces the <code
-  title="dom-sessionStorage">sessionStorage</code> IDL attribute.
-  Sites can add data to the session storage, and it will be accessible
-  to any page from the same site opened in that window.</p> <!-- we're
-  not using xrefs here because this is just an intro -->
-
-  <div class="example">
-
-   <p>For example, a page could have a checkbox that the user ticks to
-   indicate that he wants insurance:</p>
-
-   <pre>&lt;label>
- &lt;input type="checkbox" onchange="sessionStorage.insurance = checked">
- I want insurance on this trip.
-&lt;/label></pre>
-
-   <p>A later page could then check, from script, whether the user had
-   checked the checkbox or not:</p>
-
-   <pre>if (sessionStorage.insurance) { ... }</pre>
-
-   <p>If the user had multiple windows opened on the site, each one
-   would have its own individual copy of the session storage object.</p>
-
-  </div>
-
-  <!--
-
-   sessionStorage.flightDeparture = 'OSL';
-   sessionStorage.flightArrival = 'NYC';
-
-   for (var i in forms[0].elements)
-      sessionStorage["data_" + i.name] = i.value;
-
-   if (!sessionStorage[documents])
-     sessionStorage[documents] = {};
-   sessionStorage[documents][filename] = <document/>;
-
-  -->
-
-  <p>The second storage mechanism is designed for storage that spans
-  multiple windows, and lasts beyond the current session. In
-  particular, Web applications may wish to store megabytes of user
-  data, such as entire user-authored documents or a user's mailbox, on
-  the client side for performance reasons.</p>
-
-  <p>Again, cookies do not handle this case well, because they are
-  transmitted with every request.</p>
-
-  <p>The <code title="dom-localStorage">localStorage</code> IDL
-  attribute is used to access a page's local storage area.</p>
-
-  <div class="example">
-
-   <p>The site at example.com can display a count of how many times
-   the user has loaded its page by putting the following at the bottom
-   of its page:</p>
-
-   <pre>&lt;p>
-  You have viewed this page
-  &lt;span id="count">an untold number of&lt;/span>
-  time(s).
-&lt;/p>
-&lt;script>
-  if (!localStorage.pageLoadCount)
-    localStorage.pageLoadCount = 0;
-  localStorage.pageLoadCount += 1;
-  document.getElementById('count').textContent = localStorage.pageLoadCount;
-&lt;/script></pre>
-
-  </div>
-
-  <p>Each site has its own separate storage area.</p>
-
-
-<!--END complete-->
-  <!--BOILERPLATE middle-w3c-api-intro-->
-  <!--BOILERPLATE middle-w3c-js-disclaimer-->
-<!--START complete-->
-
-
-  <h4 id="storage">The API</h4>
-
-  <h5>The <code>Storage</code> interface</h5>
-
-  <pre class="idl">interface <dfn>Storage</dfn> {
-  readonly attribute unsigned long <span title="dom-Storage-length">length</span>;
-  getter any <span title="dom-Storage-key">key</span>(in unsigned long index);
-  getter any <span title="dom-Storage-getItem">getItem</span>(in DOMString key);
-  setter creator void <span title="dom-Storage-setItem">setItem</span>(in DOMString key, in any data);
-  deleter void <span title="dom-Storage-removeItem">removeItem</span>(in DOMString key);
-  void <span title="dom-Storage-clear">clear</span>();
-};</pre>
-
-  <!-- v2 ideas:
-    a getInfo() method that returns an object that tells you:
-       - when the key was added
-       - when the key was last modified
-       - which page was the last to modify the key
-    [-Mihai Sucan]
-  -->
-
-  <p>Each <code>Storage</code> object provides access to a list of
-  key/value pairs, which are sometimes called items. Keys are
-  strings. Any string (including the empty string) is a valid
-  key. Values can be any data type supported by the <span>structured
-  clone</span> algorithm.</p>
-
-  <p>Each <code>Storage</code> object is associated with a list of
-  key/value pairs when it is created, as defined in the sections on
-  the <code title="dom-sessionStorage">sessionStorage</code> and <code
-  title="dom-localStorage">localStorage</code> attributes. Multiple
-  separate objects implementing the <code>Storage</code> interface can
-  all be associated with the same list of key/value pairs
-  simultaneously.</p>
-
-  <p>The object's <span>indices of the supported indexed
-  properties</span> are the numbers in the range zero to one less than
-  the number of key/value pairs currently present in the list
-  associated with the object. If the list is empty, then there are no
-  <span>supported indexed properties</span>.</p>
-
-  <p>The <dfn title="dom-Storage-length"><code>length</code></dfn>
-  attribute must return the number of key/value pairs currently
-  present in the list associated with the object.</p>
-
-  <p>The <dfn title="dom-Storage-key"><code>key(<var
-  title="">n</var>)</code></dfn> method must return the name of the
-  <var title="">n</var>th key in the list. The order of keys is
-  user-agent defined, but must be consistent within an object so long
-  as the number of keys doesn't change. (Thus, <span
-  title="dom-Storage-setItem">adding</span> or <span
-  title="dom-Storage-removeItem">removing</span> a key may change the
-  order of the keys, but merely changing the value of an existing key
-  must not.) <!--The order of keys may differ between instances of the
-  <code>Storage</code> interface accessing the same list. [removed for
-  now for clarity, but if people ask, put it back. this is part of the
-  spec.]--> If <var title="">n</var> is <!--less than zero or [can't,
-  unsigned]--> greater than or equal to the number of key/value pairs
-  in the object, then this method must return null.</p>
-
-  <p>The <span>names of the supported named properties</span> on a
-  <code>Storage</code> object are the keys of each key/value pair
-  currently present in the list associated with the object.</p>
-
-  <p>The <dfn title="dom-Storage-getItem"><code>getItem(<var
-  title="">key</var>)</code></dfn> method must return a
-  <span>structured clone</span> of the current value associated with
-  the given <var title="">key</var>. If the given <var
-  title="">key</var> does not exist in the list associated with the
-  object then this method must return null.</p>
-
-  <p>The <dfn title="dom-Storage-setItem"><code>setItem(<var
-  title="">key</var>, <var title="">value</var>)</code></dfn> method
-  must first create a <span>structured clone</span> of the given <var
-  title="">value</var>. If this raises an exception, then the
-  exception must be thrown and the list associated with the object is
-  left unchanged. If constructing the stuctured clone would involve
-  constructing a new <code>ImageData</code> object, then throw a
-  <code>NOT_SUPPORTED_ERR</code> exception instead.</p>
-
-  <!-- ImageData isn't supported because reading such objects is
-  synchronous, and getData() is synchronous, and therefore if the
-  stored data is in deep storage, it would be very painful to have a
-  script grab the value and immediately try to read the image
-  data. -->
-
-  <p>Otherwise, the user agent must then check if a key/value pair
-  with the given <var title="">key</var> already exists in the list
-  associated with the object.</p>
-
-  <p>If it does not, then a new key/value pair must be added to the
-  list, with the given <var title="">key</var> and with its value set
-  to the newly obtained clone of <var title="">value</var>.</p>
-
-  <p>If the given <var title="">key</var> <em>does</em> exist in the
-  list, then it must have its value updated to the newly obtained
-  clone of <var title="">value</var>.</p>
-
-  <p>If it couldn't set the new value, the method must raise an
-  <code>QUOTA_EXCEEDED_ERR</code> exception. (Setting could fail if,
-  e.g., the user has disabled storage for the site, or if the quota
-  has been exceeded.)</p>
-
-  <p>The <dfn title="dom-Storage-removeItem"><code>removeItem(<var
-  title="">key</var>)</code></dfn> method must cause the key/value
-  pair with the given <var title="">key</var> to be removed from the
-  list associated with the object, if it exists. If no item with that
-  key exists, the method must do nothing.</p>
-
-  <p>The <code title="dom-Storage-setItem">setItem()</code> and <code
-  title="dom-Storage-removeItem">removeItem()</code> methods must be
-  atomic with respect to failure. In the case of failure, the method
-  does nothing. That is, changes to the data storage area must either
-  be successful, or the data storage area must not be changed at
-  all.</p>
-
-  <p>The <dfn title="dom-Storage-clear"><code>clear()</code></dfn>
-  method must atomically cause the list associated with the object to
-  be emptied of all key/value pairs, if there are any. If there are
-  none, then the method must do nothing.</p>
-
-  <p class="note">When the <code
-  title="dom-Storage-setItem">setItem()</code>, <code
-  title="dom-Storage-removeItem">removeItem()</code>, and <code
-  title="dom-Storage-clear">clear()</code> methods are invoked, events
-  are fired on other <code>HTMLDocument</code> objects that can access
-  the newly stored or removed data, as defined in the sections on the
-  <code title="dom-sessionStorage">sessionStorage</code> and <code
-  title="dom-localStorage">localStorage</code> attributes.</p> <!--
-  not normative, see the sections below for the normative statement
-  -->
-
-  <p class="note">This specification does not require that the above
-  methods wait until the data has been physically written to
-  disk. Only consistency in what different scripts accessing the same
-  underlying list of key/value pairs see is required.</p>
-
-
-  <h5>The <code title="dom-sessionStorage">sessionStorage</code> attribute</h5>
-
-  <pre class="idl">[Supplemental, NoInterfaceObject]
-interface <span>WindowSessionStorage</span> {
-  readonly attribute <span>Storage</span> <span title="dom-sessionStorage">sessionStorage</span>;
-};
-<span>Window</span> implements <span>WindowSessionStorage</span>;</pre>
-
-  <p>The <dfn
-  title="dom-sessionStorage"><code>sessionStorage</code></dfn>
-  attribute represents the set of storage areas specific to the
-  current <span>top-level browsing context</span>.</p>
-
-  <p>Each <span>top-level browsing context</span> has a unique set of
-  session storage areas, one for each <span>origin</span>.</p>
-
-  <p>User agents should not expire data from a browsing context's
-  session storage areas, but may do so when the user requests that
-  such data be deleted, or when the UA detects that it has limited
-  storage space, or for security reasons. User agents should always
-  avoid deleting data while a script that could access that data is
-  running. When a top-level browsing context is destroyed (and
-  therefore permanently inaccessible to the user) the data stored in
-  its session storage areas can be discarded with it, as the API
-  described in this specification provides no way for that data to
-  ever be subsequently retrieved.</p>
-
-  <p class="note">The lifetime of a browsing context can be unrelated
-  to the lifetime of the actual user agent process itself, as the user
-  agent may support resuming sessions after a restart.</p>
-
-  <p>When a new <code>HTMLDocument</code> is created, the user agent
-  must check to see if the document's <span>top-level browsing
-  context</span> has allocated a session storage area for that
-  document's <span>origin</span>. If it has not, a new storage area
-  for that document's <span>origin</span> must be created.</p>
-
-  <p>The <code title="dom-sessionStorage">sessionStorage</code>
-  attribute must return the <code>Storage</code> object associated
-  with that session storage area. Each <code>Document</code> object
-  must have a separate object for its <code>Window</code>'s <code
-  title="dom-sessionStorage">sessionStorage</code> attribute.</p>
-
-  <p>When a new <span>top-level browsing context</span> is created by
-  cloning an existing <span>browsing context</span>, the new browsing
-  context must start with the same session storage areas as the
-  original, but the two sets must from that point on be considered
-  separate, not affecting each other in any way.</p>
-
-  <p>When a new <span>top-level browsing context</span> is created by
-  a <span title="concept-script">script</span> in an existing
-  <span>browsing context</span>, or by the user following a link in an
-  existing browsing context, or in some other way related to a
-  specific <code>HTMLDocument</code>, then the session storage area of
-  the <span>origin</span> of that <code>HTMLDocument</code> must be
-  copied into the new browsing context when it is created. From that
-  point on, however, the two session storage areas must be considered
-  separate, not affecting each other in any way.</p>
-
-  <p id="sessionStorageEvent">When the <code
-  title="dom-Storage-setItem">setItem()</code>, <code
-  title="dom-Storage-removeItem">removeItem()</code>, and <code
-  title="dom-Storage-clear">clear()</code> methods are called on a
-  <code>Storage</code> object <var title="">x</var> that is associated
-  with a session storage area, if the methods did something, then in
-  every <code>HTMLDocument</code> object whose <code>Window</code>
-  object's <code title="dom-sessionStorage">sessionStorage</code>
-  attribute's <code>Storage</code> object is associated with the same
-  storage area, other than <var title="">x</var>, a <code
-  title="event-storage">storage</code> event must be fired, as <span
-  title="event-storage">described below</span>.</p>
-
-
-  <h5>The <code title="dom-localStorage">localStorage</code> attribute</h5>
-
-  <pre class="idl">[Supplemental, NoInterfaceObject]
-interface <span>WindowLocalStorage</span> {
-  readonly attribute <span>Storage</span> <span title="dom-localStorage">localStorage</span>;
-};
-<span>Window</span> implements <span>WindowLocalStorage</span>;</pre>
-
-  <p>The <dfn title="dom-localStorage"><code>localStorage</code></dfn>
-  object provides a <code>Storage</code> object for an
-  <span>origin</span>.</p>
-
-  <p>User agents must have a set of local storage areas, one for each
-  <span>origin</span>.</p>
-
-  <p>User agents should expire data from the local storage areas only
-  for security reasons or when requested to do so by the user. User
-  agents should always avoid deleting data while a script that could
-  access that data is running.</p>
-
-  <p>When the <code title="dom-localStorage">localStorage</code>
-  attribute is accessed, the user agent must run the following steps:</p>
-
-  <ol>
-
-   <li><p>If the <code>Document</code>'s <span>effective script
-   origin</span> is not the <span>same origin</span> as the
-   <code>Document</code>'s <span>origin</span>, then throw a
-   <code>SECURITY_ERR</code> exception and abort these steps.</p></li>
-
-   <li><p>Check to see if the user agent has allocated a local storage
-   area for the <span>origin</span> of the <code>Document</code> of
-   the <code>Window</code> object on which the method was invoked. If
-   it has not, create a new storage area for that
-   <span>origin</span>.</p></li>
-
-   <li><p>Return the <code>Storage</code> object associated with that
-   origin's local storage area. Each <code>Document</code> object must
-   have a separate object for its <code>Window</code>'s <code
-   title="dom-localStorage">localStorage</code> attribute.</p>
-
-  </ol>
-
-  <p id="localStorageEvent">When the <code
-  title="dom-Storage-setItem">setItem()</code>, <code
-  title="dom-Storage-removeItem">removeItem()</code>, and <code
-  title="dom-Storage-clear">clear()</code> methods are called on a
-  <code>Storage</code> object <var title="">x</var> that is associated
-  with a local storage area, if the methods did something, then in
-  every <code>HTMLDocument</code> object whose <code>Window</code>
-  object's <code title="dom-localStorage">localStorage</code>
-  attribute's <code>Storage</code> object is associated with the same
-  storage area, other than <var title="">x</var>, a <code
-  title="event-storage">storage</code> event must be fired, as <span
-  title="event-storage">described below</span>.</p>
-
-  <p id="localStorageMutex">Whenever the properties of a <code
-  title="dom-localStorage">localStorage</code> attribute's
-  <code>Storage</code> object are to be examined, returned, set, or
-  deleted, whether as part of a direct property access, when checking
-  for the presence of a property, during property enumeration, when
-  determining the number of properties present, or as part of the
-  execution of any of the methods or attributes defined on the
-  <code>Storage</code> interface. the user agent must first
-  <span>obtain the storage mutex</span>.</p>
-
-
-
-  <h5>The <code title="event-storage">storage</code> event</h5>
-
-  <p>The <dfn title="event-storage"><code>storage</code></dfn> event
-  is fired when a storage area changes, as described in the previous
-  two sections (<a href="#sessionStorageEvent">for session
-  storage</a>, <a href="#localStorageEvent">for local
-  storage</a>).</p>
-
-  <p>When this happens, the user agent must <span>queue a task</span>
-  to fire an event with the name <code>storage</code>, with no
-  namespace, which does not bubble and is not cancelable, and which
-  uses the <code>StorageEvent</code> interface, at each
-  <code>Window</code> object whose <code>Document</code> object has a
-  <code>Storage</code> object that is affected.</p>
-
-  <p class="note">This includes <code>Document</code> objects that are
-  not <span>fully active</span>, but events fired on those are ignored
-  by the <span>event loop</span> until the <code>Document</code>
-  becomes <span>fully active</span> again.</p>
-
-  <p>The <span>task source</span> for this task is the <span>DOM
-  manipulation task source</span>.</p>
-
-  <p>If the event is being fired due to an invocation of the <code
-  title="dom-Storage-setItem">setItem()</code> or <code
-  title="dom-Storage-removeItem">removeItem()</code> methods, the
-  event must have its <code title="dom-StorageEvent-key">key</code>
-  attribute set to the name of the key in question, its <code
-  title="dom-StorageEvent-oldValue">oldValue</code> attribute set to a
-  <span>structured clone</span> of the old value of the key in
-  question, or null if the key is newly added, and its <code
-  title="dom-StorageEvent-newValue">newValue</code> attribute set to a
-  <span>structured clone</span> of the new value of the key in
-  question, or null if the key was removed.</p>
-
-  <p>Otherwise, if the event is being fired due to an invocation of
-  the <code title="dom-Storage-clear">clear()</code> method, the event
-  must have its <code title="dom-StorageEvent-key">key</code>, <code
-  title="dom-StorageEvent-oldValue">oldValue</code>, and <code
-  title="dom-StorageEvent-newValue">newValue</code> attributes set to
-  null.</p>
-
-  <p>In addition, the event must have its <code
-  title="dom-StorageEvent-url">url</code> attribute set to <span
-  title="the document's address">the address of the document</span>
-  whose <code>Storage</code> object was affected; its <code
-  title="dom-StorageEvent-source">source</code> attribute set to the
-  that document's <span>browsing context</span>'s
-  <code>WindowProxy</code> object, if the two documents are in the
-  same <span>unit of related browsing contexts</span>, or null
-  otherwise; and its <code
-  title="dom-StorageEvent-storageArea">storageArea</code> attribute
-  set to the <code>Storage</code> object from the <code>Window</code>
-  object of the target <code>Document</code> that represents the same
-  kind of <code>Storage</code> area as was affected (i.e. session or
-  local).</p>
-
-
-  <h6>Event definition</h6>
-
-  <pre class="idl">interface <dfn>StorageEvent</dfn> : Event {
-  readonly attribute DOMString <span title="dom-StorageEvent-key">key</span>;
-  readonly attribute any <span title="dom-StorageEvent-oldValue">oldValue</span>;
-  readonly attribute any <span title="dom-StorageEvent-newValue">newValue</span>;
-  readonly attribute DOMString <span title="dom-StorageEvent-url">url</span>;
-  readonly attribute <span>WindowProxy</span> <span title="dom-StorageEvent-source">source</span>;
-  readonly attribute <span>Storage</span> <span title="dom-StorageEvent-storageArea">storageArea</span>;
-  void <span title="dom-StorageEvent-initStorageEvent">initStorageEvent</span>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString keyArg, in any oldValueArg, in any newValueArg, in DOMString urlArg, in <span>WindowProxy</span> sourceArg, in <span>Storage</span> storageAreaArg);
-  void <span title="dom-StorageEvent-initStorageEventNS">initStorageEventNS</span>(in DOMString namespaceURI, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString keyArg, in any oldValueArg, in any newValueArg, in DOMString urlArg, in <span>WindowProxy</span> sourceArg, in <span>Storage</span> storageAreaArg);
-};</pre>
-
-  <p>The <dfn
-  title="dom-StorageEvent-initStorageEvent"><code>initStorageEvent()</code></dfn>
-  and <dfn
-  title="dom-StorageEvent-initStorageEventNS"><code>initStorageEventNS()</code></dfn>
-  methods must initialize the event in a manner analogous to the
-  similarly-named methods in the DOM Events interfaces. <a
-  href="#refsDOMEVENTS">[DOMEVENTS]</a></p>
-
-  <p>The <dfn title="dom-StorageEvent-key"><code>key</code></dfn>
-  attribute represents the key being changed.</p>
-
-  <p>The <dfn
-  title="dom-StorageEvent-oldValue"><code>oldValue</code></dfn>
-  attribute represents the old value of the key being changed.</p>
-
-  <p>The <dfn
-  title="dom-StorageEvent-newValue"><code>newValue</code></dfn>
-  attribute represents the new value of the key being changed.</p>
-
-  <p>The <dfn title="dom-StorageEvent-url"><code>url</code></dfn>
-  attribute represents the address of the document whose key
-  changed.</p>
-
-  <p>The <dfn
-  title="dom-StorageEvent-source"><code>source</code></dfn> attribute
-  represents the <code>WindowProxy</code> object of the <span>browsing
-  context</span> of the document whose key changed.</p>
-
-  <p>The <dfn
-  title="dom-StorageEvent-storageArea"><code>storageArea</code></dfn>
-  attribute represents the <code>Storage</code> object that was
-  affected.</p>
-
-
-
-  <h5>Threads</h5>
-
-  <p>Because of <a href="#localStorageMutex">the use</a> of the
-  <span>storage mutex</span>, multiple browsing contexts will be able
-  to access the local storage areas simultaneously in such a manner
-  that scripts cannot detect any concurrent script execution.</p>
-
-  <p>Thus, the <code title="dom-Storage-length">length</code>
-  attribute of a <code>Storage</code> object, and the value of the
-  various properties of that object, cannot change while a script is
-  executing, other than in a way that is predictable by the script
-  itself.</p>
-
-  <!--END storage-->
-  <!--START database-->
-
-  <!-- Feature requests for future versions (v2):
-        * deleting databases
-        * determining how much storage room is left
-        * handling the database getting corrupted
-  -->
-
-  <h4>Introduction</h4>
-
-  <p><i>This section is non-normative.</i></p>
-
-  <p>This specification introduces a set of APIs to manipulate
-  client-side databases using SQL.</p>
-
-  <p>The API is asynchronous, so authors are likely to find anonymous
-  functions (lambdas) very useful in using this API.</p>
-
-  <p>Here is an example of a script using this API. First, a function
-  <code title="">prepareDatabase()</code> is defined. This function
-  tries to create the database if necessary, giving it one table
-  called "docids" with two columns ("id" and "name"). If it is
-  successful, or if the table doesn't need creating, it calls a
-  section function, <code title="">getDatabase()</code>, which obtains
-  a handle to the database, and then calls the function to do the
-  actual work, in this case <code title="">showDocCount()</code>.</p>
-
-  <pre>function prepareDatabase(ready, error) {
-  return openDatabase('documents', '1.0', 'Offline document storage', 5*1024*1024, function (db) {
-    db.changeVersion('', '1.0', function (t) {
-      t.executeSql('CREATE TABLE docids (id, name)');
-    }, error);
-  });
-}
-
-function showDocCount(db, span) {
-  db.readTransaction(function (t) {
-    t.executeSql('SELECT COUNT(*) AS c FROM docids', [], function (t, r) {
-      span.textContent = r.rows[0].c;
-    }, function (t, e) {
-      // couldn't read database
-      span.textContent = '(unknown: ' + e.message + ')';
-    });
-  });
-}
-
-prepareDatabase(function(db) {
-  // got database
-  var span = document.getElementById('doc-count');
-  showDocCount(db, span);
-}, function (e) {
-  // error getting database
-  alert(e.message);
-});</pre>
-
-  <hr>
-
-  <p>The <code
-  title="dom-sqltransaction-executeSql">executeSql()</code> method has
-  an argument intended to allow variables to be substituted into
-  statements without risking SQL injection vulnerabilities:</p>
-
-  <pre>db.readTransaction(function (t) {
-  t.executeSql('SELECT title, author FROM docs WHERE id=?', [id], function (t, data) {
-    report(data.rows[0].title, data.rows[0].author);
-  });
-});</pre>
-
-  <hr>
-
-  <p>Sometimes, there might be an arbitrary number of variables to
-  substitute in. Even in these case, the right solution is to
-  construct the query using only "?" characters, and then to pass the
-  variables in as the second argument:</p>
-
-<pre>function findDocs(db, resultCallback) {
-  var q = "";
-  for each (var i in labels)
-    q += (q == "" ? "" : ", ") + "?";
-  db.readTransaction(function (t) {
-    t.executeSql('SELECT id FROM docs WHERE label IN (' + q + ')', labels, function (t, data) {
-      resultCallback(data);
-    });
-  });
-}</pre>
-
-<!--END complete-->
-  <!--BOILERPLATE middle-w3c-api-intro-->
-  <!--BOILERPLATE middle-w3c-js-disclaimer-->
-<!--START complete-->
-
-  <h4 id="sql">The API</h4>
-
-  <h5>Databases</h5>
-
-  <p>Each <i>origin</i> has an associated set of databases. Each
-  database has a name and a current version. There is no way to
-  enumerate or delete the databases available for an origin from this
-  API.</p>
-
-  <p class="note">Each database has one version at a time; a database
-  can't exist in multiple versions at once. Versions are intended to
-  allow authors to manage schema changes incrementally and
-  non-destructively, and without running the risk of old code (e.g. in
-  another browser window) trying to write to a database with incorrect
-  assumptions.</p>
-
-  <pre class="idl">[Supplemental, NoInterfaceObject]
-interface <span>WindowDatabase</span> {
-  <span>Database</span> <span title="dom-opendatabase">openDatabase</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize, in optional <span>DatabaseCallback</span> creationCallback);
-};
-<span>Window</span> implements <span>WindowDatabase</span>;
-
-[Supplemental, NoInterfaceObject]
-interface <span>WorkerUtilsDatabase</span> {
-  <span>Database</span> <span title="dom-opendatabase">openDatabase</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize, in optional <span>DatabaseCallback</span> creationCallback);
-  <span>DatabaseSync</span> <span title="dom-opendatabase-sync">openDatabaseSync</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize, in optional <span>DatabaseCallback</span> creationCallback);
-};
-<span>WorkerUtils</span> implements <span>WorkerUtilsDatabase</span>;
-
-[Callback=FunctionOnly, NoInterfaceObject]
-interface <dfn>DatabaseCallback</dfn> {
-  void <span title="dom-databasecallback-handleEvent">handleEvent</span>(in <span>Database</span> database);
-};</pre>
-
-  <p>The <dfn
-  title="dom-opendatabase"><code>openDatabase()</code></dfn> method on
-  the <code>Window</code> and <code>WorkerUtils</code> interfaces and
-  the <dfn
-  title="dom-opendatabase-sync"><code>openDatabaseSync()</code></dfn>
-  method on the <code>WorkerUtils</code> interface take the following
-  arguments: a database name, a database version, a display name, an
-  estimated size &mdash; in bytes &mdash; of the data that will be
-  stored in the database, and optionally a callback to be invoked if
-  the database has not yet been created. The callback, if provided, is
-  intended to be used to call <code
-  title="dom-database-changeVersion">changeVersion()</code>; the
-  callback is invoked with the database having the empty string as its
-  version regardless of the given database version. If the callback is
-  not provided, the database is created with the given database
-  version as its version.</p>
-
-  <p>When invoked, these methods must run the following steps, with all
-  but the last two steps being run atomically:</p>
-
-  <ol>
-
-   <li>
-
-    <p>The user agent may raise a <code>SECURITY_ERR</code> exception
-    instead of returning a <code>Database</code> object if the request
-    violates a policy decision (e.g. if the user agent is configured
-    to not allow the page to open databases).</p>
-
-   </li>
-
-   <li>
-
-    <p>For the method on the <code>Window</code> object: let <var
-    title="">origin</var> be the <span>origin</span> of the
-    <span>active document</span> of the <span>browsing context</span>
-    of the <code>Window</code> object on which the method was
-    invoked.</p>
-
-    <p>For the methods on the <code>WorkerUtils</code> object: let
-    <var title="">origin</var> be the <span>origin</span> of the
-    scripts in the worker.</p>
-
-   </li>
-
-   <li><p>If the database version provided is not the empty string,
-   and there is already a database with the given name from the origin
-   <var title="">origin</var>, but the database has a different
-   version than the version provided, then throw an
-   <code>INVALID_STATE_ERR</code> exception and abort these
-   steps.</p></li>
-
-   <li>
-
-    <p>If no database with the given name from the origin <var
-    title="">origin</var> exists, then create the database and let
-    <var title="">created</var> be true. If a callback was passed to
-    the method, then set the new database's version to the empty
-    string. Otherwise, set the new database's version to the given
-    database version.</p>
-
-    <p>Otherwise, if a database with the given name already exists,
-    let <var title="">created</var> be false.</p>
-
-   </li>
-
-   <li>
-
-    <p>For the <code title="dom-opendatabase">openDatabase()</code>
-    methods: let <var title="">result</var> be a newly constructed
-    <code>Database</code> object representing the database with the
-    given database name from the origin <var
-    title="">origin</var>.</p>
-
-    <p>For the <code
-    title="dom-opendatabase-sync">openDatabaseSync()</code> method:
-    let <var title="">result</var> be a newly constructed
-    <code>DatabaseSync</code> object representing the database with
-    the given database name from the origin <var
-    title="">origin</var>.</p>
-
-   </li>
-
-   <li>
-
-    <p>If <var title="">created</var> is false or if no callback was
-    passed to the method, skip this step. Otherwise:</p>
-
-    <p>For the <code title="dom-opendatabase">openDatabase()</code>
-    methods: <span>queue a task</span> to to invoke the callback with
-    <var title="">result</var> as its only argument.</p>
-
-    <p>For the <code
-    title="dom-opendatabase-sync">openDatabaseSync()</code> method:
-    invoke the callback with <var title="">result</var> as its only
-    argument. If the callback throws an exception, rethrow that
-    exception and abort these steps.</p>
-
-   </li>
-
-   <li>
-
-    <p>Return <var title="">result</var>.</p>
-
-   </li>
-
-  </ol>
-
-  <p>All strings including the empty string are valid database
-  names. Database names must be compared in a
-  <span>case-sensitive</span> manner.</p>
-
-  <p class="note">Implementations can support this even in
-  environments that only support a subset of all strings as database
-  names by mapping database names (e.g. using a hashing algorithm) to
-  the supported set of names.</p>
-
-  <p>The version that the database was opened with is the <dfn
-  title="concept-database-expected-version">expected version</dfn> of
-  this <code>Database</code> or <code>DatabaseSync</code> object. It
-  can be the empty string, in which case there is no expected version
-  &mdash; any version is fine.</p>
-
-  <p>User agents are expected to use the display name and the
-  estimated database size to optimize the user experience. For
-  example, a user agent could use the estimated size to suggest an
-  initial quota to the user. This allows a site that is aware that it
-  will try to use hundreds of megabytes to declare this upfront,
-  instead of the user agent prompting the user for permission to
-  increase the quota every five megabytes.</p>
-
-
-  <h5>Parsing and processing SQL statements</h5>
-
-  <p>When the user agent is to <dfn title="preprocess the SQL
-  statement">preprocess a SQL statement</dfn> <var
-  title="">sqlStatement</var> with an array of arguments <var
-  title="">arguments</var>, it must run the following steps:</p>
-
-  <ol>
-
-   <li><p>Parse <var title="">sqlStatement</var> as a SQL statement,
-   with the exception that U+003F QUESTION MARK (?) characters can be
-   used in place of SQL literals in the statement. <a
-   href="#refsSQL">[SQL]</a></p></li>
-
-   <li>
-
-    <p>Replace each <code title="">?</code> placeholder with the value
-    of the argument in the <var title="">arguments</var> array with
-    the same position. (So the first <code title="">?</code>
-    placeholder gets replaced by the first value in the <var
-    title="">arguments</var> array, and generally the <var
-    title="">n</var>th <code title="">?</code> placeholder gets
-    replaced by the <var title="">n</var>th value in the <var
-    title="">arguments</var> array.)</p>
-
-    <p class="note">Substitutions for <code title="">?</code>
-    placeholders are done at the literal level, not as string
-    concatenations, so this provides a way to dynamically insert
-    parameters into a statement without risk of a SQL injection
-    attack.</p>
-
-    <p>The result is <var title="">the statement</var>.</p>
-
-   </li>
-
-   <li><p>If the <code>Database</code> object that the
-   <code>SQLTransaction</code> or <code>SQLTransactionSync</code>
-   object was created from has an <span
-   title="concept-database-expected-version">expected version</span>
-   that is neither the empty string nor the actual version of the
-   database, then mark <var title="">the statement</var> as
-   bogus. (<span title="dom-sqlerror-code-2">Error code
-   2</span>.)</p></li>
-
-   <li>
-
-    <p>Otherwise, if the syntax of <var title="">sqlStatement</var> is
-    not valid (except for the use of <code title="">?</code>
-    characters in the place of literals), or the statement uses
-    features that are not supported (e.g. due to security reasons), or
-    the number of items in the <var title="">arguments</var> array is
-    not equal to the number of <code title="">?</code> placeholders in
-    the statement, or the statement cannot be parsed for some other
-    reason, then mark <var title="">the statement</var> as
-    bogus. (<span title="dom-sqlerror-code-5">Error code
-    5</span>.)</p>
-
-    <p>User agents must consider statements that use the <code
-    title="">BEGIN</code>, <code title="">COMMIT</code>, and <code
-    title="">ROLLBACK</code> SQL features as being unsupported (and thus
-    will mark them as bogus), so as to not let these statements
-    interfere with the explicit transactions managed by the database API
-    itself.</p>
-
-   </li>
-
-   <li id="modifications-fail-if-read-only">
-
-    <p>Otherwise, if the <i>mode</i> that was used to create the
-    <code>SQLTransaction</code> or <code>SQLTransactionSync</code>
-    object is read-only but the statement's main verb can modify the
-    database, mark the statement as bogus. (<span
-    title="dom-sqlerror-code-5">Error code 5</span>.)</p>
-
-    <p class="note">Only the statement's main verb (e.g. <code
-    title="">UPDATE</code>, <code title="">SELECT</code>, <code
-    title="">DROP</code>) is considered here. Thus, a statement like
-    "<code title="">UPDATE test SET id=0 WHERE 0=1</code>" would be
-    treated as potentially modifying the database for the purposes
-    of this step, even though it could never in fact have any
-    side-effects.</p>
-
-   </li>
-
-   <li><p>Return <var title="">the statement</var>.</p></li>
-
-  </ol>
-
-  <p>The user agent must act as if the database was hosted in an
-  otherwise completely empty environment with no resources. For
-  example, attempts to read from or write to the file system will
-  fail.</p>
-
-  <p class="note">A future version of this specification will probably
-  define the exact SQL subset required in more detail.</p>
-
-
-
-  <h5>Asynchronous database API</h5>
-
-  <pre class="idl">interface <dfn>Database</dfn> {
-  void <span title="dom-database-transaction">transaction</span>(in <span>SQLTransactionCallback</span> callback, in optional <span>SQLTransactionErrorCallback</span> errorCallback, in optional <span>SQLVoidCallback</span> successCallback);
-  void <span title="dom-database-readTransaction">readTransaction</span>(in <span>SQLTransactionCallback</span> callback, in optional <span>SQLTransactionErrorCallback</span> errorCallback, in optional <span>SQLVoidCallback</span> successCallback);
-
-  readonly attribute DOMString <span title="dom-database-version">version</span>;
-  void <span title="dom-database-changeVersion">changeVersion</span>(in DOMString oldVersion, in DOMString newVersion, in optional <span>SQLTransactionCallback</span> callback, in optional <span>SQLTransactionErrorCallback</span> errorCallback, in optional <span>SQLVoidCallback</span> successCallback);
-};
-
-[Callback=FunctionOnly, NoInterfaceObject]
-interface <dfn>SQLVoidCallback</dfn> {
-  void <span title="dom-sqlvoidcallback-handleEvent">handleEvent</span>();
-};
-
-[Callback=FunctionOnly, NoInterfaceObject]
-interface <dfn>SQLTransactionCallback</dfn> {
-  void <span title="dom-sqltransactioncallback-handleEvent">handleEvent</span>(in <span>SQLTransaction</span> transaction);
-};
-
-[Callback=FunctionOnly, NoInterfaceObject]
-interface <dfn>SQLTransactionErrorCallback</dfn> {
-  void <span title="dom-sqltransactionerrorcallback-handleEvent">handleEvent</span>(in <span>SQLError</span> error);
-};</pre>
-
-  <p>The <dfn
-  title="dom-database-transaction"><code>transaction()</code></dfn>
-  and <dfn
-  title="dom-database-readTransaction"><code>readTransaction()</code></dfn>
-  methods takes one to three arguments. When called, these methods must
-  immediately return and then asynchronously run the <span>transaction
-  steps</span> with the <i>transaction callback</i> being the first
-  argument, the <i>error callback</i> being the second argument, if
-  any, the <i>success callback</i> being the third argument, if any,
-  and with no <i>preflight operation</i> or <i>postflight
-  operation</i>.</p>
-
-  <p>For the <code
-  title="dom-database-transaction">transaction()</code> method, the
-  <i>mode</i> must be read/write. For the <code
-  title="dom-database-readTransaction">readTransaction()</code>
-  method, the <i>mode</i> must be read-only.</p>
-
-  <p>On getting, the <dfn
-  title="dom-database-version"><code>version</code></dfn> attribute
-  must return the current version of the database (as opposed to the
-  <span title="concept-database-expected-version">expected
-  version</span> of the <code>Database</code> object).</p>
-
-  <p>The <dfn
-  title="dom-database-changeVersion"><code>changeVersion()</code></dfn>
-  method allows scripts to atomically verify the version number and
-  change it at the same time as doing a schema update. When the method
-  is invoked, it must immediately return, and then asynchronously run
-  the <span>transaction steps</span> with the <i>transaction
-  callback</i> being the third argument, the <i>error callback</i>
-  being the fourth argument, the <i>success callback</i> being the
-  fifth argument, the <i>preflight operation</i> being the
-  following:</p>
-
-  <ol>
-
-   <li><p>Check that the value of the first argument to the <code
-   title="dom-database-changeVersion">changeVersion()</code> method
-   exactly matches the database's actual version. If it does not, then
-   the <i>preflight operation</i> fails.</li>
-
-  </ol>
-
-  <p>...the <i>postflight operation</i> being the following:</p>
-
-  <ol>
-
-   <li>Change the database's actual version to the value of the second
-   argument to the <code
-   title="dom-database-changeVersion">changeVersion()</code>
-   method.</li>
-
-   <li>Change the <code>Database</code> object's expected version to
-   the value of the second argument to the <code
-   title="dom-database-changeVersion">changeVersion()</code>
-   method.</li>
-
-  </ol>
-
-  <p>...and the <i>mode</i> being read/write.</p>
-
-  <p>If any of the optional arguments are omitted, then they must be
-  treated as if they were null.</p>
-
-
-  <h6>Executing SQL statements</h6>
-
-  <p>The <code title="dom-database-transaction">transaction()</code>,
-  <code title="dom-database-readTransaction">readTransaction()</code>,
-  and <code title="dom-database-changeVersion">changeVersion()</code>
-  methods invoke callbacks with <code>SQLTransaction</code>
-  objects.</p>
-
-  <pre class="idl">typedef sequence&lt;any> <dfn>ObjectArray</dfn>;
-
-interface <dfn>SQLTransaction</dfn> {
-  void <span title="dom-sqltransaction-executeSql">executeSql</span>(in DOMString sqlStatement, in optional <span>ObjectArray</span> arguments, in optional <span>SQLStatementCallback</span> callback, in optional <span>SQLStatementErrorCallback</span> errorCallback);
-};
-
-[Callback=FunctionOnly, NoInterfaceObject]
-interface <dfn>SQLStatementCallback</dfn> {
-  void <span title="dom-sqlstatementcallback-handleEvent">handleEvent</span>(in <span>SQLTransaction</span> transaction, in <span>SQLResultSet</span> resultSet);
-};
-
-[Callback=FunctionOnly, NoInterfaceObject]
-interface <dfn>SQLStatementErrorCallback</dfn> {
-  boolean <span title="dom-sqlstatementerrorcallback-handleEvent">handleEvent</span>(in <span>SQLTransaction</span> transaction, in <span>SQLError</span> error);
-};</pre>
-
-  <p>When the <dfn
-  title="dom-sqltransaction-executeSql"><code>executeSql(<var
-  title="">sqlStatement</var>, <var title="">arguments</var>, <var
-  title="">callback</var>, <var
-  title="">errorCallback</var>)</code></dfn> method is invoked, the
-  user agent must run the following algorithm. (This algorithm is
-  relatively simple in that it doesn't actually execute any SQL
-  &mdash; the bulk of the work is actually done as part of the
-  <span>transaction steps</span>.)</p>
-
-  <ol>
-
-   <li><p>If the method was not invoked during the execution of a
-   <code>SQLTransactionCallback</code>,
-   <code>SQLStatementCallback</code>, or
-   <code>SQLStatementErrorCallback</code> then raise an
-   <code>INVALID_STATE_ERR</code> exception. (Calls from inside a
-   <code>SQLTransactionErrorCallback</code> thus raise an
-   exception. The <code>SQLTransactionErrorCallback</code> handler is
-   only called once a transaction has failed, and no SQL statements
-   can be added to a failed transaction.)</p></li>
-
-   <li>
-
-    <p><span>Preprocess the SQL statement</span> given as the first
-    argument to the method (<var title="">sqlStatement</var>), using
-    the second argument to the method as the <var
-    title="">arguments</var> array, to obtain <var title="">the
-    statement</var>.</p>
-
-    <p>If the second argument is omitted or null, then treat the <var
-    title="">arguments</var> array as empty.</p>
-
-   </li>
-
-   <li><p>Queue up <var title="">the statement</var> in the
-   transaction, along with the third argument (if any) as the
-   statement's result set callback and the fourth argument (if any) as
-   the error callback.</p></li>
-
-  </ol>
-
-
-
-  <h6>Processing model</h6>
-
-  <p>The <dfn>transaction steps</dfn> are as follows. These steps must
-  be run asynchronously. These steps are invoked with a <i>transaction
-  callback</i>, optionally an <i>error callback</i>, optionally a
-  <i>success callback</i>, optionally a <i>preflight operation</i>,
-  optionally a <i>postflight operation</i>, and with a <i>mode</i>
-  that is either read/write or read-only.</p>
-
-  <ol>
-
-   <li><p>Open a new SQL transaction to the database, and create a
-   <code>SQLTransaction</code> object that represents that
-   transaction. If the <i>mode</i> is read/write, the transaction must
-   have an exclusive write lock over the entire database. If the
-   <i>mode</i> is read-only, the transaction must have a shared read
-   lock over the entire database. The user agent should wait for an
-   appropriate lock to be available.</p></li>
-
-   <li><p>If an error occurred in the opening of the transaction
-   (e.g. if the user agent failed to obtain an appropriate lock after
-   an appropriate delay), jump to the last step.</p></li>
-
-   <li><p>If a <i>preflight operation</i> was defined for this
-   instance of the transaction steps, run that. If it fails, then jump
-   to the last step. (This is basically a hook for the <code
-   title="dom-database-changeVersion">changeVersion()</code>
-   method.)</p></li>
-
-   <li><p>If the <i>transaction callback</i> is not null, <span>queue
-   a task</span> to invoke the <i>transaction callback</i> with the
-   aforementioned <code>SQLTransaction</code> object as its only
-   argument, and wait for that task to be run.</p></li>
-
-   <li><p>If the callback raised an exception, jump to the last
-   step.</p></li>
-
-   <li><p>While there are any statements queued up in the transaction,
-   perform the following steps for each queued up statement in the
-   transaction, oldest first. Each statement has a statement,
-   optionally a result set callback, and optionally an error
-   callback.</p>
-
-    <ol>
-
-     <li><p>If the statement is marked as bogus, jump to the "in case
-     of error" steps below.</p></li>
-
-     <li><p>Execute the statement in the context of the transaction.
-     <a href="#refsSQL">[SQL]</a></p>
-
-     <li><p>If the statement failed, jump to the "in case of error"
-     steps below.</p></li>
-
-     <li><p>Create a <code>SQLResultSet</code> object that represents
-     the result of the statement.</p></li>
-
-     <li><p>If the statement has a result set callback that is not
-     null, <span>queue a task</span> to invoke it with the
-     <code>SQLTransaction</code> object as its first argument and the
-     new <code>SQLResultSet</code> object as its second argument, and
-     wait for that task to be run.</p></li>
-
-     <li><p>If the callback was invoked and raised an exception, jump
-     to the last step in the overall steps.</p></li>
-
-     <li><p>Move on to the next statement, if any, or onto the next
-     overall step otherwise.</p></li>
-
-    </ol>
-
-    <p>In case of error (or more specifically, if the above substeps
-    say to jump to the "in case of error" steps), run the following
-    substeps:</p>
-
-    <ol>
-
-     <li><p>If the statement had an associated error callback that is
-     not null, then <span>queue a task</span> to invoke that error
-     callback with the <code>SQLTransaction</code> object and a newly
-     constructed <code>SQLError</code> object that represents the
-     error that caused these substeps to be run as the two arguments,
-     respectively, and wait for the task to be run.</p></li>
-
-     <li><p>If the error callback returns false, then move on to the
-     next statement, if any, or onto the next overall step
-     otherwise.</p></li>
-
-     <li><p>Otherwise, the error callback did not return false, or
-     there was no error callback. Jump to the last step in the overall
-     steps.</p></li>
-
-    </ol>
-
-   </li>
-
-   <li>
-
-    <p>If a <i>postflight operation</i> was defined for this instance
-    of the transaction steps, then: as one atomic operation, commit
-    the transaction and run the <i>postflight operation</i>. If either
-    fails, then do neither, and instead jump to the last step. (This
-    is basically a hook for the <code
-    title="dom-database-changeVersion">changeVersion()</code>
-    method.)</p>
-
-    <p>Otherwise: commit the transaction and run the <i>postflight
-    operation</i>. If an error occurred in the committing of the
-    transaction, jump to the last step.</p>
-
-   </li>
-
-   <li><p><span>Queue a task</span> to invoke the <i>success
-   callback</i>, if it is not null.</p></li>
-
-   <li><p>End these steps. The next step is only used when something
-   goes wrong.</p></li>
-
-   <li><p><span>Queue a task</span> to invoke the <i>error
-   callback</i>, if it is not null, with a newly constructed
-   <code>SQLError</code> object that represents the last error to have
-   occurred in this transaction. Rollback the transaction. Any
-   still-pending statements in the transaction are discarded.</p></li>
-
-  </ol>
-
-  <p>The <span>task source</span> for these <span
-  title="concept-task">tasks</span> is the <dfn>database access task
-  source</dfn>.</p>
-
-
-
-  <h5>Synchronous database API</h5>
-
-  <pre class="idl">interface <dfn>DatabaseSync</dfn> {
-  void <span title="dom-database-sync-transaction">transaction</span>(in <span>SQLTransactionSyncCallback</span> callback);
-  void <span title="dom-database-sync-readTransaction">readTransaction</span>(in <span>SQLTransactionSyncCallback</span> callback);
-
-  readonly attribute DOMString <span title="dom-database-sync-version">version</span>;
-  void <span title="dom-database-sync-changeVersion">changeVersion</span>(in DOMString oldVersion, in DOMString newVersion, in optional <span>SQLTransactionSyncCallback</span> callback);
-};
-
-[Callback=FunctionOnly, NoInterfaceObject]
-interface <dfn>SQLTransactionSyncCallback</dfn> {
-  void <span title="dom-sqltransactionsynccallback-handleEvent">handleEvent</span>(in <span>SQLTransactionSync</span> transaction);
-};</pre>
-
-  <p>The <dfn
-  title="dom-database-sync-transaction"><code>transaction()</code></dfn>
-  and <dfn
-  title="dom-database-sync-readTransaction"><code>readTransaction()</code></dfn>
-  methods must run the following steps:</p>
-
-  <ol>
-
-   <li><p>If the method was the <code
-   title="dom-database-sync-transaction">transaction()</code> method,
-   <span>create a <code>SQLTransactionSync</code> object</span> for a
-   read/write transaction. Otherwise, <span>create a
-   <code>SQLTransactionSync</code> object</span> for a read-only
-   transaction. In either case, if this throws an exception, then
-   rethrow it and abort these steps. Otherwise, let <var
-   title="">transaction</var> be the newly created
-   <code>SQLTransactionSync</code> object.</p></li>
-
-   <li><p>If the first argument is null, rollback the transaction,
-   throw a <code>SQLException</code> exception, and abort these
-   steps. (<span title="dom-sqlerror-code-0">Error code
-   0</span>.)</p></li>
-
-   <li><p>Invoke the callback given by the first argument, passing it
-   the <var title="">transaction</var> object as its only
-   argument.</p></li>
-
-   <li><p>Mark the <code>SQLTransactionSync</code> object as <i
-   title="">stale</i>.</p>
-
-   <li><p>If the callback was terminated by an exception, then
-   rollback the transaction, rethrow that exception, and abort these
-   steps.</p></li>
-
-   <li><p>Commit the transaction.</p></li>
-
-   <li><p>If an error occurred in the committing of the transaction,
-   rollback the transaction, throw a <code>SQLException</code>
-   exception, and abort these steps.</p></li>
-
-  </ol>
-
-  <p>On getting, the <dfn
-  title="dom-database-sync-version"><code>version</code></dfn>
-  attribute must return the current version of the database (as
-  opposed to the <span
-  title="concept-database-expected-version">expected version</span> of
-  the <code>DatabaseSync</code> object).</p>
-
-  <p>The <dfn
-  title="dom-database-sync-changeVersion"><code>changeVersion()</code></dfn>
-  method allows scripts to atomically verify the version number and
-  change it at the same time as doing a schema update. When the method
-  is invoked, it must run the following steps:</p>
-
-  <ol>
-
-   <li><p><span>Create a <code>SQLTransactionSync</code> object</span>
-   for a read/write transaction. If this throws an exception, then
-   rethrow it and abort these steps. Otherwise, let <var
-   title="">transaction</var> be the newly created
-   <code>SQLTransactionSync</code> object.</p></li>
-
-   <li><p>Check that the value of the first argument to the <code
-   title="dom-database-sync-changeVersion">changeVersion()</code>
-   method exactly matches the database's actual version. If it does
-   not, then throw a <code>SQLException</code> exception and abort
-   these steps. (<span title="dom-sqlerror-code-2">Error code
-   2</span>.)</p></li>
-
-   <li><p>If the third argument is not null, invoke the callback given
-   by the third argument, passing it the <var
-   title="">transaction</var> object as its only argument.</p></li>
-
-   <li><p>Mark the <code>SQLTransactionSync</code> object as <i
-   title="">stale</i>.</p>
-
-   <li><p>If the callback was terminated by an exception, then
-   rollback the transaction, rethrow the exception, and abort these
-   steps.</p></li>
-
-   <li><p>Commit the transaction.</p></li>
-
-   <li><p>If an error occurred in the committing of the transaction,
-   rollback the transaction, throw a <code>SQLException</code>
-   exception, and abort these steps.</p></li>
-
-   <li>Change the database's actual version to the value of the second
-   argument to the <code
-   title="dom-database-sync-changeVersion">changeVersion()</code>
-   method.</li>
-
-   <li>Change the <code>Database</code> object's expected version to
-   the value of the second argument to the <code
-   title="dom-database-sync-changeVersion">changeVersion()</code>
-   method.</li>
-
-  </ol>
-
-  <hr>
-
-  <p>When the user agent is to <dfn>create a
-  <code>SQLTransactionSync</code> object</dfn> for a transaction that
-  is either read/write or read-only, it must run the following
-  steps:</p>
-
-  <ol>
-
-   <li><p>Open a new SQL transaction to the database, and create a
-   <code>SQLTransactionSync</code> object that represents that
-   transaction. If the <i>mode</i> is read/write, the transaction must
-   have an exclusive write lock over the entire database. If the
-   <i>mode</i> is read-only, the transaction must have a shared read
-   lock over the entire database. The user agent should wait for an
-   appropriate lock to be available.</p></li>
-
-   <li><p>If an error occurred in the opening of the transaction
-   (e.g. if the user agent failed to obtain an appropriate lock after
-   an appropriate delay), throw a <code>SQLException</code> exception
-   and abort these steps.</p></li>
-
-   <li><p>Return the newly created <code>SQLTransactionSync</code>
-   object.</p></li>
-
-  </ol>
-
-
-
-  <h6>Executing SQL statements</h6>
-
-  <p>The <code
-  title="dom-database-sync-transaction">transaction()</code>, <code
-  title="dom-database-sync-readTransaction">readTransaction()</code>,
-  and <code
-  title="dom-database-sync-changeVersion">changeVersion()</code>
-  methods invoke callbacks that are passed
-  <code>SQLTransactionSync</code> objects.</p>
-
-  <pre class="idl">// typedef sequence&lt;any> <span>ObjectArray</span>;
-
-interface <dfn>SQLTransactionSync</dfn> {
-  <span>SQLResultSet</span> <span title="dom-sqltransaction-sync-executeSql">executeSql</span>(in DOMString sqlStatement, in optional <span>ObjectArray</span> arguments);
-};</pre>
-
-  <p>A <code>SQLTransactionSync</code> object is initially <i
-  title="">fresh</i>, but it will be marked as <i title="">stale</i>
-  once it has been committed or rolled back.</p>
-
-  <p>When the <dfn
-  title="dom-sqltransaction-sync-executeSql"><code>executeSql(<var
-  title="">sqlStatement</var>, <var
-  title="">arguments</var>)</code></dfn> method is invoked, the user
-  agent must run the following algorithm:</p>
-
-  <ol>
-
-   <li><p>If the <code>SQLTransactionSync</code> object is <i
-   title="">stale</i>, then throw an <code>INVALID_STATE_ERR</code>
-   exception.</p></li>
-
-   <li>
-
-    <p><span>Preprocess the SQL statement</span> given as the first
-    argument to the method (<var title="">sqlStatement</var>), using
-    the second argument to the method as the <var
-    title="">arguments</var> array, to obtain <var title="">the
-    statement</var>.</p>
-
-    <p>If the second argument is omitted or null, then treat the <var
-    title="">arguments</var> array as empty.</p>
-
-   </li>
-
-   <li><p>If the statement is marked as bogus, throw a
-   <code>SQLException</code> exception.</p></li>
-
-   <li><p>Execute the statement in the context of the transaction.
-   <a href="#refsSQL">[SQL]</a></p>
-
-   <li><p>If the statement failed, throw a <code>SQLException</code>
-   exception.</p></li>
-
-   <li><p>Create a <code>SQLResultSet</code> object that represents
-   the result of the statement.</p></li>
-
-   <li><p>Return the newly created <code>SQLResultSet</code>
-   object.</p></li>
-
-  </ol>
-
-
-
-  <h5>Database query results</h5>
-
-  <p>The <code title="dom-sqltransaction-executeSql">executeSql()</code>
-  method invokes its callback with a <code>SQLResultSet</code> object
-  as an argument.</p>
-
-  <pre class="idl">interface <dfn>SQLResultSet</dfn> {
-  readonly attribute long <span title="dom-SQLResultSet-insertId">insertId</span>;
-  readonly attribute long <span title="dom-SQLResultSet-rowsAffected">rowsAffected</span>;
-  readonly attribute <span>SQLResultSetRowList</span> <span title="dom-SQLResultSet-rows">rows</span>;
-};</pre>
-
-  <p>The <dfn
-  title="dom-SQLResultSet-insertId"><code>insertId</code></dfn>
-  attribute must return the row ID of the row that the
-  <code>SQLResultSet</code> object's SQL statement inserted into the
-  database, if the statement inserted a row. If the statement inserted
-  multiple rows, the ID of the last row must be the one returned. If
-  the statement did not insert a row, then the attribute must instead
-  raise an <code>INVALID_ACCESS_ERR</code> exception.</p>
-
-  <p>The <dfn
-  title="dom-SQLResultSet-rowsAffected"><code>rowsAffected</code></dfn>
-  attribute must return the number of rows that were changed by the
-  SQL statement. If the statement did not affected any rows, then the
-  attribute must return zero. For "SELECT" statements, this returns
-  zero (querying the database doesn't affect any rows).</p>
-
-  <p>The <dfn title="dom-SQLResultSet-rows"><code>rows</code></dfn>
-  attribute must return a <code>SQLResultSetRowList</code>
-  representing the rows returned, in the order returned by the
-  database. If no rows were returned, then the object will be empty
-  (its <code title="dom-SQLResultSetRowList-length">length</code> will
-  be zero).</p>
-
-  <pre class="idl">interface <dfn>SQLResultSetRowList</dfn> {
-  readonly attribute unsigned long <span title="dom-SQLResultSetRowList-length">length</span>;
-  getter <span>any</span> <span title="dom-SQLResultSetRowList-item">item</span>(in unsigned long index);
-};</pre>
-
-  <p class="note">Implementors are encouraged to implement
-  <code>SQLResultSetRowList</code> objects lazily, or at least
-  asynchronously, for better performance.</p>
-
-  <p><code>SQLResultSetRowList</code> objects have a <dfn
-  title="dom-SQLResultSetRowList-length"><code>length</code></dfn>
-  attribute that must return the number of rows it represents (the
-  number of rows returned by the database). This is the <var
-  title="dom-SQLResultSetRowList-length">length</var>.</p>
-
-  <p class="note">Fetching the <code
-  title="dom-SQLResultSetRowList-length">length</code> might be
-  expensive, and authors are thus encouraged to avoid using it (or
-  enumerating over the object, which implicitly uses it) where
-  possible.</p>
-
-  <p>The object's <span>indices of the supported indexed
-  properties</span> are the numbers in the range zero to <span title=""><var
-  title="dom-SQLResultSetRowList-length">length</var>-1</span>, unless
-  the <var title="dom-SQLResultSetRowList-length">length</var> is
-  zero, in which case there are no <span>supported indexed
-  properties</span>.</p>
-
-  <p>The <dfn title="dom-SQLResultSetRowList-item"><code>item(<var
-  title="">index</var>)</code></dfn> attribute must return the row
-  with the given index <var title="">index</var>. If there is no such
-  row, then the method must return null.</p>
-
-  <p>Each row must be represented by a native ordered dictionary data
-  type. In the JavaScript binding, this must be <code>Object</code>.
-  Each row object must have one property (or dictionary entry) per
-  column, with those properties enumerating in the order that these
-  columns were returned by the database. Each property must have the
-  name of the column and the value of the cell, as they were returned
-  by the database.</p>
-
-
-  <h5>Errors and exceptions</h5>
-
-  <p>Errors in the asynchronous database API are reported using
-  callbacks that have a <code>SQLError</code> object as one of their
-  arguments.</p>
-
-  <pre class="idl">interface <dfn>SQLError</dfn> {
-  const unsigned short <span title="dom-SQLException-code-UNKNOWN">UNKNOWN_ERR</span> = 0;
-  const unsigned short <span title="dom-SQLException-code-DATABASE">DATABASE_ERR</span> = 1;
-  const unsigned short <span title="dom-SQLException-code-VERSION">VERSION_ERR</span> = 2;
-  const unsigned short <span title="dom-SQLException-code-TOO_LARGE">TOO_LARGE_ERR</span> = 3;
-  const unsigned short <span title="dom-SQLException-code-QUOTA">QUOTA_ERR</span> = 4;
-  const unsigned short <span title="dom-SQLException-code-SYNTAX">SYNTAX_ERR</span> = 5;
-  const unsigned short <span title="dom-SQLException-code-CONSTRAINT">CONSTRAINT_ERR</span> = 6;
-  const unsigned short <span title="dom-SQLException-code-TIMEOUT">TIMEOUT_ERR</span> = 7;
-  readonly attribute unsigned short <span title="dom-SQLError-code">code</span>;
-  readonly attribute DOMString <span title="dom-SQLError-message">message</span>;
-};</pre>
-
-  <p>The <dfn title="dom-SQLError-code"><code>code</code></dfn> IDL
-  attribute must return the most appropriate code from the table
-  below.</p>
-
-  <p>The <dfn title="dom-SQLError-message"><code>message</code></dfn>
-  IDL attribute must return an error message describing the error
-  encountered. The message should be localized to the user's
-  language.</p>
-
-  <hr>
-
-  <p>Errors in the synchronous database API are reported using
-  <code>SQLException</code> exceptions:</p>
-
-  <pre class="idl">exception <dfn>SQLException</dfn> {
-  const unsigned short <span title="dom-SQLException-code-UNKNOWN">UNKNOWN_ERR</span> = 0;
-  const unsigned short <span title="dom-SQLException-code-DATABASE">DATABASE_ERR</span> = 1;
-  const unsigned short <span title="dom-SQLException-code-VERSION">VERSION_ERR</span> = 2;
-  const unsigned short <span title="dom-SQLException-code-TOO_LARGE">TOO_LARGE_ERR</span> = 3;
-  const unsigned short <span title="dom-SQLException-code-QUOTA">QUOTA_ERR</span> = 4;
-  const unsigned short <span title="dom-SQLException-code-SYNTAX">SYNTAX_ERR</span> = 5;
-  const unsigned short <span title="dom-SQLException-code-CONSTRAINT">CONSTRAINT_ERR</span> = 6;
-  const unsigned short <span title="dom-SQLException-code-TIMEOUT">TIMEOUT_ERR</span> = 7;
-  unsigned short <span title="dom-SQLException-code">code</span>;
-  DOMString <span title="dom-SQLException-message">message</span>;
-};</pre>
-
-  <p>The <dfn title="dom-SQLException-code"><code>code</code></dfn>
-  IDL attribute must return the most appropriate code from the table
-  below.</p>
-
-  <p>The <dfn
-  title="dom-SQLException-message"><code>message</code></dfn> IDL
-  attribute must return an error message describing the error
-  encountered. The message should be localized to the user's
-  language.</p>
-
-  <hr>
-
-  <p>The error codes are as follows:</p>
-
-  <table>
-   <thead>
-    <tr>
-     <th>Constant
-     <th>Code
-     <th>Situation
-   <tbody>
-
-    <tr>
-     <td><dfn title="dom-SQLException-code-UNKNOWN"><code>UNKNOWN_ERR</code></dfn>
-     <td><dfn title="dom-sqlerror-code-0">0</dfn>
-     <td>The transaction failed for reasons unrelated to the database
-     itself and not covered by any other error code.
-
-    <tr>
-     <td><dfn title="dom-SQLException-code-DATABASE"><code>DATABASE_ERR</code></dfn>
-     <td><dfn title="dom-sqlerror-code-1">1</dfn>
-     <td>The statement failed for database reasons not covered by any
-     other error code.
-
-    <tr>
-     <td><dfn title="dom-SQLException-code-VERSION"><code>VERSION_ERR</code></dfn>
-     <td><dfn title="dom-sqlerror-code-2">2</dfn>
-     <td>The operation failed because the actual database version was
-     not what it should be. For example, a statement found that the
-     actual database version no longer matched the <span
-     title="concept-database-expected-version">expected version</span>
-     of the <code>Database</code> or <code>DatabaseSync</code> object,
-     or the <code
-     title="dom-database-changeversion">Database.changeVersion()</code>
-     or <code
-     title="dom-database-sync-changeversion">DatabaseSync.changeVersion()</code>
-     methods were passed a version that doesn't match the actual
-     database version.
-
-    <tr>
-     <td><dfn title="dom-SQLException-code-TOO_LARGE"><code>TOO_LARGE_ERR</code></dfn>
-     <td><dfn title="dom-sqlerror-code-3">3</dfn>
-     <td>The statement failed because the data returned from the
-     database was too large. The SQL "LIMIT" modifier might be useful
-     to reduce the size of the result set.
-
-    <tr>
-     <td><dfn title="dom-SQLException-code-QUOTA"><code>QUOTA_ERR</code></dfn>
-     <td><dfn title="dom-sqlerror-code-4">4</dfn>
-     <td>The statement failed because there was not enough remaining
-     storage space, or the storage quota was reached and the user
-     declined to give more space to the database.
-
-    <tr>
-     <td><dfn title="dom-SQLException-code-SYNTAX"><code>SYNTAX_ERR</code></dfn>
-     <td><dfn title="dom-sqlerror-code-5">5</dfn>
-     <td>The statement failed because of a syntax error, or the number
-     of arguments did not match the number of <code title="">?</code>
-     placeholders in the statement, or the statement tried to use a
-     statement that is not allowed, such as <code
-     title="">BEGIN</code>, <code title="">COMMIT</code>, or <code
-     title="">ROLLBACK</code>, or the statement tried to use a verb
-     that could modify the database but the transaction was read-only.
-
-    <tr>
-     <td><dfn title="dom-SQLException-code-CONSTRAINT"><code>CONSTRAINT_ERR</code></dfn>
-     <td><dfn title="dom-sqlerror-code-6">6</dfn>
-     <td>An <code title="">INSERT</code>, <code
-     title="">UPDATE</code>, or <code title="">REPLACE</code>
-     statement failed due to a constraint failure. For example,
-     because a row was being inserted and the value given for the
-     primary key column duplicated the value of an existing row.
-
-    <tr>
-     <td><dfn title="dom-SQLException-code-TIMEOUT"><code>TIMEOUT_ERR</code></dfn>
-     <td><dfn title="dom-sqlerror-code-7">7</dfn>
-     <td>A lock for the transaction could not be obtained in a
-     reasonable time.
-
-  </table>
-
-
-  <h4>Web SQL</h4>
-
-  <p class="XXX">Need to define the SQL dialect.</p>
-
-
-  <!--START storage-->
-
-  <h4>Disk space</h4>
-
-  <p>User agents should limit the total amount of space allowed for
-  <!--END complete-->
-  <!--END database-->
-  storage areas.
-  <!--END storage-->
-  <!--START database-->
-  databases.
-  <!--END database-->
-  <!--START complete-->
-  these storage features.
-  <!--START database-->
-  <!--START storage-->
-  </p>
-
-  <p>User agents should guard against sites storing data under the
-  origins other affiliated sites, e.g. storing up to the limit in
-  a1.example.com, a2.example.com, a3.example.com, etc, circumventing
-  the main example.com storage limit.</p>
-
-  <p>User agents may prompt the user when quotas are reached, allowing
-  the user to grant a site more space. This enables sites to store
-  many user-created documents on the user's computer, for
-  instance.</p>
-
-  <p>User agents should allow users to see how much space each domain
-  is using.</p>
-
-  <!--END database-->
-  <!--<p>If the storage area space limit is reached during a <code
-  title="dom-Storage-setItem">setItem()</code> call, the method will
-  raise an exception.</p>-->
-  <!--START database-->
-
-  <p>A mostly arbitrary limit of five megabytes per
-  <span>origin</span> is recommended. Implementation feedback is
-  welcome and will be used to update this suggestion in the
-  future.</p>
-
-
-  <h4>Privacy</h4>
-
-  <h5>User tracking</h5>
-
-  <p>A third-party advertiser (or any entity capable of getting
-  content distributed to multiple sites) could use a unique identifier
-  stored in its
-  <!--END database-->
-  local storage area
-  <!--END storage-->
-  or its
-  <!--START database-->
-  client-side databases
-  <!--START storage-->
-  to track a user across multiple sessions, building a profile of the
-  user's interests to allow for highly targeted advertising. In
-  conjunction with a site that is aware of the user's real identity
-  (for example an e-commerce site that requires authenticated
-  credentials), this could allow oppressive groups to target
-  individuals with greater accuracy than in a world with purely
-  anonymous Web usage.</p>
-
-  <p>There are a number of techniques that can be used to mitigate the
-  risk of user tracking:</p>
-
-  <dl>
-
-   <dt>Blocking third-party storage</dt>
-   <dd>
-
-    <p>User agents may restrict access to
-    <!--END database-->
-    the <code title="dom-localStorage">localStorage</code> objects
-    <!--END storage-->
-    and
-    <!--START database-->
-    the database objects
-    <!--START storage-->
-    to scripts originating at the domain of the top-level document of
-    the <span>browsing context</span>, for instance denying access to
-    the API for pages from other domains running in
-    <code>iframe</code>s.</p>
-
-   </dd>
-
-   <dt>Expiring stored data</dt>
-   <dd>
-
-    <p>User agents may, if so configured by the user, automatically
-    delete stored data after a period of time.</p>
-
-    <!--END database-->
-    <p>For example, a user agent could be configured to treat
-    third-party local storage areas as session-only storage, deleting
-    the data once the user had closed all the <span>browsing
-    contexts</span> that could access it.</p>
-    <!--START database-->
-
-    <p>This can restrict the ability of a site to track a user, as the
-    site would then only be able to track the user across multiple
-    sessions when he authenticates with the site itself (e.g. by
-    making a purchase or logging in to a service).</p>
-
-    <p>However, this also reduces the usefulness of the API as a
-    long-term storage mechanism. It can also put the user's data at
-    risk, if the user does not fully understand the implications of
-    data expiration.</p>
-
-    <!--END database-->
-    <!--v2 consider adding an explicit way for sites to state when
-    data should expire, as in  localStorage.expireData(365); -->
-    <!--START database-->
-
-   </dd>
-
-   <dt>Treating persistent storage as cookies</dt>
-   <dd>
-
-    <p>If users attempt to protect their privacy by clearing cookies
-    without also clearing data stored in the
-    <!--END complete-->
-    <!--END database-->
-    local storage area,
-    <!--END storage-->
-    <!--START database-->
-    relevant databases,
-    <!--END database-->
-    <!--START complete-->
-    local storage area and relevant databases,
-    <!--START database-->
-    <!--START storage-->
-    sites can defeat those attempts by using the two features as
-    redundant backup for each other. User agents should present the
-    interfaces for clearing these in a way that helps users to
-    understand this possibility and enables them to delete data in all
-    persistent storage features simultaneously. <a
-    href="#refsCOOKIES">[COOKIES]</a></p>
-
-   </dd>
-
-   <dt>Site-specific white-listing of access to
-   <!--END database-->
-   local storage areas
-   <!--END storage-->
-   and
-   <!--START database-->
-   databases
-   <!--START storage-->
-   </dt>
-   <dd>
-
-    <!--END database-->
-    <p>User agents may allow sites to access session storage areas in
-    an unrestricted manner, but require the user to authorize access
-    to local storage areas.</p>
-    <!--END storage-->
-    <!--START database-->
-    <p>User agents may require the user to authorize access to
-    databases before a site can use the feature.</p>
-    <!--START storage-->
-
-   </dd>
-
-   <dt>Origin-tracking of stored data</dt>
-   <dd>
-
-    <p>User agents may record the <span title="origin">origins</span>
-    of sites that contained content from third-party origins that
-    caused data to be stored.</p>
-
-    <p>If this information is then used to present the view of data
-    currently in persistent storage, it would allow the user to make
-    informed decisions about which parts of the persistent storage to
-    prune. Combined with a blacklist ("delete this data and prevent
-    this domain from ever storing data again"), the user can restrict
-    the use of persistent storage to sites that he trusts.</p>
-
-   </dd>
-
-   <dt>Shared blacklists</dt>
-   <dd>
-
-    <p>User agents may allow users to share their persistent storage
-    domain blacklists.</p>
-
-    <p>This would allow communities to act together to protect their
-    privacy.</p>
-
-   </dd>
-
-  </dl>
-
-  <p>While these suggestions prevent trivial use of this API for user
-  tracking, they do not block it altogether. Within a single domain, a
-  site can continue to track the user during a session, and can then
-  pass all this information to the third party along with any
-  identifying information (names, credit card numbers, addresses)
-  obtained by the site. If a third party cooperates with multiple
-  sites to obtain such information, a profile can still be
-  created.</p>
-
-  <p>However, user tracking is to some extent possible even with no
-  cooperation from the user agent whatsoever, for instance by using
-  session identifiers in URLs, a technique already commonly used for
-  innocuous purposes but easily repurposed for user tracking (even
-  retroactively). This information can then be shared with other
-  sites, using using visitors' IP addresses and other user-specific
-  data (e.g. user-agent headers and configuration settings) to combine
-  separate sessions into coherent user profiles.</p>
-
-
-  <h5>Sensitivity of data</h5>
-
-  <p>User agents should treat persistently stored data as potentially
-  sensitive; it's quite possible for e-mails, calendar appointments,
-  health records, or other confidential documents to be stored in this
-  mechanism.</p>
-
-  <p>To this end, user agents should ensure that when deleting data,
-  it is promptly deleted from the underlying storage.</p>
-
-
-  <h4>Security</h4>
-
-  <h5>DNS spoofing attacks</h5>
-
-  <p>Because of the potential for DNS spoofing attacks, one cannot
-  guarantee that a host claiming to be in a certain domain really is
-  from that domain. To mitigate this, pages can use SSL. Pages using
-  SSL can be sure that only pages using SSL that have certificates
-  identifying them as being from the same domain can access their
-  <!--END complete-->
-  <!--END database-->
-  storage areas.
-  <!--END storage-->
-  <!--START database-->
-  databases.
-  <!--END database-->
-  <!--START complete-->
-  storage areas and databases.
-  <!--START database-->
-  <!--START storage-->
-  </p>
-
-
-  <h5>Cross-directory attacks</h5>
-
-  <p>Different authors sharing one host name, for example users
-  hosting content on <code>geocities.com</code>, all share one
-  <!--END complete-->
-  <!--END database-->
-  local storage object.
-  <!--END storage-->
-  <!--START database-->
-  set of databases.
-  <!--END database-->
-  <!--START complete-->
-  common set of storage objects and databases.
-  <!--START database-->
-  <!--START storage-->
-  There is no feature to restrict the access by pathname. Authors on
-  shared hosts are therefore recommended to avoid using these
-  features, as it would be trivial for other authors to read the data
-  and overwrite it.</p>
-
-  <p class="note">Even if a path-restriction feature was made
-  available, the usual DOM scripting security model would make it
-  trivial to bypass this protection and access the data from any
-  path.</p>
-
-
-  <h5>Implementation risks</h5>
-
-  <p>The two primary risks when implementing these persistent storage
-  features are letting hostile sites read information from other
-  domains, and letting hostile sites write information that is then
-  read from other domains.</p>
-
-  <p>Letting third-party sites read data that is not supposed to be
-  read from their domain causes <em>information leakage</em>, For
-  example, a user's shopping wishlist on one domain could be used by
-  another domain for targeted advertising; or a user's
-  work-in-progress confidential documents stored by a word-processing
-  site could be examined by the site of a competing company.</p>
-
-  <p>Letting third-party sites write data to the persistent storage of
-  other domains can result in <em>information spoofing</em>, which is
-  equally dangerous. For example, a hostile site could add items to a
-  user's wishlist; or a hostile site could set a user's session
-  identifier to a known ID that the hostile site can then use to track
-  the user's actions on the victim site.</p>
-
-  <p>Thus, strictly following the <span>origin</span> model described
-  in this specification is important for user security.</p>
-
-
-  <!--END storage-->
-
-  <h5>SQL and user agents</h5>
-
-  <p>User agent implementors are strongly encouraged to audit all
-  their supported SQL statements for security implications. For
-  example, <code title="">LOAD DATA INFILE</code> is likely to pose
-  security risks and there is little reason to support it.</p>
-
-  <p>In general, it is recommended that user agents not support
-  features that control how databases are stored on disk. For example,
-  there is little reason to allow Web authors to control the character
-  encoding used in the disk representation of the data, as all data in
-  JavaScript is implicitly UTF-16.</p>
-
-
-  <h5>SQL injection</h5>
-
-  <p>Authors are strongly recommended to make use of the <code
-  title="">?</code> placeholder feature of the <code
-  title="dom-sqltransaction-executeSql">executeSql()</code> method,
-  and to never construct SQL statements on the fly.</p>
-
-
-  <!--END database-->
-
-  <!--START html5-->
-
-
   <h3 id="links">Links</h3>
 
 
@@ -66693,6 +64790,1921 @@ interface <dfn>SQLTransactionSync</dfn> {
   accordance to the "Effect on..." field. <a
   href="#refsWHATWGWIKI">[WHATWGWIKI]</a></p>
 
+
+<!--END html5-->
+
+  <h2>Structured client-side storage APIs</h2>
+
+  <h3>Web Storage</h3>
+
+<!--START storage-->
+
+  <h4>Introduction</h4>
+
+  <p><i>This section is non-normative.</i></p>
+
+  <p>This specification introduces two related mechanisms, similar to
+  HTTP session cookies, for storing structured data on the client
+  side. <a href="#refsCOOKIES">[COOKIES]</a></p>
+
+  <p>The first is designed for scenarios where the user is carrying
+  out a single transaction, but could be carrying out multiple
+  transactions in different windows at the same time.</p>
+
+  <p>Cookies don't really handle this case well. For example, a user
+  could be buying plane tickets in two different windows, using the
+  same site. If the site used cookies to keep track of which ticket
+  the user was buying, then as the user clicked from page to page in
+  both windows, the ticket currently being purchased would "leak" from
+  one window to the other, potentially causing the user to buy two
+  tickets for the same flight without really noticing.</p>
+
+  <p>To address this, this specification introduces the <code
+  title="dom-sessionStorage">sessionStorage</code> IDL attribute.
+  Sites can add data to the session storage, and it will be accessible
+  to any page from the same site opened in that window.</p> <!-- we're
+  not using xrefs here because this is just an intro -->
+
+  <div class="example">
+
+   <p>For example, a page could have a checkbox that the user ticks to
+   indicate that he wants insurance:</p>
+
+   <pre>&lt;label>
+ &lt;input type="checkbox" onchange="sessionStorage.insurance = checked">
+ I want insurance on this trip.
+&lt;/label></pre>
+
+   <p>A later page could then check, from script, whether the user had
+   checked the checkbox or not:</p>
+
+   <pre>if (sessionStorage.insurance) { ... }</pre>
+
+   <p>If the user had multiple windows opened on the site, each one
+   would have its own individual copy of the session storage object.</p>
+
+  </div>
+
+  <!--
+
+   sessionStorage.flightDeparture = 'OSL';
+   sessionStorage.flightArrival = 'NYC';
+
+   for (var i in forms[0].elements)
+      sessionStorage["data_" + i.name] = i.value;
+
+   if (!sessionStorage[documents])
+     sessionStorage[documents] = {};
+   sessionStorage[documents][filename] = <document/>;
+
+  -->
+
+  <p>The second storage mechanism is designed for storage that spans
+  multiple windows, and lasts beyond the current session. In
+  particular, Web applications may wish to store megabytes of user
+  data, such as entire user-authored documents or a user's mailbox, on
+  the client side for performance reasons.</p>
+
+  <p>Again, cookies do not handle this case well, because they are
+  transmitted with every request.</p>
+
+  <p>The <code title="dom-localStorage">localStorage</code> IDL
+  attribute is used to access a page's local storage area.</p>
+
+  <div class="example">
+
+   <p>The site at example.com can display a count of how many times
+   the user has loaded its page by putting the following at the bottom
+   of its page:</p>
+
+   <pre>&lt;p>
+  You have viewed this page
+  &lt;span id="count">an untold number of&lt;/span>
+  time(s).
+&lt;/p>
+&lt;script>
+  if (!localStorage.pageLoadCount)
+    localStorage.pageLoadCount = 0;
+  localStorage.pageLoadCount += 1;
+  document.getElementById('count').textContent = localStorage.pageLoadCount;
+&lt;/script></pre>
+
+  </div>
+
+  <p>Each site has its own separate storage area.</p>
+
+
+<!--END complete-->
+  <!--BOILERPLATE middle-w3c-api-intro-->
+  <!--BOILERPLATE middle-w3c-js-disclaimer-->
+<!--START complete-->
+
+
+  <h4 id="storage">The API</h4>
+
+  <h5>The <code>Storage</code> interface</h5>
+
+  <pre class="idl">interface <dfn>Storage</dfn> {
+  readonly attribute unsigned long <span title="dom-Storage-length">length</span>;
+  getter any <span title="dom-Storage-key">key</span>(in unsigned long index);
+  getter any <span title="dom-Storage-getItem">getItem</span>(in DOMString key);
+  setter creator void <span title="dom-Storage-setItem">setItem</span>(in DOMString key, in any data);
+  deleter void <span title="dom-Storage-removeItem">removeItem</span>(in DOMString key);
+  void <span title="dom-Storage-clear">clear</span>();
+};</pre>
+
+  <!-- v2 ideas:
+    a getInfo() method that returns an object that tells you:
+       - when the key was added
+       - when the key was last modified
+       - which page was the last to modify the key
+    [-Mihai Sucan]
+  -->
+
+  <p>Each <code>Storage</code> object provides access to a list of
+  key/value pairs, which are sometimes called items. Keys are
+  strings. Any string (including the empty string) is a valid
+  key. Values can be any data type supported by the <span>structured
+  clone</span> algorithm.</p>
+
+  <p>Each <code>Storage</code> object is associated with a list of
+  key/value pairs when it is created, as defined in the sections on
+  the <code title="dom-sessionStorage">sessionStorage</code> and <code
+  title="dom-localStorage">localStorage</code> attributes. Multiple
+  separate objects implementing the <code>Storage</code> interface can
+  all be associated with the same list of key/value pairs
+  simultaneously.</p>
+
+  <p>The object's <span>indices of the supported indexed
+  properties</span> are the numbers in the range zero to one less than
+  the number of key/value pairs currently present in the list
+  associated with the object. If the list is empty, then there are no
+  <span>supported indexed properties</span>.</p>
+
+  <p>The <dfn title="dom-Storage-length"><code>length</code></dfn>
+  attribute must return the number of key/value pairs currently
+  present in the list associated with the object.</p>
+
+  <p>The <dfn title="dom-Storage-key"><code>key(<var
+  title="">n</var>)</code></dfn> method must return the name of the
+  <var title="">n</var>th key in the list. The order of keys is
+  user-agent defined, but must be consistent within an object so long
+  as the number of keys doesn't change. (Thus, <span
+  title="dom-Storage-setItem">adding</span> or <span
+  title="dom-Storage-removeItem">removing</span> a key may change the
+  order of the keys, but merely changing the value of an existing key
+  must not.) <!--The order of keys may differ between instances of the
+  <code>Storage</code> interface accessing the same list. [removed for
+  now for clarity, but if people ask, put it back. this is part of the
+  spec.]--> If <var title="">n</var> is <!--less than zero or [can't,
+  unsigned]--> greater than or equal to the number of key/value pairs
+  in the object, then this method must return null.</p>
+
+  <p>The <span>names of the supported named properties</span> on a
+  <code>Storage</code> object are the keys of each key/value pair
+  currently present in the list associated with the object.</p>
+
+  <p>The <dfn title="dom-Storage-getItem"><code>getItem(<var
+  title="">key</var>)</code></dfn> method must return a
+  <span>structured clone</span> of the current value associated with
+  the given <var title="">key</var>. If the given <var
+  title="">key</var> does not exist in the list associated with the
+  object then this method must return null.</p>
+
+  <p>The <dfn title="dom-Storage-setItem"><code>setItem(<var
+  title="">key</var>, <var title="">value</var>)</code></dfn> method
+  must first create a <span>structured clone</span> of the given <var
+  title="">value</var>. If this raises an exception, then the
+  exception must be thrown and the list associated with the object is
+  left unchanged. If constructing the stuctured clone would involve
+  constructing a new <code>ImageData</code> object, then throw a
+  <code>NOT_SUPPORTED_ERR</code> exception instead.</p>
+
+  <!-- ImageData isn't supported because reading such objects is
+  synchronous, and getData() is synchronous, and therefore if the
+  stored data is in deep storage, it would be very painful to have a
+  script grab the value and immediately try to read the image
+  data. -->
+
+  <p>Otherwise, the user agent must then check if a key/value pair
+  with the given <var title="">key</var> already exists in the list
+  associated with the object.</p>
+
+  <p>If it does not, then a new key/value pair must be added to the
+  list, with the given <var title="">key</var> and with its value set
+  to the newly obtained clone of <var title="">value</var>.</p>
+
+  <p>If the given <var title="">key</var> <em>does</em> exist in the
+  list, then it must have its value updated to the newly obtained
+  clone of <var title="">value</var>.</p>
+
+  <p>If it couldn't set the new value, the method must raise an
+  <code>QUOTA_EXCEEDED_ERR</code> exception. (Setting could fail if,
+  e.g., the user has disabled storage for the site, or if the quota
+  has been exceeded.)</p>
+
+  <p>The <dfn title="dom-Storage-removeItem"><code>removeItem(<var
+  title="">key</var>)</code></dfn> method must cause the key/value
+  pair with the given <var title="">key</var> to be removed from the
+  list associated with the object, if it exists. If no item with that
+  key exists, the method must do nothing.</p>
+
+  <p>The <code title="dom-Storage-setItem">setItem()</code> and <code
+  title="dom-Storage-removeItem">removeItem()</code> methods must be
+  atomic with respect to failure. In the case of failure, the method
+  does nothing. That is, changes to the data storage area must either
+  be successful, or the data storage area must not be changed at
+  all.</p>
+
+  <p>The <dfn title="dom-Storage-clear"><code>clear()</code></dfn>
+  method must atomically cause the list associated with the object to
+  be emptied of all key/value pairs, if there are any. If there are
+  none, then the method must do nothing.</p>
+
+  <p class="note">When the <code
+  title="dom-Storage-setItem">setItem()</code>, <code
+  title="dom-Storage-removeItem">removeItem()</code>, and <code
+  title="dom-Storage-clear">clear()</code> methods are invoked, events
+  are fired on other <code>HTMLDocument</code> objects that can access
+  the newly stored or removed data, as defined in the sections on the
+  <code title="dom-sessionStorage">sessionStorage</code> and <code
+  title="dom-localStorage">localStorage</code> attributes.</p> <!--
+  not normative, see the sections below for the normative statement
+  -->
+
+  <p class="note">This specification does not require that the above
+  methods wait until the data has been physically written to
+  disk. Only consistency in what different scripts accessing the same
+  underlying list of key/value pairs see is required.</p>
+
+
+  <h5>The <code title="dom-sessionStorage">sessionStorage</code> attribute</h5>
+
+  <pre class="idl">[Supplemental, NoInterfaceObject]
+interface <span>WindowSessionStorage</span> {
+  readonly attribute <span>Storage</span> <span title="dom-sessionStorage">sessionStorage</span>;
+};
+<span>Window</span> implements <span>WindowSessionStorage</span>;</pre>
+
+  <p>The <dfn
+  title="dom-sessionStorage"><code>sessionStorage</code></dfn>
+  attribute represents the set of storage areas specific to the
+  current <span>top-level browsing context</span>.</p>
+
+  <p>Each <span>top-level browsing context</span> has a unique set of
+  session storage areas, one for each <span>origin</span>.</p>
+
+  <p>User agents should not expire data from a browsing context's
+  session storage areas, but may do so when the user requests that
+  such data be deleted, or when the UA detects that it has limited
+  storage space, or for security reasons. User agents should always
+  avoid deleting data while a script that could access that data is
+  running. When a top-level browsing context is destroyed (and
+  therefore permanently inaccessible to the user) the data stored in
+  its session storage areas can be discarded with it, as the API
+  described in this specification provides no way for that data to
+  ever be subsequently retrieved.</p>
+
+  <p class="note">The lifetime of a browsing context can be unrelated
+  to the lifetime of the actual user agent process itself, as the user
+  agent may support resuming sessions after a restart.</p>
+
+  <p>When a new <code>HTMLDocument</code> is created, the user agent
+  must check to see if the document's <span>top-level browsing
+  context</span> has allocated a session storage area for that
+  document's <span>origin</span>. If it has not, a new storage area
+  for that document's <span>origin</span> must be created.</p>
+
+  <p>The <code title="dom-sessionStorage">sessionStorage</code>
+  attribute must return the <code>Storage</code> object associated
+  with that session storage area. Each <code>Document</code> object
+  must have a separate object for its <code>Window</code>'s <code
+  title="dom-sessionStorage">sessionStorage</code> attribute.</p>
+
+  <p>When a new <span>top-level browsing context</span> is created by
+  cloning an existing <span>browsing context</span>, the new browsing
+  context must start with the same session storage areas as the
+  original, but the two sets must from that point on be considered
+  separate, not affecting each other in any way.</p>
+
+  <p>When a new <span>top-level browsing context</span> is created by
+  a <span title="concept-script">script</span> in an existing
+  <span>browsing context</span>, or by the user following a link in an
+  existing browsing context, or in some other way related to a
+  specific <code>HTMLDocument</code>, then the session storage area of
+  the <span>origin</span> of that <code>HTMLDocument</code> must be
+  copied into the new browsing context when it is created. From that
+  point on, however, the two session storage areas must be considered
+  separate, not affecting each other in any way.</p>
+
+  <p id="sessionStorageEvent">When the <code
+  title="dom-Storage-setItem">setItem()</code>, <code
+  title="dom-Storage-removeItem">removeItem()</code>, and <code
+  title="dom-Storage-clear">clear()</code> methods are called on a
+  <code>Storage</code> object <var title="">x</var> that is associated
+  with a session storage area, if the methods did something, then in
+  every <code>HTMLDocument</code> object whose <code>Window</code>
+  object's <code title="dom-sessionStorage">sessionStorage</code>
+  attribute's <code>Storage</code> object is associated with the same
+  storage area, other than <var title="">x</var>, a <code
+  title="event-storage">storage</code> event must be fired, as <span
+  title="event-storage">described below</span>.</p>
+
+
+  <h5>The <code title="dom-localStorage">localStorage</code> attribute</h5>
+
+  <pre class="idl">[Supplemental, NoInterfaceObject]
+interface <span>WindowLocalStorage</span> {
+  readonly attribute <span>Storage</span> <span title="dom-localStorage">localStorage</span>;
+};
+<span>Window</span> implements <span>WindowLocalStorage</span>;</pre>
+
+  <p>The <dfn title="dom-localStorage"><code>localStorage</code></dfn>
+  object provides a <code>Storage</code> object for an
+  <span>origin</span>.</p>
+
+  <p>User agents must have a set of local storage areas, one for each
+  <span>origin</span>.</p>
+
+  <p>User agents should expire data from the local storage areas only
+  for security reasons or when requested to do so by the user. User
+  agents should always avoid deleting data while a script that could
+  access that data is running.</p>
+
+  <p>When the <code title="dom-localStorage">localStorage</code>
+  attribute is accessed, the user agent must run the following steps:</p>
+
+  <ol>
+
+   <li><p>If the <code>Document</code>'s <span>effective script
+   origin</span> is not the <span>same origin</span> as the
+   <code>Document</code>'s <span>origin</span>, then throw a
+   <code>SECURITY_ERR</code> exception and abort these steps.</p></li>
+
+   <li><p>Check to see if the user agent has allocated a local storage
+   area for the <span>origin</span> of the <code>Document</code> of
+   the <code>Window</code> object on which the method was invoked. If
+   it has not, create a new storage area for that
+   <span>origin</span>.</p></li>
+
+   <li><p>Return the <code>Storage</code> object associated with that
+   origin's local storage area. Each <code>Document</code> object must
+   have a separate object for its <code>Window</code>'s <code
+   title="dom-localStorage">localStorage</code> attribute.</p>
+
+  </ol>
+
+  <p id="localStorageEvent">When the <code
+  title="dom-Storage-setItem">setItem()</code>, <code
+  title="dom-Storage-removeItem">removeItem()</code>, and <code
+  title="dom-Storage-clear">clear()</code> methods are called on a
+  <code>Storage</code> object <var title="">x</var> that is associated
+  with a local storage area, if the methods did something, then in
+  every <code>HTMLDocument</code> object whose <code>Window</code>
+  object's <code title="dom-localStorage">localStorage</code>
+  attribute's <code>Storage</code> object is associated with the same
+  storage area, other than <var title="">x</var>, a <code
+  title="event-storage">storage</code> event must be fired, as <span
+  title="event-storage">described below</span>.</p>
+
+  <p id="localStorageMutex">Whenever the properties of a <code
+  title="dom-localStorage">localStorage</code> attribute's
+  <code>Storage</code> object are to be examined, returned, set, or
+  deleted, whether as part of a direct property access, when checking
+  for the presence of a property, during property enumeration, when
+  determining the number of properties present, or as part of the
+  execution of any of the methods or attributes defined on the
+  <code>Storage</code> interface. the user agent must first
+  <span>obtain the storage mutex</span>.</p>
+
+
+
+  <h5>The <code title="event-storage">storage</code> event</h5>
+
+  <p>The <dfn title="event-storage"><code>storage</code></dfn> event
+  is fired when a storage area changes, as described in the previous
+  two sections (<a href="#sessionStorageEvent">for session
+  storage</a>, <a href="#localStorageEvent">for local
+  storage</a>).</p>
+
+  <p>When this happens, the user agent must <span>queue a task</span>
+  to fire an event with the name <code>storage</code>, with no
+  namespace, which does not bubble and is not cancelable, and which
+  uses the <code>StorageEvent</code> interface, at each
+  <code>Window</code> object whose <code>Document</code> object has a
+  <code>Storage</code> object that is affected.</p>
+
+  <p class="note">This includes <code>Document</code> objects that are
+  not <span>fully active</span>, but events fired on those are ignored
+  by the <span>event loop</span> until the <code>Document</code>
+  becomes <span>fully active</span> again.</p>
+
+  <p>The <span>task source</span> for this task is the <span>DOM
+  manipulation task source</span>.</p>
+
+  <p>If the event is being fired due to an invocation of the <code
+  title="dom-Storage-setItem">setItem()</code> or <code
+  title="dom-Storage-removeItem">removeItem()</code> methods, the
+  event must have its <code title="dom-StorageEvent-key">key</code>
+  attribute set to the name of the key in question, its <code
+  title="dom-StorageEvent-oldValue">oldValue</code> attribute set to a
+  <span>structured clone</span> of the old value of the key in
+  question, or null if the key is newly added, and its <code
+  title="dom-StorageEvent-newValue">newValue</code> attribute set to a
+  <span>structured clone</span> of the new value of the key in
+  question, or null if the key was removed.</p>
+
+  <p>Otherwise, if the event is being fired due to an invocation of
+  the <code title="dom-Storage-clear">clear()</code> method, the event
+  must have its <code title="dom-StorageEvent-key">key</code>, <code
+  title="dom-StorageEvent-oldValue">oldValue</code>, and <code
+  title="dom-StorageEvent-newValue">newValue</code> attributes set to
+  null.</p>
+
+  <p>In addition, the event must have its <code
+  title="dom-StorageEvent-url">url</code> attribute set to <span
+  title="the document's address">the address of the document</span>
+  whose <code>Storage</code> object was affected; its <code
+  title="dom-StorageEvent-source">source</code> attribute set to the
+  that document's <span>browsing context</span>'s
+  <code>WindowProxy</code> object, if the two documents are in the
+  same <span>unit of related browsing contexts</span>, or null
+  otherwise; and its <code
+  title="dom-StorageEvent-storageArea">storageArea</code> attribute
+  set to the <code>Storage</code> object from the <code>Window</code>
+  object of the target <code>Document</code> that represents the same
+  kind of <code>Storage</code> area as was affected (i.e. session or
+  local).</p>
+
+
+  <h6>Event definition</h6>
+
+  <pre class="idl">interface <dfn>StorageEvent</dfn> : Event {
+  readonly attribute DOMString <span title="dom-StorageEvent-key">key</span>;
+  readonly attribute any <span title="dom-StorageEvent-oldValue">oldValue</span>;
+  readonly attribute any <span title="dom-StorageEvent-newValue">newValue</span>;
+  readonly attribute DOMString <span title="dom-StorageEvent-url">url</span>;
+  readonly attribute <span>WindowProxy</span> <span title="dom-StorageEvent-source">source</span>;
+  readonly attribute <span>Storage</span> <span title="dom-StorageEvent-storageArea">storageArea</span>;
+  void <span title="dom-StorageEvent-initStorageEvent">initStorageEvent</span>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString keyArg, in any oldValueArg, in any newValueArg, in DOMString urlArg, in <span>WindowProxy</span> sourceArg, in <span>Storage</span> storageAreaArg);
+  void <span title="dom-StorageEvent-initStorageEventNS">initStorageEventNS</span>(in DOMString namespaceURI, in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString keyArg, in any oldValueArg, in any newValueArg, in DOMString urlArg, in <span>WindowProxy</span> sourceArg, in <span>Storage</span> storageAreaArg);
+};</pre>
+
+  <p>The <dfn
+  title="dom-StorageEvent-initStorageEvent"><code>initStorageEvent()</code></dfn>
+  and <dfn
+  title="dom-StorageEvent-initStorageEventNS"><code>initStorageEventNS()</code></dfn>
+  methods must initialize the event in a manner analogous to the
+  similarly-named methods in the DOM Events interfaces. <a
+  href="#refsDOMEVENTS">[DOMEVENTS]</a></p>
+
+  <p>The <dfn title="dom-StorageEvent-key"><code>key</code></dfn>
+  attribute represents the key being changed.</p>
+
+  <p>The <dfn
+  title="dom-StorageEvent-oldValue"><code>oldValue</code></dfn>
+  attribute represents the old value of the key being changed.</p>
+
+  <p>The <dfn
+  title="dom-StorageEvent-newValue"><code>newValue</code></dfn>
+  attribute represents the new value of the key being changed.</p>
+
+  <p>The <dfn title="dom-StorageEvent-url"><code>url</code></dfn>
+  attribute represents the address of the document whose key
+  changed.</p>
+
+  <p>The <dfn
+  title="dom-StorageEvent-source"><code>source</code></dfn> attribute
+  represents the <code>WindowProxy</code> object of the <span>browsing
+  context</span> of the document whose key changed.</p>
+
+  <p>The <dfn
+  title="dom-StorageEvent-storageArea"><code>storageArea</code></dfn>
+  attribute represents the <code>Storage</code> object that was
+  affected.</p>
+
+
+
+  <h5>Threads</h5>
+
+  <p>Because of <a href="#localStorageMutex">the use</a> of the
+  <span>storage mutex</span>, multiple browsing contexts will be able
+  to access the local storage areas simultaneously in such a manner
+  that scripts cannot detect any concurrent script execution.</p>
+
+  <p>Thus, the <code title="dom-Storage-length">length</code>
+  attribute of a <code>Storage</code> object, and the value of the
+  various properties of that object, cannot change while a script is
+  executing, other than in a way that is predictable by the script
+  itself.</p>
+
+  <!--END storage-->
+
+  <h3>Web Database</h3>
+
+  <!--START database-->
+
+  <!-- Feature requests for future versions (v2):
+        * deleting databases
+        * determining how much storage room is left
+        * handling the database getting corrupted
+  -->
+
+  <h4>Introduction</h4>
+
+  <p><i>This section is non-normative.</i></p>
+
+  <p>This specification introduces a set of APIs to manipulate
+  client-side databases using SQL.</p>
+
+  <p>The API is asynchronous, so authors are likely to find anonymous
+  functions (lambdas) very useful in using this API.</p>
+
+  <p>Here is an example of a script using this API. First, a function
+  <code title="">prepareDatabase()</code> is defined. This function
+  tries to create the database if necessary, giving it one table
+  called "docids" with two columns ("id" and "name"). If it is
+  successful, or if the table doesn't need creating, it calls a
+  section function, <code title="">getDatabase()</code>, which obtains
+  a handle to the database, and then calls the function to do the
+  actual work, in this case <code title="">showDocCount()</code>.</p>
+
+  <pre>function prepareDatabase(ready, error) {
+  return openDatabase('documents', '1.0', 'Offline document storage', 5*1024*1024, function (db) {
+    db.changeVersion('', '1.0', function (t) {
+      t.executeSql('CREATE TABLE docids (id, name)');
+    }, error);
+  });
+}
+
+function showDocCount(db, span) {
+  db.readTransaction(function (t) {
+    t.executeSql('SELECT COUNT(*) AS c FROM docids', [], function (t, r) {
+      span.textContent = r.rows[0].c;
+    }, function (t, e) {
+      // couldn't read database
+      span.textContent = '(unknown: ' + e.message + ')';
+    });
+  });
+}
+
+prepareDatabase(function(db) {
+  // got database
+  var span = document.getElementById('doc-count');
+  showDocCount(db, span);
+}, function (e) {
+  // error getting database
+  alert(e.message);
+});</pre>
+
+  <hr>
+
+  <p>The <code
+  title="dom-sqltransaction-executeSql">executeSql()</code> method has
+  an argument intended to allow variables to be substituted into
+  statements without risking SQL injection vulnerabilities:</p>
+
+  <pre>db.readTransaction(function (t) {
+  t.executeSql('SELECT title, author FROM docs WHERE id=?', [id], function (t, data) {
+    report(data.rows[0].title, data.rows[0].author);
+  });
+});</pre>
+
+  <hr>
+
+  <p>Sometimes, there might be an arbitrary number of variables to
+  substitute in. Even in these case, the right solution is to
+  construct the query using only "?" characters, and then to pass the
+  variables in as the second argument:</p>
+
+<pre>function findDocs(db, resultCallback) {
+  var q = "";
+  for each (var i in labels)
+    q += (q == "" ? "" : ", ") + "?";
+  db.readTransaction(function (t) {
+    t.executeSql('SELECT id FROM docs WHERE label IN (' + q + ')', labels, function (t, data) {
+      resultCallback(data);
+    });
+  });
+}</pre>
+
+<!--END complete-->
+  <!--BOILERPLATE middle-w3c-api-intro-->
+  <!--BOILERPLATE middle-w3c-js-disclaimer-->
+<!--START complete-->
+
+  <h4 id="sql">The API</h4>
+
+  <h5>Databases</h5>
+
+  <p>Each <i>origin</i> has an associated set of databases. Each
+  database has a name and a current version. There is no way to
+  enumerate or delete the databases available for an origin from this
+  API.</p>
+
+  <p class="note">Each database has one version at a time; a database
+  can't exist in multiple versions at once. Versions are intended to
+  allow authors to manage schema changes incrementally and
+  non-destructively, and without running the risk of old code (e.g. in
+  another browser window) trying to write to a database with incorrect
+  assumptions.</p>
+
+  <pre class="idl">[Supplemental, NoInterfaceObject]
+interface <span>WindowDatabase</span> {
+  <span>Database</span> <span title="dom-opendatabase">openDatabase</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize, in optional <span>DatabaseCallback</span> creationCallback);
+};
+<span>Window</span> implements <span>WindowDatabase</span>;
+
+[Supplemental, NoInterfaceObject]
+interface <span>WorkerUtilsDatabase</span> {
+  <span>Database</span> <span title="dom-opendatabase">openDatabase</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize, in optional <span>DatabaseCallback</span> creationCallback);
+  <span>DatabaseSync</span> <span title="dom-opendatabase-sync">openDatabaseSync</span>(in DOMString name, in DOMString version, in DOMString displayName, in unsigned long estimatedSize, in optional <span>DatabaseCallback</span> creationCallback);
+};
+<span>WorkerUtils</span> implements <span>WorkerUtilsDatabase</span>;
+
+[Callback=FunctionOnly, NoInterfaceObject]
+interface <dfn>DatabaseCallback</dfn> {
+  void <span title="dom-databasecallback-handleEvent">handleEvent</span>(in <span>Database</span> database);
+};</pre>
+
+  <p>The <dfn
+  title="dom-opendatabase"><code>openDatabase()</code></dfn> method on
+  the <code>Window</code> and <code>WorkerUtils</code> interfaces and
+  the <dfn
+  title="dom-opendatabase-sync"><code>openDatabaseSync()</code></dfn>
+  method on the <code>WorkerUtils</code> interface take the following
+  arguments: a database name, a database version, a display name, an
+  estimated size &mdash; in bytes &mdash; of the data that will be
+  stored in the database, and optionally a callback to be invoked if
+  the database has not yet been created. The callback, if provided, is
+  intended to be used to call <code
+  title="dom-database-changeVersion">changeVersion()</code>; the
+  callback is invoked with the database having the empty string as its
+  version regardless of the given database version. If the callback is
+  not provided, the database is created with the given database
+  version as its version.</p>
+
+  <p>When invoked, these methods must run the following steps, with all
+  but the last two steps being run atomically:</p>
+
+  <ol>
+
+   <li>
+
+    <p>The user agent may raise a <code>SECURITY_ERR</code> exception
+    instead of returning a <code>Database</code> object if the request
+    violates a policy decision (e.g. if the user agent is configured
+    to not allow the page to open databases).</p>
+
+   </li>
+
+   <li>
+
+    <p>For the method on the <code>Window</code> object: let <var
+    title="">origin</var> be the <span>origin</span> of the
+    <span>active document</span> of the <span>browsing context</span>
+    of the <code>Window</code> object on which the method was
+    invoked.</p>
+
+    <p>For the methods on the <code>WorkerUtils</code> object: let
+    <var title="">origin</var> be the <span>origin</span> of the
+    scripts in the worker.</p>
+
+   </li>
+
+   <li><p>If the database version provided is not the empty string,
+   and there is already a database with the given name from the origin
+   <var title="">origin</var>, but the database has a different
+   version than the version provided, then throw an
+   <code>INVALID_STATE_ERR</code> exception and abort these
+   steps.</p></li>
+
+   <li>
+
+    <p>If no database with the given name from the origin <var
+    title="">origin</var> exists, then create the database and let
+    <var title="">created</var> be true. If a callback was passed to
+    the method, then set the new database's version to the empty
+    string. Otherwise, set the new database's version to the given
+    database version.</p>
+
+    <p>Otherwise, if a database with the given name already exists,
+    let <var title="">created</var> be false.</p>
+
+   </li>
+
+   <li>
+
+    <p>For the <code title="dom-opendatabase">openDatabase()</code>
+    methods: let <var title="">result</var> be a newly constructed
+    <code>Database</code> object representing the database with the
+    given database name from the origin <var
+    title="">origin</var>.</p>
+
+    <p>For the <code
+    title="dom-opendatabase-sync">openDatabaseSync()</code> method:
+    let <var title="">result</var> be a newly constructed
+    <code>DatabaseSync</code> object representing the database with
+    the given database name from the origin <var
+    title="">origin</var>.</p>
+
+   </li>
+
+   <li>
+
+    <p>If <var title="">created</var> is false or if no callback was
+    passed to the method, skip this step. Otherwise:</p>
+
+    <p>For the <code title="dom-opendatabase">openDatabase()</code>
+    methods: <span>queue a task</span> to to invoke the callback with
+    <var title="">result</var> as its only argument.</p>
+
+    <p>For the <code
+    title="dom-opendatabase-sync">openDatabaseSync()</code> method:
+    invoke the callback with <var title="">result</var> as its only
+    argument. If the callback throws an exception, rethrow that
+    exception and abort these steps.</p>
+
+   </li>
+
+   <li>
+
+    <p>Return <var title="">result</var>.</p>
+
+   </li>
+
+  </ol>
+
+  <p>All strings including the empty string are valid database
+  names. Database names must be compared in a
+  <span>case-sensitive</span> manner.</p>
+
+  <p class="note">Implementations can support this even in
+  environments that only support a subset of all strings as database
+  names by mapping database names (e.g. using a hashing algorithm) to
+  the supported set of names.</p>
+
+  <p>The version that the database was opened with is the <dfn
+  title="concept-database-expected-version">expected version</dfn> of
+  this <code>Database</code> or <code>DatabaseSync</code> object. It
+  can be the empty string, in which case there is no expected version
+  &mdash; any version is fine.</p>
+
+  <p>User agents are expected to use the display name and the
+  estimated database size to optimize the user experience. For
+  example, a user agent could use the estimated size to suggest an
+  initial quota to the user. This allows a site that is aware that it
+  will try to use hundreds of megabytes to declare this upfront,
+  instead of the user agent prompting the user for permission to
+  increase the quota every five megabytes.</p>
+
+
+  <h5>Parsing and processing SQL statements</h5>
+
+  <p>When the user agent is to <dfn title="preprocess the SQL
+  statement">preprocess a SQL statement</dfn> <var
+  title="">sqlStatement</var> with an array of arguments <var
+  title="">arguments</var>, it must run the following steps:</p>
+
+  <ol>
+
+   <li><p>Parse <var title="">sqlStatement</var> as a SQL statement,
+   with the exception that U+003F QUESTION MARK (?) characters can be
+   used in place of SQL literals in the statement. <a
+   href="#refsSQL">[SQL]</a></p></li>
+
+   <li>
+
+    <p>Replace each <code title="">?</code> placeholder with the value
+    of the argument in the <var title="">arguments</var> array with
+    the same position. (So the first <code title="">?</code>
+    placeholder gets replaced by the first value in the <var
+    title="">arguments</var> array, and generally the <var
+    title="">n</var>th <code title="">?</code> placeholder gets
+    replaced by the <var title="">n</var>th value in the <var
+    title="">arguments</var> array.)</p>
+
+    <p class="note">Substitutions for <code title="">?</code>
+    placeholders are done at the literal level, not as string
+    concatenations, so this provides a way to dynamically insert
+    parameters into a statement without risk of a SQL injection
+    attack.</p>
+
+    <p>The result is <var title="">the statement</var>.</p>
+
+   </li>
+
+   <li><p>If the <code>Database</code> object that the
+   <code>SQLTransaction</code> or <code>SQLTransactionSync</code>
+   object was created from has an <span
+   title="concept-database-expected-version">expected version</span>
+   that is neither the empty string nor the actual version of the
+   database, then mark <var title="">the statement</var> as
+   bogus. (<span title="dom-sqlerror-code-2">Error code
+   2</span>.)</p></li>
+
+   <li>
+
+    <p>Otherwise, if the syntax of <var title="">sqlStatement</var> is
+    not valid (except for the use of <code title="">?</code>
+    characters in the place of literals), or the statement uses
+    features that are not supported (e.g. due to security reasons), or
+    the number of items in the <var title="">arguments</var> array is
+    not equal to the number of <code title="">?</code> placeholders in
+    the statement, or the statement cannot be parsed for some other
+    reason, then mark <var title="">the statement</var> as
+    bogus. (<span title="dom-sqlerror-code-5">Error code
+    5</span>.)</p>
+
+    <p>User agents must consider statements that use the <code
+    title="">BEGIN</code>, <code title="">COMMIT</code>, and <code
+    title="">ROLLBACK</code> SQL features as being unsupported (and thus
+    will mark them as bogus), so as to not let these statements
+    interfere with the explicit transactions managed by the database API
+    itself.</p>
+
+   </li>
+
+   <li id="modifications-fail-if-read-only">
+
+    <p>Otherwise, if the <i>mode</i> that was used to create the
+    <code>SQLTransaction</code> or <code>SQLTransactionSync</code>
+    object is read-only but the statement's main verb can modify the
+    database, mark the statement as bogus. (<span
+    title="dom-sqlerror-code-5">Error code 5</span>.)</p>
+
+    <p class="note">Only the statement's main verb (e.g. <code
+    title="">UPDATE</code>, <code title="">SELECT</code>, <code
+    title="">DROP</code>) is considered here. Thus, a statement like
+    "<code title="">UPDATE test SET id=0 WHERE 0=1</code>" would be
+    treated as potentially modifying the database for the purposes
+    of this step, even though it could never in fact have any
+    side-effects.</p>
+
+   </li>
+
+   <li><p>Return <var title="">the statement</var>.</p></li>
+
+  </ol>
+
+  <p>The user agent must act as if the database was hosted in an
+  otherwise completely empty environment with no resources. For
+  example, attempts to read from or write to the file system will
+  fail.</p>
+
+  <p class="note">A future version of this specification will probably
+  define the exact SQL subset required in more detail.</p>
+
+
+
+  <h5>Asynchronous database API</h5>
+
+  <pre class="idl">interface <dfn>Database</dfn> {
+  void <span title="dom-database-transaction">transaction</span>(in <span>SQLTransactionCallback</span> callback, in optional <span>SQLTransactionErrorCallback</span> errorCallback, in optional <span>SQLVoidCallback</span> successCallback);
+  void <span title="dom-database-readTransaction">readTransaction</span>(in <span>SQLTransactionCallback</span> callback, in optional <span>SQLTransactionErrorCallback</span> errorCallback, in optional <span>SQLVoidCallback</span> successCallback);
+
+  readonly attribute DOMString <span title="dom-database-version">version</span>;
+  void <span title="dom-database-changeVersion">changeVersion</span>(in DOMString oldVersion, in DOMString newVersion, in optional <span>SQLTransactionCallback</span> callback, in optional <span>SQLTransactionErrorCallback</span> errorCallback, in optional <span>SQLVoidCallback</span> successCallback);
+};
+
+[Callback=FunctionOnly, NoInterfaceObject]
+interface <dfn>SQLVoidCallback</dfn> {
+  void <span title="dom-sqlvoidcallback-handleEvent">handleEvent</span>();
+};
+
+[Callback=FunctionOnly, NoInterfaceObject]
+interface <dfn>SQLTransactionCallback</dfn> {
+  void <span title="dom-sqltransactioncallback-handleEvent">handleEvent</span>(in <span>SQLTransaction</span> transaction);
+};
+
+[Callback=FunctionOnly, NoInterfaceObject]
+interface <dfn>SQLTransactionErrorCallback</dfn> {
+  void <span title="dom-sqltransactionerrorcallback-handleEvent">handleEvent</span>(in <span>SQLError</span> error);
+};</pre>
+
+  <p>The <dfn
+  title="dom-database-transaction"><code>transaction()</code></dfn>
+  and <dfn
+  title="dom-database-readTransaction"><code>readTransaction()</code></dfn>
+  methods takes one to three arguments. When called, these methods must
+  immediately return and then asynchronously run the <span>transaction
+  steps</span> with the <i>transaction callback</i> being the first
+  argument, the <i>error callback</i> being the second argument, if
+  any, the <i>success callback</i> being the third argument, if any,
+  and with no <i>preflight operation</i> or <i>postflight
+  operation</i>.</p>
+
+  <p>For the <code
+  title="dom-database-transaction">transaction()</code> method, the
+  <i>mode</i> must be read/write. For the <code
+  title="dom-database-readTransaction">readTransaction()</code>
+  method, the <i>mode</i> must be read-only.</p>
+
+  <p>On getting, the <dfn
+  title="dom-database-version"><code>version</code></dfn> attribute
+  must return the current version of the database (as opposed to the
+  <span title="concept-database-expected-version">expected
+  version</span> of the <code>Database</code> object).</p>
+
+  <p>The <dfn
+  title="dom-database-changeVersion"><code>changeVersion()</code></dfn>
+  method allows scripts to atomically verify the version number and
+  change it at the same time as doing a schema update. When the method
+  is invoked, it must immediately return, and then asynchronously run
+  the <span>transaction steps</span> with the <i>transaction
+  callback</i> being the third argument, the <i>error callback</i>
+  being the fourth argument, the <i>success callback</i> being the
+  fifth argument, the <i>preflight operation</i> being the
+  following:</p>
+
+  <ol>
+
+   <li><p>Check that the value of the first argument to the <code
+   title="dom-database-changeVersion">changeVersion()</code> method
+   exactly matches the database's actual version. If it does not, then
+   the <i>preflight operation</i> fails.</li>
+
+  </ol>
+
+  <p>...the <i>postflight operation</i> being the following:</p>
+
+  <ol>
+
+   <li>Change the database's actual version to the value of the second
+   argument to the <code
+   title="dom-database-changeVersion">changeVersion()</code>
+   method.</li>
+
+   <li>Change the <code>Database</code> object's expected version to
+   the value of the second argument to the <code
+   title="dom-database-changeVersion">changeVersion()</code>
+   method.</li>
+
+  </ol>
+
+  <p>...and the <i>mode</i> being read/write.</p>
+
+  <p>If any of the optional arguments are omitted, then they must be
+  treated as if they were null.</p>
+
+
+  <h6>Executing SQL statements</h6>
+
+  <p>The <code title="dom-database-transaction">transaction()</code>,
+  <code title="dom-database-readTransaction">readTransaction()</code>,
+  and <code title="dom-database-changeVersion">changeVersion()</code>
+  methods invoke callbacks with <code>SQLTransaction</code>
+  objects.</p>
+
+  <pre class="idl">typedef sequence&lt;any> <dfn>ObjectArray</dfn>;
+
+interface <dfn>SQLTransaction</dfn> {
+  void <span title="dom-sqltransaction-executeSql">executeSql</span>(in DOMString sqlStatement, in optional <span>ObjectArray</span> arguments, in optional <span>SQLStatementCallback</span> callback, in optional <span>SQLStatementErrorCallback</span> errorCallback);
+};
+
+[Callback=FunctionOnly, NoInterfaceObject]
+interface <dfn>SQLStatementCallback</dfn> {
+  void <span title="dom-sqlstatementcallback-handleEvent">handleEvent</span>(in <span>SQLTransaction</span> transaction, in <span>SQLResultSet</span> resultSet);
+};
+
+[Callback=FunctionOnly, NoInterfaceObject]
+interface <dfn>SQLStatementErrorCallback</dfn> {
+  boolean <span title="dom-sqlstatementerrorcallback-handleEvent">handleEvent</span>(in <span>SQLTransaction</span> transaction, in <span>SQLError</span> error);
+};</pre>
+
+  <p>When the <dfn
+  title="dom-sqltransaction-executeSql"><code>executeSql(<var
+  title="">sqlStatement</var>, <var title="">arguments</var>, <var
+  title="">callback</var>, <var
+  title="">errorCallback</var>)</code></dfn> method is invoked, the
+  user agent must run the following algorithm. (This algorithm is
+  relatively simple in that it doesn't actually execute any SQL
+  &mdash; the bulk of the work is actually done as part of the
+  <span>transaction steps</span>.)</p>
+
+  <ol>
+
+   <li><p>If the method was not invoked during the execution of a
+   <code>SQLTransactionCallback</code>,
+   <code>SQLStatementCallback</code>, or
+   <code>SQLStatementErrorCallback</code> then raise an
+   <code>INVALID_STATE_ERR</code> exception. (Calls from inside a
+   <code>SQLTransactionErrorCallback</code> thus raise an
+   exception. The <code>SQLTransactionErrorCallback</code> handler is
+   only called once a transaction has failed, and no SQL statements
+   can be added to a failed transaction.)</p></li>
+
+   <li>
+
+    <p><span>Preprocess the SQL statement</span> given as the first
+    argument to the method (<var title="">sqlStatement</var>), using
+    the second argument to the method as the <var
+    title="">arguments</var> array, to obtain <var title="">the
+    statement</var>.</p>
+
+    <p>If the second argument is omitted or null, then treat the <var
+    title="">arguments</var> array as empty.</p>
+
+   </li>
+
+   <li><p>Queue up <var title="">the statement</var> in the
+   transaction, along with the third argument (if any) as the
+   statement's result set callback and the fourth argument (if any) as
+   the error callback.</p></li>
+
+  </ol>
+
+
+
+  <h6>Processing model</h6>
+
+  <p>The <dfn>transaction steps</dfn> are as follows. These steps must
+  be run asynchronously. These steps are invoked with a <i>transaction
+  callback</i>, optionally an <i>error callback</i>, optionally a
+  <i>success callback</i>, optionally a <i>preflight operation</i>,
+  optionally a <i>postflight operation</i>, and with a <i>mode</i>
+  that is either read/write or read-only.</p>
+
+  <ol>
+
+   <li><p>Open a new SQL transaction to the database, and create a
+   <code>SQLTransaction</code> object that represents that
+   transaction. If the <i>mode</i> is read/write, the transaction must
+   have an exclusive write lock over the entire database. If the
+   <i>mode</i> is read-only, the transaction must have a shared read
+   lock over the entire database. The user agent should wait for an
+   appropriate lock to be available.</p></li>
+
+   <li><p>If an error occurred in the opening of the transaction
+   (e.g. if the user agent failed to obtain an appropriate lock after
+   an appropriate delay), jump to the last step.</p></li>
+
+   <li><p>If a <i>preflight operation</i> was defined for this
+   instance of the transaction steps, run that. If it fails, then jump
+   to the last step. (This is basically a hook for the <code
+   title="dom-database-changeVersion">changeVersion()</code>
+   method.)</p></li>
+
+   <li><p>If the <i>transaction callback</i> is not null, <span>queue
+   a task</span> to invoke the <i>transaction callback</i> with the
+   aforementioned <code>SQLTransaction</code> object as its only
+   argument, and wait for that task to be run.</p></li>
+
+   <li><p>If the callback raised an exception, jump to the last
+   step.</p></li>
+
+   <li><p>While there are any statements queued up in the transaction,
+   perform the following steps for each queued up statement in the
+   transaction, oldest first. Each statement has a statement,
+   optionally a result set callback, and optionally an error
+   callback.</p>
+
+    <ol>
+
+     <li><p>If the statement is marked as bogus, jump to the "in case
+     of error" steps below.</p></li>
+
+     <li><p>Execute the statement in the context of the transaction.
+     <a href="#refsSQL">[SQL]</a></p>
+
+     <li><p>If the statement failed, jump to the "in case of error"
+     steps below.</p></li>
+
+     <li><p>Create a <code>SQLResultSet</code> object that represents
+     the result of the statement.</p></li>
+
+     <li><p>If the statement has a result set callback that is not
+     null, <span>queue a task</span> to invoke it with the
+     <code>SQLTransaction</code> object as its first argument and the
+     new <code>SQLResultSet</code> object as its second argument, and
+     wait for that task to be run.</p></li>
+
+     <li><p>If the callback was invoked and raised an exception, jump
+     to the last step in the overall steps.</p></li>
+
+     <li><p>Move on to the next statement, if any, or onto the next
+     overall step otherwise.</p></li>
+
+    </ol>
+
+    <p>In case of error (or more specifically, if the above substeps
+    say to jump to the "in case of error" steps), run the following
+    substeps:</p>
+
+    <ol>
+
+     <li><p>If the statement had an associated error callback that is
+     not null, then <span>queue a task</span> to invoke that error
+     callback with the <code>SQLTransaction</code> object and a newly
+     constructed <code>SQLError</code> object that represents the
+     error that caused these substeps to be run as the two arguments,
+     respectively, and wait for the task to be run.</p></li>
+
+     <li><p>If the error callback returns false, then move on to the
+     next statement, if any, or onto the next overall step
+     otherwise.</p></li>
+
+     <li><p>Otherwise, the error callback did not return false, or
+     there was no error callback. Jump to the last step in the overall
+     steps.</p></li>
+
+    </ol>
+
+   </li>
+
+   <li>
+
+    <p>If a <i>postflight operation</i> was defined for this instance
+    of the transaction steps, then: as one atomic operation, commit
+    the transaction and run the <i>postflight operation</i>. If either
+    fails, then do neither, and instead jump to the last step. (This
+    is basically a hook for the <code
+    title="dom-database-changeVersion">changeVersion()</code>
+    method.)</p>
+
+    <p>Otherwise: commit the transaction and run the <i>postflight
+    operation</i>. If an error occurred in the committing of the
+    transaction, jump to the last step.</p>
+
+   </li>
+
+   <li><p><span>Queue a task</span> to invoke the <i>success
+   callback</i>, if it is not null.</p></li>
+
+   <li><p>End these steps. The next step is only used when something
+   goes wrong.</p></li>
+
+   <li><p><span>Queue a task</span> to invoke the <i>error
+   callback</i>, if it is not null, with a newly constructed
+   <code>SQLError</code> object that represents the last error to have
+   occurred in this transaction. Rollback the transaction. Any
+   still-pending statements in the transaction are discarded.</p></li>
+
+  </ol>
+
+  <p>The <span>task source</span> for these <span
+  title="concept-task">tasks</span> is the <dfn>database access task
+  source</dfn>.</p>
+
+
+
+  <h5>Synchronous database API</h5>
+
+  <pre class="idl">interface <dfn>DatabaseSync</dfn> {
+  void <span title="dom-database-sync-transaction">transaction</span>(in <span>SQLTransactionSyncCallback</span> callback);
+  void <span title="dom-database-sync-readTransaction">readTransaction</span>(in <span>SQLTransactionSyncCallback</span> callback);
+
+  readonly attribute DOMString <span title="dom-database-sync-version">version</span>;
+  void <span title="dom-database-sync-changeVersion">changeVersion</span>(in DOMString oldVersion, in DOMString newVersion, in optional <span>SQLTransactionSyncCallback</span> callback);
+};
+
+[Callback=FunctionOnly, NoInterfaceObject]
+interface <dfn>SQLTransactionSyncCallback</dfn> {
+  void <span title="dom-sqltransactionsynccallback-handleEvent">handleEvent</span>(in <span>SQLTransactionSync</span> transaction);
+};</pre>
+
+  <p>The <dfn
+  title="dom-database-sync-transaction"><code>transaction()</code></dfn>
+  and <dfn
+  title="dom-database-sync-readTransaction"><code>readTransaction()</code></dfn>
+  methods must run the following steps:</p>
+
+  <ol>
+
+   <li><p>If the method was the <code
+   title="dom-database-sync-transaction">transaction()</code> method,
+   <span>create a <code>SQLTransactionSync</code> object</span> for a
+   read/write transaction. Otherwise, <span>create a
+   <code>SQLTransactionSync</code> object</span> for a read-only
+   transaction. In either case, if this throws an exception, then
+   rethrow it and abort these steps. Otherwise, let <var
+   title="">transaction</var> be the newly created
+   <code>SQLTransactionSync</code> object.</p></li>
+
+   <li><p>If the first argument is null, rollback the transaction,
+   throw a <code>SQLException</code> exception, and abort these
+   steps. (<span title="dom-sqlerror-code-0">Error code
+   0</span>.)</p></li>
+
+   <li><p>Invoke the callback given by the first argument, passing it
+   the <var title="">transaction</var> object as its only
+   argument.</p></li>
+
+   <li><p>Mark the <code>SQLTransactionSync</code> object as <i
+   title="">stale</i>.</p>
+
+   <li><p>If the callback was terminated by an exception, then
+   rollback the transaction, rethrow that exception, and abort these
+   steps.</p></li>
+
+   <li><p>Commit the transaction.</p></li>
+
+   <li><p>If an error occurred in the committing of the transaction,
+   rollback the transaction, throw a <code>SQLException</code>
+   exception, and abort these steps.</p></li>
+
+  </ol>
+
+  <p>On getting, the <dfn
+  title="dom-database-sync-version"><code>version</code></dfn>
+  attribute must return the current version of the database (as
+  opposed to the <span
+  title="concept-database-expected-version">expected version</span> of
+  the <code>DatabaseSync</code> object).</p>
+
+  <p>The <dfn
+  title="dom-database-sync-changeVersion"><code>changeVersion()</code></dfn>
+  method allows scripts to atomically verify the version number and
+  change it at the same time as doing a schema update. When the method
+  is invoked, it must run the following steps:</p>
+
+  <ol>
+
+   <li><p><span>Create a <code>SQLTransactionSync</code> object</span>
+   for a read/write transaction. If this throws an exception, then
+   rethrow it and abort these steps. Otherwise, let <var
+   title="">transaction</var> be the newly created
+   <code>SQLTransactionSync</code> object.</p></li>
+
+   <li><p>Check that the value of the first argument to the <code
+   title="dom-database-sync-changeVersion">changeVersion()</code>
+   method exactly matches the database's actual version. If it does
+   not, then throw a <code>SQLException</code> exception and abort
+   these steps. (<span title="dom-sqlerror-code-2">Error code
+   2</span>.)</p></li>
+
+   <li><p>If the third argument is not null, invoke the callback given
+   by the third argument, passing it the <var
+   title="">transaction</var> object as its only argument.</p></li>
+
+   <li><p>Mark the <code>SQLTransactionSync</code> object as <i
+   title="">stale</i>.</p>
+
+   <li><p>If the callback was terminated by an exception, then
+   rollback the transaction, rethrow the exception, and abort these
+   steps.</p></li>
+
+   <li><p>Commit the transaction.</p></li>
+
+   <li><p>If an error occurred in the committing of the transaction,
+   rollback the transaction, throw a <code>SQLException</code>
+   exception, and abort these steps.</p></li>
+
+   <li>Change the database's actual version to the value of the second
+   argument to the <code
+   title="dom-database-sync-changeVersion">changeVersion()</code>
+   method.</li>
+
+   <li>Change the <code>Database</code> object's expected version to
+   the value of the second argument to the <code
+   title="dom-database-sync-changeVersion">changeVersion()</code>
+   method.</li>
+
+  </ol>
+
+  <hr>
+
+  <p>When the user agent is to <dfn>create a
+  <code>SQLTransactionSync</code> object</dfn> for a transaction that
+  is either read/write or read-only, it must run the following
+  steps:</p>
+
+  <ol>
+
+   <li><p>Open a new SQL transaction to the database, and create a
+   <code>SQLTransactionSync</code> object that represents that
+   transaction. If the <i>mode</i> is read/write, the transaction must
+   have an exclusive write lock over the entire database. If the
+   <i>mode</i> is read-only, the transaction must have a shared read
+   lock over the entire database. The user agent should wait for an
+   appropriate lock to be available.</p></li>
+
+   <li><p>If an error occurred in the opening of the transaction
+   (e.g. if the user agent failed to obtain an appropriate lock after
+   an appropriate delay), throw a <code>SQLException</code> exception
+   and abort these steps.</p></li>
+
+   <li><p>Return the newly created <code>SQLTransactionSync</code>
+   object.</p></li>
+
+  </ol>
+
+
+
+  <h6>Executing SQL statements</h6>
+
+  <p>The <code
+  title="dom-database-sync-transaction">transaction()</code>, <code
+  title="dom-database-sync-readTransaction">readTransaction()</code>,
+  and <code
+  title="dom-database-sync-changeVersion">changeVersion()</code>
+  methods invoke callbacks that are passed
+  <code>SQLTransactionSync</code> objects.</p>
+
+  <pre class="idl">// typedef sequence&lt;any> <span>ObjectArray</span>;
+
+interface <dfn>SQLTransactionSync</dfn> {
+  <span>SQLResultSet</span> <span title="dom-sqltransaction-sync-executeSql">executeSql</span>(in DOMString sqlStatement, in optional <span>ObjectArray</span> arguments);
+};</pre>
+
+  <p>A <code>SQLTransactionSync</code> object is initially <i
+  title="">fresh</i>, but it will be marked as <i title="">stale</i>
+  once it has been committed or rolled back.</p>
+
+  <p>When the <dfn
+  title="dom-sqltransaction-sync-executeSql"><code>executeSql(<var
+  title="">sqlStatement</var>, <var
+  title="">arguments</var>)</code></dfn> method is invoked, the user
+  agent must run the following algorithm:</p>
+
+  <ol>
+
+   <li><p>If the <code>SQLTransactionSync</code> object is <i
+   title="">stale</i>, then throw an <code>INVALID_STATE_ERR</code>
+   exception.</p></li>
+
+   <li>
+
+    <p><span>Preprocess the SQL statement</span> given as the first
+    argument to the method (<var title="">sqlStatement</var>), using
+    the second argument to the method as the <var
+    title="">arguments</var> array, to obtain <var title="">the
+    statement</var>.</p>
+
+    <p>If the second argument is omitted or null, then treat the <var
+    title="">arguments</var> array as empty.</p>
+
+   </li>
+
+   <li><p>If the statement is marked as bogus, throw a
+   <code>SQLException</code> exception.</p></li>
+
+   <li><p>Execute the statement in the context of the transaction.
+   <a href="#refsSQL">[SQL]</a></p>
+
+   <li><p>If the statement failed, throw a <code>SQLException</code>
+   exception.</p></li>
+
+   <li><p>Create a <code>SQLResultSet</code> object that represents
+   the result of the statement.</p></li>
+
+   <li><p>Return the newly created <code>SQLResultSet</code>
+   object.</p></li>
+
+  </ol>
+
+
+
+  <h5>Database query results</h5>
+
+  <p>The <code title="dom-sqltransaction-executeSql">executeSql()</code>
+  method invokes its callback with a <code>SQLResultSet</code> object
+  as an argument.</p>
+
+  <pre class="idl">interface <dfn>SQLResultSet</dfn> {
+  readonly attribute long <span title="dom-SQLResultSet-insertId">insertId</span>;
+  readonly attribute long <span title="dom-SQLResultSet-rowsAffected">rowsAffected</span>;
+  readonly attribute <span>SQLResultSetRowList</span> <span title="dom-SQLResultSet-rows">rows</span>;
+};</pre>
+
+  <p>The <dfn
+  title="dom-SQLResultSet-insertId"><code>insertId</code></dfn>
+  attribute must return the row ID of the row that the
+  <code>SQLResultSet</code> object's SQL statement inserted into the
+  database, if the statement inserted a row. If the statement inserted
+  multiple rows, the ID of the last row must be the one returned. If
+  the statement did not insert a row, then the attribute must instead
+  raise an <code>INVALID_ACCESS_ERR</code> exception.</p>
+
+  <p>The <dfn
+  title="dom-SQLResultSet-rowsAffected"><code>rowsAffected</code></dfn>
+  attribute must return the number of rows that were changed by the
+  SQL statement. If the statement did not affected any rows, then the
+  attribute must return zero. For "SELECT" statements, this returns
+  zero (querying the database doesn't affect any rows).</p>
+
+  <p>The <dfn title="dom-SQLResultSet-rows"><code>rows</code></dfn>
+  attribute must return a <code>SQLResultSetRowList</code>
+  representing the rows returned, in the order returned by the
+  database. If no rows were returned, then the object will be empty
+  (its <code title="dom-SQLResultSetRowList-length">length</code> will
+  be zero).</p>
+
+  <pre class="idl">interface <dfn>SQLResultSetRowList</dfn> {
+  readonly attribute unsigned long <span title="dom-SQLResultSetRowList-length">length</span>;
+  getter <span>any</span> <span title="dom-SQLResultSetRowList-item">item</span>(in unsigned long index);
+};</pre>
+
+  <p class="note">Implementors are encouraged to implement
+  <code>SQLResultSetRowList</code> objects lazily, or at least
+  asynchronously, for better performance.</p>
+
+  <p><code>SQLResultSetRowList</code> objects have a <dfn
+  title="dom-SQLResultSetRowList-length"><code>length</code></dfn>
+  attribute that must return the number of rows it represents (the
+  number of rows returned by the database). This is the <var
+  title="dom-SQLResultSetRowList-length">length</var>.</p>
+
+  <p class="note">Fetching the <code
+  title="dom-SQLResultSetRowList-length">length</code> might be
+  expensive, and authors are thus encouraged to avoid using it (or
+  enumerating over the object, which implicitly uses it) where
+  possible.</p>
+
+  <p>The object's <span>indices of the supported indexed
+  properties</span> are the numbers in the range zero to <span title=""><var
+  title="dom-SQLResultSetRowList-length">length</var>-1</span>, unless
+  the <var title="dom-SQLResultSetRowList-length">length</var> is
+  zero, in which case there are no <span>supported indexed
+  properties</span>.</p>
+
+  <p>The <dfn title="dom-SQLResultSetRowList-item"><code>item(<var
+  title="">index</var>)</code></dfn> attribute must return the row
+  with the given index <var title="">index</var>. If there is no such
+  row, then the method must return null.</p>
+
+  <p>Each row must be represented by a native ordered dictionary data
+  type. In the JavaScript binding, this must be <code>Object</code>.
+  Each row object must have one property (or dictionary entry) per
+  column, with those properties enumerating in the order that these
+  columns were returned by the database. Each property must have the
+  name of the column and the value of the cell, as they were returned
+  by the database.</p>
+
+
+  <h5>Errors and exceptions</h5>
+
+  <p>Errors in the asynchronous database API are reported using
+  callbacks that have a <code>SQLError</code> object as one of their
+  arguments.</p>
+
+  <pre class="idl">interface <dfn>SQLError</dfn> {
+  const unsigned short <span title="dom-SQLException-code-UNKNOWN">UNKNOWN_ERR</span> = 0;
+  const unsigned short <span title="dom-SQLException-code-DATABASE">DATABASE_ERR</span> = 1;
+  const unsigned short <span title="dom-SQLException-code-VERSION">VERSION_ERR</span> = 2;
+  const unsigned short <span title="dom-SQLException-code-TOO_LARGE">TOO_LARGE_ERR</span> = 3;
+  const unsigned short <span title="dom-SQLException-code-QUOTA">QUOTA_ERR</span> = 4;
+  const unsigned short <span title="dom-SQLException-code-SYNTAX">SYNTAX_ERR</span> = 5;
+  const unsigned short <span title="dom-SQLException-code-CONSTRAINT">CONSTRAINT_ERR</span> = 6;
+  const unsigned short <span title="dom-SQLException-code-TIMEOUT">TIMEOUT_ERR</span> = 7;
+  readonly attribute unsigned short <span title="dom-SQLError-code">code</span>;
+  readonly attribute DOMString <span title="dom-SQLError-message">message</span>;
+};</pre>
+
+  <p>The <dfn title="dom-SQLError-code"><code>code</code></dfn> IDL
+  attribute must return the most appropriate code from the table
+  below.</p>
+
+  <p>The <dfn title="dom-SQLError-message"><code>message</code></dfn>
+  IDL attribute must return an error message describing the error
+  encountered. The message should be localized to the user's
+  language.</p>
+
+  <hr>
+
+  <p>Errors in the synchronous database API are reported using
+  <code>SQLException</code> exceptions:</p>
+
+  <pre class="idl">exception <dfn>SQLException</dfn> {
+  const unsigned short <span title="dom-SQLException-code-UNKNOWN">UNKNOWN_ERR</span> = 0;
+  const unsigned short <span title="dom-SQLException-code-DATABASE">DATABASE_ERR</span> = 1;
+  const unsigned short <span title="dom-SQLException-code-VERSION">VERSION_ERR</span> = 2;
+  const unsigned short <span title="dom-SQLException-code-TOO_LARGE">TOO_LARGE_ERR</span> = 3;
+  const unsigned short <span title="dom-SQLException-code-QUOTA">QUOTA_ERR</span> = 4;
+  const unsigned short <span title="dom-SQLException-code-SYNTAX">SYNTAX_ERR</span> = 5;
+  const unsigned short <span title="dom-SQLException-code-CONSTRAINT">CONSTRAINT_ERR</span> = 6;
+  const unsigned short <span title="dom-SQLException-code-TIMEOUT">TIMEOUT_ERR</span> = 7;
+  unsigned short <span title="dom-SQLException-code">code</span>;
+  DOMString <span title="dom-SQLException-message">message</span>;
+};</pre>
+
+  <p>The <dfn title="dom-SQLException-code"><code>code</code></dfn>
+  IDL attribute must return the most appropriate code from the table
+  below.</p>
+
+  <p>The <dfn
+  title="dom-SQLException-message"><code>message</code></dfn> IDL
+  attribute must return an error message describing the error
+  encountered. The message should be localized to the user's
+  language.</p>
+
+  <hr>
+
+  <p>The error codes are as follows:</p>
+
+  <table>
+   <thead>
+    <tr>
+     <th>Constant
+     <th>Code
+     <th>Situation
+   <tbody>
+
+    <tr>
+     <td><dfn title="dom-SQLException-code-UNKNOWN"><code>UNKNOWN_ERR</code></dfn>
+     <td><dfn title="dom-sqlerror-code-0">0</dfn>
+     <td>The transaction failed for reasons unrelated to the database
+     itself and not covered by any other error code.
+
+    <tr>
+     <td><dfn title="dom-SQLException-code-DATABASE"><code>DATABASE_ERR</code></dfn>
+     <td><dfn title="dom-sqlerror-code-1">1</dfn>
+     <td>The statement failed for database reasons not covered by any
+     other error code.
+
+    <tr>
+     <td><dfn title="dom-SQLException-code-VERSION"><code>VERSION_ERR</code></dfn>
+     <td><dfn title="dom-sqlerror-code-2">2</dfn>
+     <td>The operation failed because the actual database version was
+     not what it should be. For example, a statement found that the
+     actual database version no longer matched the <span
+     title="concept-database-expected-version">expected version</span>
+     of the <code>Database</code> or <code>DatabaseSync</code> object,
+     or the <code
+     title="dom-database-changeversion">Database.changeVersion()</code>
+     or <code
+     title="dom-database-sync-changeversion">DatabaseSync.changeVersion()</code>
+     methods were passed a version that doesn't match the actual
+     database version.
+
+    <tr>
+     <td><dfn title="dom-SQLException-code-TOO_LARGE"><code>TOO_LARGE_ERR</code></dfn>
+     <td><dfn title="dom-sqlerror-code-3">3</dfn>
+     <td>The statement failed because the data returned from the
+     database was too large. The SQL "LIMIT" modifier might be useful
+     to reduce the size of the result set.
+
+    <tr>
+     <td><dfn title="dom-SQLException-code-QUOTA"><code>QUOTA_ERR</code></dfn>
+     <td><dfn title="dom-sqlerror-code-4">4</dfn>
+     <td>The statement failed because there was not enough remaining
+     storage space, or the storage quota was reached and the user
+     declined to give more space to the database.
+
+    <tr>
+     <td><dfn title="dom-SQLException-code-SYNTAX"><code>SYNTAX_ERR</code></dfn>
+     <td><dfn title="dom-sqlerror-code-5">5</dfn>
+     <td>The statement failed because of a syntax error, or the number
+     of arguments did not match the number of <code title="">?</code>
+     placeholders in the statement, or the statement tried to use a
+     statement that is not allowed, such as <code
+     title="">BEGIN</code>, <code title="">COMMIT</code>, or <code
+     title="">ROLLBACK</code>, or the statement tried to use a verb
+     that could modify the database but the transaction was read-only.
+
+    <tr>
+     <td><dfn title="dom-SQLException-code-CONSTRAINT"><code>CONSTRAINT_ERR</code></dfn>
+     <td><dfn title="dom-sqlerror-code-6">6</dfn>
+     <td>An <code title="">INSERT</code>, <code
+     title="">UPDATE</code>, or <code title="">REPLACE</code>
+     statement failed due to a constraint failure. For example,
+     because a row was being inserted and the value given for the
+     primary key column duplicated the value of an existing row.
+
+    <tr>
+     <td><dfn title="dom-SQLException-code-TIMEOUT"><code>TIMEOUT_ERR</code></dfn>
+     <td><dfn title="dom-sqlerror-code-7">7</dfn>
+     <td>A lock for the transaction could not be obtained in a
+     reasonable time.
+
+  </table>
+
+
+  <h4>Web SQL</h4>
+
+  <p class="XXX">Need to define the SQL dialect.</p>
+
+  <!--END database-->
+
+  <h3>Common concerns</h3>
+
+  <!--START database-->
+  <!--START storage-->
+
+  <h4>Disk space</h4>
+
+  <p>User agents should limit the total amount of space allowed for
+  <!--END complete-->
+  <!--END database-->
+  storage areas.
+  <!--END storage-->
+  <!--START database-->
+  databases.
+  <!--END database-->
+  <!--START complete-->
+  these storage features.
+  <!--START database-->
+  <!--START storage-->
+  </p>
+
+  <p>User agents should guard against sites storing data under the
+  origins other affiliated sites, e.g. storing up to the limit in
+  a1.example.com, a2.example.com, a3.example.com, etc, circumventing
+  the main example.com storage limit.</p>
+
+  <p>User agents may prompt the user when quotas are reached, allowing
+  the user to grant a site more space. This enables sites to store
+  many user-created documents on the user's computer, for
+  instance.</p>
+
+  <p>User agents should allow users to see how much space each domain
+  is using.</p>
+
+  <!--END database-->
+  <!--<p>If the storage area space limit is reached during a <code
+  title="dom-Storage-setItem">setItem()</code> call, the method will
+  raise an exception.</p>-->
+  <!--START database-->
+
+  <p>A mostly arbitrary limit of five megabytes per
+  <span>origin</span> is recommended. Implementation feedback is
+  welcome and will be used to update this suggestion in the
+  future.</p>
+
+
+  <h4>Privacy</h4>
+
+  <h5>User tracking</h5>
+
+  <p>A third-party advertiser (or any entity capable of getting
+  content distributed to multiple sites) could use a unique identifier
+  stored in its
+  <!--END database-->
+  local storage area
+  <!--END storage-->
+  or its
+  <!--START database-->
+  client-side databases
+  <!--START storage-->
+  to track a user across multiple sessions, building a profile of the
+  user's interests to allow for highly targeted advertising. In
+  conjunction with a site that is aware of the user's real identity
+  (for example an e-commerce site that requires authenticated
+  credentials), this could allow oppressive groups to target
+  individuals with greater accuracy than in a world with purely
+  anonymous Web usage.</p>
+
+  <p>There are a number of techniques that can be used to mitigate the
+  risk of user tracking:</p>
+
+  <dl>
+
+   <dt>Blocking third-party storage</dt>
+   <dd>
+
+    <p>User agents may restrict access to
+    <!--END database-->
+    the <code title="dom-localStorage">localStorage</code> objects
+    <!--END storage-->
+    and
+    <!--START database-->
+    the database objects
+    <!--START storage-->
+    to scripts originating at the domain of the top-level document of
+    the <span>browsing context</span>, for instance denying access to
+    the API for pages from other domains running in
+    <code>iframe</code>s.</p>
+
+   </dd>
+
+   <dt>Expiring stored data</dt>
+   <dd>
+
+    <p>User agents may, if so configured by the user, automatically
+    delete stored data after a period of time.</p>
+
+    <!--END database-->
+    <p>For example, a user agent could be configured to treat
+    third-party local storage areas as session-only storage, deleting
+    the data once the user had closed all the <span>browsing
+    contexts</span> that could access it.</p>
+    <!--START database-->
+
+    <p>This can restrict the ability of a site to track a user, as the
+    site would then only be able to track the user across multiple
+    sessions when he authenticates with the site itself (e.g. by
+    making a purchase or logging in to a service).</p>
+
+    <p>However, this also reduces the usefulness of the API as a
+    long-term storage mechanism. It can also put the user's data at
+    risk, if the user does not fully understand the implications of
+    data expiration.</p>
+
+    <!--END database-->
+    <!--v2 consider adding an explicit way for sites to state when
+    data should expire, as in  localStorage.expireData(365); -->
+    <!--START database-->
+
+   </dd>
+
+   <dt>Treating persistent storage as cookies</dt>
+   <dd>
+
+    <p>If users attempt to protect their privacy by clearing cookies
+    without also clearing data stored in the
+    <!--END complete-->
+    <!--END database-->
+    local storage area,
+    <!--END storage-->
+    <!--START database-->
+    relevant databases,
+    <!--END database-->
+    <!--START complete-->
+    local storage area and relevant databases,
+    <!--START database-->
+    <!--START storage-->
+    sites can defeat those attempts by using the two features as
+    redundant backup for each other. User agents should present the
+    interfaces for clearing these in a way that helps users to
+    understand this possibility and enables them to delete data in all
+    persistent storage features simultaneously. <a
+    href="#refsCOOKIES">[COOKIES]</a></p>
+
+   </dd>
+
+   <dt>Site-specific white-listing of access to
+   <!--END database-->
+   local storage areas
+   <!--END storage-->
+   and
+   <!--START database-->
+   databases
+   <!--START storage-->
+   </dt>
+   <dd>
+
+    <!--END database-->
+    <p>User agents may allow sites to access session storage areas in
+    an unrestricted manner, but require the user to authorize access
+    to local storage areas.</p>
+    <!--END storage-->
+    <!--START database-->
+    <p>User agents may require the user to authorize access to
+    databases before a site can use the feature.</p>
+    <!--START storage-->
+
+   </dd>
+
+   <dt>Origin-tracking of stored data</dt>
+   <dd>
+
+    <p>User agents may record the <span title="origin">origins</span>
+    of sites that contained content from third-party origins that
+    caused data to be stored.</p>
+
+    <p>If this information is then used to present the view of data
+    currently in persistent storage, it would allow the user to make
+    informed decisions about which parts of the persistent storage to
+    prune. Combined with a blacklist ("delete this data and prevent
+    this domain from ever storing data again"), the user can restrict
+    the use of persistent storage to sites that he trusts.</p>
+
+   </dd>
+
+   <dt>Shared blacklists</dt>
+   <dd>
+
+    <p>User agents may allow users to share their persistent storage
+    domain blacklists.</p>
+
+    <p>This would allow communities to act together to protect their
+    privacy.</p>
+
+   </dd>
+
+  </dl>
+
+  <p>While these suggestions prevent trivial use of this API for user
+  tracking, they do not block it altogether. Within a single domain, a
+  site can continue to track the user during a session, and can then
+  pass all this information to the third party along with any
+  identifying information (names, credit card numbers, addresses)
+  obtained by the site. If a third party cooperates with multiple
+  sites to obtain such information, a profile can still be
+  created.</p>
+
+  <p>However, user tracking is to some extent possible even with no
+  cooperation from the user agent whatsoever, for instance by using
+  session identifiers in URLs, a technique already commonly used for
+  innocuous purposes but easily repurposed for user tracking (even
+  retroactively). This information can then be shared with other
+  sites, using using visitors' IP addresses and other user-specific
+  data (e.g. user-agent headers and configuration settings) to combine
+  separate sessions into coherent user profiles.</p>
+
+
+  <h5>Sensitivity of data</h5>
+
+  <p>User agents should treat persistently stored data as potentially
+  sensitive; it's quite possible for e-mails, calendar appointments,
+  health records, or other confidential documents to be stored in this
+  mechanism.</p>
+
+  <p>To this end, user agents should ensure that when deleting data,
+  it is promptly deleted from the underlying storage.</p>
+
+
+  <h4>Security</h4>
+
+  <h5>DNS spoofing attacks</h5>
+
+  <p>Because of the potential for DNS spoofing attacks, one cannot
+  guarantee that a host claiming to be in a certain domain really is
+  from that domain. To mitigate this, pages can use SSL. Pages using
+  SSL can be sure that only pages using SSL that have certificates
+  identifying them as being from the same domain can access their
+  <!--END complete-->
+  <!--END database-->
+  storage areas.
+  <!--END storage-->
+  <!--START database-->
+  databases.
+  <!--END database-->
+  <!--START complete-->
+  storage areas and databases.
+  <!--START database-->
+  <!--START storage-->
+  </p>
+
+
+  <h5>Cross-directory attacks</h5>
+
+  <p>Different authors sharing one host name, for example users
+  hosting content on <code>geocities.com</code>, all share one
+  <!--END complete-->
+  <!--END database-->
+  local storage object.
+  <!--END storage-->
+  <!--START database-->
+  set of databases.
+  <!--END database-->
+  <!--START complete-->
+  common set of storage objects and databases.
+  <!--START database-->
+  <!--START storage-->
+  There is no feature to restrict the access by pathname. Authors on
+  shared hosts are therefore recommended to avoid using these
+  features, as it would be trivial for other authors to read the data
+  and overwrite it.</p>
+
+  <p class="note">Even if a path-restriction feature was made
+  available, the usual DOM scripting security model would make it
+  trivial to bypass this protection and access the data from any
+  path.</p>
+
+
+  <h5>Implementation risks</h5>
+
+  <p>The two primary risks when implementing these persistent storage
+  features are letting hostile sites read information from other
+  domains, and letting hostile sites write information that is then
+  read from other domains.</p>
+
+  <p>Letting third-party sites read data that is not supposed to be
+  read from their domain causes <em>information leakage</em>, For
+  example, a user's shopping wishlist on one domain could be used by
+  another domain for targeted advertising; or a user's
+  work-in-progress confidential documents stored by a word-processing
+  site could be examined by the site of a competing company.</p>
+
+  <p>Letting third-party sites write data to the persistent storage of
+  other domains can result in <em>information spoofing</em>, which is
+  equally dangerous. For example, a hostile site could add items to a
+  user's wishlist; or a hostile site could set a user's session
+  identifier to a known ID that the hostile site can then use to track
+  the user's actions on the victim site.</p>
+
+  <p>Thus, strictly following the <span>origin</span> model described
+  in this specification is important for user security.</p>
+
+
+  <!--END storage-->
+
+  <h5>SQL and user agents</h5>
+
+  <p>User agent implementors are strongly encouraged to audit all
+  their supported SQL statements for security implications. For
+  example, <code title="">LOAD DATA INFILE</code> is likely to pose
+  security risks and there is little reason to support it.</p>
+
+  <p>In general, it is recommended that user agents not support
+  features that control how databases are stored on disk. For example,
+  there is little reason to allow Web authors to control the character
+  encoding used in the disk representation of the data, as all data in
+  JavaScript is implicitly UTF-16.</p>
+
+
+  <h5>SQL injection</h5>
+
+  <p>Authors are strongly recommended to make use of the <code
+  title="">?</code> placeholder feature of the <code
+  title="dom-sqltransaction-executeSql">executeSql()</code> method,
+  and to never construct SQL statements on the fly.</p>
+
+
+  <!--END database-->
+
+  <!--START html5-->
 
 
   <h2 id="editing"><dfn>User Interaction</dfn></h2>
