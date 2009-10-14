@@ -5838,7 +5838,7 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20html%3E..
 typedef sequence&lt;any> <dfn>PropertyValueArray</dfn>;
 
 interface <dfn>PropertyNodeList</dfn> : <span>NodeList</span> {
-  readonly attribute <span>PropertyValueArray</span> <span title="dom-PropertyNodeList-contents">contents</span>;
+  readonly attribute <span>PropertyValueArray</span> <span title="dom-PropertyNodeList-values">values</span>;
 };</pre>
 
   <dl class="domintro">
@@ -5868,7 +5868,7 @@ interface <dfn>PropertyNodeList</dfn> : <span>NodeList</span> {
     <p>Returns a <code>PropertyNodeList</code> object containing any elements that add a property named <var title="">name</var>.</p>
    </dd>
 
-   <dt><var title="">propertyNodeList</var> . <code title="dom-PropertyNodeList-contents">contents</code></dt>
+   <dt><var title="">propertyNodeList</var> . <code title="dom-PropertyNodeList-values">values</code></dt>
    <dd>
     <p>Returns an array of the various values that the relevant elements have.</p>
    </dd>
@@ -5929,12 +5929,12 @@ interface <dfn>PropertyNodeList</dfn> : <span>NodeList</span> {
   on a <code>NodeList</code> object.</p>
 
   <p>The <dfn
-  title="dom-PropertyNodeList-contents"><code>contents</code></dfn>
+  title="dom-PropertyNodeList-values"><code>values</code></dfn>
   IDL attribute on the <code>PropertyNodeList</code> object, on
   getting, must return a newly constructed array whose values are the
-  values obtained from the <code title="dom-content">content</code>
-  DOM property of each of the elements represented by the object, in
-  <span>tree order</span>.</p>
+  values obtained from the <code
+  title="dom-itemValue">itemValue</code> DOM property of each of the
+  elements represented by the object, in <span>tree order</span>.</p>
 
   </div>
 
@@ -7639,7 +7639,7 @@ interface <dfn>HTMLDocument</dfn> {
            attribute DOMString <span title="dom-itemId">itemId</span>;
   [PutForwards=<span title="dom-DOMSettableTokenList-value">value</span>] readonly attribute <span>DOMSettableTokenList</span> <span title="dom-itemProp">itemProp</span>;
   readonly attribute <span>HTMLPropertyCollection</span> <span title="dom-properties">properties</span>;
-           attribute DOMString <span title="dom-content">content</span>;
+           attribute any <span title="dom-itemValue">itemValue</span>;
 
   // <span>user interaction</span>
            attribute boolean <span title="dom-hidden">hidden</span>;
@@ -11454,6 +11454,7 @@ gave me some of the songs they wrote. I love sharing my music.&lt;/p>
 <pre class="idl">interface <dfn>HTMLMetaElement</dfn> : <span>HTMLElement</span> {
            attribute DOMString <span title="dom-meta-name">name</span>;
            attribute DOMString <span title="dom-meta-httpEquiv">httpEquiv</span>;
+           attribute DOMString <span title="dom-meta-content">content</span>;
 };</pre>
    </dd>
   </dl>
@@ -11523,8 +11524,9 @@ gave me some of the songs they wrote. I love sharing my music.&lt;/p>
 
   <div class="impl">
 
-  <p>The <dfn title="dom-meta-name"><code>name</code></dfn> IDL
-  attribute must <span>reflect</span> the content attribute of the
+  <p>The <dfn title="dom-meta-name"><code>name</code></dfn> and <dfn
+  title="dom-meta-content"><code>content</code></dfn> IDL attributes
+  must <span>reflect</span> the respective content attributes of the
   same name. The IDL attribute <dfn
   title="dom-meta-httpEquiv"><code>httpEquiv</code></dfn> must
   <span>reflect</span> the content attribute <code
@@ -49468,8 +49470,8 @@ contradict people?
   with that name.</p>
 
   <p>Each element that adds a property also has a <code
-  title="dom-content">content</code> IDL attribute that returns its
-  value.
+  title="dom-itemValue">itemValue</code> IDL attribute that returns
+  its value.</p>
 
   <div class="example">
 
@@ -49487,8 +49489,8 @@ alert('Hello ' + user.properties['name'][0].content + '!');</pre>
   object with all the matching properties. The
   <code>PropertyNodeList</code> object can be used to obtained all the
   values at once using <em>its</em> <code
-  title="dom-PropertyNodeList-contents">contents</code> attribute,
-  which returns an array of all the values.</p>
+  title="dom-PropertyNodeList-values">values</code> attribute, which
+  returns an array of all the values.</p>
 
   <div class="example">
 
@@ -49497,7 +49499,7 @@ alert('Hello ' + user.properties['name'][0].content + '!');</pre>
    item and then lists all its values.</p>
 
    <pre>var cat = document.getItems('org.example.animals.cat')[0];
-var colors = cat.properties['com.example.color'].contents;
+var colors = cat.properties['com.example.color'].values;
 var result;
 if (colors.length == 0) {
   result = 'Color unknown.';
@@ -50008,7 +50010,7 @@ document.body.appendChild(outer);</pre>
 
    </dd>
 
-   <dt><var title="">element</var> . <code title="dom-content">content</code> [ = <var title="">value</var> ]</dt>
+   <dt><var title="">element</var> . <code title="dom-itemValue">itemValue</code> [ = <var title="">value</var> ]</dt>
 
    <dd>
 
@@ -50016,7 +50018,11 @@ document.body.appendChild(outer);</pre>
     title="concept-property-value">value</span>.</p>
 
     <p>Can be set, to change the element's <span
-    title="concept-property-value">value</span>.</p>
+    title="concept-property-value">value</span>. Setting the <span
+    title="concept-property-value">value</span> when the element has
+    no <code title="attr-itemprop">itemprop</code> attribute or when
+    the element's value is an <span title="concept-item">item</span>
+    throws an <code>INVALID_ACCESS_ERR</code> exception.</p>
 
    </dd>
 
@@ -50057,10 +50063,23 @@ document.body.appendChild(outer);</pre>
   title="concept-item">item</span>, and matches nothing the rest of
   the time.</p>
 
-  <p>The <dfn title="dom-content"><code>content</code></dfn> IDL
+  <p>The <dfn title="dom-itemValue"><code>itemValue</code></dfn> IDL
   attribute's behavior depends on the element, as follows:</p>
 
   <dl>
+
+   <dt>If the element has no <code title="attr-itemprop">itemprop</code> attribute</dt>
+
+   <dd><p>The attribute must return null on getting and must throw an
+   <code>INVALID_ACCESS_ERR</code> exception on setting.</p>
+
+
+   <dt>If the element has an <code title="attr-itemscope">itemscope</code> attribute</dt>
+
+   <dd><p>The attribute must return the element itself on getting and
+   must throw an <code>INVALID_ACCESS_ERR</code> exception on
+   setting.</p>
+
 
    <dt>If the element is a <code>meta</code> element</dt>
 
@@ -50108,6 +50127,13 @@ document.body.appendChild(outer);</pre>
    <code>textContent</code> attribute.</p></dd>
 
   </dl> 
+
+  <p>When the <code title="dom-itemValue">itemValue</code> IDL
+  attribute is <span title="reflect">reflecting</span> a content
+  attribute or acting like the element's <code>textContent</code>
+  attribute, the user agent must, on setting, convert the new value to
+  the IDL <code title="">DOMString</code> value before using it
+  according to the mappings described above.</p>
 
   </div>
 
@@ -53313,7 +53339,7 @@ END:VCARD</pre>
     calendar += 'UID:' + node.itemId + '\r\n';
   for (var propIndex = 0; propIndex &lt; node.properties.length; propIndex += 1) {
     var prop = node.properties[propIndex];
-    var value = prop.contents;
+    var value = prop.itemValue;
     var parameters = '';
     if (prop.localName == 'time') {
       value = value.replace(/[:-]/g, '');
