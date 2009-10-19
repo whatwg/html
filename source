@@ -9981,9 +9981,9 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
     <p>If <var title="">type</var> is <em>not</em> now an <span>ASCII
     case-insensitive</span> match for the string
     "<code>text/html</code>", then act as if the tokenizer had emitted
-    a start tag token with the tag name "pre", then set the <span>HTML
-    parser</span>'s <span>tokenization</span> stage's <span>content
-    model flag</span> to <i title="">PLAINTEXT</i>.</p>
+    a start tag token with the tag name "pre", then switch the
+    <span>HTML parser</span>'s tokenizer to the <span>PLAINTEXT
+    state</span>.</p>
 
     <!--
  http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C!DOCTYPE%20html%3E...%3Ciframe%3E%3C%2Fiframe%3E%3Cscript%3Eonload%20%3D%20function%20()%20%7B%20%0D%0A%20%20var%20d%20%3D%20document.getElementsByTagName('iframe')%5B0%5D.contentDocument%3B%0D%0A%20%20d.open('image%2Fsvg%2Bxml')%3B%0D%0A%20%20d.write(%22%3Cinput%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F1999%2Fxhtml'%20value%3D'(x)html'%2F%3E%22)%3B%0D%0A%20%20d.close()%3B%0D%0A%7D%3B%3C%2Fscript%3E
@@ -62932,9 +62932,9 @@ NETWORK:
   <code>Document</code> object</span>, mark it as being an <span
   title="HTML documents">HTML document</span>, create an <span>HTML
   parser</span>, associate it with the document, act as if the
-  tokenizer had emitted a start tag token with the tag name "pre", set
-  the <span>tokenization</span> stage's <span>content model
-  flag</span> to <i title="">PLAINTEXT</i>, and begin to pass the stream of
+  tokenizer had emitted a start tag token with the tag name "pre",
+  switch the <span>HTML parser</span>'s tokenizer to the
+  <span>PLAINTEXT state</span>, and begin to pass the stream of
   characters in the plain text document to that tokenizer.</p>
 
   <p>The rules for how to convert the bytes of the plain text document
@@ -79210,18 +79210,13 @@ interface <dfn>MessagePort</dfn> {
   switches it to a new state (to consume the next character), or
   repeats the same state (to consume the next character). Some states
   have more complicated behavior and can consume several characters
-  before switching to another state.</p>
+  before switching to another state. In some cases, the tokenizer
+  state is also changed by the tree construction stage.</p>
 
-  <p>The exact behavior of certain states depends on a <dfn>content
-  model flag</dfn> that is set after certain tokens are emitted. The
-  flag has several states: <i title="">PCDATA</i>, <i
-  title="">RCDATA</i>, <i title="">RAWTEXT</i>, and <i
-  title="">PLAINTEXT</i>. Initially, it must be in the PCDATA
-  state. In the RCDATA and RAWTEXT states, a further <dfn>escape
-  flag</dfn> is used to control the behavior of the tokenizer. It is
-  either true or false, and initially must be set to the false
-  state. The <span>insertion mode</span> and the <span>stack of open
-  elements</span> also affects tokenization.</p>
+  <p>The exact behavior of certain states depends on the
+  <span>insertion mode</span> and the <span>stack of open
+  elements</span>. Certain states also use a <dfn><var>temporary
+  buffer</var></dfn> to track progress.</p>
 
   <p>The output of the tokenization step is a series of zero or more
   of the following tokens: DOCTYPE, start tag, end tag, comment,
@@ -79240,8 +79235,8 @@ interface <dfn>MessagePort</dfn> {
 
   <p>When a token is emitted, it must immediately be handled by the
   <span>tree construction</span> stage. The tree construction stage
-  can affect the state of the <span>content model flag</span>, and can
-  insert additional characters into the stream. (For example, the
+  can affect the state of the tokenization stage, and can insert
+  additional characters into the stream. (For example, the
   <code>script</code> element can result in scripts executing and
   using the <span>dynamic markup insertion</span> APIs to insert
   characters into the stream being tokenized.)</p>
@@ -79251,14 +79246,17 @@ interface <dfn>MessagePort</dfn> {
   self-closing flag">acknowledged</dfn> when it is processed by the
   tree construction stage, that is a <span>parse error</span>.</p>
 
-  <p>When an end tag token is emitted, the <span>content model
-  flag</span> must be switched to the PCDATA state.</p>
-
   <p>When an end tag token is emitted with attributes, that is a
   <span>parse error</span>.</p>
 
   <p>When an end tag token is emitted with its <i>self-closing
   flag</i> set, that is a <span>parse error</span>.</p>
+
+  <p>An <dfn>appropriate end tag token</dfn> is an end tag token whose
+  tag name matches the tag name of the last start tag to have been
+  emitted from this tokenizer, if any. If no start tag has been
+  emitted from this tokenizer, then no end tag token is
+  appropriate.</p>
 
   <p>Before each step of the tokenizer, the user agent must first
   check the <span>parser pause flag</span>. If it is true, then the
@@ -79268,8 +79266,10 @@ interface <dfn>MessagePort</dfn> {
   <p>The tokenizer state machine consists of the states defined in the
   following subsections.</p>
 
+
   <!-- Order of the lists below is supposed to be non-error then
   error, by unicode, then EOF, ending with "anything else" -->
+
 
   <h5><dfn>Data state</dfn></h5>
 
@@ -79278,71 +79278,100 @@ interface <dfn>MessagePort</dfn> {
   <dl class="switch">
 
    <dt>U+0026 AMPERSAND (&amp;)</dt>
-   <dd>When the <span>content model flag</span> is set to one of the
-   PCDATA or RCDATA states and the <span>escape flag</span> is
-   false: switch to the <span>character reference in data
+   <dd>Switch to the <span>character reference in data
    state</span>.</dd>
-   <dd>Otherwise: treat it as per the "anything else" entry
-   below.</dd>
-
-   <dt>U+002D HYPHEN-MINUS (-)</dt>
-   <dd>
-
-    <p>If the <span>content model flag</span> is set to either the
-    RCDATA state or the RAWTEXT state, and the <span>escape flag</span>
-    is false, and there are at least three characters before this
-    one in the input stream, and the last four characters in the
-    input stream, including this one, are U+003C LESS-THAN SIGN,
-    U+0021 EXCLAMATION MARK, U+002D HYPHEN-MINUS, and U+002D
-    HYPHEN-MINUS ("&lt;!--"), then set the <span>escape flag</span>
-    to true.</p>
-
-    <p>In any case, emit the input character as a character
-    token. Stay in the <span>data state</span>.</p>
-
-   </dd>
 
    <dt>U+003C LESS-THAN SIGN (&lt;)</dt>
-   <dd>When the <span>content model flag</span> is set to the PCDATA
-   state: switch to the <span>tag open state</span>.</dd>
-   <dd>When the <span>content model flag</span> is set to either the
-   RCDATA state or the RAWTEXT state, and the <span>escape flag</span>
-   is false: switch to the <span>tag open state</span>.</dd>
-   <dd>Otherwise: treat it as per the "anything else" entry
-   below.</dd>
-
-   <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
-   <dd>
-
-    <p>If the <span>content model flag</span> is set to either the
-    RCDATA state or the RAWTEXT state, and the <span>escape
-    flag</span> is true, and the last three characters in the input
-    stream including this one are U+002D HYPHEN-MINUS, U+002D
-    HYPHEN-MINUS, U+003E GREATER-THAN SIGN ("--&gt;"), set the
-    <span>escape flag</span> to false.</p> <!-- no need to check
-    that there are enough characters, since you can only run into
-    this if the flag is true in the first place, which requires four
-    characters. -->
-
-    <p>In any case, emit the input character as a character
-    token. Stay in the <span>data state</span>.</p>
-
-   </dd>
+   <dd>Switch to the <span>tag open state</span>.</dd>
 
    <dt>EOF</dt>
    <dd>Emit an end-of-file token.</dd>
 
    <dt>Anything else</dt>
-   <dd>Emit the input character as a character token. Stay in the
-   <span>data state</span>.</dd>
+   <dd>Emit the <span>current input character</span> as a character
+   token. Stay in the <span>data state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>RCDATA state</dfn></h5>
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+0026 AMPERSAND (&amp;)</dt>
+   <dd>Switch to the <span>character reference in data
+   state</span>.</dd>
+
+   <dt>U+003C LESS-THAN SIGN (&lt;)</dt>
+   <dd>Switch to the <span>RCDATA less-than sign state</span>.</dd>
+
+   <dt>EOF</dt>
+   <dd>Emit an end-of-file token.</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit the <span>current input character</span> as a character
+   token. Stay in the <span>RCDATA state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>RAWTEXT state</dfn></h5>
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+003C LESS-THAN SIGN (&lt;)</dt>
+   <dd>Switch to the <span>RAWTEXT less-than sign state</span>.</dd>
+
+   <dt>EOF</dt>
+   <dd>Emit an end-of-file token.</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit the <span>current input character</span> as a character
+   token. Stay in the <span>RAWTEXT state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>Script data state</dfn></h5>
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+003C LESS-THAN SIGN (&lt;)</dt>
+   <dd>Switch to the <span>script data less-than sign state</span>.</dd>
+
+   <dt>EOF</dt>
+   <dd>Emit an end-of-file token.</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit the <span>current input character</span> as a character
+   token. Stay in the <span>script data state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>PLAINTEXT state</dfn></h5>
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>EOF</dt>
+   <dd>Emit an end-of-file token.</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit the <span>current input character</span> as a character
+   token. Stay in the <span>PLAINTEXT state</span>.</dd>
 
   </dl>
 
 
   <h5><dfn>Character reference in data state</dfn></h5>
-
-  <p><i>(This cannot happen if the <span>content model flag</span>
-  is set to the RAWTEXT state.)</i></p>
 
   <p>Attempt to <span>consume a character reference</span>, with no
   <span>additional allowed character</span>.</p>
@@ -79357,117 +79386,64 @@ interface <dfn>MessagePort</dfn> {
 
   <h5><dfn>Tag open state</dfn></h5>
 
-  <p>The behavior of this state depends on the <span>content model
-  flag</span>.</p>
+  <p>Consume the <span>next input character</span>:</p>
 
-  <dl>
+  <dl class="switch">
 
-   <dt>If the <span>content model flag</span> is set to the RCDATA
-   or RAWTEXT states</dt>
+   <dt>U+0021 EXCLAMATION MARK (!)</dt>
+   <dd>Switch to the <span>markup declaration open state</span>.</dd>
 
-   <dd>
+   <dt>U+002F SOLIDUS (/)</dt>
+   <dd>Switch to the <span>close tag open state</span>.</dd>
 
-    <p>Consume the <span>next input character</span>. If it is a
-    U+002F SOLIDUS character (/), switch to the <span>close tag open
-    state</span>. Otherwise, emit a U+003C LESS-THAN SIGN character
-    token and reconsume the <span>current input character</span> in the
-    <span>data state</span>.</p>
+   <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL LETTER Z</dt>
+   <dd>Create a new start tag token, set its tag name to the
+   lowercase version of the <span>current input character</span> (add 0x0020 to the
+   character's code point), then switch to the <span>tag name
+   state</span>. (Don't emit the token yet; further details will
+   be filled in before it is emitted.)</dd>
 
-   </dd>
+   <dt>U+0061 LATIN SMALL LETTER A through to U+007A LATIN SMALL LETTER Z</dt>
+   <dd>Create a new start tag token, set its tag name to the
+   <span>current input character</span>, then switch to the <span>tag
+   name state</span>. (Don't emit the token yet; further details will
+   be filled in before it is emitted.)</dd>
 
-   <dt>If the <span>content model flag</span> is set to the PCDATA
-   state</dt>
+   <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
+   <dd><span>Parse error</span>. Emit a U+003C LESS-THAN SIGN
+   character token and a U+003E GREATER-THAN SIGN character
+   token. Switch to the <span>data state</span>.</dd>
 
-   <dd>
+   <dt>U+003F QUESTION MARK (?)</dt>
+   <dd><span>Parse error</span>. Switch to the <span>bogus
+   comment state</span>.</dd>
 
-    <p>Consume the <span>next input character</span>:</p>
-
-    <dl class="switch">
-
-     <dt>U+0021 EXCLAMATION MARK (!)</dt>
-     <dd>Switch to the <span>markup declaration open state</span>.</dd>
-
-     <dt>U+002F SOLIDUS (/)</dt>
-     <dd>Switch to the <span>close tag open state</span>.</dd>
-
-     <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL LETTER Z</dt>
-     <dd>Create a new start tag token, set its tag name to the
-     lowercase version of the input character (add 0x0020 to the
-     character's code point), then switch to the <span>tag name
-     state</span>. (Don't emit the token yet; further details will
-     be filled in before it is emitted.)</dd>
-
-     <dt>U+0061 LATIN SMALL LETTER A through to U+007A LATIN SMALL LETTER Z</dt>
-     <dd>Create a new start tag token, set its tag name to the input
-     character, then switch to the <span>tag name
-     state</span>. (Don't emit the token yet; further details will
-     be filled in before it is emitted.)</dd>
-
-     <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
-     <dd><span>Parse error</span>. Emit a U+003C LESS-THAN SIGN
-     character token and a U+003E GREATER-THAN SIGN character
-     token. Switch to the <span>data state</span>.</dd>
-
-     <dt>U+003F QUESTION MARK (?)</dt>
-     <dd><span>Parse error</span>. Switch to the <span>bogus
-     comment state</span>.</dd>
-
-     <dt>Anything else</dt>
-     <dd><span>Parse error</span>. Emit a U+003C LESS-THAN SIGN
-     character token and reconsume the <span>current input character</span> in the
-     <span>data state</span>.</dd>
-
-    </dl>
-
-   </dd>
+   <dt>Anything else</dt>
+   <dd><span>Parse error</span>. Emit a U+003C LESS-THAN SIGN
+   character token and reconsume the <span>current input
+   character</span> in the <span>data state</span>.</dd>
 
   </dl>
 
 
   <h5><dfn>Close tag open state</dfn></h5>
 
-  <p>If the <span>content model flag</span> is set to the RCDATA or
-  RAWTEXT states but no start tag token has ever been emitted by this
-  instance of the tokenizer (<span>fragment case</span>), or, if the
-  <span>content model flag</span> is set to the RCDATA or RAWTEXT states
-  and the next few characters do not match the tag name of the last
-  start tag token emitted (compared in an <span>ASCII
-  case-insensitive</span> manner), or if they do but they are not
-  immediately followed by one of the following characters:</p>
-
-  <ul class="brief">
-   <li>U+0009 CHARACTER TABULATION</li>
-   <li>U+000A LINE FEED (LF)</li>
-   <li>U+000C FORM FEED (FF)</li>
-   <!--<li>U+000D CARRIAGE RETURN (CR)</li>-->
-   <li>U+0020 SPACE</li>
-   <li>U+003E GREATER-THAN SIGN (&gt;)</li>
-   <li>U+002F SOLIDUS (/)</li>
-   <li>EOF</li>
-  </ul>
-
-  <p>...then emit a U+003C LESS-THAN SIGN character token, a U+002F
-  SOLIDUS character token, and switch to the <span>data state</span>
-  to process the <span>next input character</span>.</p>
-
-  <p>Otherwise, if the <span>content model flag</span> is set to the
-  PCDATA state, or if the next few characters <em>do</em> match that tag
-  name, consume the <span>next input character</span>:</p>
+  <p>Consume the <span>next input character</span>:</p>
 
   <dl class="switch">
 
    <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL LETTER Z</dt>
    <dd>Create a new end tag token, set its tag name to the lowercase
-   version of the input character (add 0x0020 to the character's
-   code point), then switch to the <span>tag name
+   version of the <span>current input character</span> (add 0x0020 to
+   the character's code point), then switch to the <span>tag name
    state</span>. (Don't emit the token yet; further details will be
    filled in before it is emitted.)</dd>
 
    <dt>U+0061 LATIN SMALL LETTER A through to U+007A LATIN SMALL LETTER Z</dt>
-   <dd>Create a new end tag token, set its tag name to the input
-   character, then switch to the <span>tag name state</span>. (Don't
-   emit the token yet; further details will be filled in before it
-   is emitted.)</dd>
+   <dd>Create a new end tag token, set its tag name to the
+   <span>current input character</span>, then switch to the <span>tag
+   name state</span>. (Don't emit the token yet; further details will
+   be filled in before it is emitted.)</dd>
 
    <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
    <dd><span>Parse error</span>. Switch to the <span>data
@@ -79506,17 +79482,432 @@ interface <dfn>MessagePort</dfn> {
    state</span>.</dd>
 
    <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL LETTER Z</dt>
-   <dd>Append the lowercase version of the <span>current input character</span>
-   (add 0x0020 to the character's code point) to the current tag
-   token's tag name. Stay in the <span>tag name state</span>.</dd>
+   <dd>Append the lowercase version of the <span>current input
+   character</span> (add 0x0020 to the character's code point) to the
+   current tag token's tag name. Stay in the <span>tag name
+   state</span>.</dd>
 
    <dt>EOF</dt>
    <dd><span>Parse error</span>. Reconsume the EOF character in the
    <span>data state</span>.</dd>
 
    <dt>Anything else</dt>
-   <dd>Append the <span>current input character</span> to the current tag token's
-   tag name. Stay in the <span>tag name state</span>.</dd>
+   <dd>Append the <span>current input character</span> to the current
+   tag token's tag name. Stay in the <span>tag name state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>RCDATA less-than sign state</dfn></h5>
+  <!-- identical to the RAWTEXT less-than sign state, except s/RAWTEXT/RCDATA/g -->
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+002F SOLIDUS (/)</dt>
+   <dd>Set the <var>temporary buffer</var> to the empty string. Switch
+   to the <span>RCDATA end tag open state</span>.</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit a U+003C LESS-THAN SIGN character token and reconsume the
+   <span>current input character</span> in the <span>RCDATA
+   state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>RCDATA end tag open state</dfn></h5>
+  <!-- identical to the RAWTEXT (and Script data) end tag open state, except s/RAWTEXT/RCDATA/g -->
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL LETTER Z</dt>
+   <dd>Create a new end tag token, and set its tag name to the
+   lowercase version of the <span>current input character</span> (add
+   0x0020 to the character's code point). Append the <span>current
+   input character</span> to the <var>temporary buffer</var>. Finally,
+   switch to the <span>RCDATA end tag name state</span>. (Don't emit
+   the token yet; further details will be filled in before it is
+   emitted.)</dd>
+
+   <dt>U+0061 LATIN SMALL LETTER A through to U+007A LATIN SMALL LETTER Z</dt>
+   <dd>Create a new end tag token, and set its tag name to the
+   <span>current input character</span>. Append the <span>current
+   input character</span> to the <var>temporary buffer</var>. Finally,
+   switch to the <span>RCDATA end tag name state</span>. (Don't emit
+   the token yet; further details will be filled in before it is
+   emitted.)</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS
+   character token, and reconsume the <span>current input
+   character</span> in the <span>RCDATA state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>RCDATA end tag name state</dfn></h5>
+  <!-- identical to the RAWTEXT (and Script data) end tag name state, except s/RAWTEXT/RCDATA/g -->
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+0009 CHARACTER TABULATION</dt>
+   <dt>U+000A LINE FEED (LF)</dt>
+   <dt>U+000C FORM FEED (FF)</dt>
+   <!--<dt>U+000D CARRIAGE RETURN (CR)</dt>-->
+   <dt>U+0020 SPACE</dt>
+   <dd>If the current end tag token is an <span>appropriate end tag
+   token</span>, then switch to the <span>before attribute name
+   state</span>. Otherwise, treat it as per the "anything else" entry
+   below.</dd>
+
+   <dt>U+002F SOLIDUS (/)</dt>
+   <dd>If the current end tag token is an <span>appropriate end tag
+   token</span>, then switch to the <span>self-closing start tag
+   state</span>. Otherwise, treat it as per the "anything else" entry
+   below.</dd>
+
+   <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
+   <dd>If the current end tag token is an <span>appropriate end tag
+   token</span>, then emit the current tag token and switch to the
+   <span>data state</span>. Otherwise, treat it as per the "anything
+   else" entry below.</dd>
+
+   <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL LETTER Z</dt>
+   <dd>Append the lowercase version of the <span>current input
+   character</span> (add 0x0020 to the character's code point) to the
+   current tag token's tag name. Append the <span>current input
+   character</span> to the <var>temporary buffer</var>. Stay in the
+   <span>RCDATA end tag name state</span>.</dd>
+
+   <dt>U+0061 LATIN SMALL LETTER A through to U+007A LATIN SMALL LETTER Z</dt>
+   <dd>Append the <span>current input character</span> to the current
+   tag token's tag name. Append the <span>current input
+   character</span> to the <var>temporary buffer</var>. Stay in the
+   <span>RCDATA end tag name state</span>.</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS
+   character token, a character token for each of the characters in
+   the <var>temporary buffer</var> (in the order they were added to
+   the buffer), and reconsume the <span>current input character</span>
+   in the <span>RCDATA state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>RAWTEXT less-than sign state</dfn></h5>
+  <!-- identical to the RCDATA less-than sign state, except s/RCDATA/RAWTEXT/g -->
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+002F SOLIDUS (/)</dt>
+   <dd>Set the <var>temporary buffer</var> to the empty string. Switch
+   to the <span>RAWTEXT end tag open state</span>.</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit a U+003C LESS-THAN SIGN character token and reconsume the
+   <span>current input character</span> in the <span>RAWTEXT
+   state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>RAWTEXT end tag open state</dfn></h5>
+  <!-- identical to the RCDATA (and Script data) end tag open state, except s/RCDATA/RAWTEXT/g -->
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL LETTER Z</dt>
+   <dd>Create a new end tag token, and set its tag name to the
+   lowercase version of the <span>current input character</span> (add
+   0x0020 to the character's code point). Append the <span>current
+   input character</span> to the <var>temporary buffer</var>. Finally,
+   switch to the <span>RAWTEXT end tag name state</span>. (Don't emit
+   the token yet; further details will be filled in before it is
+   emitted.)</dd>
+
+   <dt>U+0061 LATIN SMALL LETTER A through to U+007A LATIN SMALL LETTER Z</dt>
+   <dd>Create a new end tag token, and set its tag name to the
+   <span>current input character</span>. Append the <span>current
+   input character</span> to the <var>temporary buffer</var>. Finally,
+   switch to the <span>RAWTEXT end tag name state</span>. (Don't emit
+   the token yet; further details will be filled in before it is
+   emitted.)</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS
+   character token, and reconsume the <span>current input
+   character</span> in the <span>RAWTEXT state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>RAWTEXT end tag name state</dfn></h5>
+  <!-- identical to the RCDATA (and Script data) end tag name state, except s/RCDATA/RAWTEXT/g -->
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+0009 CHARACTER TABULATION</dt>
+   <dt>U+000A LINE FEED (LF)</dt>
+   <dt>U+000C FORM FEED (FF)</dt>
+   <!--<dt>U+000D CARRIAGE RETURN (CR)</dt>-->
+   <dt>U+0020 SPACE</dt>
+   <dd>If the current end tag token is an <span>appropriate end tag
+   token</span>, then switch to the <span>before attribute name
+   state</span>. Otherwise, treat it as per the "anything else" entry
+   below.</dd>
+
+   <dt>U+002F SOLIDUS (/)</dt>
+   <dd>If the current end tag token is an <span>appropriate end tag
+   token</span>, then switch to the <span>self-closing start tag
+   state</span>. Otherwise, treat it as per the "anything else" entry
+   below.</dd>
+
+   <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
+   <dd>If the current end tag token is an <span>appropriate end tag
+   token</span>, then emit the current tag token and switch to the
+   <span>data state</span>. Otherwise, treat it as per the "anything
+   else" entry below.</dd>
+
+   <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL LETTER Z</dt>
+   <dd>Append the lowercase version of the <span>current input
+   character</span> (add 0x0020 to the character's code point) to the
+   current tag token's tag name. Append the <span>current input
+   character</span> to the <var>temporary buffer</var>. Stay in the
+   <span>RAWTEXT end tag name state</span>.</dd>
+
+   <dt>U+0061 LATIN SMALL LETTER A through to U+007A LATIN SMALL LETTER Z</dt>
+   <dd>Append the <span>current input character</span> to the current
+   tag token's tag name. Append the <span>current input
+   character</span> to the <var>temporary buffer</var>. Stay in the
+   <span>RAWTEXT end tag name state</span>.</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS
+   character token, a character token for each of the characters in
+   the <var>temporary buffer</var> (in the order they were added to
+   the buffer), and reconsume the <span>current input character</span>
+   in the <span>RAWTEXT state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>Script data less-than sign state</dfn></h5>
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+002F SOLIDUS (/)</dt>
+   <dd>Set the <var>temporary buffer</var> to the empty string. Switch
+   to the <span>script data end tag open state</span>.</dd>
+
+   <dt>U+0021 EXCLAMATION MARK (!)</dt>
+   <dd>Emit a U+003C LESS-THAN SIGN character token and a U+0021
+   EXCLAMATION MARK character token. Switch to the <span>script data
+   escape start state</span>.</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit a U+003C LESS-THAN SIGN character token and reconsume the
+   <span>current input character</span> in the <span>script data
+   state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>Script data end tag open state</dfn></h5>
+  <!-- identical to the RCDATA (and RAWTEXT) end tag open state, except s/RCDATA/Script data/g -->
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL LETTER Z</dt>
+   <dd>Create a new end tag token, and set its tag name to the
+   lowercase version of the <span>current input character</span> (add
+   0x0020 to the character's code point). Append the <span>current
+   input character</span> to the <var>temporary buffer</var>. Finally,
+   switch to the <span>script data end tag name state</span>. (Don't emit
+   the token yet; further details will be filled in before it is
+   emitted.)</dd>
+
+   <dt>U+0061 LATIN SMALL LETTER A through to U+007A LATIN SMALL LETTER Z</dt>
+   <dd>Create a new end tag token, and set its tag name to the
+   <span>current input character</span>. Append the <span>current
+   input character</span> to the <var>temporary buffer</var>. Finally,
+   switch to the <span>script data end tag name state</span>. (Don't emit
+   the token yet; further details will be filled in before it is
+   emitted.)</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS
+   character token, and reconsume the <span>current input
+   character</span> in the <span>script data state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>Script data end tag name state</dfn></h5>
+  <!-- identical to the RCDATA (and RAWTEXT) end tag name state, except s/RCDATA/Script data/g -->
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+0009 CHARACTER TABULATION</dt>
+   <dt>U+000A LINE FEED (LF)</dt>
+   <dt>U+000C FORM FEED (FF)</dt>
+   <!--<dt>U+000D CARRIAGE RETURN (CR)</dt>-->
+   <dt>U+0020 SPACE</dt>
+   <dd>If the current end tag token is an <span>appropriate end tag
+   token</span>, then switch to the <span>before attribute name
+   state</span>. Otherwise, treat it as per the "anything else" entry
+   below.</dd>
+
+   <dt>U+002F SOLIDUS (/)</dt>
+   <dd>If the current end tag token is an <span>appropriate end tag
+   token</span>, then switch to the <span>self-closing start tag
+   state</span>. Otherwise, treat it as per the "anything else" entry
+   below.</dd>
+
+   <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
+   <dd>If the current end tag token is an <span>appropriate end tag
+   token</span>, then emit the current tag token and switch to the
+   <span>data state</span>. Otherwise, treat it as per the "anything
+   else" entry below.</dd>
+
+   <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL LETTER Z</dt>
+   <dd>Append the lowercase version of the <span>current input
+   character</span> (add 0x0020 to the character's code point) to the
+   current tag token's tag name. Append the <span>current input
+   character</span> to the <var>temporary buffer</var>. Stay in the
+   <span>Script data end tag name state</span>.</dd>
+
+   <dt>U+0061 LATIN SMALL LETTER A through to U+007A LATIN SMALL LETTER Z</dt>
+   <dd>Append the <span>current input character</span> to the current
+   tag token's tag name. Append the <span>current input
+   character</span> to the <var>temporary buffer</var>. Stay in the
+   <span>Script data end tag name state</span>.</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS
+   character token, a character token for each of the characters in
+   the <var>temporary buffer</var> (in the order they were added to
+   the buffer), and reconsume the <span>current input character</span>
+   in the <span>script data state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>Script data escape start state</dfn></h5>
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+002D HYPHEN-MINUS (-)</dt>
+   <dd>Emit a U+002D HYPHEN-MINUS character token. Switch to the
+   <span>script data escape start dash state</span>.</dd>
+
+   <dt>Anything else</dt>
+   <dd>Reconsume the <span>current input character</span> in the
+   <span>script data state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>Script data escape start dash state</dfn></h5>
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+002D HYPHEN-MINUS (-)</dt>
+   <dd>Emit a U+002D HYPHEN-MINUS character token. Switch to the
+   <span>script data escaped dash dash state</span>.</dd>
+
+   <dt>Anything else</dt>
+   <dd>Reconsume the <span>current input character</span> in the
+   <span>script data state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>Script data escaped state</dfn></h5>
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+002D HYPHEN-MINUS (-)</dt>
+   <dd>Emit a U+002D HYPHEN-MINUS character token. Switch to the
+   <span>script data escaped dash state</span>.</dd>
+
+   <dt>EOF</dt>
+   <dd><span>Parse error</span>. Reconsume the EOF character in the
+   <span>data state</span>.</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit the current input character as a character token. Stay in
+   the <span>script data escaped state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>Script data escaped dash state</dfn></h5>
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+002D HYPHEN-MINUS (-)</dt>
+   <dd>Emit a U+002D HYPHEN-MINUS character token. Switch to the
+   <span>script data escaped dash dash state</span>.</dd>
+
+   <dt>EOF</dt>
+   <dd><span>Parse error</span>. Reconsume the EOF character in the
+   <span>data state</span>.</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit the current input character as a character token. Switch
+   to the <span>script data escaped state</span>.</dd>
+
+  </dl>
+
+
+  <h5><dfn>Script data escaped dash dash state</dfn></h5>
+
+  <p>Consume the <span>next input character</span>:</p>
+
+  <dl class="switch">
+
+   <dt>U+002D HYPHEN-MINUS (-)</dt>
+   <dd>Emit a U+002D HYPHEN-MINUS character token. Stay in the
+   <span>script data escaped dash dash state</span>.</dd>
+
+   <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
+   <dd>Emit a U+003E GREATER-THAN SIGN character token. Switch to the
+   <span>script data state</span>.</dd>
+
+   <dt>EOF</dt>
+   <dd><span>Parse error</span>. Reconsume the EOF character in the
+   <span>data state</span>.</dd>
+
+   <dt>Anything else</dt>
+   <dd>Emit the current input character as a character token. Switch
+   to the <span>script data escaped state</span>.</dd>
 
   </dl>
 
@@ -79592,9 +79983,9 @@ interface <dfn>MessagePort</dfn> {
    state</span>.</dd>
 
    <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL LETTER Z</dt>
-   <dd>Append the lowercase version of the <span>current input character</span>
-   (add 0x0020 to the character's code point) to the current
-   attribute's name. Stay in the <span>attribute name
+   <dd>Append the lowercase version of the <span>current input
+   character</span> (add 0x0020 to the character's code point) to the
+   current attribute's name. Stay in the <span>attribute name
    state</span>.</dd>
 
    <dt>U+0022 QUOTATION MARK (&quot;)</dt>
@@ -79608,8 +79999,9 @@ interface <dfn>MessagePort</dfn> {
    <span>data state</span>.</dd>
 
    <dt>Anything else</dt>
-   <dd>Append the <span>current input character</span> to the current attribute's
-   name. Stay in the <span>attribute name state</span>.</dd>
+   <dd>Append the <span>current input character</span> to the current
+   attribute's name. Stay in the <span>attribute name
+   state</span>.</dd>
 
   </dl>
 
@@ -79647,10 +80039,10 @@ interface <dfn>MessagePort</dfn> {
 
    <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL LETTER Z</dt>
    <dd>Start a new attribute in the current tag token. Set that
-   attribute's name to the lowercase version of the <span>current input character</span>
-   (add 0x0020 to the character's code point), and its value to
-   the empty string. Switch to the <span>attribute name
-   state</span>.</dd>
+   attribute's name to the lowercase version of the <span>current
+   input character</span> (add 0x0020 to the character's code point),
+   and its value to the empty string. Switch to the <span>attribute
+   name state</span>.</dd>
 
    <dt>U+0022 QUOTATION MARK (&quot;)</dt>
    <dt>U+0027 APOSTROPHE (')</dt>
@@ -79664,8 +80056,8 @@ interface <dfn>MessagePort</dfn> {
 
    <dt>Anything else</dt>
    <dd>Start a new attribute in the current tag token. Set that
-   attribute's name to the <span>current input character</span>, and its value to
-   the empty string. Switch to the <span>attribute name
+   attribute's name to the <span>current input character</span>, and
+   its value to the empty string. Switch to the <span>attribute name
    state</span>.</dd>
 
   </dl>
@@ -79689,7 +80081,7 @@ interface <dfn>MessagePort</dfn> {
 
    <dt>U+0026 AMPERSAND (&amp;)</dt>
    <dd>Switch to the <span>attribute value (unquoted) state</span>
-   and reconsume this input character.</dd>
+   and reconsume this <span>current input character</span>.</dd>
 
    <dt>U+0027 APOSTROPHE (')</dt>
    <dd>Switch to the <span>attribute value (single-quoted) state</span>.</dd>
@@ -79736,9 +80128,9 @@ interface <dfn>MessagePort</dfn> {
    <span>data state</span>.</dd>
 
    <dt>Anything else</dt>
-   <dd>Append the <span>current input character</span> to the current attribute's
-   value. Stay in the <span>attribute value (double-quoted)
-   state</span>.</dd>
+   <dd>Append the <span>current input character</span> to the current
+   attribute's value. Stay in the <span>attribute value
+   (double-quoted) state</span>.</dd>
 
   </dl>
 
@@ -79763,9 +80155,9 @@ interface <dfn>MessagePort</dfn> {
    <span>data state</span>.</dd>
 
    <dt>Anything else</dt>
-   <dd>Append the <span>current input character</span> to the current attribute's
-   value. Stay in the <span>attribute value (single-quoted)
-   state</span>.</dd>
+   <dd>Append the <span>current input character</span> to the current
+   attribute's value. Stay in the <span>attribute value
+   (single-quoted) state</span>.</dd>
 
   </dl>
 
@@ -79805,8 +80197,8 @@ interface <dfn>MessagePort</dfn> {
    <span>data state</span>.</dd>
 
    <dt>Anything else</dt>
-   <dd>Append the <span>current input character</span> to the current attribute's
-   value. Stay in the <span>attribute value (unquoted)
+   <dd>Append the <span>current input character</span> to the current
+   attribute's value. Stay in the <span>attribute value (unquoted)
    state</span>.</dd>
 
   </dl>
@@ -79881,9 +80273,6 @@ interface <dfn>MessagePort</dfn> {
 
   <h5><dfn>Bogus comment state</dfn></h5>
 
-  <p><i>(This can only happen if the <span>content model
-  flag</span> is set to the PCDATA state.)</i></p>
-
   <p>Consume every character up to and including the first U+003E
   GREATER-THAN SIGN character (&gt;) or the end of the file (EOF),
   whichever comes first. Emit a comment token whose data is the
@@ -79901,9 +80290,6 @@ interface <dfn>MessagePort</dfn> {
 
 
   <h5><dfn>Markup declaration open state</dfn></h5>
-
-  <p><i>(This can only happen if the <span>content model
-  flag</span> is set to the PCDATA state.)</i></p>
 
   <p>If the next two characters are both U+002D HYPHEN-MINUS (-)
   characters, consume those two characters, create a comment token
@@ -79948,8 +80334,8 @@ interface <dfn>MessagePort</dfn> {
    the EOF character in the <span>data state</span>.</dd>
 
    <dt>Anything else</dt>
-   <dd>Append the input character to the comment token's
-   data. Switch to the <span>comment state</span>.</dd>
+   <dd>Append the <span>current input character</span> to the comment
+   token's data. Switch to the <span>comment state</span>.</dd>
 
   </dl>
 
@@ -79973,9 +80359,9 @@ interface <dfn>MessagePort</dfn> {
    in comment end state -->
 
    <dt>Anything else</dt>
-   <dd>Append a U+002D HYPHEN-MINUS character (-) and the input
-   character to the comment token's data. Switch to the
-   <span>comment state</span>.</dd>
+   <dd>Append a U+002D HYPHEN-MINUS character (-) and the
+   <span>current input character</span> to the comment token's
+   data. Switch to the <span>comment state</span>.</dd>
 
   </dl>
 
@@ -79995,8 +80381,8 @@ interface <dfn>MessagePort</dfn> {
    in comment end state -->
 
    <dt>Anything else</dt>
-   <dd>Append the input character to the comment token's data. Stay
-   in the <span>comment state</span>.</dd>
+   <dd>Append the <span>current input character</span> to the comment
+   token's data. Stay in the <span>comment state</span>.</dd>
 
   </dl>
 
@@ -80016,9 +80402,9 @@ interface <dfn>MessagePort</dfn> {
    in comment end state -->
 
    <dt>Anything else</dt>
-   <dd>Append a U+002D HYPHEN-MINUS character (-) and the input
-   character to the comment token's data. Switch to the
-   <span>comment state</span>.</dd>
+   <dd>Append a U+002D HYPHEN-MINUS character (-) and the
+   <span>current input character</span> to the comment token's
+   data. Switch to the <span>comment state</span>.</dd>
 
   </dl>
 
@@ -80039,8 +80425,9 @@ interface <dfn>MessagePort</dfn> {
    <!--<dt>U+000D CARRIAGE RETURN (CR)</dt>-->
    <dt>U+0020 SPACE</dt>
    <dd><span>Parse error</span>. Append two U+002D HYPHEN-MINUS (-)
-   characters and the input character to the comment token's
-   data. Switch to the <span>comment end space state</span>.</dd>
+   characters and the <span>current input character</span> to the
+   comment token's data. Switch to the <span>comment end space
+   state</span>.</dd>
 
    <dt>U+0021 EXCLAMATION MARK (!)</dt>
    <dd><span>Parse error</span>. Switch to the <span>comment end bang
@@ -80061,8 +80448,9 @@ interface <dfn>MessagePort</dfn> {
 
    <dt>Anything else</dt>
    <dd><span>Parse error</span>. Append two U+002D HYPHEN-MINUS (-)
-   characters and the input character to the comment token's
-   data. Switch to the <span>comment state</span>.</dd>
+   characters and the <span>current input character</span> to the
+   comment token's data. Switch to the <span>comment
+   state</span>.</dd>
 
   </dl>
 
@@ -80089,9 +80477,9 @@ interface <dfn>MessagePort</dfn> {
 
    <dt>Anything else</dt>
    <dd>Append two U+002D HYPHEN-MINUS (-) characters, a U+0021
-   EXCLAMATION MARK character (!), and the input character to the
-   comment token's data. Switch to the <span>comment
-   state</span>.</dd>
+   EXCLAMATION MARK character (!), and the <span>current input
+   character</span> to the comment token's data. Switch to the
+   <span>comment state</span>.</dd>
 
   </dl>
 
@@ -80107,7 +80495,7 @@ interface <dfn>MessagePort</dfn> {
    <dt>U+000C FORM FEED (FF)</dt>
    <!--<dt>U+000D CARRIAGE RETURN (CR)</dt>-->
    <dt>U+0020 SPACE</dt>
-   <dd>Append the input character to the comment token's data. Stay in
+   <dd>Append the <span>current input character</span> to the comment token's data. Stay in
    the <span>comment end space state</span>.</dd>
 
    <dt>U+002D HYPHEN-MINUS (-)</dt>
@@ -80123,7 +80511,7 @@ interface <dfn>MessagePort</dfn> {
    comment in comment end state -->
 
    <dt>Anything else</dt>
-   <dd>Append the input character to the comment token's data. Switch
+   <dd>Append the <span>current input character</span> to the comment token's data. Switch
    to the <span>comment state</span>.</dd>
 
   </dl>
@@ -80169,7 +80557,7 @@ interface <dfn>MessagePort</dfn> {
 
    <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL LETTER Z</dt>
    <dd>Create a new DOCTYPE token. Set the token's name to the
-   lowercase version of the input character (add 0x0020 to the
+   lowercase version of the <span>current input character</span> (add 0x0020 to the
    character's code point). Switch to the <span>DOCTYPE name
    state</span>.</dd>
 
@@ -80209,9 +80597,10 @@ interface <dfn>MessagePort</dfn> {
    state</span>.</dd>
 
    <dt>U+0041 LATIN CAPITAL LETTER A through to U+005A LATIN CAPITAL LETTER Z</dt>
-   <dd>Append the lowercase version of the input character (add 0x0020
-   to the character's code point) to the current DOCTYPE token's
-   name. Stay in the <span>DOCTYPE name state</span>.</dd>
+   <dd>Append the lowercase version of the <span>current input
+   character</span> (add 0x0020 to the character's code point) to the
+   current DOCTYPE token's name. Stay in the <span>DOCTYPE name
+   state</span>.</dd>
 
    <dt>EOF</dt>
    <dd><span>Parse error</span>. Set the DOCTYPE token's
@@ -80219,8 +80608,9 @@ interface <dfn>MessagePort</dfn> {
    Reconsume the EOF character in the <span>data state</span>.</dd>
 
    <dt>Anything else</dt>
-   <dd>Append the <span>current input character</span> to the current DOCTYPE
-   token's name. Stay in the <span>DOCTYPE name state</span>.</dd>
+   <dd>Append the <span>current input character</span> to the current
+   DOCTYPE token's name. Stay in the <span>DOCTYPE name
+   state</span>.</dd>
 
   </dl>
 
@@ -80402,7 +80792,8 @@ interface <dfn>MessagePort</dfn> {
    <dt>U+000C FORM FEED (FF)</dt>
    <!--<dt>U+000D CARRIAGE RETURN (CR)</dt>-->
    <dt>U+0020 SPACE</dt>
-   <dd>Switch to the <span>between DOCTYPE public and system identifiers state</span>.</dd>
+   <dd>Switch to the <span>between DOCTYPE public and system
+   identifiers state</span>.</dd>
 
    <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
    <dd>Emit the current DOCTYPE token. Switch to the <span>data
@@ -80442,7 +80833,8 @@ interface <dfn>MessagePort</dfn> {
    <dt>U+000C FORM FEED (FF)</dt>
    <!--<dt>U+000D CARRIAGE RETURN (CR)</dt>-->
    <dt>U+0020 SPACE</dt>
-   <dd>Stay in the <span>between DOCTYPE public and system identifiers state</span>.</dd>
+   <dd>Stay in the <span>between DOCTYPE public and system identifiers
+   state</span>.</dd>
 
    <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
    <dd>Emit the current DOCTYPE token. Switch to the <span>data
@@ -80545,7 +80937,8 @@ interface <dfn>MessagePort</dfn> {
   <dl class="switch">
 
    <dt>U+0022 QUOTATION MARK (&quot;)</dt>
-   <dd>Switch to the <span>after DOCTYPE system identifier state</span>.</dd>
+   <dd>Switch to the <span>after DOCTYPE system identifier
+   state</span>.</dd>
 
    <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
    <dd><span>Parse error</span>. Set the DOCTYPE token's
@@ -80558,8 +80951,8 @@ interface <dfn>MessagePort</dfn> {
    Reconsume the EOF character in the <span>data state</span>.</dd>
 
    <dt>Anything else</dt>
-   <dd>Append the <span>current input character</span> to the current DOCTYPE
-   token's system identifier. Stay in the <span>DOCTYPE system
+   <dd>Append the <span>current input character</span> to the current
+   DOCTYPE token's system identifier. Stay in the <span>DOCTYPE system
    identifier (double-quoted) state</span>.</dd>
 
   </dl>
@@ -80572,7 +80965,8 @@ interface <dfn>MessagePort</dfn> {
   <dl class="switch">
 
    <dt>U+0027 APOSTROPHE (')</dt>
-   <dd>Switch to the <span>after DOCTYPE system identifier state</span>.</dd>
+   <dd>Switch to the <span>after DOCTYPE system identifier
+   state</span>.</dd>
 
    <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
    <dd><span>Parse error</span>. Set the DOCTYPE token's
@@ -80585,8 +80979,8 @@ interface <dfn>MessagePort</dfn> {
    Reconsume the EOF character in the <span>data state</span>.</dd>
 
    <dt>Anything else</dt>
-   <dd>Append the <span>current input character</span> to the current DOCTYPE
-   token's system identifier. Stay in the <span>DOCTYPE system
+   <dd>Append the <span>current input character</span> to the current
+   DOCTYPE token's system identifier. Stay in the <span>DOCTYPE system
    identifier (single-quoted) state</span>.</dd>
 
   </dl>
@@ -80603,7 +80997,8 @@ interface <dfn>MessagePort</dfn> {
    <dt>U+000C FORM FEED (FF)</dt>
    <!--<dt>U+000D CARRIAGE RETURN (CR)</dt>-->
    <dt>U+0020 SPACE</dt>
-   <dd>Stay in the <span>after DOCTYPE system identifier state</span>.</dd>
+   <dd>Stay in the <span>after DOCTYPE system identifier
+   state</span>.</dd>
 
    <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
    <dd>Emit the current DOCTYPE token. Switch to the <span>data
@@ -80643,9 +81038,6 @@ interface <dfn>MessagePort</dfn> {
 
 
   <h5><dfn>CDATA section state</dfn></h5>
-
-  <p><i>(This can only happen if the <span>content model
-  flag</span> is set to the PCDATA state.)</i></p>
 
   <p>Consume every character up to the next occurrence of the three
   character sequence U+005D RIGHT SQUARE BRACKET U+005D RIGHT SQUARE
@@ -81162,11 +81554,10 @@ document.body.appendChild(text);
    <li><p><span>Insert an HTML element</span> for the token.</p></li>
 
    <li><p>If the algorithm that was invoked is the <span>generic raw
-   text element parsing algorithm</span>, switch the tokenizer's
-   <span>content model flag</span> to the RAWTEXT state; otherwise the
-   algorithm invoked was the <span>generic RCDATA element parsing
-   algorithm</span>, switch the tokenizer's <span>content model
-   flag</span> to the RCDATA state.</p></li>
+   text element parsing algorithm</span>, switch the tokenizer to the
+   <span>RAWTEXT state</span>; otherwise the algorithm invoked
+   was the <span>generic RCDATA element parsing algorithm</span>,
+   switch the tokenizer to the <span>RCDATA state</span>.</p></li>
 
    <li><p>Let the <span>original insertion mode</span> be the current
    <span>insertion mode</span>.</p>
@@ -81744,8 +82135,8 @@ document.body.appendChild(text);
      and push it onto the <span>stack of open
      elements</span>.</p></li>
 
-     <li><p>Switch the tokenizer's <span>content model flag</span> to
-     the RAWTEXT state.</p></li>
+     <li><p>Switch the tokenizer to the <span>script data
+     state</span>.</p></li>
 
      <li><p>Let the <span>original insertion mode</span> be the current
      <span>insertion mode</span>.</p>
@@ -82328,14 +82719,12 @@ document.body.appendChild(text);
 
     <p><span>Insert an HTML element</span> for the token.</p>
 
-    <p>Switch the <span>content model flag</span> to the PLAINTEXT
-    state.</p>
+    <p>Switch the tokenizer to the <span>PLAINTEXT state</span>.</p>
 
-    <p class="note">Once a start tag with the tag name "plaintext"
-    has been seen, that will be the last token ever seen other
-    than character tokens (and the end-of-file token), because
-    there is no way to switch the <span>content model flag</span>
-    out of the PLAINTEXT state.</p>
+    <p class="note">Once a start tag with the tag name "plaintext" has
+    been seen, that will be the last token ever seen other than
+    character tokens (and the end-of-file token), because there is no
+    way to switch out of the <span>PLAINTEXT state</span>.</p>
 
    </dd>
 
@@ -82990,8 +83379,8 @@ document.body.appendChild(text);
      one. (Newlines at the start of <code>textarea</code> elements are
      ignored as an authoring convenience.)</p></li>
 
-     <li><p>Switch the tokenizer's <span>content model flag</span> to
-     the RCDATA state.</p></li>
+     <li><p>Switch the tokenizer to the the <span>RCDATA
+     state</span>.</p></li>
 
      <li><p>Let the <span>original insertion mode</span> be the
      current <span>insertion mode</span>.</p>
@@ -85633,45 +86022,40 @@ document.body.appendChild(text);
 
      <li>
 
-      <p>Set the <span>HTML parser</span>'s <span>tokenization</span>
-      stage's <span>content model flag</span> according to the <var
-      title="">context</var> element, as follows:</p>
+      <p>Set the state of the <span>HTML parser</span>'s
+      <span>tokenization</span> stage as follows:</p>
 
       <dl class="switch">
 
        <dt>If it is a <code>title</code> or <code>textarea</code>
        element</dt>
 
-       <dd>Set the <span>content model flag</span> to
-       the RCDATA state.</dd>
+       <dd>Switch the tokenizer to the <span>RCDATA state</span>.</dd>
 
 
        <dt>If it is a <code>style</code>, <code>script</code>,
        <code>xmp</code>, <code>iframe</code>, <code>noembed</code>, or
        <code>noframes</code> element</dt>
 
-       <dd>Set the <span>content model flag</span> to
-       the RAWTEXT state.</dd>
+       <dd>Switch the tokenizer to the <span>RAWTEXT state</span>.</dd>
 
 
        <dt>If it is a <code>noscript</code> element</dt>
 
-       <dd>If the <span>scripting flag</span> is enabled, set the
-       <span>content model flag</span> to the RAWTEXT
-       state. Otherwise, set the <span>content model flag</span> to the
-       PCDATA state.</dd>
+       <dd>If the <span>scripting flag</span> is enabled, switch the
+       tokenizer to the <span>RAWTEXT state</span>.  Otherwise,
+       leave the tokenizer in the <span>data state</span>.</dd>
 
 
        <dt>If it is a <code>plaintext</code> element</dt>
 
-       <dd>Set the <span>content model flag</span> to
-       PLAINTEXT.</dd>
+       <dd>Switch the tokenizer to the <span>PLAINTEXT
+       state</span>.</dd>
 
 
        <dt>Otherwise</dt>
 
-       <dd>Leave the <span>content model flag</span> in the PCDATA
-       state.</dd>
+       <dd>Leave the tokenizer in the <span>data state</span>.</dd>
 
       </dl>
 
