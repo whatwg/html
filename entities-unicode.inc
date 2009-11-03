@@ -33,6 +33,7 @@
      <tr> <td> <code title="">rbrack;</code> </td> <td> U+0005D </td> </tr>
      <tr> <td> <code title="">Hat;</code> </td> <td> U+0005E </td> </tr>
      <tr> <td> <code title="">lowbar;</code> </td> <td> U+0005F </td> </tr>
+     <tr> <td> <code title="">UnderBar;</code> </td> <td> U+0005F </td> </tr>
      <tr> <td> <code title="">grave;</code> </td> <td> U+00060 </td> </tr>
      <tr> <td> <code title="">DiacriticalGrave;</code> </td> <td> U+00060 </td> </tr>
      <tr> <td> <code title="">lcub;</code> </td> <td> U+0007B </td> </tr>
@@ -65,7 +66,6 @@
      <tr> <td> <code title="">circledR;</code> </td> <td> U+000AE </td> </tr>
      <tr> <td> <code title="">REG;</code> </td> <td> U+000AE </td> </tr>
      <tr> <td> <code title="">macr;</code> </td> <td> U+000AF </td> </tr>
-     <tr> <td> <code title="">OverBar;</code> </td> <td> U+000AF </td> </tr>
      <tr> <td> <code title="">strns;</code> </td> <td> U+000AF </td> </tr>
      <tr> <td> <code title="">deg;</code> </td> <td> U+000B0 </td> </tr>
      <tr> <td> <code title="">plusmn;</code> </td> <td> U+000B1 </td> </tr>
@@ -295,7 +295,6 @@
      <tr> <td> <code title="">dblac;</code> </td> <td> U+002DD </td> </tr>
      <tr> <td> <code title="">DiacriticalDoubleAcute;</code> </td> <td> U+002DD </td> </tr>
      <tr> <td> <code title="">DownBreve;</code> </td> <td> U+00311 </td> </tr>
-     <tr> <td> <code title="">UnderBar;</code> </td> <td> U+00332 </td> </tr>
      <tr> <td> <code title="">Alpha;</code> </td> <td> U+00391 </td> </tr>
      <tr> <td> <code title="">Beta;</code> </td> <td> U+00392 </td> </tr>
      <tr> <td> <code title="">Gamma;</code> </td> <td> U+00393 </td> </tr>
@@ -325,8 +324,7 @@
      <tr> <td> <code title="">beta;</code> </td> <td> U+003B2 </td> </tr>
      <tr> <td> <code title="">gamma;</code> </td> <td> U+003B3 </td> </tr>
      <tr> <td> <code title="">delta;</code> </td> <td> U+003B4 </td> </tr>
-     <tr> <td> <code title="">epsiv;</code> </td> <td> U+003B5 </td> </tr>
-     <tr> <td> <code title="">varepsilon;</code> </td> <td> U+003B5 </td> </tr>
+     <tr> <td> <code title="">epsi;</code> </td> <td> U+003B5 </td> </tr>
      <tr> <td> <code title="">epsilon;</code> </td> <td> U+003B5 </td> </tr>
      <tr> <td> <code title="">zeta;</code> </td> <td> U+003B6 </td> </tr>
      <tr> <td> <code title="">eta;</code> </td> <td> U+003B7 </td> </tr>
@@ -348,8 +346,6 @@
      <tr> <td> <code title="">upsi;</code> </td> <td> U+003C5 </td> </tr>
      <tr> <td> <code title="">upsilon;</code> </td> <td> U+003C5 </td> </tr>
      <tr> <td> <code title="">phi;</code> </td> <td> U+003C6 </td> </tr>
-     <tr> <td> <code title="">phiv;</code> </td> <td> U+003C6 </td> </tr>
-     <tr> <td> <code title="">varphi;</code> </td> <td> U+003C6 </td> </tr>
      <tr> <td> <code title="">chi;</code> </td> <td> U+003C7 </td> </tr>
      <tr> <td> <code title="">psi;</code> </td> <td> U+003C8 </td> </tr>
      <tr> <td> <code title="">omega;</code> </td> <td> U+003C9 </td> </tr>
@@ -359,6 +355,8 @@
      <tr> <td> <code title="">Upsi;</code> </td> <td> U+003D2 </td> </tr>
      <tr> <td> <code title="">upsih;</code> </td> <td> U+003D2 </td> </tr>
      <tr> <td> <code title="">straightphi;</code> </td> <td> U+003D5 </td> </tr>
+     <tr> <td> <code title="">phiv;</code> </td> <td> U+003D5 </td> </tr>
+     <tr> <td> <code title="">varphi;</code> </td> <td> U+003D5 </td> </tr>
      <tr> <td> <code title="">piv;</code> </td> <td> U+003D6 </td> </tr>
      <tr> <td> <code title="">varpi;</code> </td> <td> U+003D6 </td> </tr>
      <tr> <td> <code title="">Gammad;</code> </td> <td> U+003DC </td> </tr>
@@ -368,8 +366,9 @@
      <tr> <td> <code title="">varkappa;</code> </td> <td> U+003F0 </td> </tr>
      <tr> <td> <code title="">rhov;</code> </td> <td> U+003F1 </td> </tr>
      <tr> <td> <code title="">varrho;</code> </td> <td> U+003F1 </td> </tr>
-     <tr> <td> <code title="">epsi;</code> </td> <td> U+003F5 </td> </tr>
+     <tr> <td> <code title="">epsiv;</code> </td> <td> U+003F5 </td> </tr>
      <tr> <td> <code title="">straightepsilon;</code> </td> <td> U+003F5 </td> </tr>
+     <tr> <td> <code title="">varepsilon;</code> </td> <td> U+003F5 </td> </tr>
      <tr> <td> <code title="">bepsi;</code> </td> <td> U+003F6 </td> </tr>
      <tr> <td> <code title="">backepsilon;</code> </td> <td> U+003F6 </td> </tr>
      <tr> <td> <code title="">IOcy;</code> </td> <td> U+00401 </td> </tr>
@@ -522,6 +521,7 @@
      <tr> <td> <code title="">lsaquo;</code> </td> <td> U+02039 </td> </tr>
      <tr> <td> <code title="">rsaquo;</code> </td> <td> U+0203A </td> </tr>
      <tr> <td> <code title="">oline;</code> </td> <td> U+0203E </td> </tr>
+     <tr> <td> <code title="">OverBar;</code> </td> <td> U+0203E </td> </tr>
      <tr> <td> <code title="">caret;</code> </td> <td> U+02041 </td> </tr>
      <tr> <td> <code title="">hybull;</code> </td> <td> U+02043 </td> </tr>
      <tr> <td> <code title="">frasl;</code> </td> <td> U+02044 </td> </tr>
