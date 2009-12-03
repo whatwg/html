@@ -74684,7 +74684,7 @@ interface <dfn>WebSocket</dfn> {
 
   <!--START websocket-protocol-->
 
-  <h4 id="websocket-protocol" title="The Web Sockets protocol enables
+  <h4 id="websocket-protocol" title="The Web Socket protocol enables
   two-way communication between a user agent running untrusted code
   running in a controlled environment to a remote host that has
   opted-in to communications from that code. The security model used
@@ -74922,6 +74922,75 @@ Frame type byte &lt;-------------------------------------.
   HTTP servers is probably easier to manage.</p>
 
 
+  <h6>Writing a simple Web Socket server</h6>
+
+  <p><i>This section is non-normative.</i></p>
+
+  <p>If the Web Socket protocol is being used to provide a feature for
+  a specific site, then the handshake can be hard-coded, and the data
+  provided by the client in the handshake can be safely ignored. This
+  section describes an implementation strategy for this case.</p>
+
+  <p>Listen on a port for TCP/IP. Upon receiving a connection request,
+  open a connection and send the following bytes back to the
+  client:</p>
+
+  <pre>48 54 54 50 2F 31 2E 31  20 31 30 31 20 57 65 62
+20 53 6F 63 6B 65 74 20  50 72 6F 74 6F 63 6F 6C
+20 48 61 6E 64 73 68 61  6B 65 0D 0A 55 70 67 72
+61 64 65 3A 20 57 65 62  53 6F 63 6B 65 74 0D 0A
+43 6F 6E 6E 65 63 74 69  6F 6E 3A 20 55 70 67 72
+61 64 65 0D 0A 57 65 62  53 6F 63 6B 65 74 2D 4F
+72 69 67 69 6E 3A 20</pre>
+
+  <p>Send the <span title="ASCII serialization of an origin">ASCII
+  serialization</span> of the origin from which the server is willing
+  to accept connections. <a href="#refsORIGIN">[ORIGIN]</a></p>
+
+  <div class="example">
+   <p>For example: <code title="">http://example.com</code></p>
+  </div>
+
+  <p>Continue by sending the following bytes back to the client:</p>
+
+  <pre>0D 0A 57 65 62 53 6F 63  6B 65 74 2D 4C 6F 63 61
+74 69 6F 6E 3A 20</pre>
+
+  <p>Send the <span>URL</span> of the Web Socket script.</p>
+
+  <div class="example">
+   <p>For example: <code title="">ws://example.com/demo</code></p>
+  </div>
+
+  <p>Finish the handshake by sending the four bytes 0x0D 0x0A 0x0D
+  0x0A to the client. Then, read data <em>from</em> the client until
+  four bytes 0x0D 0x0A 0x0D 0x0A are read.</p>
+
+  <p class="note">User agents will drop the connection after the
+  handshake if the origin and URL sent as part of the algorithm above
+  don't match what the client sent to the server, to protect the
+  server from third-party scripts. This is why the server has to send
+  these strings: to confirm which origins and URLs the server is
+  willing to service.</p>
+
+  <p>At this point, there are two concerns: receiving frames and
+  sending frames.</p>
+
+  <p>To receive a frame, read a byte, verify that it is a 0x00 byte,
+  then read bytes until you find a 0xFF byte, and interpret all the
+  bytes between the 0x00 and 0xFF bytes as a UTF-8 string (the frame
+  payload, or message). This process can be repeated as necessary. If
+  at any point the first byte of one of these sequences is not 0x00,
+  then an error has occurred, and closing the connection is the
+  appropriate response.</p>
+
+  <p>To send a frame, first send a 0x00 byte, then send the message as
+  a UTF-8 string, then send a 0xFF byte. Again, this process can be
+  repeated as necessary.</p>
+
+  <p>The connection can be closed as desired.</p>
+
+
 
 <!--END complete-->
 
@@ -75082,8 +75151,13 @@ Frame type byte &lt;-------------------------------------.
   title="">origin</var>, with a flag <var title="">secure</var>, with
   a string giving a <var title="">resource name</var>, and optionally
   with a string giving a <var title="">protocol</var>, it must run the
-  following steps. The <var title="">resource name</var> string must
-  start with a U+002F SOLIDUS character (/). <a
+  following steps. The <var title="">host</var> must be ASCII-only
+  (i.e. it must have been punycode-encoded already if necessary). The
+  <var title="">resource name</var> and <var title="">protocol</var>
+  strings must be US-ASCII and must not contain U+000A LINE FEED (LF)
+  or U+000D CARRIAGE RETURN (CR) characters. The <var
+  title="">resource name</var> string must start with a U+002F SOLIDUS
+  character (/) and must not contain a U+0020 SPACE character. <a
   href="#refsORIGIN">[ORIGIN]</a></p>
 
   <ol>
@@ -75156,7 +75230,7 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
     flag using the steps to <span>construct a Web Socket
     URL</span>.</p>
 
-    <p class="note">The WebSocket protocol can be identified in proxy
+    <p class="note">The Web Socket protocol can be identified in proxy
     autoconfiguration scripts from the scheme ("<code
     title="">ws:</code>" for unencrypted connections and "<code
     title="">wss:</code>" for encrypted connections).</p>
@@ -75225,7 +75299,8 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
     <pre>4F 72 69 67 69 6E 3A 20</pre>
 
     <p>Send the <var title="">origin</var> value, <span>converted to
-    ASCII lowercase</span>, encoded as US-ASCII. <a href="#refsORIGIN">[ORIGIN]</a></p>
+    ASCII lowercase</span>, encoded as US-ASCII. <a
+    href="#refsORIGIN">[ORIGIN]</a></p>
 
     <p class="note">The <var title="">origin</var> value is a string
     that was passed to this algorithm.</p>
@@ -75278,10 +75353,10 @@ Proxy-authorization: Basic ZWRuYW1vZGU6bm9jYXBlcyE=</pre>
 <!--START websocket-protocol-->
     </p>
 
-    <p>Each header must be on a line of its own (each ending with a CR
-    LF sequence). For the purposes of this step, each header must not
-    be split into multiple lines (despite HTTP otherwise allowing this
-    with continuation lines).</p>
+    <p>Each header must be on a line of its own (each ending with a
+    CRLF sequence). For the purposes of this step, each header must
+    not be split into multiple lines (despite HTTP otherwise allowing
+    this with continuation lines).</p>
 
 <!--(v2-ws-auth)
     <div class="example">
@@ -75932,103 +76007,33 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
 
   <p><i>This section only applies to servers.</i></p>
 
-  <h6>Minimal handshake</h6>
 
-  <p class="note">This section describes the minimal requirements for
-  a server-side implementation of Web Sockets.</p>
+  <h6>Reading the client's handshake</h6>
 
-  <p>Listen on a port for TCP/IP. Upon receiving a connection request,
-  open a connection and send the following bytes back to the
-  client:</p>
-
-  <pre>48 54 54 50 2F 31 2E 31  20 31 30 31 20 57 65 62
-20 53 6F 63 6B 65 74 20  50 72 6F 74 6F 63 6F 6C
-20 48 61 6E 64 73 68 61  6B 65 0D 0A 55 70 67 72
-61 64 65 3A 20 57 65 62  53 6F 63 6B 65 74 0D 0A
-43 6F 6E 6E 65 63 74 69  6F 6E 3A 20 55 70 67 72
-61 64 65 0D 0A</pre>
-
-  <p>Send the string "<code
-  title="http-websocket-origin">WebSocket-Origin</code>" followed by a
-  U+003A COLON (:) and a U+0020 SPACE, followed by the <span
-  title="ASCII serialization of an origin">ASCII serialization</span>
-  of the origin from which the server is willing to accept
-  connections, followed by a CRLF pair (0x0D 0x0A). <a
-  href="#refsORIGIN">[ORIGIN]</a></p>
-
-  <div class="example">
-
-   <p>For instance:</p>
-
-   <pre>WebSocket-Origin: http://example.com</pre>
-
-  </div>
-
-  <p>Send the string "<code
-  title="http-websocket-location">WebSocket-Location</code>" followed
-  by a U+003A COLON (:) and a U+0020 SPACE, followed by the
-  <span>URL</span> of the Web Socket script, followed by a CRLF pair
-  (0x0D 0x0A).</p>
-
-  <div class="example">
-
-   <p>For instance:</p>
-
-   <pre>WebSocket-Location: ws://example.com/demo</pre>
-
-  </div>
-
-  <p class="note">Do not include the port if it is the default port
-  for Web Socket protocol connections of the type in question (80 for
-  unencrypted connections and 443 for encrypted connections).</p>
-
-  <p>Send another CRLF pair (0x0D 0x0A).</p>
-
-  <p>Read data from the client until four bytes 0x0D 0x0A 0x0D 0x0A
-  are read. This data must either be discarded or handled as described
-  in the following section describing the handshake details.</p>
-
-  <p>If the connection isn't dropped at this point, go to the <a
-  href="#ws-sd-framing">data framing</a> section.</p>
-
-  <p class="note">User agents will drop the connection after the
-  handshake if the values returned for <code
-  title="">WebSocket-Origin</code> and <code
-  title="">WebSocket-Location</code> don't match what the client sent
-  to the server, to protect the server from third-party scripts. This
-  is why the server has to send these strings: to confirm which
-  origins and URLs the server is willing to service.</p>
-
-
-  <h6>Handshake details</h6>
-
-  <p>The previous section ignores the data that is transmitted by the
-  client during the handshake.</p>
-
-  <p>The data sent by the client consists of a number of fields
-  separated by CR LF pairs (bytes 0x0D 0x0A).</p>
+  <p>When a client starts a Web Socket connection, it sends its part
+  of the handshake. This consists of a number of fields separated by
+  CRLF pairs (bytes 0x0D 0x0A).</p>
 
   <p>The first field consists of three tokens separated by space
-  characters (byte 0x20). The middle token is the path being
-  opened. If the server supports multiple paths, then the server
-  should echo the value of this field in the initial handshake, as
-  part of the <span>URL</span> given on the <code
-  title="http-websocket-location">WebSocket-Location</code> line
-  (after the appropriate scheme and host).</p>
+  characters (byte 0x20). The first token is the string "GET", the
+  middle token is the resource name, and the third is the string
+  "HTTP/1.1".</p>
 
-  <p>If the first field does not have three tokens, the server should
-  abort the connection as it probably represents an errorneous
-  client.</p>
+  <p>If the first field does not have three tokens, or if the first
+  and third tokens aren't the strings given in the previous paragraph,
+  or if the second token doesn't begin with U+002F SOLIDUS character
+  (/), the server should abort the connection: it either represents an
+  errorneous Web Socket client or a connection from a client expecting
+  another protocol altogether.</p>
 
-  <hr>
-
-  <p>The remaining fields consist of name-value pairs, with the name
-  part separated from the value part by a colon and a space (bytes
-  0x3A 0x20). Of these, several are interesting:</p>
+  <p>The subsequent fields consist of a string representing a name, a
+  colon and a space (bytes 0x3A 0x20), and a string representing a
+  value. The possible names, and the meaning of their corresponding
+  values, are as follows:</p>
 
   <dl>
 
-   <dt>Host (bytes 48 6F 73 74)</dt>
+   <dt>Host (bytes 48 6F 73 74; always the first name-value pair)</dt>
 
    <dd>
 
@@ -76038,15 +76043,9 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
     multiple hosts, and might therefore want to return different
     data.</p>
 
-    <p>The right host has to be output as part of the <span>URL</span>
-    given on the <code
-    title="http-websocket-location">WebSocket-Location</code> line of
-    the handshake described above, to verify that the server knows
-    that it is really representing that host.</p>
-
    </dd>
 
-   <dt>Origin (bytes 4F 72 69 67 69 6E)</dt> <!-- http-origin -->
+   <dt>Origin (bytes 4F 72 69 67 69 6E; always the second name-value pair)</dt> <!-- http-origin -->
 
    <dd>
 
@@ -76058,10 +76057,15 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
     <em>whether</em> to respond) based on which site was requesting a
     connection.</p>
 
-    <p>If the server supports connections from more than one origin,
-    then the server should echo the value of this field in the initial
-    handshake, on the <code
-    title="http-websocket-origin">WebSocket-Origin</code> line.</p>
+   </dd>
+
+   <dt>WebSocket-Protocol (bytes 57 65 62 53 6F 63 6B 65 74 2D 50 72 6F 74 6F 63 6F 6C; optional, if present, will be the third name-value pair)</dt> <!-- http-websocket-protocol -->
+
+   <dd>
+
+    <p>The value gives the name of a subprotocol that the client is
+    intending to select. It would be interesting if the server
+    supports multiple protocols or protocol versions.</p>
 
    </dd>
 
@@ -76071,48 +76075,194 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
 
     <p>Other fields can be used, such as "<code
     title="">Cookie</code>"<!--(v2-ws-auth) or
-    "<code>Authorization</code>"-->, for authentication purposes.</p>
+    "<code>Authorization</code>"-->, for authentication
+    purposes. Their semantics are equivalent to the semantics of the
+    HTTP headers with the same names.</p>
 
    </dd>
 
   </dl>
 
-  <p>Any fields that lack the colon-space separator should be
-  discarded and may cause the server to disconnect.</p>
+  <p>A final field consisting of the empty string (two consecutive
+  CRLF pairs) indicates the end of the client's handshake.</p>
+
+  <p>Any fields that lack the colon-space separator must at a minimum
+  be discarded and may cause the server to disconnect.</p>
+  
+
+  <h6>Sending the server's handshake</h6>
+
+  <p>When a client establishes a Web Socket connection to a server,
+  the server must either close the connection or send the server
+  handshake. Servers may read part or all of the client's handshake
+  before closing the connection or sending all of their side of the
+  handshake; indeed, in some cases this is necessary as the server
+  might need to use some of the information in the client's handshake
+  to construct it's own handshake.</p>
+
+  <p>To send the handshake, the server must first establish the
+  following information:</p>
+
+  <dl>
+
+   <dt><var title="">origin</var></dt>
+
+   <dd>The <span title="ASCII serialization of an origin">ASCII
+   serialization</span> of the origin that the server is willing to
+   communicate with. If the server can respond to requests from
+   multiple origins (or indeed, all origins), then the value should be
+   derived from the client's handshake, specifically from the "Origin"
+   field. <a href="#refsORIGIN">[ORIGIN]</a></dd>
+
+   <dt><var title="">host</var></dt>
+
+   <dd>The host name or IP address of the Web Socket server, as it is
+   to be addressed by clients. The host name must be punycode-encoded
+   if necessary. If the server can respond to requests to multiple
+   hosts (e.g. in a virtual hosting environment), then the value
+   should be derived from the client's handshake, specifically from
+   the "Host" field.</dd>
+
+   <dt><var title="">port</var></dt>
+
+   <dd>The port number on which the server expected and/or received
+   the connection.</dd>
+
+   <dt><var title="">resource name</var></dt>
+
+   <dd>An identifier for the service provided by the server. If the
+   server provides multiple services, then the value should be derived
+   from the client's handshake, specifically from the first
+   field.</dd>
+
+   <dt><var title="">secure flag</var><dt>
+
+   <dd>True if the connection is encrypted or if the server expected
+   it to be encrypted; false otherwise.</dd>
+
+   <dt><var title="">subprotocol</var></dt>
+
+   <dd>Either null, or a string representing the subprotocol the
+   server is ready to use. If the server supports multiple
+   subprotocols, then the value should be derived from the client's
+   handshake, specifically from the "WebSocket-Protocol" field. The
+   absence of such a field is equivalent to the null value. The empty
+   string is not the same as the null value for these purposes.</dd>
+
+  </dl>
+
+  <p>Having established this information, the server must start the
+  handshake. The initial part of the server's handshake is invariant,
+  and must consist of the following bytes:</p>
+
+  <pre>48 54 54 50 2F 31 2E 31  20 31 30 31 20 57 65 62
+20 53 6F 63 6B 65 74 20  50 72 6F 74 6F 63 6F 6C
+20 48 61 6E 64 73 68 61  6B 65 0D 0A 55 70 67 72
+61 64 65 3A 20 57 65 62  53 6F 63 6B 65 74 0D 0A
+43 6F 6E 6E 65 63 74 69  6F 6E 3A 20 55 70 67 72
+61 64 65 0D 0A 57 65 62  53 6F 63 6B 65 74 2D 4F
+72 69 67 69 6E 3A 20</pre>
+
+  <p>These bytes must be the first bytes sent on the TCP connection by
+  the server. They must be followed by the <var title="">origin</var>
+  string, encoded as US-ASCII, followed by the following bytes:</p>
+
+  <pre>0D 0A 57 65 62 53 6F 63  6B 65 74 2D 4C 6F 63 61
+74 69 6F 6E 3A 20</pre>
+
+  <p>The server must then send the string that results from <span
+  title="construct a Web Socket URL">constructing a Web Socket
+  URL</span> from <var title="">host</var>, <var title="">port</var>,
+  <var title="">resource name</var>, and <var title="">secure
+  flag</var>, encoded as US-ASCII.</p>
+
+  <p>If the <var title="">subprotocol</var> is not null, then the
+  server must then send the following bytes:</p>
+
+  <pre>0D 0A 57 65 62 53 6F 63  6B 65 74 2D 50 72 6F 74
+6F 63 6F 6C 3A 20</pre>
+
+  <p>...followed by the <var title="">subprotocol</var> string,
+  encoded as US-ASCII.</p>
+
+  <p>Finally, the server must end its side of the handshake by sending
+  the four bytes 0x0D 0x0A 0x0D 0x0A to the client.</p>
 
 
   <h6 id="ws-sd-framing">Data framing</h6>
-
-  <p class="note">This section only describes how to handle content
-  that this specification allows user agents to send (text). It
-  doesn't handle any arbitrary content in the same way that the
-  requirements on user agents defined earlier handle any content
-  including possible future extensions to the protocols.</p>
 
   <p>The server must run through the following steps to process the
   bytes sent by the client:</p>
 
   <ol>
 
-   <li><p>Read a byte from the client. Assuming everything is going
-   according to plan, it will be a 0x00 byte. If the byte is not a
-   0x00 byte, then the server may disconnect.</p></li>
+   <li id="wd-sd-frame"><p><i title="">Frame</i>: Read a byte from the
+   client. Let <var title="">type</var> be that byte.</p></li>
 
-   <li><p>Let <var title="">raw data</var> be an empty byte
-   array.</p></li>
+   <li><p>If <var title="">type</var> is not a 0x00 byte, then the
+   server may disconnect from the client.</p>
 
-   <li id="ws-sd-data"><p><i>Data</i>: Read a byte, let <var
-   title="">b</var> be that byte.</p></li>
+   <li>
 
-   <li><p>If <var title="">b</var> is not 0xFF, then append <var
-   title="">b</var> to <var title="">raw data</var> and return to the
-   previous step (labeled <a href="#ws-sd-data"><i>data</i></a>).</p></li>
+    <p>If the most significant bit of <var title="">type</var> is not
+    set, then run the following steps:</p>
 
-   <li><p>Interpret <var title="">raw data</var> as a UTF-8 string,
-   and apply whatever server-specific processing is to occur for the
-   resulting string.</p>
+    <ol>
 
-   <li><p>Return to the first step to read the next byte.</p></li>
+     <li><p>Let <var title="">raw data</var> be an empty byte
+     array.</p></li>
+
+     <li id="ws-sd-data"><p><i>Data</i>: Read a byte, let <var
+     title="">b</var> be that byte.</p></li>
+
+     <li><p>If <var title="">b</var> is not 0xFF, then append <var
+     title="">b</var> to <var title="">raw data</var> and return to
+     the previous step (labeled <a
+     href="#ws-sd-data"><i>data</i></a>).</p></li>
+
+     <li><p>Interpret <var title="">raw data</var> as a UTF-8 string,
+     and apply whatever server-specific processing is to occur for the
+     resulting string (the message from the client).</p>
+
+    </ol>
+
+    <p>Otherwise, the most significant bit of <var title="">type</var>
+    is set. Run the following steps. This can never happen if <var
+    title="">type</var> is 0x00, and therefore these steps are not
+    necessary if the server aborts when <var title="">type</var> is
+    not 0x00, as allowed above.</p>
+
+    <ol>
+
+     <li><p>Let <var title="">length</var> be zero.</p></li>
+
+     <li id="ws-sd-length"><p><i>Length</i>: Read a byte, let <var
+     title="">b</var> be that byte.</p></li>
+
+     <li><p>Let <var title="">b<sub title="">v</sub></var> be
+     integer corresponding to the low 7 bits of <var title="">b</var>
+     (the value you would get by <i>and</i>ing <var title="">b</var>
+     with 0x7F).</p></li>
+
+     <li><p>Multiply <var title="">length</var> by 128, add <var
+     title="">b<sub title="">v</sub></var> to that result, and store
+     the final result in <var title="">length</var>.</p></li>
+
+     <li><p>If the high-order bit of <var title="">b</var> is set
+     (i.e. if <var title="">b</var> <i title="">and</i>ed with 0x80
+     returns 0x80), then return to the step above labeled <a
+     href="#ws-sd-length"><i>length</i></a>.</p></li>
+
+     <li><p>Read <var title="">length</var> bytes.</p></li>
+
+     <li><p>Discard the read bytes.</p></li>
+
+    </ol>
+
+   </li>
+
+   <li><p>Return to the step labeled <a
+   href="#ws-sd-frame"><i>frame</i></a>.</p></li>
 
   </ol>
 
@@ -76384,7 +76534,7 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
    <dt>Applicable protocol</dt>
    <dd>http</dd>
    <dt>Status</dt>
-   <dd>reserved; do not use outside WebSocket handshake</dd>
+   <dd>reserved; do not use outside Web Socket handshake</dd>
    <dt>Author/Change controller</dt>
    <dd>IETF</dd>
    <dt>Specification document(s)</dt>
@@ -76395,11 +76545,11 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
    <dd>None.</dd>   
   </dl>
 
-  <p>The <code>WebSocket-Origin</code> header is used in the WebSocket
-  handshake. It is sent from the server to the client to confirm the
-  <span>origin</span> of the script that opened the connection. This
-  enables user agents to verify that the server is willing to serve
-  the script that opened the connection.</p>
+  <p>The <code>WebSocket-Origin</code> header is used in the Web
+  Socket handshake. It is sent from the server to the client to
+  confirm the <span>origin</span> of the script that opened the
+  connection. This enables user agents to verify that the server is
+  willing to serve the script that opened the connection.</p>
 
 
   <h6><dfn title="http-websocket-protocol"><code>WebSocket-Protocol</code></dfn></h6>
@@ -76414,7 +76564,7 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
    <dt>Applicable protocol</dt>
    <dd>http</dd>
    <dt>Status</dt>
-   <dd>reserved; do not use outside WebSocket handshake</dd>
+   <dd>reserved; do not use outside Web Socket handshake</dd>
    <dt>Author/Change controller</dt>
    <dd>IETF</dd>
    <dt>Specification document(s)</dt>
@@ -76425,9 +76575,9 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
    <dd>None.</dd>   
   </dl>
 
-  <p>The <code>WebSocket-Protocol</code> header is used in the
-  WebSocket handshake. It is sent from the client to the server and
-  back from the server to the client to confirm the subprotocol of the
+  <p>The <code>WebSocket-Protocol</code> header is used in the Web
+  Socket handshake. It is sent from the client to the server and back
+  from the server to the client to confirm the subprotocol of the
   connection. This enables scripts to both select a subprotocol and be
   sure that the server agreed to serve that subprotocol.</p>
 
@@ -76444,7 +76594,7 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
    <dt>Applicable protocol</dt>
    <dd>http</dd>
    <dt>Status</dt>
-   <dd>reserved; do not use outside WebSocket handshake</dd>
+   <dd>reserved; do not use outside Web Socket handshake</dd>
    <dt>Author/Change controller</dt>
    <dd>IETF</dd>
    <dt>Specification document(s)</dt>
@@ -76455,8 +76605,8 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
    <dd>None.</dd>   
   </dl>
 
-  <p>The <code>WebSocket-Location</code> header is used in the
-  WebSocket handshake. It is sent from the server to the client to
+  <p>The <code>WebSocket-Location</code> header is used in the Web
+  Socket handshake. It is sent from the server to the client to
   confirm the <span>URL</span> of the connection. This enables the
   client to verify that the connection was established to the right
   server, port, and path, instead of relying on the server to verify
@@ -76473,7 +76623,7 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
    author of the site hostile.example.net could then use the resources
    of www.example.com.</p>
 
-   <p>With WebSocket, though, the server responds with a
+   <p>With the Web Socket protocol, though, the server responds with a
    <code>WebSocket-Location</code> header in the handshake, explicitly
    saying that it is serving <code
    title="">ws://www.example.com:20000/</code>. The client, expecting
