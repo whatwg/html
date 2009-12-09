@@ -74635,16 +74635,16 @@ interface <dfn>WebSocket</dfn> {
   (e.g. because the user agent just had a buffer overflow and failed
   to send the data).</p>
 
-  <p>The <dfn
-  title="dom-WebSocket-close"><code>close()</code></dfn>
+  <p>The <dfn title="dom-WebSocket-close"><code>close()</code></dfn>
   method must <span>close the Web Socket connection</span> or
-  connection attempt, if any. If the connection is already closed, it
-  must do nothing.</p>
-
-  <p class="note">Closing the connection eventually causes a <code
-  title="event-close">close</code> event to be fired and the <code
+  connection attempt, if any, and change the <code
   title="dom-WebSocket-readyState">readyState</code> attribute's value
-  to change, as <a href="#closeWebSocket">described below</a>.</p>
+  to <code title="dom-WebSocket-CLOSED">CLOSED</code> (2). If the
+  connection is already closed, it must do nothing.</p>
+
+  <p class="note">Closing the connection immediately causes a task to
+  be queued to fire a <code title="event-close">close</code> event, as
+  <a href="#closeWebSocket">described below</a>.</p>
 
   <hr>
 
@@ -74676,29 +74676,12 @@ interface <dfn>WebSocket</dfn> {
   <h4>Feedback from the protocol</h4>
 
   <p>When the <i>Web Socket connection is established</i>, the user
-  agent must <span>queue a task</span> to run the following steps:</p>
-
-  <ol>
-
-   <li>
-
-    <p>Change the <code
-    title="dom-WebSocket-readyState">readyState</code> attribute's value
-    to <code title="dom-WebSocket-OPEN">OPEN</code> (1).</p>
-
-   </li>
-
-   <li>
-
-    <p><span>Fire a simple event</span> named <code
-    title="event-open">open</code> at the <code>WebSocket</code>
-    object.</p>
-
-   </li>
-
-  </ol>
-
-  <hr>
+  agent must <span>queue a task</span> to first change the <code
+  title="dom-WebSocket-readyState">readyState</code> attribute's value
+  to <code title="dom-WebSocket-OPEN">OPEN</code> (1), and then
+  <span>fire a simple event</span> named <code
+  title="event-open">open</code> at the <code>WebSocket</code>
+  object.</p>
 
   <p>When <i>a Web Socket message has been received</i> with text <var
   title="">data</var>, the user agent must create an event that uses
@@ -74706,20 +74689,24 @@ interface <dfn>WebSocket</dfn> {
   title="event-message">message</code>, which does not bubble, is not
   cancelable, has no default action, and whose <code
   title="dom-MessageEvent-data">data</code> attribute is set to <var
-  title="">data</var>, and <span>queue a task</span> to dispatch it at
-  the <code>WebSocket</code> object.</p>
-
-  <hr>
-
-  <p id="closeWebSocket">When the <i>Web Socket connection is
-  closed</i>, must <span>queue a task</span> to change the <code
-  title="dom-WebSocket-readyState">readyState</code> attribute's value
-  to <code title="dom-WebSocket-CLOSED">CLOSED</code> (2) and then
-  <span>fire a simple event</span> named <code
-  title="event-close">close</code> at the <code>WebSocket</code>
+  title="">data</var>, and <span>queue a task</span> to check to see
+  if the <code title="dom-WebSocket-readyState">readyState</code>
+  attribute's value is <code title="dom-WebSocket-OPEN">OPEN</code>
+  (1), and if so, dispatch the event at the <code>WebSocket</code>
   object.</p>
 
-  <hr>
+  <p id="closeWebSocket">When the <i>Web Socket connection is
+  closed</i>, the user agent must <span>queue a task</span> to first
+  change the <code title="dom-WebSocket-readyState">readyState</code>
+  attribute's value to <code
+  title="dom-WebSocket-CLOSED">CLOSED</code> (2), and then <span>fire
+  a simple event</span> named <code title="event-close">close</code>
+  at the <code>WebSocket</code> object. (If the <code
+  title="dom-WebSocket-close">close()</code> method was called, the
+  code title="dom-WebSocket-readyState">readyState</code> attribute's
+  value will already be set to <code
+  title="dom-WebSocket-CLOSED">CLOSED</code> (2) when this task
+  runs.)</p>
 
   <p>The <span>task source</span> for all <span
   title="concept-task">tasks</span> <span title="queue a
@@ -76425,24 +76412,16 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
 
   <p>To <dfn>close the Web Socket connection</dfn>, either the user
   agent or the server closes the TCP/IP connection. There is no
-  closing handshake. Whether the user agent or the server closes the
-  connection, it is said that the <dfn>Web Socket connection is
+  closing handshake. When a user agent notices that the server has
+  closed its connection, it must immediately close its side of the
+  connection also. Whether the user agent or the server closes the
+  connection first, it is said that the <dfn>Web Socket connection is
   closed</dfn>.</p>
 
-  <p>When a user agent is to <span>close the Web Socket
-  connection</span>, it must drop all subsequent data from the server
-  and must act as if the server had immediately closed its side of the
-  connection.</p>
-
-  <p>When a user agent notices that the <span>Web Socket connection is
-  closed</span>, it must immediately close its side of the
-  connection.</p>
-
   <p>Servers may <span>close the Web Socket connection</span> whenever
-  desired.</p>
-
-  <p>User agents should not <span>close the Web Socket
+  desired. User agents should not <span>close the Web Socket
   connection</span> arbitrarily.</p>
+
 
 
   <h5>Security considerations</h5>
