@@ -76235,6 +76235,115 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
   <h5>Server-side requirements</h5>
 
   <p><i>This section only applies to servers.</i></p>
+  
+
+  <h6>Sending the server's handshake</h6>
+
+  <p>When a client establishes a Web Socket connection to a server,
+  the server must either close the connection or send the server
+  handshake. Servers may read part or all of the client's handshake
+  (as described in the next section) before closing the connection or
+  sending all of their side of the handshake; indeed, in some cases
+  this is necessary as the server might need to use some of the
+  information in the client's handshake to construct it's own
+  handshake.</p>
+
+  <p>If the server supports encryption, then the server must perform a
+  TLS handshake over the connection before sending the server
+  handshake. If this fails (e.g. the client indicated a host name in
+  the extended client hello "server_name" extension that the server
+  does not host), then the server must close the connection;
+  otherwise, all further communication for the connection (including
+  the server handshake) must run through the encrypted tunnel. <a
+  href="#refsRFC2246">[RFC2246]</a></p>
+
+  <p>To send the server handshake, the server must first establish the
+  following information:</p>
+
+  <dl>
+
+   <dt><var title="">origin</var></dt>
+
+   <dd>The <span title="ASCII serialization of an origin">ASCII
+   serialization</span> of the origin that the server is willing to
+   communicate with. If the server can respond to requests from
+   multiple origins (or indeed, all origins), then the value should be
+   derived from the client's handshake, specifically from the "Origin"
+   field. <a href="#refsORIGIN">[ORIGIN]</a></dd>
+
+   <dt><var title="">host</var></dt>
+
+   <dd>The host name or IP address of the Web Socket server, as it is
+   to be addressed by clients. The host name must be punycode-encoded
+   if necessary. If the server can respond to requests to multiple
+   hosts (e.g. in a virtual hosting environment), then the value
+   should be derived from the client's handshake, specifically from
+   the "Host" field.</dd>
+
+   <dt><var title="">port</var></dt>
+
+   <dd>The port number on which the server expected and/or received
+   the connection.</dd>
+
+   <dt><var title="">resource name</var></dt>
+
+   <dd>An identifier for the service provided by the server. If the
+   server provides multiple services, then the value should be derived
+   from the client's handshake, specifically from the "Host"
+   field.</dd>
+
+   <dt><var title="">secure flag</var><dt>
+
+   <dd>True if the connection is encrypted or if the server expected
+   it to be encrypted; false otherwise.</dd>
+
+   <dt><var title="">subprotocol</var></dt>
+
+   <dd>Either null, or a string representing the subprotocol the
+   server is ready to use. If the server supports multiple
+   subprotocols, then the value should be derived from the client's
+   handshake, specifically from the "WebSocket-Protocol" field. The
+   absence of such a field is equivalent to the null value. The empty
+   string is not the same as the null value for these purposes.</dd>
+
+  </dl>
+
+  <p>Having established this information, the server must start the
+  handshake. The initial part of the server's handshake is invariant,
+  and must consist of the following bytes:</p>
+
+  <pre>48 54 54 50 2F 31 2E 31  20 31 30 31 20 57 65 62
+20 53 6F 63 6B 65 74 20  50 72 6F 74 6F 63 6F 6C
+20 48 61 6E 64 73 68 61  6B 65 0D 0A 55 70 67 72
+61 64 65 3A 20 57 65 62  53 6F 63 6B 65 74 0D 0A
+43 6F 6E 6E 65 63 74 69  6F 6E 3A 20 55 70 67 72
+61 64 65 0D 0A 57 65 62  53 6F 63 6B 65 74 2D 4F
+72 69 67 69 6E 3A 20</pre>
+
+  <p>These bytes must be the first bytes sent on the TCP connection by
+  the server. They must be followed by the <var title="">origin</var>
+  string, encoded as ASCII, followed by the following bytes:</p>
+
+  <pre>0D 0A 57 65 62 53 6F 63  6B 65 74 2D 4C 6F 63 61
+74 69 6F 6E 3A 20</pre>
+
+  <p>The server must then send the string that results from <span
+  title="construct a Web Socket URL">constructing a Web Socket
+  URL</span> from <var title="">host</var>, <var title="">port</var>,
+  <var title="">resource name</var>, and <var title="">secure
+  flag</var>, encoded as ASCII.</p>
+
+  <p>If the <var title="">subprotocol</var> is not null, then the
+  server must then send the following bytes:</p>
+
+  <pre>0D 0A 57 65 62 53 6F 63  6B 65 74 2D 50 72 6F 74
+6F 63 6F 6C 3A 20</pre>
+
+  <p>...followed by the <var title="">subprotocol</var> string,
+  encoded as ASCII.</p>
+
+  <p>Finally, the server must end its side of the handshake by sending
+  the four bytes 0x0D 0x0A 0x0D 0x0A to the client.</p>
 
 
   <h6>Reading the client's handshake</h6>
@@ -76336,114 +76445,13 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
 
   <p>Any fields that lack the colon-space separator must at a minimum
   be discarded and may cause the server to disconnect.</p>
-  
 
-  <h6>Sending the server's handshake</h6>
-
-  <p>When a client establishes a Web Socket connection to a server,
-  the server must either close the connection or send the server
-  handshake. Servers may read part or all of the client's handshake
-  before closing the connection or sending all of their side of the
-  handshake; indeed, in some cases this is necessary as the server
-  might need to use some of the information in the client's handshake
-  to construct it's own handshake.</p>
-
-  <p>If the server supports encryption, then the server must perform a
-  TLS handshake over the connection before sending the server
-  handshake. If this fails (e.g. the client indicated a host name in
-  the extended client hello "server_name" extension that the server
-  does not host), then the server must close the connection;
-  otherwise, all further communication for the connection (including
-  the server handshake) must run through the encrypted tunnel. <a
-  href="#refsRFC2246">[RFC2246]</a></p>
-
-  <p>To send the server handshake, the server must first establish the
-  following information:</p>
-
-  <dl>
-
-   <dt><var title="">origin</var></dt>
-
-   <dd>The <span title="ASCII serialization of an origin">ASCII
-   serialization</span> of the origin that the server is willing to
-   communicate with. If the server can respond to requests from
-   multiple origins (or indeed, all origins), then the value should be
-   derived from the client's handshake, specifically from the "Origin"
-   field. <a href="#refsORIGIN">[ORIGIN]</a></dd>
-
-   <dt><var title="">host</var></dt>
-
-   <dd>The host name or IP address of the Web Socket server, as it is
-   to be addressed by clients. The host name must be punycode-encoded
-   if necessary. If the server can respond to requests to multiple
-   hosts (e.g. in a virtual hosting environment), then the value
-   should be derived from the client's handshake, specifically from
-   the "Host" field.</dd>
-
-   <dt><var title="">port</var></dt>
-
-   <dd>The port number on which the server expected and/or received
-   the connection.</dd>
-
-   <dt><var title="">resource name</var></dt>
-
-   <dd>An identifier for the service provided by the server. If the
-   server provides multiple services, then the value should be derived
-   from the client's handshake, specifically from the "Host"
-   field.</dd>
-
-   <dt><var title="">secure flag</var><dt>
-
-   <dd>True if the connection is encrypted or if the server expected
-   it to be encrypted; false otherwise.</dd>
-
-   <dt><var title="">subprotocol</var></dt>
-
-   <dd>Either null, or a string representing the subprotocol the
-   server is ready to use. If the server supports multiple
-   subprotocols, then the value should be derived from the client's
-   handshake, specifically from the "WebSocket-Protocol" field. The
-   absence of such a field is equivalent to the null value. The empty
-   string is not the same as the null value for these purposes.</dd>
-
-  </dl>
-
-  <p>Having established this information, the server must start the
-  handshake. The initial part of the server's handshake is invariant,
-  and must consist of the following bytes:</p>
-
-  <pre>48 54 54 50 2F 31 2E 31  20 31 30 31 20 57 65 62
-20 53 6F 63 6B 65 74 20  50 72 6F 74 6F 63 6F 6C
-20 48 61 6E 64 73 68 61  6B 65 0D 0A 55 70 67 72
-61 64 65 3A 20 57 65 62  53 6F 63 6B 65 74 0D 0A
-43 6F 6E 6E 65 63 74 69  6F 6E 3A 20 55 70 67 72
-61 64 65 0D 0A 57 65 62  53 6F 63 6B 65 74 2D 4F
-72 69 67 69 6E 3A 20</pre>
-
-  <p>These bytes must be the first bytes sent on the TCP connection by
-  the server. They must be followed by the <var title="">origin</var>
-  string, encoded as ASCII, followed by the following bytes:</p>
-
-  <pre>0D 0A 57 65 62 53 6F 63  6B 65 74 2D 4C 6F 63 61
-74 69 6F 6E 3A 20</pre>
-
-  <p>The server must then send the string that results from <span
-  title="construct a Web Socket URL">constructing a Web Socket
-  URL</span> from <var title="">host</var>, <var title="">port</var>,
-  <var title="">resource name</var>, and <var title="">secure
-  flag</var>, encoded as ASCII.</p>
-
-  <p>If the <var title="">subprotocol</var> is not null, then the
-  server must then send the following bytes:</p>
-
-  <pre>0D 0A 57 65 62 53 6F 63  6B 65 74 2D 50 72 6F 74
-6F 63 6F 6C 3A 20</pre>
-
-  <p>...followed by the <var title="">subprotocol</var> string,
-  encoded as ASCII.</p>
-
-  <p>Finally, the server must end its side of the handshake by sending
-  the four bytes 0x0D 0x0A 0x0D 0x0A to the client.</p>
+  <p>Whether the server does or does not read the client handshake, it
+  must at a minimum read (and optionally discard) bytes until it has
+  read the first sequence of four bytes 0x0A 0x0D 0x0A 0x0D, which
+  signals the end of the client handshake. Servers may do this before
+  or after sending their handshake, but must do it before reading
+  frames from the client as described in the next section.</p>
 
 
   <h6 id="ws-sd-framing">Data framing</h6>
