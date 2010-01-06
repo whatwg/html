@@ -55025,6 +55025,31 @@ END:VCARD</pre>
   context</span> gives the list of <dfn title="ancestor browsing
   context">ancestor browsing contexts</dfn>.</p>
 
+  <p>The <dfn>list of the descendant browsing contexts</dfn> of a
+  <code>Document</code> <var title="">d</var> is the list returned by
+  the following algorithm:</p>
+
+  <ol>
+
+   <li><p>Let <var title="">list</var> be an empty list.</p></li>
+
+   <li><p>For each <span>child browsing context</span> of <var
+   title="">d</var> that is <span title="browsing context nested
+   through">nested through</span> an element that is <span title="in a
+   document">in the <code>Document</code></span> <var
+   title="">d</var>, in the <span>tree order</span> of the elements of
+   the elements nesting those <span title="browsing context">browsing
+   contexts</span>, append to the list <var title="">list</var> the
+   <span>list of the descendant browsing contexts</span> of the
+   <span>active document</span> of that <span>child browsing
+   context</span>.</p></li>
+
+   <li><p>Return the constructed <var title="">list</var>.</p></li>
+
+  </ol>
+
+  <hr>
+
   <p>A <code>Document</code> is said to be <dfn>fully active</dfn>
   when it is the <span>active document</span> of its <span>browsing
   context</span>, and either its browsing context is a <span>top-level
@@ -55824,12 +55849,14 @@ interface <dfn>Window</dfn> {
   <p>The <dfn title="dom-length"><code>length</code></dfn> IDL
   attribute on the <code>Window</code> interface must return the
   number of <span title="child browsing context">child browsing
-  contexts</span> of the <span>active document</span> of that
-  <code>Window</code> object, if that <code>Window</code>'s
-  <span>browsing context</span> shares the same <span>event
-  loop</span> as the <span>script's browsing context</span> of the
-  <span>first script</span> accessing the IDL attribute; otherwise, it
-  must return zero.</p>
+  contexts</span> that are <span title="browsing context nested
+  through">nested through</span> elements that are <span title="in a
+  document">in the <code>Document</code></span> that is the
+  <span>active document</span> of that <code>Window</code> object, if
+  that <code>Window</code>'s <span>browsing context</span> shares the
+  same <span>event loop</span> as the <span>script's browsing
+  context</span> of the <span>first script</span> accessing the IDL
+  attribute; otherwise, it must return zero.</p>
 
   <!-- in other words, frames are only accessible to same-thread processes -->
 
@@ -55845,9 +55872,10 @@ interface <dfn>Window</dfn> {
   title="dom-window-item">indexed to retrieve an indexed
   property</dfn> <var title="">index</var>, the value returned must be
   the <var title="">index</var>th <span>child browsing context</span>
-  of the <code>Document</code>, sorted in the <span>tree order</span>
-  of the elements nesting those <span title="browsing
-  context">browsing contexts</span>.</p>
+  of the <code>Document</code> that is nested through an element that
+  is <span title="in a document">in the <code>Document</code></span>,
+  sorted in the <span>tree order</span> of the elements nesting those
+  <span title="browsing context">browsing contexts</span>.</p>
 
   <p>These properties are the <dfn>dynamic nested browsing context
   properties</dfn>.</p>
@@ -55979,10 +56007,13 @@ interface <dfn>Window</dfn> {
   <p>When a <span>browsing context</span> is to <dfn>discard a
   <code>Document</code></dfn>, that means that it is to lose the
   strong reference from the <code>Document</code>'s <span>browsing
-  context</span> to the <code>Document</code>, and that any <span
+  context</span> to the <code>Document</code>, that any <span
   title="concept-task">tasks</span> associated with the
   <code>Document</code> in any <span>task source</span> must be
-  removed without being run.</p>
+  removed without being run, and that all the <span title="child
+  browsing context">child browsing contexts</span> of the
+  <code>Document</code> must also be <span title="a browsing context
+  is discarded">discarded</span>.</p>
 
   <p class="note">The <span>browsing context</span>'s <span>default
   view</span>'s <code>Window</code> object <span title="implied strong
@@ -63680,6 +63711,41 @@ State: &lt;OUTPUT NAME=I>1&lt;/OUTPUT> &lt;INPUT VALUE="Increment" TYPE=BUTTON O
 
    </li>
 
+   <li><p>If this algorithm was invoked by another instance of the
+   "prompt to unload a document" algorithm (i.e. through the steps
+   below that invoke this algorithm for all descendant browsing
+   contexts), then abort these steps here.</p></li>
+
+   <li><p>Let <var title="">descendants</var> be the <span>list of the
+   descendant browsing contexts</span> of the
+   <code>Document</code>.</p></li>
+
+   <li>
+
+    <p>If <var title="">descendants</var> is not an empty list, then
+    for each <span>browsing context</span> <var title="">b</var> in
+    <var title="">descendants</var> run the following substeps:</p>
+
+    <ol>
+
+     <li><p><span title="prompt to unload a document">Prompt to
+     unload</span> the <span>active document</span> of the
+     <span>browsing context</span> <var title="">b</var>. If the user
+     <span>refused to allow the document to be unloaded</span>, then
+     the user implicitly also <span title="refused to allow the
+     document to be unloaded">refused to allow <em>this</em> document
+     to be unloaded</span>; abort these steps.</p>
+
+     <li><p>If <var title="">salvageable</var> state of the
+     <span>active document</span> of the <span>browsing context</span>
+     <var title="">b</var> is false, then set the <var
+     title="">salvageable</var> state of <em>this</em> document to
+     false also.</p></li>
+
+    </ol>
+
+   </li>
+
   </ol>
 
   <hr>
@@ -63718,9 +63784,43 @@ State: &lt;OUTPUT NAME=I>1&lt;/OUTPUT> &lt;INPUT VALUE="Increment" TYPE=BUTTON O
    <span>list of active timeouts</span> and its <span>list of active
    intervals</span>.</p></li>
 
+   <li><p>If this algorithm was invoked by another instance of the
+   "unload a document" algorithm (i.e. through the steps below that
+   invoke this algorithm for all descendant browsing contexts), then
+   abort these steps here.</p></li>
+
+   <li><p>Let <var title="">descendants</var> be the <span>list of the
+   descendant browsing contexts</span> of the
+   <code>Document</code>.</p></li>
+
+   <li>
+
+    <p>If <var title="">descendants</var> is not an empty list, then
+    for each <span>browsing context</span> <var title="">b</var> in
+    <var title="">descendants</var> run the following substeps:</p>
+
+    <ol>
+
+     <li><p><span title="unload a document">Unload</span> the
+     <span>active document</span> of the <span>browsing context</span>
+     <var title="">b</var> with the <var title="">recycle</var>
+     parameter set to false.</p></li>
+
+     <li><p>If <var title="">salvageable</var> state of the
+     <span>active document</span> of the <span>browsing context</span>
+     <var title="">b</var> is false, then set the <var
+     title="">salvageable</var> state of <em>this</em> document to
+     false also.</p></li>
+
+    </ol>
+
+   </li>
+
    <li><p>If <var title="">salvageable</var> and <var
-   title="">recycle</var> are both false, <span title="discard a
-   document">discard the <code>Document</code></span>.</p></li>
+   title="">recycle</var> are both false, then the
+   <code>Document</code>'s <span>browsing context</span> must <span
+   title="discard a document">discard the
+   <code>Document</code></span>.</p></li>
 
   </ol>
 
