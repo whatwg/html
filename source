@@ -50661,11 +50661,8 @@ document.body.appendChild(outer);</pre>
   <p>The <code title="attr-itemref">itemref</code> attribute, if
   specified, must have a value that is an <span>unordered set of
   unique space-separated tokens</span> consisting of <span
-  title="concept-ID">IDs</span> of elements in the same document; for
-  each one, the element's nearest ancestor element with an <code
-  title="attr-itemscope">itemscope</code> attribute specified, if any,
-  must not be the element with the referencing <code
-  title="attr-itemref">itemref</code> attribute specified.</p>
+  title="concept-ID">IDs</span> of elements in the same <span>home
+  subtree</span>.</p>
 
   <p>The <code title="attr-itemref">itemref</code> attribute must not
   be specified on elements that do not have an <code
@@ -50872,101 +50869,115 @@ document.body.appendChild(outer);</pre>
 
   <h4>Associating names with items</h4>
 
-  <p>To find <dfn>the properties of an item</dfn>, the user agent must
-  run the following steps:</p>
+  <p>To find <dfn>the properties of an item</dfn> defined by the
+  element <var title="">root</var>, the user agent must try to
+  <span>crawl the properties</span> of the element <var
+  title="">root</var>, with an empty list as the value of <var
+  title="">memory</var>: if this fails, then <span title="the
+  properties of an item">the properties of the item</span> defined by
+  the element <var title="">root</var> is an empty list; otherwise, it
+  is the returned list.</p>
+
+  <p>To <dfn>crawl the properties</dfn> of an element <var
+  title="">root</var> with a list <var title="">memory</var>, the user
+  agent must run the following steps:</p>
 
   <ol>
 
-   <li><p>Let <var title="">root</var> be the element with the <code
-   title="attr-itemscope">itemscope</code> attribute.</p></li>
+   <li><p>If <var title="">root</var> is in <var
+   title="">memory</var>, then the algorithm fails; abort these
+   steps.</p></li>
 
-   <li><p>Let <var title="">pending</var> be a stack of elements
-   initially containing the child elements of <var
-   title="">root</var>, if any. This list will be the one that holds
-   the elements that still need to be crawled.</p></li>
+   <li><p><span>Collect all the elements in the item</span> <var
+   title="">root</var>, and let <var title="">results</var> be the
+   result.</p></li>
 
-   <li><p>Let <var title="">properties</var> be an empty list of
-   elements. This list will be the result of the algorithm: a list of
-   elements with properties that apply to <var
-   title="">root</var>.</p></li>
+   <li><p>If <var title="">root</var> is in <var
+   title="">results</var>, then the algorithm fails; abort these
+   steps.</p></li>
+
+   <li><p>If any elements are listed in <var title="">results</var>
+   more than once, then the algorithm fails; abort these
+   steps.</p></li>
+
+   <li><p>Remove any elements from <var title="">results</var> that do
+   not have an <code title="attr-itemprop">itemprop</code> attribute
+   specified.</p></li>
+
+   <li><p>Let <var title="">new memory</var> be a new list consisting
+   of the old list <var title="">memory</var> with the addition of
+   <var title="">root</var>.</p></li>
+
+   <li><p>For each element in <var title="">results</var> that has an
+   <code title="attr-itemscope">itemscope</code> attribute specified,
+   <span>crawl the properties</span> of the element, with <var
+   title="">new memory</var> as the memory. If this fails, then this
+   instance of the algorithm fails as well; abort these steps. (If it
+   succeeds, the return value is discarded.)</p></li>
+
+   <li><p>Sort <var title="">results</var> in <span>tree
+   order</span>.</p></li>
+
+   <li><p>Return <var title="">results</var>.</p></li>
+
+  </ol>
+
+  <p>To <dfn>collect all the elements in the item</dfn> <var
+  title="">root</var>, the user agent must run these steps:</p>
+
+  <ol>
+
+   <li><p>Let <var title="">results</var> and <var
+   title="">pending</var> be empty lists of elements.</p></li>
+
+   <li><p>Add all the children elements of <var title="">root</var> to
+   <var title="">pending</var>.</p></li>
 
    <li><p>If <var title="">root</var> has an <code
    title="attr-itemref">itemref</code> attribute, <span title="split a
    string on spaces">split the value of that <code
    title="attr-itemref">itemref</code> attribute on spaces</span>. For
-   each resulting token, <var title="">ID</var>, if there is an
-   element in the document with the <span title="concept-ID">ID</span>
-   <var title="">ID</var>, then push the first such element onto <var
-   title="">pending</var>.</p></li>
+   each resulting token <var title="">ID</var>, if there is an element
+   in the <span>home subtree</span> of <var title="">root</var> with
+   the <span title="concept-ID">ID</span> <var title="">ID</var>, then
+   add the first such element to <var title="">pending</var>.</p></li>
 
-   <li>
-
-    <p>For each element <var title="">candidate</var> in <var
-    title="">pending</var>, run the following substeps:</p>
-
-    <ol>
-
-     <li><p>Let <var title="">scope</var> be <var
-     title="">candidate</var>'s nearest ancestor element with an <code
-     title="attr-itemscope">itemscope</code> attribute specified, if
-     any, or null otherwise.</p></li>
-
-     <li><p>If one of the other elements in <var title="">pending</var>
-     is also <var title="">candidate</var>, then remove <var
-     title="">candidate</var> from <var title="">pending</var>
-     (i.e. remove duplicates).</p></li>
-
-     <li><p>Otherwise, if one of the other elements in <var
-     title="">pending</var> is an ancestor element of <var
-     title="">candidate</var>, and that element is <var
-     title="">scope</var>, then remove <var title="">candidate</var>
-     from <var title="">pending</var> (since <var
-     title="">candidate</var> will be reached anyway as part of
-     processing <var title="">scope</var>).</p></li>
-
-     <li><p>Otherwise, if one of the other elements in <var
-     title="">pending</var> is an ancestor element of <var
-     title="">candidate</var>, and either <var title="">scope</var> is
-     null or that element also has <var title="">scope</var> as its
-     nearest ancestor element with an <code
-     title="attr-itemscope">itemscope</code> attribute specified, then
-     remove <var title="">candidate</var> from <var
-     title="">pending</var> (since <var title="">candidate</var> will
-     be reached anyway as part of processing <var
-     title="">scope</var>).</p></li>
-
-    </ol>
-
-   </li>
-
-   <li><p>Sort <var title="">pending</var> in <span>tree
-   order</span>.</p></li>
-
-   <li><p><i>Loop</i>: Pop the top element from <var
+   <li><p><i>Loop</i>: Remove an element from <var
    title="">pending</var> and let <var title="">current</var> be that
    element.</p></li>
 
-   <li><p>If <var title="">current</var> has an <code
-   title="attr-itemprop">itemprop</code> attribute, then append <var
-   title="">current</var> to <var title="">properties</var>.</p></li>
+   <li><p>Add <var title="">current</var> to <var
+   title="">results</var>.</p></li>
 
    <li><p>If <var title="">current</var> does not have an <code
-   title="attr-itemscope">itemscope</code> attribute, and <var
-   title="">current</var> is an element with child elements, then:
-   push all the child elements of <var title="">current</var> onto
-   <var title="">pending</var>, in <span>tree order</span> (so the first
-   child of <var title="">current</var> will be the next element to be
-   popped from <var title="">pending</var>).</p></li>
+   title="attr-itemscope">itemscope</code> attribute, then: add all
+   the child elements of <var title="">current</var> to <var
+   title="">pending</var>.</p></li>
 
    <li><p><i>End of loop</i>: If <var title="">pending</var> is not
    empty, return to the step marked <i>loop</i>.</p></li>
 
-   <li><p>Return <var title="">properties</var>. That is the list of
-   <span title="the properties of an item">properties of the
-   item</span> <var title="">root</var>. By definition, this list is
-   in <span>tree order</span>.</p></li>
+   <li><p>Return <var title="">results</var>.</p></li>
 
   </ol>
+
+  <p>An <span title="concept-item">item</span> is a <dfn
+  title="top-level microdata items">top-level microdata item</dfn> if
+  its element does not have an <code
+  title="attr-itemprop">itemprop</code> attribute.</p>
+
+  <p>An <span title="concept-item">item</span> is a <dfn title="used
+  microdata items">used microdata item</dfn> if it is a <span
+  title="top-level microdata items">top-level microdata item</span>,
+  or if it has an <code title="attr-itemprop">itemprop</code>
+  attribute and would be <span title="the properties of an item">found
+  to be the property</span> of an <span
+  title="concept-item">item</span> that is itself a <span title="used
+  microdata items">used microdata item</span>.</p>
+
+  <p>A document must not contain any <span
+  title="concept-item">items</span> that are not <span>used microdata
+  items</span>.</p>
 
   <p>A document must not contain any elements that have an <code
   title="attr-itemprop">itemprop</code> attribute that would not be
@@ -50975,57 +50986,94 @@ document.body.appendChild(outer);</pre>
   title="the properties of an item">properties</span> all to be
   determined.</p>
 
-  <p>An <span title="concept-item">item</span> is a <dfn
-  title="top-level microdata items">top-level microdata item</dfn> if
-  its element does not have an <code
-  title="attr-itemprop">itemprop</code> attribute.</p>
+  <p>A document must not contain any <span
+  title="concept-item">items</span> for which <span title="crawl the
+  properties">crawling the properties</span> of the element, with an
+  empty list as the value of <var title="">memory</var>, fails.</p>
 
+  <p class="note">The algorithms in this section are especially
+  inefficient, in the interests of keeping them easy to
+  understand. Implementors are strongly encouraged to refactor and
+  optimise them in their user agents.</p>
 
-  <h4>Examples</h4>
+  <div class="example">
 
-  <p>Here is an example of some HTML using Microdata to express RDF
-  statements:</p>
+   <p>In this example, a single license statement is applied to two
+   works, using <code title="attr-itemref">itemref</code> from the
+   items representing the works:</p>
 
-  <pre>&lt;dl itemscope
-    itemtype="http://purl.org/vocab/frbr/core#Work"
-    itemid="http://purl.oreilly.com/works/45U8QJGZSQKDH8N">
- &lt;dt>Title&lt;/dt>
- &lt;dd>&lt;cite itemprop="http://purl.org/dc/terms/title">Just a Geek&lt;/cite>&lt;/dd>
- &lt;dt>By&lt;/dt>
- &lt;dd>&lt;span itemprop="http://purl.org/dc/terms/creator">Wil Wheaton&lt;/span>&lt;/dd>
- &lt;dt>Format&lt;/dt>
- &lt;dd itemprop="http://purl.org/vocab/frbr/core#realization"
-     itemscope
-     itemtype="http://purl.org/vocab/frbr/core#Expression"
-     itemid="http://purl.oreilly.com/products/9780596007683.BOOK">
-  &lt;link itemprop="http://purl.org/dc/terms/type" href="http://purl.oreilly.com/product-types/BOOK">
-  Print
- &lt;/dd>
- &lt;dd itemprop="http://purl.org/vocab/frbr/core#realization"
-     itemscope
-     itemtype="http://purl.org/vocab/frbr/core#Expression"
-     itemid="http://purl.oreilly.com/products/9780596802189.EBOOK">
-  &lt;link itemprop="http://purl.org/dc/terms/type" href="http://purl.oreilly.com/product-types/EBOOK">
-  Ebook
- &lt;/dd>
-&lt;/dl></pre>
+   <pre>&lt;!DOCTYPE HTML>
+&lt;html>
+ &lt;head>
+  &lt;title>Photo gallery&lt;/title>
+ &lt;/head>
+ &lt;body>
+  &lt;h1>My photos&lt;/h1>
+  &lt;figure itemscope itemtype="http://n.whatwg.org/work" itemref="licenses">
+   &lt;img itemprop="work" src="images/house.jpeg" alt="A white house, boarded up, sits in a forest.">
+   &lt;figcaption itemprop="title">The house I found.&lt;/figcaption>
+  &lt;/figure>
+  &lt;figure itemscope itemtype="http://n.whatwg.org/work" itemref="licenses">
+   &lt;img itemprop="work" src="images/mailbox.jpeg" alt="Outside the house is a mailbox. It has a leaflet inside.">
+   &lt;figcaption itemprop="title">The mailbox.&lt;/figcaption>
+  &lt;/figure>
+  &lt;footer>
+   &lt;p id="licenses">All images licensed under the &lt;a itemprop="license"
+   href="http://www.opensource.org/licenses/mit-license.php">MIT
+   license&lt;/a>.&lt;/p>
+  &lt;/footer>
+ &lt;/body>
+&lt;/html></pre>
 
-  <p>This is equivalent to the following Turtle:</p>
+   <p>The above results in two items with the type "<code
+   title="">http://n.whatwg.org/work</code>", one with:</p>
 
-  <pre>@prefix dc: &lt;http://purl.org/dc/terms/> .
-@prefix frbr: &lt;http://purl.org/vocab/frbr/core#> .
+   <dl class="brief">
+    <dt>work
+    <dd><code title="">images/house.jpeg</code>
+    <dt>title
+    <dd>The house I found.
+    <dt>license
+    <dd><code title="">http://www.opensource.org/licenses/mit-license.php</code>
+   </dl>
 
-&lt;http://purl.oreilly.com/works/45U8QJGZSQKDH8N> a frbr:Work ;
-     dc:creator "Wil Wheaton"@en ;
-     dc:title "Just a Geek"@en ;
-     frbr:realization &lt;http://purl.oreilly.com/products/9780596007683.BOOK>,
-         &lt;http://purl.oreilly.com/products/9780596802189.EBOOK> . 
+   <p>...and one with:</p>
 
-&lt;http://purl.oreilly.com/products/9780596007683.BOOK> a frbr:Expression ;
-     dc:type &lt;http://purl.oreilly.com/product-types/BOOK> . 
+   <dl class="brief">
+    <dt>work
+    <dd><code title="">images/mailbox.jpeg</code>
+    <dt>title
+    <dd>The mailbox.
+    <dt>license
+    <dd><code title="">http://www.opensource.org/licenses/mit-license.php</code>
+   </dl>
 
-&lt;http://purl.oreilly.com/products/9780596802189.EBOOK> a frbr:Expression ;
-     dc:type &lt;http://purl.oreilly.com/product-types/EBOOK> .</pre>
+  </div>
+
+  <div class="example">
+
+   <p>In the following invalid example, the items are all empty,
+   because the <code title="attr-itemref">itemref</code> attribute on
+   the inner nested item indirectly references the same element twice
+   in the same item:</p>
+
+   <pre class="bad">&lt;!-- invalid example - do not copy -->
+&lt;div itemscope>
+ &lt;span itemprop="example">This is &lt;em>not&lt;/em> a property of the
+ &lt;code>div&lt;/code> element.&lt;/span>
+ &lt;p itemprop="demo" itemscope itemref="test thing"> &lt;!-- "thing" is a descendant
+                   of "test", which leads to it being included twice, which is invalid -->
+  &lt;span itemprop="sample">This isn't part of anything either.&lt;/span>
+ &lt;/p>
+&lt;/div>
+&lt;p id="test">
+ &lt;span id="thing">(this element is referenced twice by the
+ &lt;code>p&lt;/code> above, causing all the items that involve that
+ &lt;code>itemref=""&lt;/code> attribute to act as if they had no
+ properties.)&lt;/span>
+&lt;/p></pre>
+
+  </div>
 
 
 
@@ -55047,7 +55095,56 @@ END:VCARD</pre>
 
   </ol>
 
+
+  <h5>Examples</h5>
+
+  <p>Here is an example of some HTML using Microdata to express RDF
+  statements:</p>
+
+  <pre>&lt;dl itemscope
+    itemtype="http://purl.org/vocab/frbr/core#Work"
+    itemid="http://purl.oreilly.com/works/45U8QJGZSQKDH8N">
+ &lt;dt>Title&lt;/dt>
+ &lt;dd>&lt;cite itemprop="http://purl.org/dc/terms/title">Just a Geek&lt;/cite>&lt;/dd>
+ &lt;dt>By&lt;/dt>
+ &lt;dd>&lt;span itemprop="http://purl.org/dc/terms/creator">Wil Wheaton&lt;/span>&lt;/dd>
+ &lt;dt>Format&lt;/dt>
+ &lt;dd itemprop="http://purl.org/vocab/frbr/core#realization"
+     itemscope
+     itemtype="http://purl.org/vocab/frbr/core#Expression"
+     itemid="http://purl.oreilly.com/products/9780596007683.BOOK">
+  &lt;link itemprop="http://purl.org/dc/terms/type" href="http://purl.oreilly.com/product-types/BOOK">
+  Print
+ &lt;/dd>
+ &lt;dd itemprop="http://purl.org/vocab/frbr/core#realization"
+     itemscope
+     itemtype="http://purl.org/vocab/frbr/core#Expression"
+     itemid="http://purl.oreilly.com/products/9780596802189.EBOOK">
+  &lt;link itemprop="http://purl.org/dc/terms/type" href="http://purl.oreilly.com/product-types/EBOOK">
+  Ebook
+ &lt;/dd>
+&lt;/dl></pre>
+
+  <p>This is equivalent to the following Turtle:</p>
+
+  <pre>@prefix dc: &lt;http://purl.org/dc/terms/> .
+@prefix frbr: &lt;http://purl.org/vocab/frbr/core#> .
+
+&lt;http://purl.oreilly.com/works/45U8QJGZSQKDH8N> a frbr:Work ;
+     dc:creator "Wil Wheaton"@en ;
+     dc:title "Just a Geek"@en ;
+     frbr:realization &lt;http://purl.oreilly.com/products/9780596007683.BOOK>,
+         &lt;http://purl.oreilly.com/products/9780596802189.EBOOK> . 
+
+&lt;http://purl.oreilly.com/products/9780596007683.BOOK> a frbr:Expression ;
+     dc:type &lt;http://purl.oreilly.com/product-types/BOOK> . 
+
+&lt;http://purl.oreilly.com/products/9780596802189.EBOOK> a frbr:Expression ;
+     dc:type &lt;http://purl.oreilly.com/product-types/EBOOK> .</pre>
+
 <!--END microdata--><!--START w3c-html-->
+
+
 
   <h4>Atom</h4>
 
