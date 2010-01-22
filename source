@@ -4309,7 +4309,17 @@ a.setAttribute('href', 'http://example.com/'); // change the content attribute d
 
   <p>This specification defines the URL
   <dfn><code>about:legacy-compat</code></dfn> as a reserved, though
-  unresolvable, <code title="">about:</code> URI. <a
+  unresolvable, <code title="">about:</code> URI, for use in <span
+  title="syntax-doctype">DOCTYPE</span>s in <span>HTML
+  documents</span> when needed for compatibility with XML tools. <a
+  href="#refsABOUT">[ABOUT]</a></p>
+
+  <p>This specification defines the URL
+  <dfn><code>about:srcdoc</code></dfn> as a reserved, though
+  unresolvable, <code title="">about:</code> URI, that is used as
+  <span>the document's address</span> of <span title="an iframe srcdoc
+  document"><code>iframe</code> <code
+  title="attr-iframe-srcdoc">srcdoc</code> documents</span>. <a
   href="#refsABOUT">[ABOUT]</a></p>
 
   </div>
@@ -10859,7 +10869,8 @@ gave me some of the songs they wrote. I love sharing my music.&lt;/p>
    <dt>Contexts in which this element may be used:</dt>
    <dd>As the first element in an <code>html</code> element.</dd>
    <dt>Content model:</dt>
-   <dd>One or more elements of <span>metadata content</span>, of which exactly one is a <code>title</code> element.</dd>
+   <dd>If the document is <span>an <code>iframe</code> <code title="attr-iframe-srcdoc">srcdoc</code> document</span>: Zero or more elements of <span>metadata content</span>.</dd>
+   <dd>Otherwise: One or more elements of <span>metadata content</span>, of which exactly one is a <code>title</code> element.</dd>
    <dt>Content attributes:</dt>
    <dd><span>Global attributes</span></dd>
    <dt>DOM interface:</dt>
@@ -12377,7 +12388,9 @@ people expect to have work and what is necessary.
 
   <p>If an <span title="HTML documents">HTML document</span> does not
   start with a BOM, and if its encoding is not explicitly given by
-  <span title="Content-Type">Content-Type metadata</span>, then the
+  <span title="Content-Type">Content-Type metadata</span>, and the
+  document is not <span>an <code>iframe</code> <code
+  title="attr-iframe-srcdoc">srcdoc</code> document</span>, then the
   character encoding used must be an <span>ASCII-compatible character
   encoding</span>, and, in addition, if that encoding isn't US-ASCII
   itself, then the encoding must be specified using a
@@ -12387,6 +12400,13 @@ people expect to have work and what is necessary.
   title="attr-meta-http-equiv">http-equiv</code> attribute in the
   <span title="attr-meta-http-equiv-content-type">Encoding declaration
   state</span>.</p>
+
+  <p>If the document is <span>an <code>iframe</code> <code
+  title="attr-iframe-srcdoc">srcdoc</code> document</span>, the
+  document must not have a <span>character encoding
+  declaration</span>. (In this case, the source is already decoded,
+  since it is part of the document that contained the
+  <code>iframe</code>.)</p>
 
   <p>If an <span title="HTML documents">HTML document</span> contains
   a <code>meta</code> element with a <code
@@ -20770,6 +20790,7 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
    <dt>Content attributes:</dt>
    <dd><span>Global attributes</span></dd>
    <dd><code title="attr-iframe-src">src</code></dd>
+   <dd><code title="attr-iframe-srcdoc">srcdoc</code></dd>
    <dd><code title="attr-iframe-name">name</code></dd>
    <dd><code title="attr-iframe-sandbox">sandbox</code></dd>
    <dd><code title="attr-iframe-seamless">seamless</code></dd>
@@ -20779,6 +20800,7 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
    <dd>
 <pre class="idl">interface <dfn>HTMLIFrameElement</dfn> : <span>HTMLElement</span> {
            attribute DOMString <span title="dom-iframe-src">src</span>;
+           attribute DOMString <span title="dom-iframe-srcdoc">srcdoc</span>;
            attribute DOMString <span title="dom-iframe-name">name</span>;
   [PutForwards=<span title="dom-DOMSettableTokenList-value">value</span>] readonly attribute <span>DOMSettableTokenList</span> <span title="dom-iframe-sandbox">sandbox</span>;
            attribute boolean <span title="dom-iframe-seamless">seamless</span>;
@@ -20790,67 +20812,148 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
    </dd>
   </dl>
 
-  <!-- v2 doc="" idea (awaiting implementation experience with seamless="" first):
-
-       http://lists.whatwg.org/pipermail/whatwg-whatwg.org/2008-May/014874.html
-
-       doc="" would take a string which would then be interpreted as
-       the source document markup of an HTML document, much like the
-       above; it would override src="" if it was present, allowing
-       src="" to be used for legacy UAs:
-
-          <iframe seamless sandbox="allow-scripts allow-forms" doc="
-            Welcome to my blog!
-            </sandbox>
-            <a href='#' onclick='alert(document.cookie)'>Click here</a>
-          "></iframe>
-
-       TODO:
-          <!DOCTYPE HTML> implication
-          <title></title> optional
-
-  -->
-
   <p>The <code>iframe</code> element <span>represents</span> a
   <span>nested browsing context</span>.</p>
 
   <p>The <dfn title="attr-iframe-src"><code>src</code></dfn> attribute
   gives the address of a page that the <span>nested browsing
   context</span> is to contain. The attribute, if present, must be a
-  <span>valid URL</span>. <span class="impl">When the browsing context
-  is created, if the attribute is present, the user agent must <span
-  title="resolve a url">resolve</span> the value of that attribute,
-  relative to the element, and if that is successful, must then
-  <span>navigate</span> the element's browsing context to the
-  resulting <span>absolute URL</span>, with <span>replacement
-  enabled</span>, and with the <code>iframe</code> element's
-  document's <span>browsing context</span> as the <span>source
-  browsing context</span>. If the user <span
-  title="navigate">navigates</span> away from this page, the
-  <code>iframe</code>'s corresponding <code>WindowProxy</code> object
-  will proxy new <code>Window</code> objects for new
-  <code>Document</code> objects, but the <code
-  title="attr-iframe-src">src</code> attribute will not
-  change.</span></p>
+  <span>valid URL</span>.</p>
+
+  <p>The <dfn title="attr-iframe-srcdoc"><code>srcdoc</code></dfn>
+  attribute gives the content of the page that the <span>nested
+  browsing context</span> is to contain.  The value of the attribute
+  in is <dfn>an <code>iframe</code> <code
+  title="attr-iframe-srcdoc">srcdoc</code> document</dfn>.</p>
+
+  <p>For <code>iframe</code> elements in <span>HTML documents</span>,
+  the attribute, if present, must have a value using <span>the HTML
+  syntax</span> that consists of the following syntactic components,
+  in the given order:</p>
+
+  <ol>
+
+   <li>Any number of <span title="syntax-comments">comments</span> and
+   <span title="space character">space characters</span>.</li>
+
+   <li>Optionally, a <span title="syntax-doctype">DOCTYPE</span>.
+
+   <li>Any number of <span title="syntax-comments">comments</span> and
+   <span title="space character">space characters</span>.</li>
+
+   <li>The root element, in the form of an <code>html</code> <span
+   title="syntax-elements">element</span>.</li>
+
+   <li>Any number of <span title="syntax-comments">comments</span> and
+   <span title="space character">space characters</span>.</li>
+
+  </ol>
+
+  <p>For <code>iframe</code> elements in <span>XML documents</span>,
+  the attribute, if present, must have a value that matches the
+  production labeled <code>document</code> in the XML
+  specification. <a href="#refsXML">[XML]</a></p>
+
+  <p>If the <code title="attr-iframe-src">src</code> attribute and the
+  <code title="attr-iframe-srcdoc">srcdoc</code> attribute are both
+  specified together, the <code title="attr-iframe-srcdoc">srcdoc</code>
+  attribute takes priority. This allows authors to provide a fallback
+  <span>URL</span> for legacy user agents that do not support the
+  <code title="attr-iframe-srcdoc">srcdoc</code> attribute.</p>
 
   <div class="impl">
 
-  <p>Whenever the <code title="attr-iframe-src">src</code> attribute
-  is set, the user agent must <span title="resolve a
-  url">resolve</span> the value of that attribute, relative to the
-  element, and if that is successful, the nested <span>browsing
-  context</span> must be <span title="navigate">navigated</span> to
-  the resulting <span>absolute URL</span>, with the
-  <code>iframe</code> element's document's <span>browsing
-  context</span> as the <span>source browsing context</span>.</p> <!--
-  It doesn't happen when the base URL is changed, though. -->
+  <p>When an <code>iframe</code> element is first <span title="insert
+  an element into a document">inserted into a document</span>, the
+  user agent must create a <span>nested browsing context</span>, and
+  then <span>process the <code>iframe</code> attributes</span>.</p>
 
-  <p>If the <code title="attr-iframe-src">src</code> attribute is not
-  set when the element is created, or if its value cannot be <span
-  title="resolve a url">resolved</span>, the browsing context will
-  remain at the initial <code>about:blank</code> page.</p>
+  <p>Whenever an <code>iframe</code> element with a <span>nested
+  browsing context</span> has its <code
+  title="attr-iframe-srcdoc">srcdoc</code> attribute set or changed,
+  the user agent must <span>process the <code>iframe</code>
+  attributes</span>.</p>
+
+  <p>Similarly, whenever an <code>iframe</code> element with a
+  <span>nested browsing context</span> but with no <code
+  title="attr-iframe-srcdoc">srcdoc</code> attribute specified has its
+  <code title="attr-iframe-src">src</code> attribute set or changed,
+  the user agent must <span>process the <code>iframe</code>
+  attributes</span>.</p> <!-- It doesn't happen when the base URL is
+  changed, though. -->
+
+  <p>When the user agent is to <dfn>process the <code>iframe</code>
+  attributes</dfn>, it must run the first appropriate steps from the
+  following list:</p>
+
+  <dl class="switch">
+
+   <dt>If the <code title="attr-iframe-srcdoc">srcdoc</code> attribute
+   is specified</dt>
+
+   <dd><p><span>Navigate</span> the element's <span>browsing
+   context</span> to a resource whose <span>Content-Type</span> is
+   <code>text/html</code>, whose <span>URL</span> is
+   <code>about:srcdoc</code>, and whose data consists of the value of
+   the attribute.</p></dd>
+
+   <dt>Otherwise, if the <code title="attr-iframe-src">src</code>
+   attribute is specified but the <code
+   title="attr-iframe-srcdoc">srcdoc</code> attribute is not</dt>
+
+   <dd>
+
+    <ol>
+
+     <li><p><span title="resolve a url">Resolve</span> the value of
+     the <code title="attr-iframe-src">src</code> attribute, relative
+     to the <code>iframe</code> element.</p></li>
+
+     <li><p>If that is successful, <span>navigate</span> the element's
+     <span>browsing context</span> to the resulting <span>absolute
+     URL</span>.</p></li>
+
+    </ol>
+
+   </dd>
+
+  </dl>
+
+  <p>Any <span title="navigate">navigation</span> required of the user
+  agent in the <span>process the <code>iframe</code> attributes</span>
+  algorithm must be completed with the <code>iframe</code> element's
+  document's <span>browsing context</span> as the <span>source
+  browsing context</span>.</p>
+
+  <p>Furthermore, if the <span>process the <code>iframe</code>
+  attributes</span> algorithm was invoked as a result of the element
+  being <span title="insert an element into a document">inserted into
+  a document</span>, then any <span title="navigate">navigation</span>
+  required of the user agent in that algorithm must be completed with
+  <span>replacement enabled</span>.</p>
 
   </div>
+
+  <p class="note">If, when the element is created, the <code
+  title="attr-iframe-srcdoc">srcdoc</code> attribute is not set, and
+  the <code title="attr-iframe-src">src</code> attribute is either
+  also not set or set but its value cannot be <span title="resolve a
+  url">resolved</span>, the browsing context will remain at the
+  initial <code>about:blank</code> page.</p>
+
+  <p class="note">If the user <span title="navigate">navigates</span>
+  away from this page, the <code>iframe</code>'s corresponding
+  <code>WindowProxy</code> object will proxy new <code>Window</code>
+  objects for new <code>Document</code> objects, but the <code
+  title="attr-iframe-src">src</code> attribute will not change.</p>
+
+  <div class="example">
+
+   <p class="xxx">example for srcdoc here</p>
+
+  </div>
+
+  <hr>
 
   <p>The <dfn title="attr-iframe-name"><code>name</code></dfn>
   attribute, if present, must be a <span>valid browsing context
@@ -21374,6 +21477,8 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
 
   <p>The IDL attributes <dfn
   title="dom-iframe-src"><code>src</code></dfn>, <dfn
+  title="dom-iframe-srcdoc"><code>srcdoc</code></dfn>, <dfn
+  title="dom-iframe-body"><code>body</code></dfn>, <dfn
   title="dom-iframe-name"><code>name</code></dfn>, <dfn
   title="dom-iframe-sandbox"><code>sandbox</code></dfn>, and <dfn
   title="dom-iframe-seamless"><code>seamless</code></dfn> must
@@ -57384,6 +57489,15 @@ interface <dfn>Window</dfn> {
      <dd>The <span>origin</span> of the <code>Document</code> is <a
      href="#about-blank-origin">the <span>origin</span> it was
      assigned when its browsing context was created</a>.</dd>
+
+
+     <dt>If a <code>Document</code> is <span>an <code>iframe</code> <code
+     title="attr-iframe-srcdoc">srcdoc</code> document</span></dt>
+
+     <dd>The <span>origin</span> of the <code>Document</code> is the
+     <span>origin</span> of the <code>Document</code>'s <span>browsing
+     context</span>'s <span>browsing context container</span>'s
+     <code>Document</code>.</dd>
 
 
      <dt>If a <code>Document</code> or image was obtained in some
@@ -94486,6 +94600,7 @@ interface <span>HTMLDocument</span> {
      <td>text*</td>
      <td><span title="global attributes">globals</span>;
          <code title="attr-iframe-src">src</code>;
+         <code title="attr-iframe-srcdoc">srcdoc</code>;
          <code title="attr-iframe-name">name</code>;
          <code title="attr-iframe-sandbox">sandbox</code>;
          <code title="attr-iframe-seamless">seamless</code>;
@@ -95346,6 +95461,11 @@ interface <span>HTMLDocument</span> {
           <code title="attr-media-autoplay">video</code>
      <td> Hint that the <span>media resource</span> can be started automatically when the page is loaded
      <td> <span>Boolean attribute</span>
+    <tr>
+     <th> <code title="">srcdoc</code>
+     <td> <code title="attr-iframe-srcdoc">iframe</code>
+     <td> A document to render in the <code>iframe</code>
+     <td> The source of <span>an <code>iframe</code> <code title="attr-iframe-srcdoc">srcdoc</code> document</span>*
     <tr>
      <th> <code title="">challenge</code>
      <td> <code title="attr-keygen-challenge">keygen</code>
