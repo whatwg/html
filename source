@@ -4669,10 +4669,6 @@ a.setAttribute('href', 'http://example.com/'); // change the content attribute d
 
   <ol>
 
-   <li><p>If the resource is identified by the <span>URL</span>
-   <dfn><code>about:blank</code></dfn>, then return the empty string
-   and abort these steps.</p></li>
-
    <li>
 
     <p>Generate the <i>address of the resource from which Request-URIs
@@ -4744,6 +4740,11 @@ a.setAttribute('href', 'http://example.com/'); // change the content attribute d
     title="">origin</i>. Otherwise, this is <i title="">a request from
     a "privacy-sensitive" context</i>. <a
     href="#refsORIGIN">[ORIGIN]</a></p>
+
+    <p>If the resource is identified by the <span>URL</span>
+    <dfn><code>about:blank</code></dfn>, then the resource is
+    immediately available and consists of the empty string, with no
+    metadata.</p>
 
    </li>
 
@@ -20866,7 +20867,8 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
   <p>When an <code>iframe</code> element is first <span title="insert
   an element into a document">inserted into a document</span>, the
   user agent must create a <span>nested browsing context</span>, and
-  then <span>process the <code>iframe</code> attributes</span>.</p>
+  then <span>process the <code>iframe</code> attributes</span> for the
+  first time.</p>
 
   <p>Whenever an <code>iframe</code> element with a <span>nested
   browsing context</span> has its <code
@@ -20905,12 +20907,27 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
 
     <ol>
 
+<!--
+     <li><p>If the value of the <code
+     title="attr-iframe-src">src</code> attribute is the empty string,
+     and the user agent is processing this <code>iframe</code>'s
+     attributes for the first time, then abort these steps.</p></li>
+-->
+
      <li><p><span title="resolve a url">Resolve</span> the value of
      the <code title="attr-iframe-src">src</code> attribute, relative
      to the <code>iframe</code> element.</p></li>
 
-     <li><p>If that is successful, <span>navigate</span> the element's
-     <span>browsing context</span> to the resulting <span>absolute
+     <li><p>If that is not successful, abort these steps.</p></li>
+
+     <li><p>If the resulting <span>absolute URL</span> is an
+     <span>ASCII case-insensitive</span> match for the string
+     "<code>about:blank</code>", and the user agent is processing this
+     <code>iframe</code>'s attributes for the first time, then abort
+     these steps.</p></li>
+
+     <li><p><span>Navigate</span> the element's <span>browsing
+     context</span> to the resulting <span>absolute
      URL</span>.</p></li>
 
     </ol>
@@ -20926,11 +20943,12 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
   browsing context</span>.</p>
 
   <p>Furthermore, if the <span>process the <code>iframe</code>
-  attributes</span> algorithm was invoked as a result of the element
-  being <span title="insert an element into a document">inserted into
-  a document</span>, then any <span title="navigate">navigation</span>
-  required of the user agent in that algorithm must be completed with
-  <span>replacement enabled</span>.</p>
+  attributes</span> algorithm was invoked for the first time for this
+  element (i.e. as a result of the element being <span title="insert
+  an element into a document">inserted into a document</span>), then
+  any <span title="navigate">navigation</span> required of the user
+  agent in that algorithm must be completed with <span>replacement
+  enabled</span>.</p>
 
   </div>
 
@@ -22011,6 +22029,9 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
 
    <li>
 
+    <!-- what if it's not in the document? if that should prevent
+    plugin instantiation, then here just skip to the last step -->
+
     <p>If the <code title="attr-object-classid">classid</code>
     attribute is present, and has a value that isn't the empty string,
     then: if the user agent can find a <span>plugin</span> suitable
@@ -22054,7 +22075,7 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
    -->
 
    <li><p>If the <code title="attr-object-data">data</code> attribute
-   is present, then:</p>
+   is present and its value is not the empty string, then:</p>
 
     <ol>
 
@@ -22065,25 +22086,28 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
      step in the overall set of steps (fallback) without fetching the
      content to examine its real type.</p></li>
 
+     <li><p><span title="resolve a url">Resolve</span> the
+     <span>URL</span> specified by the <code
+     title="attr-object-data">data</code> attribute, relative to the
+     element.</p></li>
+
+     <li><p>If that failed, <span>fire a simple event</span> named
+     <code title="event-error">error</code> at the element, then jump
+     to the last step in the overall set of steps (fallback).</p></li>
+
      <li>
 
-      <p><span title="resolve a url">Resolve</span> the
-      <span>URL</span> specified by the <code
-      title="attr-object-data">data</code> attribute, relative to the
-      element.</p>
+      <p><span>Fetch</span> the resulting <span>absolute URL</span>,
+      from the element's <span>browsing context scope origin</span> if
+      it has one<!-- potentially http-origin privacy sensitive
+      -->.</p>
 
-      <p>If that is successful, <span>fetch</span> the resulting
-      <span>absolute URL</span>, from the element's <span>browsing
-      context scope origin</span> if it has one<!-- potentially
-      http-origin privacy sensitive -->.</p>
-
-      <!-- similar text in various places -->
-      <p>Fetching the resource must <span>delay the load event</span>
-      of the element's document until the <span
-      title="concept-task">task</span> that is <span title="queue a
-      task">queued</span> by the <span>networking task source</span>
-      once the resource has been <span title="fetch">fetched</span>
-      (defined next) has been run.</p>
+      <!-- similar text in various places --> <p>Fetching the resource
+      must <span>delay the load event</span> of the element's document
+      until the <span title="concept-task">task</span> that is <span
+      title="queue a task">queued</span> by the <span>networking task
+      source</span> once the resource has been <span
+      title="fetch">fetched</span> (defined next) has been run.</p>
 
      </li>
 
@@ -22098,12 +22122,10 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
      to consider a resource "available" whenever enough data has been
      obtained to begin processing the resource.</p></li>
 
-     <li><p>If the load failed (e.g. the <span>URL</span> could not be
-     <span title="resolve a url">resolved</span>, there was an HTTP
-     404 error, there was a DNS error), <span>fire a simple
-     event</span> named <code title="event-error">error</code> at the
-     element, then jump to the last step in the overall set of steps
-     (fallback).</p></li>
+     <li><p>If the load failed (e.g. there was an HTTP 404 error,
+     there was a DNS error), <span>fire a simple event</span> named
+     <code title="event-error">error</code> at the element, then jump
+     to the last step in the overall set of steps (fallback).</p></li>
 
      <li><p>Determine the <var title="">resource type</var>, as follows:</p>
 
@@ -22259,11 +22281,13 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
 
         <p>The <code>object</code> element must be associated with a
         <span>nested browsing context</span>, if it does not already
-        have one. The element's <span>nested browsing context</span>
-        must then be <span title="navigate">navigated</span> to the
-        given resource, with <span>replacement enabled</span>, and
-        with the <code>object</code> element's document's
-        <span>browsing context</span> as the <span>source browsing
+        have one. If the <span>URL</span> of the given resource is not
+        <code>about:blank</code>, the element's <span>nested browsing
+        context</span> must then be <span
+        title="navigate">navigated</span> to that resource, with
+        <span>replacement enabled</span>, and with the
+        <code>object</code> element's document's <span>browsing
+        context</span> as the <span>source browsing
         context</span>. (The <code
         title="attr-object-data">data</code> attribute of the
         <code>object</code> element doesn't get updated if the
@@ -64038,11 +64062,7 @@ State: &lt;OUTPUT NAME=I>1&lt;/OUTPUT> &lt;INPUT VALUE="Increment" TYPE=BUTTON O
 
    <li>
 
-    <p>If fetching the resource is synchronous (i.e. for
-    <code>about:blank</code>), then this must be synchronous, but if
-    fetching the resource depends on external resources, as it usually
-    does for URLs that use HTTP or other networking protocols, then at
-    this point the user agents must return to whatever algorithm
+    <p>At this point the user agents must return to whatever algorithm
     invoked the navigation steps and must continue these steps
     asynchronously.</p>
 
