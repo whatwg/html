@@ -10107,21 +10107,20 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
 
    </li>
 
+   <li><p>Remove any <span title="concept-task">tasks</span> queued by
+   the <span>history traversal task source</span>.</p></li>
+
    <li>Remove any earlier entries that share the same
    <code>Document</code>.</li>
 
-   <li>
-
-    <p>If <var title="">replace</var> is false, then add a new entry,
-    just before the last entry, and assocaite with the new entry the
-    text that was parsed by the previous parser associated with the
-    <code>Document</code> object, as well as the state of the document
-    at the start of these steps. (This allows the user to step
-    backwards in the session history to see the page before it was
-    blown away by the <code
-    title="dom-document-open">document.open()</code> call.)</p>
-
-   </li>
+   <li><p>If <var title="">replace</var> is false, then add a new
+   entry, just before the last entry, and associate with the new entry
+   the text that was parsed by the previous parser associated with the
+   <code>Document</code> object, as well as the state of the document
+   at the start of these steps. (This allows the user to step
+   backwards in the session history to see the page before it was
+   blown away by the <code
+   title="dom-document-open">document.open()</code> call.)</p></li>
 
    <li><p>Finally, set the <span>insertion point</span> to point at
    just before the end of the <span>input stream</span> (which at this
@@ -21997,8 +21996,10 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
   its <code title="attr-object-type">type</code> attribute is set,
   changed, or removed: the user agent must <span>queue a task</span>
   to run the following steps to (re)determine what the
-  <code>object</code> element represents:</p>
-  <!-- Changing the base URL doesn't trigger this. -->
+  <code>object</code> element represents. The <span>task source</span>
+  for this <span title="concept-task">task</span> is the <span>DOM
+  manipulation task source</span>.</p> <!-- Changing the base URL
+  doesn't trigger this. -->
 
   <ol>
 
@@ -22385,10 +22386,6 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
    <span>plugin</span>, then unload it.</p></li>
 
   </ol>
-
-  <p>The <span>task source</span> for the <span
-  title="concept-task">task</span> above is the <span>DOM manipulation
-  task source</span>.</p>
 
   <p id="object-plugin">When the algorithm above instantiates a
   <span>plugin</span>, the user agent should pass the names and values
@@ -58520,6 +58517,16 @@ interface <dfn>Window</dfn> {
 
    </dd>
 
+   <dt>The <dfn>history traversal task source</dfn></dt>
+
+   <dd>
+
+    <p>This <span>task source</span> is used to queue calls to <code
+    title="dom-history-back">history.back()</code> and similar
+    APIs.</p>
+
+   </dd>
+
   </dl>
 
   </div>
@@ -63189,16 +63196,30 @@ NETWORK:
 
   <p>The actual entries are not accessible from script.</p>
 
-  <p>The <dfn title="dom-history-go"><code>go(<var
-  title="">delta</var>)</code></dfn> method causes the UA to run the
-  following steps:</p>
+  <p>When the <dfn title="dom-history-go"><code>go(<var
+  title="">delta</var>)</code></dfn> method is invoked, if the
+  argument to the method was omitted or has the value zero, the user
+  agent must act as if the <code
+  title="dom-location-reload">location.reload()</code> method was
+  called instead. Otherwise, the user agent must <span>traverse the
+  history by a delta</span> whose value is the value of the method's
+  argument.</p>
+
+  <p>When the <dfn title="dom-history-back"><code>back()</code></dfn>
+  method is invoked, the user agent must <span>traverse the history by
+  a delta</span> &#x2212;1.</p>
+
+  <p>When the <dfn
+  title="dom-history-forward"><code>forward()</code></dfn>method is
+  invoked, the user agent must <span>traverse the history by a
+  delta</span> +1.</p>
+
+  <p>To <dfn>traverse the history by a delta</dfn> <var
+  title="">delta</var>, the user agent must <span>queue a task</span>
+  to run the following steps. The <span>task source</span> for the
+  queued task is the <span>history traversal task source</span>.</p>
 
   <ol>
-
-   <li><p>If the argument to the method was omitted or has the value
-   zero, then act as if the <code
-   title="dom-location-reload">location.reload()</code> method was
-   called instead, and abort these steps.</p>
 
    <li><p>Let <var title="">delta</var> be the argument to the
    method.</p></li>
@@ -63217,6 +63238,9 @@ NETWORK:
    <span>browsing context</span> of the <var title="">specified
    entry</var>.</p></li>
 
+   <!-- XXX if going to another doc, try to unload the document here
+   (firing beforeunload, unload, pagehide) -->
+
    <li><p><span>Traverse the history</span> of the <var
    title="">specified browsing context</var> to the <var
    title="">specified entry</var>.</p>
@@ -63225,29 +63249,8 @@ NETWORK:
 
   <p>When the user navigates through a <span>browsing context</span>,
   e.g. using a browser's back and forward buttons, the user agent must
-  translate this action into the equivalent invocations of the <code
-  title="dom-history-go">history.go(<var title="">delta</var>)</code>
-  method on the various affected <code
-  title="dom-window">window</code> objects.</p>
-
-  <p>Some of the other members of the <code>History</code> interface
-  are defined in terms of the <code title="dom-history-go">go()</code>
-  method, as follows:</p>
-
-  <table>
-   <tr>
-    <th>Member</th>
-    <th>Definition</th>
-   </tr>
-   <tr>
-    <td><dfn title="dom-history-back"><code>back()</code></dfn></td>
-    <td>Must do the same as <code title="dom-history-go">go(-1)</code></td>
-   </tr>
-   <tr>
-    <td><dfn title="dom-history-forward"><code>forward()</code></dfn></td>
-    <td>Must do the same as <code title="dom-history-go">go(1)</code></td>
-   </tr>
-  </table>
+  <span>traverse the history by a delta</span> equivalent to the
+  action specified by the user.</p>
 
   <hr>
 
@@ -63296,7 +63299,7 @@ NETWORK:
 
      <li>If the <span>origin</span> of the resulting <span>absolute
      URL</span> is not the same as the <span>origin</span> of the
-     <span>entry script</span>'s <code title="script's browsing
+     <span>entry script</span>'s <span title="script's browsing
      context">browsing context</span>, and either the <span
      title="url-path">&lt;path&gt;</span> or <span
      title="url-query">&lt;query&gt;</span> components of the two
@@ -63335,6 +63338,9 @@ NETWORK:
       interface.</p>
 
      </li>
+
+     <li><p>Remove any <span title="concept-task">tasks</span> queued
+     by the <span>history traversal task source</span>.</p></li>
 
      <li><p>Add a state object entry to the session history, after the
      <span>current entry</span>, with <var title="">cloned data</var> as
@@ -63486,98 +63492,6 @@ NETWORK:
 &lt;FORM NAME=F>
 State: &lt;OUTPUT NAME=I>1&lt;/OUTPUT> &lt;INPUT VALUE="Increment" TYPE=BUTTON ONCLICK="inc()">
 &lt;/FORM></pre>
-
-  </div>
-
-
-
-  <h4><dfn title="activate the state object">Activating state object entries</dfn></h4>
-
-  <div class="impl">
-
-  <p>When an entry in the session history is activated (which happens
-  during <span title="traverse the history">session history
-  traversal</span>), the user agent must run the following steps:</p>
-
-  <ol><!-- only called for the first entry of a Document set and for
-  state object entries, not for frag id change entries -->
-
-   <li><p>If the entry is a <span>state object</span> entry, let <var
-   title="">state</var> be a <span>structured clone</span> of that
-   state object. Otherwise, let <var title="">state</var> be
-   null.</p></li>
-
-   <li>
-
-    <p>Run the appropriate steps according to the conditions
-    described:</p>
-
-    <dl class="switch">
-
-     <dt>If the <span>current document readiness</span> is set to the
-     string "complete"</dt>
-
-     <dd><p>Synchronously fire a <dfn
-     title="event-popstate"><code>popstate</code></dfn> event on the
-     <code>Window</code> object of the <code>Document</code>, using
-     the <code>PopStateEvent</code> interface, with the <code
-     title="dom-PopStateEvent-state">state</code> attribute set to the
-     value of <var title="">state</var>. This event must bubble but
-     not be cancelable and has no default action.</p></dd>
-
-     <dt>Otherwise</dt>
-
-     <dd><p>Let the <code>Document</code>'s <dfn>pending state
-     object</dfn> be <var title="">state</var>. (If there was already
-     a <span>pending state object</span>, the previous one is
-     discarded.)</p>
-
-     <p class="note">The event will then be fired just after the <code
-     title="event-load">load</code> event.</p></dd>
-
-    </dl>
-
-   </li>
-
-  </ol>
-
-  <p>The <span>pending state object</span> must be initially null.</p>
-
-  <hr>
-
-  </div>
-
-  <pre class="idl">interface <dfn>PopStateEvent</dfn> : Event {
-  readonly attribute any <span title="dom-PopStateEvent-state">state</span>;
-  void <span title="dom-PopStateEvent-initPopStateEvent">initPopStateEvent</span>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in any stateArg);
-};</pre>
-
-  <dl class="domintro">
-
-   <dt><var title="">event</var> . <code title="dom-PopStateEvent-state">state</code></dt>
-
-   <dd>
-
-    <p>Returns the information that was provided to <code
-    title="dom-history-pushState">pushState()</code> or <code
-    title="dom-history-replaceState">replaceState()</code>.</p>
-
-   </dd>
-
-  </dl>
-
-  <div class="impl">
-
-  <p>The <dfn
-  title="dom-PopStateEvent-initPopStateEvent"><code>initPopStateEvent()</code></dfn>
-  method must initialize the event in a manner analogous to the
-  similarly-named method in the DOM Events interfaces. <a
-  href="#refsDOMEVENTS">[DOMEVENTS]</a></p>
-
-  <p>The <dfn title="dom-PopStateEvent-state"><code>state</code></dfn>
-  attribute represents the context information for the event, or null,
-  if the state represented is the initial state of the
-  <code>Document</code>.</p>
 
   </div>
 
@@ -64352,6 +64266,12 @@ State: &lt;OUTPUT NAME=I>1&lt;/OUTPUT> &lt;INPUT VALUE="Increment" TYPE=BUTTON O
 
        </li>
 
+       <li><p>Remove any <span title="concept-task">tasks</span>
+       queued by the <span>history traversal task
+       source</span>.</p></li> <!-- so the network is racing
+       history.back(), in the case of setting location.href="" and
+       then calling history.back() -->
+
        <li><p>Append a new entry at the end of the <code>History</code>
        object representing the new resource and its
        <code>Document</code> object and related state.</p></li>
@@ -64670,6 +64590,9 @@ State: &lt;OUTPUT NAME=I>1&lt;/OUTPUT> &lt;INPUT VALUE="Increment" TYPE=BUTTON O
 
    </li>
 
+   <li><p>Remove any <span title="concept-task">tasks</span> queued by
+   the <span>history traversal task source</span>.</p></li>
+
    <li><p>Append a new entry at the end of the <code>History</code>
    object representing the new resource and its <code>Document</code>
    object and related state. Its <span>URL</span> must be set to the
@@ -64755,8 +64678,13 @@ State: &lt;OUTPUT NAME=I>1&lt;/OUTPUT> &lt;INPUT VALUE="Increment" TYPE=BUTTON O
   document</span>, if that is an element; otherwise there is no
   <i>target element</i>. <a href="#refsSELECTORS">[SELECTORS]</a></p>
 
+  </div>
 
-  <h4>History traversal</h4>
+
+
+  <h4>History traversal</h4> <!-- session history -->
+
+  <div class="impl">
 
   <p>When a user agent is required to <dfn>traverse the history</dfn>
   to a <i>specified entry</i>, optionally with <span>replacement
@@ -64775,8 +64703,6 @@ State: &lt;OUTPUT NAME=I>1&lt;/OUTPUT> &lt;INPUT VALUE="Increment" TYPE=BUTTON O
    browsing context</span> as was used the first time this entry was
    created. (This can never happen with <span>replacement
    enabled</span>.)</p></li>
-
-   <li><p>Release the <span>storage mutex</span>.</p></li>
 
    <li><p>If the <span>current entry</span>'s title was not set by the
    <code title="dom-history-pushState">pushState()</code> or <code
@@ -64874,8 +64800,11 @@ State: &lt;OUTPUT NAME=I>1&lt;/OUTPUT> &lt;INPUT VALUE="Increment" TYPE=BUTTON O
    <li><p>If the <i>specified entry</i> has a URL that differs from
    the <span>current entry</span>'s only by its fragment identifier,
    and the two share the same <code>Document</code> object, then let
-   <var title="">hash changed</var> be true. Otherwise, let <var
-   title="">hash changed</var> be false.</p></li>
+   <var title="">hash changed</var> be true, and let <var title="">old
+   URL</var> be the URL of the <span>current entry</span> and <var
+   title="">new URL</var> be the URL of the <i>specified
+   entry</i>. Otherwise, let <var title="">hash changed</var> be
+   false.</p></li>
 
    <li><p>If the traversal was initiated with <dfn>replacement
    enabled</dfn>, remove the entry immediately before the
@@ -64890,24 +64819,177 @@ State: &lt;OUTPUT NAME=I>1&lt;/OUTPUT> &lt;INPUT VALUE="Increment" TYPE=BUTTON O
    view, for instance the scroll position or values of form fields,
    that it had previously recorded.</p></li>
 
-   <li><p>If the <i>specified entry</i> is a state object or the
-   first entry for a <code>Document</code>, the user agent must <span
-   title="activate the state object">activate that
-   entry</span>.</p></li>
+   <li>
+
+    <p>If the <i>specified entry</i> is a state object or the first
+    entry for a <code>Document</code>, the user agent must run the
+    following substeps:</p>
+
+    <ol>
+
+     <li><p>If the entry is a <span>state object</span> entry, let <var
+     title="">state</var> be a <span>structured clone</span> of that
+     state object. Otherwise, let <var title="">state</var> be
+     null.</p></li>
+
+     <li>
+
+      <p>Run the appropriate steps according to the conditions
+      described:</p>
+
+      <dl class="switch">
+
+       <dt>If the <span>current document readiness</span> is set to the
+       string "complete"</dt>
+
+       <dd><p><span>Queue a task</span> to fire a <code
+       title="event-popstate">popstate</code> event at the
+       <code>Window</code> object of the <code>Document</code>, using
+       the <code>PopStateEvent</code> interface, with the <code
+       title="dom-PopStateEvent-state">state</code> attribute set to
+       the value of <var title="">state</var>. This event must bubble
+       but not be cancelable and has no default action.</p></dd>
+
+       <dt>Otherwise</dt>
+
+       <dd><p>Let the <code>Document</code>'s <dfn>pending state
+       object</dfn> be <var title="">state</var>. (If there was already
+       a <span>pending state object</span>, the previous one is
+       discarded.)</p>
+
+       <p class="note">The event will then be fired just after the <code
+       title="event-load">load</code> event.</p></dd>
+
+      </dl>
+
+     </li>
+
+    </ol>
+
+   </li>
 
    <li><p>If <var title="">hash changed</var> is true, then
-   synchronously <span>fire a simple event</span> with the name <code
-   title="event-hashchange">hashchange</code> at the <span>browsing
-   context</span>'s <code>Window</code> object.</p></li>
-
-   <li><p>Release the <span>storage mutex</span> again.</p></li>
+   <span>queue a task</span> to fire a <code
+   title="event-hashchange">hashchange</code> event at the
+   <span>browsing context</span>'s <code>Window</code> object, using
+   the <code>HashChangeEvent</code> interface, with the <code
+   title="dom-HashChangeEvent-oldURL">oldURL</code> attribute set to
+   <var title="">old URL</var> and the <code
+   title="dom-HashChangeEvent-newURL">newURL</code> attribute set to
+   <var title="">new URL</var>. This event must bubble but not be
+   cancelable and has no default action.</p></li>
 
    <li><p>The <span>current entry</span> is now the <i>specified
    entry</i>.</p></li>
 
   </ol>
 
+  <p>The <span>pending state object</span> must be initially null.</p>
+
+  <p>The <span>task source</span> for the tasks mentioned above is the
+  <span>DOM manipulation task source</span>.</p>
+
+
+  <h5>Event definitions</h5>
+
   </div>
+
+  <p>The <dfn title="event-popstate"><code>popstate</code></dfn> event
+  is fired when navigating to a <span>session history entry</span>
+  that represents a state object.</p>
+
+  <pre class="idl">interface <dfn>PopStateEvent</dfn> : Event {
+  readonly attribute any <span title="dom-PopStateEvent-state">state</span>;
+  void <span title="dom-PopStateEvent-initPopStateEvent">initPopStateEvent</span>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in any stateArg);
+};</pre>
+
+  <dl class="domintro">
+
+   <dt><var title="">event</var> . <code title="dom-PopStateEvent-state">state</code></dt>
+
+   <dd>
+
+    <p>Returns the information that was provided to <code
+    title="dom-history-pushState">pushState()</code> or <code
+    title="dom-history-replaceState">replaceState()</code>.</p>
+
+   </dd>
+
+  </dl>
+
+  <div class="impl">
+
+  <p>The <dfn
+  title="dom-PopStateEvent-initPopStateEvent"><code>initPopStateEvent()</code></dfn>
+  method must initialize the event in a manner analogous to the
+  similarly-named method in the DOM Events interfaces. <a
+  href="#refsDOMEVENTS">[DOMEVENTS]</a></p>
+
+  <p>The <dfn title="dom-PopStateEvent-state"><code>state</code></dfn>
+  attribute represents the context information for the event, or null,
+  if the state represented is the initial state of the
+  <code>Document</code>.</p>
+
+  </div>
+
+  <hr>
+
+  <p>The <dfn title="event-hashchange"><code>hashchange</code></dfn>
+  event is fired when navigating to a <span>session history
+  entry</span> whose <span>URL</span> differs from that of the
+  previous one only in the fragment identifier.</p>
+
+  <pre class="idl">interface <dfn>HashChangeEvent</dfn> : Event {
+  readonly attribute any <span title="dom-HashChangeEvent-oldURL">oldURL</span>;
+  readonly attribute any <span title="dom-HashChangeEvent-newURL">newURL</span>;
+  void <span title="dom-HashChangeEvent-initHashChangeEvent">initHashChangeEvent</span>(in DOMString typeArg, in boolean canBubbleArg, in boolean cancelableArg, in DOMString oldURLArg, in DOMString newURLArg);
+};</pre>
+
+  <dl class="domintro">
+
+   <dt><var title="">event</var> . <code title="dom-HashChangeEvent-oldURL">oldURL</code></dt>
+
+   <dd>
+
+    <p>Returns the <span>URL</span> of the <span>session history
+    entry</span> that was previously current.</p>
+
+   </dd>
+
+
+   <dt><var title="">event</var> . <code title="dom-HashChangeEvent-newURL">newURL</code></dt>
+
+   <dd>
+
+    <p>Returns the <span>URL</span> of the <span>session history
+    entry</span> that is now current.</p>
+
+   </dd>
+
+  </dl>
+
+  <div class="impl">
+
+  <p>The <dfn
+  title="dom-HashChangeEvent-initHashChangeEvent"><code>initHashChangeEvent()</code></dfn>
+  method must initialize the event in a manner analogous to the
+  similarly-named method in the DOM Events interfaces. <a
+  href="#refsDOMEVENTS">[DOMEVENTS]</a></p>
+
+  <p>The <dfn
+  title="dom-HashChangeEvent-oldURL"><code>oldURL</code></dfn>
+  attribute represents context information for the event, specifically
+  the URL of the <span>session history entry</span> that was traversed
+  from.</p>
+
+  <p>The <dfn
+  title="dom-HashChangeEvent-newURL"><code>newURL</code></dfn>
+  attribute represents context information for the event, specifically
+  the URL of the <span>session history entry</span> that was traversed
+  to.</p>
+
+  </div>
+
 
 
   <h4>Unloading documents</h4>
@@ -65125,6 +65207,8 @@ State: &lt;OUTPUT NAME=I>1&lt;/OUTPUT> &lt;INPUT VALUE="Increment" TYPE=BUTTON O
   </div>
 
 
+  <div class="impl">
+
   <h4>Aborting a document load</h4>
 
   <p>If the user cancels any instance of the <span
@@ -65137,6 +65221,8 @@ State: &lt;OUTPUT NAME=I>1&lt;/OUTPUT> &lt;INPUT VALUE="Increment" TYPE=BUTTON O
 
   <!-- I'd love to make this more precise, anyone have any suggestions
   on what it should say? -->
+
+  </div>
 
 
 
@@ -97235,7 +97321,7 @@ interface <span>HTMLDocument</span> {
 
     <tr>
      <td> <code title="event-hashchange">hashchange</code>
-     <td> <code>Event</code>
+     <td> <code>HashChangeEvent</code>
      <td> Fired at the <code>Window</code> when the fragment identifier part of <span>the document's current address</span> changes
 
     <tr>
