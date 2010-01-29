@@ -55146,6 +55146,13 @@ END:VCARD</pre>
 
    <li>
 
+    <p>Let <var title="">memory</var> be a mapping of items to
+    subjects, initially empty.</p>
+
+   </li>
+
+   <li>
+
     <p>For each element that is also a <span title="top-level
     microdata items">top-level microdata item</span>, run the
     following steps:</p>
@@ -55155,8 +55162,9 @@ END:VCARD</pre>
      <li>
 
       <p><span title="generate the triples for an item">Generate the
-      triples for the item</span>. Let <var title="">item</var> be the
-      subject returned.</p>
+      triples for the item</span>. Pass a reference to <var
+      title="">memory</var> as the item/subject list. Let <var
+      title="">result</var> be the subject returned.</p>
 
      </li>
 
@@ -55167,7 +55175,7 @@ END:VCARD</pre>
       <dl class="triple">
        <dt>subject   <dd> <span>the document's current address</span>
        <dt>predicate <dd> <code title="">http://www.w3.org/1999/xhtml/microdata#item</code>
-       <dt>object    <dd> <var title="">item</var>
+       <dt>object    <dd> <var title="">result</var>
       </dl>
 
      </li>
@@ -55179,16 +55187,26 @@ END:VCARD</pre>
   </ol>
 
   <p>When the user agent is to <dfn>generate the triples for an
-  item</dfn> <var title="">item</var>, it must follow the following
+  item</dfn> <var title="">item</var>, given a reference to an
+  item/subject list <var title="">memory</var>, and optionally given a
+  fallback type <var title="">fallback type</var> and property name
+  <var title="">fallback name</var>, it must follow the following
   steps:</p>
 
   <ol>
 
-   <li><p>If <var title="">item</var> has a <span>global
-   identifier</span> and that <span>global identifier</span> is an
-   <span>absolute URL</span>, let <var title="">subject</var> be that
-   <span>global identifier</span>. Otherwise, let <var
-   title="">subject</var> be a new blank node.</p></li>
+   <li><p>If there is an entry for <var title="">item</var> in <var
+   title="">memory</var>, then let <var title="">subject</var> be the
+   subject of that entry. Otherwise, if <var title="">item</var> has a
+   <span>global identifier</span> and that <span>global
+   identifier</span> is an <span>absolute URL</span>, let <var
+   title="">subject</var> be that <span>global
+   identifier</span>. Otherwise, let <var title="">subject</var> be a
+   new blank node.</p></li>
+
+   <li><p>Add a mapping from <var title="">item</var> to <var
+   title="">subject</var> in <var title="">memory</var>, if there
+   isn't one already.</p></li>
 
    <li><p>If <var title="">item</var> has an <span>item type</span>
    and that <span>item type</span> is an <span>absolute URL</span>,
@@ -55196,16 +55214,78 @@ END:VCARD</pre>
    type</span>. Otherwise, let <var title="">type</var> be the empty
    string.</p></li>
 
+   <!-- The special characters used in URLs beyond this point are
+   intended to make it so that a different type/name combination
+   couldn't generate the same string. ":" and "%20" are used because
+   they can't be put in /name/ when all this is used. -->
+
    <li>
 
-    <p>If <var title="">type</var> is not the empty string, generate
-    the following triple:</p>
+    <p>If <var title="">type</var> is not the empty string, run the
+    following steps:</p>
 
-    <dl class="triple">
-     <dt>subject   <dd> <var title="">subject</var>
-     <dt>predicate <dd> <code title="">http://www.w3.org/1999/02/22-rdf-syntax-ns#type</code>
-     <dt>object    <dd> <var title="">type</var>
-    </dl>
+    <ol>
+
+     <li><p>Generate the following triple:</p>
+
+      <dl class="triple">
+       <dt>subject   <dd> <var title="">subject</var>
+       <dt>predicate <dd> <code title="">http://www.w3.org/1999/02/22-rdf-syntax-ns#type</code>
+       <dt>object    <dd> <var title="">type</var>
+      </dl>
+
+     </li>
+
+     <li><p>If <var title="">type</var> does not contain a U+0023
+     NUMBER SIGN character (#), then append a U+0023 NUMBER SIGN
+     character (#) to <var title="">type</var>.</p></li>
+
+     <li><p>If <var title="">type</var> does not have a U+003A COLON
+     character (:) after its U+0023 NUMBER SIGN character (#), append
+     a U+003A COLON character (:) to <var
+     title="">type</var>.</p></li>
+
+    </ol>
+
+   </li>
+
+   <li>
+
+    <p>If <var title="">type</var> is the empty string, but <var
+    title="">fallback type</var> is not, run the following
+    substeps:</p>
+
+    <ol>
+
+     <li><p>Let <var title="">type</var> have the value of <var
+     title="">fallback type</var>.</p></li>
+
+     <li><p>If <var title="">type</var> does not contain a U+0023
+     NUMBER SIGN character (#), then append a U+0023 NUMBER SIGN
+     character (#) to <var title="">type</var>.</p></li>
+
+     <!-- Special characters beyond this point have to be something
+     not in /name/ when this is used below, so either ":", %20, %0D,
+     or %0A. This is so that a different type/name combination
+     couldn't generate the same string. -->
+
+     <li><p>If <var title="">type</var> does not have a U+003A COLON
+     character (:) after its U+0023 NUMBER SIGN character (#), append
+     a U+003A COLON character (:) to <var
+     title="">type</var>.</p></li>
+
+     <li><p>If the last character of <var title="">type</var> is not a
+     U+003A COLON character (:), append a U+0025 PERCENT SIGN
+     character (%), a U+0032 DIGIT TWO character (2), and a U+0030
+     DIGIT ZERO character (0) to <var title="">type</var>.</p></li>
+
+     <li><p>Append the value of <var title="">fallback name</var> to
+     <var title="">type</var>, with any characters in <var
+     title="">fallback name</var> that are not valid in the
+     &lt;ifragment> production of the IRI syntax being
+     %-escaped. <a href="#refsRFC3987">[RFC3987]</a></p></li>
+
+    </ol>
 
    </li>
 
@@ -55216,97 +55296,112 @@ END:VCARD</pre>
     properties of an item">the properties of the item</span> <var
     title="">item</var>, in the order those elements are given by the
     algorithm that returns <span>the properties of an item</span>, run
-    the following substeps:</p>
+    the following substep:</p>
 
     <ol>
-
-     <li><p>Let <var title="">value</var> be the <span
-     title="concept-property-value">property value</span> of <var
-     title="">element</var>.</p></li>
-
-     <li><p>If <var title="">value</var> is an <span
-     title="concept-item">item</span>, then <span title="generate the
-     triples for an item">generate the triples</span> for <var
-     title="">value</var>, and then replace <var title="">value</var>
-     with the subject returned from those steps.</p></li>
-
-     <!-- could support <time> here somehow, though we'd have to
-     reserialise it, check if the <time> was valid, check if it had a
-     date, a time, a timezone, etc. -->
-
-     <li><p>Otherwise, if <var title="">element</var> is not one of
-     the <span>URL property elements</span>, let <var
-     title="">value</var> be a plain literal, with the language
-     information set from the <span>language</span> of the element, if
-     it is not unknown.</p></li>
 
      <li>
 
       <p>For each name <var title="">name</var> in <var
       title="">element</var>'s <span>property names</span>, run the
-      appropriate substeps from the following list:</p>
+      following substeps:</p>
 
-      <dl>
+      <ol>
 
-       <dt>If <var title="">name</var> is an <span>absolute
-       URL</span></dt>
+       <li><p>If <var title="">type</var> is the empty string and <var
+       title="">name</var> is not an <span>absolute URL</span>, then
+       abort these substeps.</p></li>
 
-       <dd>
+       <li><p>Let <var title="">value</var> be the <span
+       title="concept-property-value">property value</span> of <var
+       title="">element</var>.</p></li>
+
+       <li><p>If <var title="">value</var> is an <span
+       title="concept-item">item</span>, then <span title="generate
+       the triples for an item">generate the triples</span> for <var
+       title="">value</var>. Pass a reference to <var
+       title="">memory</var> as the item/subject list, and pass <var
+       title="">type</var> as the fallback type and <var
+       title="">name</var> as the fallback property name. Replace <var
+       title="">value</var> by the subject returned from those
+       steps.</p></li>
+
+       <!-- could support <time> here somehow, though we'd have to
+       reserialise it, check if the <time> was valid, check if it had a
+       date, a time, a timezone, etc. -->
+
+       <li><p>Otherwise, if <var title="">element</var> is not one of
+       the <span>URL property elements</span>, let <var
+       title="">value</var> be a plain literal, with the language
+       information set from the <span>language</span> of the element, if
+       it is not unknown.</p></li>
+
+       <li>
+
+        <dl>
+
+         <dt>If <var title="">name</var> is an <span>absolute
+         URL</span></dt>
+
+         <dd>
+
+          <p>Let <var title="">predicate</var> be <var
+          title="">name</var>.</p>
+
+         </dd>
+
+         <dt>If <var title="">name</var> contains no U+003A COLON
+         characters (:)</dt>
+
+         <dd>
+
+          <ol>
+
+           <li><p>Let <var title="">s</var> be <var
+           title="">type</var>.</p></li>
+
+           <li><p>If the last character of <var title="">s</var> is
+           not a U+003A COLON character (:), append a U+0025 PERCENT
+           SIGN character (%), a U+0032 DIGIT TWO character (2), and a
+           U+0030 DIGIT ZERO character (0) to <var
+           title="">s</var>.</p></li>
+
+           <li><p>Append the value of <var title="">name</var> to <var
+           title="">s</var>, with any characters in <var
+           title="">name</var> that are not valid in the
+           &lt;ifragment> production of the IRI syntax being
+           %-escaped. <a href="#refsRFC3987">[RFC3987]</a></p></li>
+
+           <li><p>Let <var title="">predicate</var> be the
+           concatenation of the string "<code
+           title="">http://www.w3.org/1999/xhtml/microdata#</code>"
+           and <var title="">s</var>, with any characters in <var
+           title="">s</var> that are not valid in the &lt;ifragment>
+           production of the IRI syntax being %-escaped. <a
+           href="#refsRFC3987">[RFC3987]</a></p></li> <!-- this ensures
+           you can't use a URL to get the same effect -->
+
+          </ol>
+
+         </dd>
+
+        </dl>
+
+       </li>
+
+       <li>
 
         <p>Generate the following triple:</p>
 
         <dl class="triple">
          <dt>subject   <dd> <var title="">subject</var>
-         <dt>predicate <dd> <var title="">name</var>
+         <dt>predicate <dd> <var title="">predicate</var>
          <dt>object    <dd> <var title="">value</var>
         </dl>
 
-       </dd>
+       </li>
 
-       <dt>If <var title="">name</var> contains no U+003A COLON
-       character (:)</dt>
-
-       <dd>
-
-        <ol>
-
-         <li><p>If <var title="">type</var> is the empty string, then
-         abort these substeps.</p></li>
-
-         <li><p>Let <var title="">predicate</var> have the same value
-         as <var title="">type</var>.</p></li>
-
-         <li><p>If <var title="">predicate</var> does not contain a
-         U+0023 NUMBER SIGN character (#), then append a U+0023 NUMBER
-         SIGN character (#) to <var title="">predicate</var>.</p></li>
-
-         <li><p>Append a U+003A COLON character (:) to <var
-         title="">predicate</var>.</p></li> <!-- has to be something
-         not in /name/, so ":", so that a different type/name
-         combination couldn't generate the same string -->
-
-         <li><p>Append the value of <var title="">name</var> to <var
-         title="">predicate</var>, with any characters in <var
-         title="">name</var> that are not valid in the &lt;ifragment>
-         production of the IRI syntax being %-escaped.</p></li>
-
-         <li>
-
-          <p>Generate the following triple:</p>
-
-          <dl class="triple">
-           <dt>subject   <dd> <var title="">subject</var>
-           <dt>predicate <dd> the concatenation of the string "<code title="">http://www.w3.org/1999/xhtml/microdata#</code>" and <var title="">predicate</var>, with any characters in <var title="">predicate</var> that are not valid in the &lt;ifragment> production of the IRI syntax being %-escaped <a href="#refsRFC3987">[RFC3987]</a>
-           <dt>object    <dd> <var title="">value</var>
-          </dl>
-
-         </li>
-
-        </ol>
-
-       </dd>
-
-      </dl>
+      </ol>
 
      </li>
 
@@ -55364,6 +55459,43 @@ END:VCARD</pre>
 
 &lt;http://purl.oreilly.com/products/9780596802189.EBOOK> a frbr:Expression ;
      dc:type &lt;http://purl.oreilly.com/product-types/EBOOK> .</pre>
+
+  <hr>
+
+  <p>The following snippet of HTML has microdata for two people with
+  the same address:</p>
+
+  <pre>&lt;p>
+ Both
+ &lt;span itemscope itemtype="http://microformats.org/profile/hcard" itemref="home">&lt;span itemprop="fn">Princeton&lt;/span>&lt;/span>
+ and
+ &lt;span itemscope itemtype="http://microformats.org/profile/hcard" itemref="home">&lt;span itemprop="fn">Trekkie&lt;/span>&lt;/span>
+ live at
+ &lt;span id="dome" itemprop="adr" itemscope>&lt;span itemprop="street-address">Avenue Q&lt;/span>.&lt;/span>
+&lt;/p></pre>
+
+  <p>...generates these triples expressed in Turtle (including a
+  triple that in this case is expressed twice, though that is not
+  meaningful in RDF):</p>
+
+  <pre class="turtle">@prefix rdf: &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix dct: &lt;http://purl.org/dc/terms/> .
+@prefix hcard: &lt;http://www.w3.org/1999/xhtml/microdata#http%3A%2F%2Fmicroformats.org%2Fprofile%2Fhcard%23%3A> .
+
+&lt;> &lt;http://www.w3.org/1999/xhtml/microdata#item> _:n0 ;
+   &lt;http://www.w3.org/1999/xhtml/microdata#item> _:n1 .
+_:n0 rdf:type &lt;http://microformats.org/profile/hcard> ;
+     hcard:fn "Princeton" ;
+     hcard:adr _:n2 .
+_:n1 rdf:type &lt;http://microformats.org/profile/hcard> ;
+     hcard:fn "Trekkie" ;
+     hcard:adr _:n2 .
+_:n2 hcard:adr%20street-address "Avenue Q" ;
+     hcard:adr%20street-address "Avenue Q" .</pre>
+
+
+
+
 
 <!--END microdata--><!--START w3c-html-->
 
