@@ -70877,6 +70877,20 @@ interface <dfn>SQLTransactionSync</dfn> {
 
        Ack: Ben Laurie (@g)
 
+     * Promises. Should be able to say "if you accept this drop, then
+       I can provide the File object that corresponds to it
+       eventually".
+
+     * Exposing more information about each item. Best idea (from
+       Eduard Pascual) is to have a new attribute on dataTransfer
+       that's a list of items, each of which has:
+
+           .kind = text data, File data, promise
+           .type = a MIME type
+           .getData(callback) = calls the callback once the data is available
+           .setData(value) = replace the value
+           .remove() = removes the entry
+
 -->
 
   <p>This section defines an event-based drag-and-drop mechanism.</p>
@@ -71085,9 +71099,10 @@ interface <dfn>SQLTransactionSync</dfn> {
   <p><code>DataTransfer</code> objects can hold pieces of data, each
   associated with a unique format. Formats are generally given by
   <span title="MIME type">MIME types</span>, with some values
-  special-cased for legacy reasons. For the purposes of this API,
-  however, the format strings are opaque, <span>case-sensitive</span>,
-  strings, and the empty string is a valid format string.</p>
+  special-cased for legacy reasons. However, the API does not enforce
+  this; non-MIME-type values can be added as well. All formats are
+  identified by strings that are <span>converted to ASCII
+  lowercase</span> by the API.</p>
 
   <dl class="domintro">
 
@@ -71237,17 +71252,11 @@ interface <dfn>SQLTransactionSync</dfn> {
   attribute must return a live <code>DOMStringList</code> that
   contains the list of formats that were added to the
   <code>DataTransfer</code> object in the corresponding <code
-  title="event-dragstart">dragstart</code> event. If any files were
+  title="event-dragstart">dragstart</code> event.  If any files were
   included in the drag, then the <code>DOMStringList</code> object
   must in addition include the string "<code
-  title="">Files</code>".</p>
-
-  <p class="note">If the <code
-  title="dom-DataTransfer-setData">setData()</code> method is invoked
-  with the string "<code title="">Files</code>", and some files were
-  included in the drag, then the string "<code title="">Files</code>"
-  will appear twice in the <code
-  title="dom-DataTransfer-types">types</code> attribute's list.</p>
+  title="">Files</code>". (This value can be distinguished from the
+  other values because it is not lowercase.)</p>
 
   <p>The <dfn
   title="dom-DataTransfer-clearData"><code>clearData()</code></dfn>
@@ -71267,42 +71276,50 @@ interface <dfn>SQLTransactionSync</dfn> {
   title="dom-DataTransfer-clearData">clearData(<var
   title="">format</var>)</code> method must clear the
   <code>DataTransfer</code> object of any data associated with the
-  given <var title="">format</var>. If <var title="">format</var> is
-  the value "<code title="">Text</code>", then it must be treated as
-  "<code title="">text/plain</code>". If the <var
-  title="">format</var> is "<code title="">URL</code>", then it must
-  be treated as "<code title="">text/uri-list</code>".</p>
+  given <var title="">format</var>, <span>converted to ASCII
+  lowercase</span>. If <var title="">format</var> (after conversion to
+  lowercase) is the value "<code title="">text</code>", then it must
+  be treated as "<code title="">text/plain</code>". If the <var
+  title="">format</var> (after conversion to lowercase) is "<code
+  title="">url</code>", then it must be treated as "<code
+  title="">text/uri-list</code>".</p>
 
   <p>The <dfn title="dom-DataTransfer-setData"><code>setData(<var
   title="">format</var>, <var title="">data</var>)</code></dfn> method
   must add <var title="">data</var> to the data stored in the
   <code>DataTransfer</code> object, labeled as being of the type <var
-  title="">format</var>. This must replace any previous data that had
-  been set for that format. If <var title="">format</var> is the value
-  "<code title="">Text</code>", then it must be treated as "<code
-  title="">text/plain</code>". If the <var title="">format</var> is
-  "<code title="">URL</code>", then it must be treated as "<code
+  title="">format</var>, <span>converted to ASCII
+  lowercase</span>. This must replace any previous data that had been
+  set for that format. If <var title="">format</var> (after conversion
+  to lowercase) is the value "<code title="">text</code>", then it
+  must be treated as "<code title="">text/plain</code>". If the <var
+  title="">format</var> (after conversion to lowercase) is "<code
+  title="">url</code>", then it must be treated as "<code
   title="">text/uri-list</code>".</p>
 
   <p>The <dfn title="dom-DataTransfer-getData"><code>getData(<var
   title="">format</var>)</code></dfn> method must return the data that
-  is associated with the type <var title="">format</var>, if any, and
-  must return the empty string otherwise. If <var
-  title="">format</var> is the value "<code title="">Text</code>",
+  is associated with the type <var title="">format</var>
+  <span>converted to ASCII lowercase</span>, if any, and must return
+  the empty string otherwise. If <var title="">format</var> (after
+  conversion to lowercase) is the value "<code title="">text</code>",
   then it must be treated as "<code title="">text/plain</code>". If
-  the <var title="">format</var> is "<code title="">URL</code>", then
-  the data associated with the "<code title="">text/uri-list</code>"
-  format must be parsed as appropriate for <code
-  title="">text/uri-list</code> data, and the first URL from the list
-  must be returned. If there is no data with that format, or if there
-  is but it has no URLs, then the method must return the empty
-  string. <a href="#refsRFC2483">[RFC2483]</a></p>
+  the <var title="">format</var> (after conversion to lowercase) is
+  "<code title="">url</code>", then the data associated with the
+  "<code title="">text/uri-list</code>" format must be parsed as
+  appropriate for <code title="">text/uri-list</code> data, and the
+  first URL from the list must be returned. If there is no data with
+  that format, or if there is but it has no URLs, then the method must
+  return the empty string. <a href="#refsRFC2483">[RFC2483]</a></p>
 
   <p>The <dfn title="dom-DataTransfer-files"><code>files</code></dfn>
   attribute must return the <code>FileList</code> object that contains
   the files that are stored in the <code>DataTransfer</code>
   object. There is one such object per <code>DataTransfer</code>
   object.</p>
+
+  <p class="note">This version of the API does not expose the types of
+  the files during the drag.</p>
 
   <p>The <dfn
   title="dom-DataTransfer-setDragImage"><code>setDragImage(<var
@@ -72223,6 +72240,11 @@ interface <dfn>SQLTransactionSync</dfn> {
   title="event-dragstart">dragstart</code> event was actually fired;
   user agents must similarly use platform-specific conventions when
   deciding on what drag feedback to use.</p>
+
+  <p>All the format strings must be <span>converted to ASCII
+  lowercase</span>. If the platform conventions do not use <span
+  title="MIME type">MIME types</span> to label the dragged data, the
+  user agent must map the types to MIME types first.</p>
 
   <p>If a drag is started in a document but ends in another
   application, then the user agent must instead replace the parts of
