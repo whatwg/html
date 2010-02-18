@@ -10223,8 +10223,8 @@ http://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%0
    parameter set to true.</p></li>
 
    <li><p>If the document has an <span>active parser</span>, then
-   abort that parser, and throw away any pending content in the
-   <span>input stream</span>.</p></li>
+   <span title="abort an HTML parser">abort that
+   parser</span>.</p></li>
 
    <li><p>Unregister all event listeners registered on the
    <code>Document</code> node and its descendants.</p>
@@ -22252,9 +22252,11 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
 
   <div class="impl">
 
-  <p>When the element is created, and subsequently whenever the
-  element is <span title="insert an element into a document">inserted
-  into a document</span> or <span title="remove an element from a
+  <p>When the element is created, when it is popped off the
+  <span>stack of open elements</span> of an <span>HTML parser</span>
+  or <span>XML parser</span>, and subsequently whenever the element is
+  <span title="insert an element into a document">inserted into a
+  document</span> or <span title="remove an element from a
   document">removed from a document</span>; and whenever the element's
   <code>Document</code> changes whether it is <span>fully
   active</span>; and whenever an ancestor <code>object</code> element
@@ -22295,10 +22297,12 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
     <p>If the element has an ancestor <span>media element</span>, or
     has an ancestor <code>object</code> element that is <em>not</em>
     showing its <span>fallback content</span>, or if the element is
-    not <span title="in a document">in a <code>Document</code></span>,
-    or if the element's <code>Document</code> is not <span>fully
-    active</span>, then jump to the last step in the overall set of
-    steps (fallback).</p>
+    not <span title="in a document">in a <code>Document</code></span>
+    with a <span>browsing context</span>, or if the element's
+    <code>Document</code> is not <span>fully active</span>, or if the
+    element is still in the <span>stack of open elements</span> of an
+    <span>HTML parser</span> or <span>XML parser</span>, then jump to
+    the last step in the overall set of steps (fallback).</p>
 
    </li>
 
@@ -82447,7 +82451,8 @@ interface <dfn>SQLTransactionSync</dfn> {
   html">before html</span>" <span>insertion mode</span>.)</p>
 
   <p>The <code>html</code> node, however it is created, is the topmost
-  node of the stack. It never gets popped off the stack.</p>
+  node of the stack. It only gets popped off the stack when the parser
+  <span title="stop parsing">finishes</span>.</p>
 
   <p>The <dfn>current node</dfn> is the bottommost node in this
   stack.</p>
@@ -89149,6 +89154,9 @@ document.body.appendChild(text);
    "interactive" <!-- this also synchronously fires an event --> and
    the <span>insertion point</span> to undefined.</p></li>
 
+   <li><p>Pop <em>all</em> the nodes off the <span>stack of open
+   elements</span>.</p></li>
+
    <li><p>If the <span>list of scripts that will execute when the
    document has finished parsing</span> is not empty, run these
    substeps:</p>
@@ -89233,6 +89241,24 @@ document.body.appendChild(text);
 
    <li><p>The <code>Document</code> is now <dfn>completely
    loaded</dfn>.</p></li>
+
+  </ol>
+
+  <p>When the user agent is to <dfn>abort an HTML parser</dfn>, it
+  must run the following steps:</p>
+
+  <ol>
+
+   <li><p>Throw away any pending content in the <span>input
+   stream</span>, and discard any future content that would have been
+   added to it.</p></li>
+
+   <li><p>Pop <em>all</em> the nodes off the <span>stack of open
+   elements</span>.</p></li>
+
+   <!-- anything else? this is things that happen when you call
+   document.open() on a document that's still being parsed. Should the
+   pending scripts be blown away or anything? -->
 
   </ol>
 
@@ -90135,6 +90161,15 @@ document.body.appendChild(text);
   or has its attributes set. <a href="#refsXML">[XML]</a> <a
   href="#refsXMLNS">[XMLNS]</a> <a href="#refsDOMCORE">[DOMCORE]</a>
   <a href="#refsDOMEVENTS">[DOMEVENTS]</a></p>
+
+  <p>Between the time an element's start tag is parsed and the time
+  either the element's end tag is parsed on the parser detects a
+  well-formedness error, the user agent must act as if the element was
+  a <span>stack of open elements</span>.</p>
+
+  <p class="note">This is used by the <code>object</code> element to
+  avoid instantiating plugins before the <code>param</code> element
+  children have been parsed.</p>
 
   <p>This specification provides the following additional information
   that user agents should use when retrieving an external entity: the
