@@ -75239,6 +75239,7 @@ interface <dfn>WebSocket</dfn> {
   // networking
            attribute <span>Function</span> <span title="handler-WebSocket-onopen">onopen</span>;
            attribute <span>Function</span> <span title="handler-WebSocket-onmessage">onmessage</span>;
+           attribute <span>Function</span> <span title="handler-WebSocket-onmessageerror">onmessageerror</span>;
            attribute <span>Function</span> <span title="handler-WebSocket-onclose">onclose</span>;
   boolean <span title="dom-WebSocket-send">send</span>(in DOMString data);
   void <span title="dom-WebSocket-close">close</span>();
@@ -75430,6 +75431,7 @@ socket.onopen = function () {
    <tbody>
     <tr><td><dfn title="handler-WebSocket-onopen"><code>onopen</code></dfn> <td> <code title="event-open">open</code>
     <tr><td><dfn title="handler-WebSocket-onmessage"><code>onmessage</code></dfn> <td> <code title="event-message">message</code>
+    <tr><td><dfn title="handler-WebSocket-onmessageerror"><code>onmessageerror</code></dfn> <td> <code title="event-messageerror">messageerror</code>
     <tr><td><dfn title="handler-WebSocket-onclose"><code>onclose</code></dfn> <td> <code title="event-close">close</code>
   </table>
 
@@ -75455,6 +75457,15 @@ socket.onopen = function () {
   if the <code title="dom-WebSocket-readyState">readyState</code>
   attribute's value is <code title="dom-WebSocket-OPEN">OPEN</code>
   (1), and if so, dispatch the event at the <code>WebSocket</code>
+  object.</p>
+
+  <p>When <i>a WebSocket error has been detected</i>, the user agent
+  must <span>queue a task</span> to set to <var title="">data</var>,
+  and <span>queue a task</span> to check to see if the <code
+  title="dom-WebSocket-readyState">readyState</code> attribute's value
+  is <code title="dom-WebSocket-OPEN">OPEN</code> (1), and if so,
+  <span>fire a simple event</span> named <code
+  title="event-messageerror">messageerror</code> at the <code>WebSocket</code>
   object.</p>
 
   <p id="closeWebSocket">When the <i>WebSocket connection is
@@ -77061,9 +77072,11 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
 
   <h6>Data framing</h6>
 
-  <p>Once a <span>WebSocket connection is established</span>, the
-  user agent must run through the following state machine for the
-  bytes sent by the server.</p>
+  <p>Once a <span>WebSocket connection is established</span>, the user
+  agent must run through the following state machine for the bytes
+  sent by the server. If at any point during these steps a read is
+  attempted but fails because the <span>WebSocket connection is
+  closed</span>, then abort.</p>
 
   <ol>
 
@@ -77072,8 +77085,11 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
     <p>Try to read a byte from the server. Let <var title="">frame
     type</var> be that byte.</p>
 
-    <p>If no byte could be read because the <span>WebSocket
-    connection is closed</span>, then abort.</p>
+   </li>
+
+   <li>
+
+    <p>Let <var title="">error</var> be false.</p>
 
    </li>
 
@@ -77089,9 +77105,7 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
 
      <dd>
 
-      <p>Run these steps. If at any point during these steps a read is
-      attempted but fails because the <span>WebSocket connection is
-      closed</span>, then abort.</p>
+      <p>Run these steps:</p>
 
       <ol>
 
@@ -77118,6 +77132,8 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
 
        <li><p>Discard the read bytes.</p></li>
 
+       <li><p>Let <var title="">error</var> be true.</p></li>
+
       </ol>
 
      </dd>
@@ -77128,9 +77144,7 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
 
      <dd>
 
-      <p>Run these steps. If at any point during these steps a read is
-      attempted but fails because the <span>WebSocket connection is
-      closed</span>, then abort.</p>
+      <p>Run these steps:</p>
 
       <ol>
 
@@ -77149,13 +77163,21 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
 
        <li><p>If <var title="">frame type</var> is 0x00, then <dfn>a
        WebSocket message has been received</dfn> with text <var
-       title="">data</var>. Otherwise, discard the data.</p></li>
+       title="">data</var>. Otherwise, discard the data and let <var
+       title="">error</var> be true.</p></li>
 
       </ol>
 
      </dd>
 
     </dl>
+
+   </li>
+
+   <li>
+
+    <p>If <var title="">error</var> is true, then <dfn>a WebSocket
+    error has been detected</dfn>.</p></li>
 
    </li>
 
