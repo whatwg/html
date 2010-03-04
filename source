@@ -75232,14 +75232,15 @@ interface <dfn>WebSocket</dfn> {
   // ready state
   const unsigned short <span title="dom-WebSocket-CONNECTING">CONNECTING</span> = 0;
   const unsigned short <span title="dom-WebSocket-OPEN">OPEN</span> = 1;
-  const unsigned short <span title="dom-WebSocket-CLOSED">CLOSED</span> = 2;
+  const unsigned short <span title="dom-WebSocket-CLOSING">CLOSING</span> = 2;
+  const unsigned short <span title="dom-WebSocket-CLOSED">CLOSED</span> = 3;
   readonly attribute unsigned short <span title="dom-WebSocket-readyState">readyState</span>;
   readonly attribute unsigned long <span title="dom-WebSocket-bufferedAmount">bufferedAmount</span>;
 
   // networking
            attribute <span>Function</span> <span title="handler-WebSocket-onopen">onopen</span>;
            attribute <span>Function</span> <span title="handler-WebSocket-onmessage">onmessage</span>;
-           attribute <span>Function</span> <span title="handler-WebSocket-onmessageerror">onmessageerror</span>;
+           attribute <span>Function</span> <span title="handler-WebSocket-onerror">onerror</span>;
            attribute <span>Function</span> <span title="handler-WebSocket-onclose">onclose</span>;
   boolean <span title="dom-WebSocket-send">send</span>(in DOMString data);
   void <span title="dom-WebSocket-close">close</span>();
@@ -75343,7 +75344,11 @@ interface <dfn>WebSocket</dfn> {
 
    <dd>The <span>WebSocket connection is established</span> and communication is possible.</dd>
 
-   <dt><dfn title="dom-WebSocket-CLOSED"><code>CLOSED</code></dfn> (numeric value 2)</dt>
+   <dt><dfn title="dom-WebSocket-CLOSING"><code>CLOSING</code></dfn> (numeric value 2)</dt>
+
+   <dd>The connection is going through the closing handshake.</dd>
+
+   <dt><dfn title="dom-WebSocket-CLOSED"><code>CLOSED</code></dfn> (numeric value 3)</dt>
 
    <dd>The connection has been closed or could not be opened.</dd>
 
@@ -75361,26 +75366,101 @@ interface <dfn>WebSocket</dfn> {
   raise an <code>INVALID_STATE_ERR</code> exception. If the <var
   title="">data</var> argument has any unpaired surrogates, then it
   must raise <code>SYNTAX_ERR</code>. If the connection is
-  established, and the string has no unpaired surrogates, then the
-  user agent must <span>send <var title="">data</var> using the
+  established, and the string has no unpaired surrogates, and <span
+  title="the WebSocket closing handshake has started">the WebSocket
+  closing handshake has not yet started</span>, then the user agent
+  must <span>send <var title="">data</var> using the
   WebSocket</span>. If the data cannot be sent, e.g. because it would
   need to be buffered but the buffer is full, the user agent must
   <span>close the WebSocket connection</span>. The method must then
   return true if the connection is still established (and the data was
-  queued or sent successfully), or false if the connection is closed
-  (e.g. because the user agent just had a buffer overflow and failed
-  to send the data).</p>
+  queued or sent successfully), or false if the connection is closing
+  or closed (e.g. because the user agent just had a buffer overflow
+  and failed to send the data, or because <span>the WebSocket closing
+  handshake has started</span>).</p>
 
   <p>The <dfn title="dom-WebSocket-close"><code>close()</code></dfn>
-  method must <span>close the WebSocket connection</span> or
-  connection attempt, if any, and change the <code
-  title="dom-WebSocket-readyState">readyState</code> attribute's value
-  to <code title="dom-WebSocket-CLOSED">CLOSED</code> (2). If the
-  connection is already closed, it must do nothing.</p>
+  method must run the first matching steps from the following list:</p>
 
-  <p class="note">Closing the connection immediately causes a task to
-  be queued to fire a <code title="event-close">close</code> event, as
-  <a href="#closeWebSocket">described below</a>.</p>
+  <dl class="switch">
+
+   <dt>If the <code title="dom-WebSocket-readyState">readyState</code>
+   attribute is in the <code
+   title="dom-WebSocket-CLOSING">CLOSING</code> (2) or <code
+   title="dom-WebSocket-CLOSED">CLOSED</code> (3) state</dt>
+
+   <dd>
+
+    <p>Do nothing.</p>
+
+    <p class="note">The connection is already closing or is already
+    closed. If it has not already, a <code
+    title="event-close">close</code> event will eventually fire <a
+    href="#closeWebSocket">as described below</a>.</p>
+
+   </dd>
+
+
+   <dt>If the WebSocket connection is not yet <span title="WebSocket
+   connection is established">established</span></dt>
+
+   <dd>
+
+    <p><span>Fail the WebSocket connection</span> and set the <code
+    title="dom-WebSocket-readyState">readyState</code> attribute's
+    value to <code title="dom-WebSocket-CLOSING">CLOSING</code>
+    (2).</p>
+
+    <p class="note">The "<span>fail the WebSocket connection</span>"
+    algorithm invokes the "<span>close the WebSocket
+    connection</span>" algorithm, which then establishes that the
+    "<span>WebSocket connection is closed</span>", which fires the
+    <code title="event-close">close</code> event <a
+    href="#closeWebSocket">as described below</a>.</p>
+
+   </dd>
+
+
+   <dt>If the WebSocket closing handshake has not yet been <span
+   title="the WebSocket closing handshake has
+   started">started</span></dt>
+
+   <dd>
+
+    <p><span>Start the WebSocket closing handshake</span> and set the
+    <code title="dom-WebSocket-readyState">readyState</code>
+    attribute's value to <code
+    title="dom-WebSocket-CLOSING">CLOSING</code> (2).</p>
+
+    <p class="note">The "<span>start the WebSocket closing
+    handshake</span>" algorithm eventually invokes the "<span>close
+    the WebSocket connection</span>" algorithm, which then establishes
+    that the "<span>WebSocket connection is closed</span>", which
+    fires the <code title="event-close">close</code> event <a
+    href="#closeWebSocket">as described below</a>.</p>
+
+   </dd>
+
+
+   <dt>Otherwise</dt>
+
+   <dd>
+
+    <p>Set the <code
+    title="dom-WebSocket-readyState">readyState</code> attribute's
+    value to <code title="dom-WebSocket-CLOSING">CLOSING</code>
+    (2).</p>
+
+    <p class="note"><span>The WebSocket closing handshake has
+    started</span>, and will eventually invokethe "<span>close the
+    WebSocket connection</span>" algorithm, which will establish that
+    the "<span>WebSocket connection is closed</span>", and thus the
+    <code title="event-close">close</code> event will fire, <a
+    href="#closeWebSocket">as described below</a>.</p>
+
+   </dd>
+
+  </dl>
 
   <hr>
 
@@ -75431,7 +75511,7 @@ socket.onopen = function () {
    <tbody>
     <tr><td><dfn title="handler-WebSocket-onopen"><code>onopen</code></dfn> <td> <code title="event-open">open</code>
     <tr><td><dfn title="handler-WebSocket-onmessage"><code>onmessage</code></dfn> <td> <code title="event-message">message</code>
-    <tr><td><dfn title="handler-WebSocket-onmessageerror"><code>onmessageerror</code></dfn> <td> <code title="event-messageerror">messageerror</code>
+    <tr><td><dfn title="handler-WebSocket-onerror"><code>onerror</code></dfn> <td> <code title="event-error">error</code>
     <tr><td><dfn title="handler-WebSocket-onclose"><code>onclose</code></dfn> <td> <code title="event-close">close</code>
   </table>
 
@@ -75456,33 +75536,39 @@ socket.onopen = function () {
   title="">data</var>, and <span>queue a task</span> to check to see
   if the <code title="dom-WebSocket-readyState">readyState</code>
   attribute's value is <code title="dom-WebSocket-OPEN">OPEN</code>
-  (1), and if so, dispatch the event at the <code>WebSocket</code>
-  object.</p>
+  (1) or <code title="dom-WebSocket-CLOSING">CLOSING</code> (2), and
+  if so, dispatch the event at the <code>WebSocket</code> object.</p>
 
   <p>When <i>a WebSocket error has been detected</i>, the user agent
-  must <span>queue a task</span> to set to <var title="">data</var>,
-  and <span>queue a task</span> to check to see if the <code
+  must <span>queue a task</span> to check to see if the <code
   title="dom-WebSocket-readyState">readyState</code> attribute's value
-  is <code title="dom-WebSocket-OPEN">OPEN</code> (1), and if so,
+  is <code title="dom-WebSocket-OPEN">OPEN</code> (1) or <code
+  title="dom-WebSocket-CLOSING">CLOSING</code> (2), and if so,
   <span>fire a simple event</span> named <code
-  title="event-messageerror">messageerror</code> at the <code>WebSocket</code>
+  title="event-error">error</code> at the <code>WebSocket</code>
   object.</p>
 
-  <p id="closeWebSocket">When the <i>WebSocket connection is
-  closed</i>, the user agent must create an event that uses the
-  <code>CloseEvent</code> interface, with the event name <code
-  title="event-close">close</code>, which does not bubble, is not
-  cancelable, has no default action, and whose <code
-  title="dom-CloseEvent-wasClean">wasClean</code> attribute is set to
-  false, and <span>queue a task</span> to first change the <code
+  <p>When <i>the WebSocket closing handshake has started</i>, the user
+  agent must <span>queue a task</span> to change the <code
   title="dom-WebSocket-readyState">readyState</code> attribute's value
-  to <code title="dom-WebSocket-CLOSED">CLOSED</code> (2), and then
-  dispatch the event at the <code>WebSocket</code> object. (If the
+  to <code title="dom-WebSocket-CLOSING">CLOSING</code> (2). (If the
   <code title="dom-WebSocket-close">close()</code> method was called,
   the <code title="dom-WebSocket-readyState">readyState</code>
   attribute's value will already be set to <code
-  title="dom-WebSocket-CLOSED">CLOSED</code> (2) when this task
+  title="dom-WebSocket-CLOSING">CLOSING</code> (2) when this task
   runs.)</p>
+
+  <p id="closeWebSocket">When the <i>WebSocket connection is
+  closed</i>, possibly <i title="">cleanly</i>, the user agent must
+  create an event that uses the <code>CloseEvent</code> interface,
+  with the event name <code title="event-close">close</code>, which
+  does not bubble, is not cancelable, has no default action, and whose
+  <code title="dom-CloseEvent-wasClean">wasClean</code> attribute is
+  set to true if the connection closed <i title="">cleanly</i> and
+  false otherwise; and <span>queue a task</span> to first change the
+  <code title="dom-WebSocket-readyState">readyState</code> attribute's
+  value to <code title="dom-WebSocket-CLOSED">CLOSED</code> (3), and
+  then dispatch the event at the <code>WebSocket</code> object.</p>
 
   <p>The <span>task source</span> for all <span
   title="concept-task">tasks</span> <span title="queue a
@@ -75669,17 +75755,20 @@ any-char      = %x0000-0009 / %x000B-000C / %x000E-10FFFF
   specifications to implement buffering and piecing together of
   messages manually.</p>
 
-  <!-- XXX Close Handshake -->
+  <p>To close the connection cleanly, a frame consisting of just a
+  0xFF byte followed by a 0x00 byte is sent from one peer to ask that
+  the other peer close the connection.</p>
 
   <p>The protocol is designed to support other frame types in
-  future. Instead of the 0x00 byte, other bytes might in future be
-  defined. Frames denoted by bytes that do not have the high bit set
-  (0x00 to 0x7F) are treated as described above (a stream of bytes
-  terminated by 0xFF). Frames denoted by bytes that have the high bit
-  set (0x80 to 0xFF) have a leading length indicator, which is encoded
-  as a series of 7-bit bytes stored in octets with the 8th bit being
-  set for all but the last byte. The remainder of the frame is then as
-  much data as was specified.</p>
+  future. Instead of the 0x00 and 0xFF bytes, other bytes might in
+  future be defined. Frames denoted by bytes that do not have the high
+  bit set (0x00 to 0x7F) are treated as a stream of bytes terminated
+  by 0xFF. Frames denoted by bytes that have the high bit set (0x80 to
+  0xFF) have a leading length indicator, which is encoded as a series
+  of 7-bit bytes stored in octets with the 8th bit being set for all
+  but the last byte. The remainder of the frame is then as much data
+  as was specified. (The closing handshake contains no data and
+  therefore has a length byte of 0x00.)</p>
 
   <p>This wire format for the data transfer part is described by the
   following non-normative ABNF, which is given in two alternative
@@ -75693,16 +75782,16 @@ any-char      = %x0000-0009 / %x000B-000C / %x000E-10FFFF
 <!--START websocket-protocol-->
   </p>
 
-  <!-- XXX Close Handshake -->
   <pre>; the wire protocol as allowed by this specification
 frames        = *frame
-frame         = text-frame
-text-frame    = (%x00) *( UTF8-char ) %xFF
+frame         = text-frame / closing-frame
+text-frame    = %x00 *( UTF8-char ) %xFF
+closing-frame = %xFF %x00
 
 ; the wire protocol including error-handling and forward-compatible parsing rules
 frames        = *frame
 frame         = text-frame / binary-frame
-text-frame    = (%x00-7F) *( UTF8-char / %x80-FE ) %xFF
+text-frame    = (%x00-7F) *(%x00-FE) %xFF
 binary-frame  = (%x80-FF) length &lt; as many bytes as given by the length >
 length        = *(%x80-FF) (%x00-7F)</pre>
 
@@ -75712,36 +75801,38 @@ length        = *(%x80-FF) (%x00-7F)</pre>
   <p class="note">The above ABNF is intended for a binary octet
   environment.</p>
 
-  <!-- XXX Close Handshake -->
   <p class="warning">At this time, the WebSocket protocol cannot be
   used to send binary data. Using any of the frame types other than
-  0x00 is invalid.</p>
+  0x00 and 0xFF is invalid.</p>
 
   <hr>
 
-  <p>The following diagrams summarise the protocol:</p>
+  <p>The following diagram summarises the protocol:</p>
 
   <pre>Handshake
    |
    V
-Frame type byte &lt;-------------------------------------.
-   |      |                                           |
-   |      `-- (0x00 to 0x7F) --> Data... --> 0xFF -->-+
-   |                                                  |
-   `-- (0x80 to 0xFF) --> Length --> Data... ------->-'</pre>
+Frame type byte &lt;--------------------------------------.
+   |      |                                            |
+   |      `--> (0x00 to 0x7F) --> Data... --> 0xFF -->-+
+   |                                                   |
+   `--> (0x80 to 0xFE) --> Length --> Data... ------->-'
+
+</pre>
 
 
 
 
-  <h6>Handshake</h6>
+  <h6>Opening Handshake</h6>
 
   <p><i>This section is non-normative.</i></p>
 
-  <p>The handshake is intended to be compatible with HTTP-based
-  server-side software, so that a single port can be used by both HTTP
-  clients talking to that server and WebSocket clients talking to that
-  server. To this end, the WebSocket client's handshake appears to
-  HTTP servers to be a regular GET request with an Upgrade offer:</p>
+  <p>The opening handshake is intended to be compatible with
+  HTTP-based server-side software, so that a single port can be used
+  by both HTTP clients talking to that server and WebSocket clients
+  talking to that server. To this end, the WebSocket client's
+  handshake appears to HTTP servers to be a regular GET request with
+  an Upgrade offer:</p>
 
   <pre>GET /resource HTTP/1.1
 Upgrade: WebSocket
@@ -75891,6 +75982,32 @@ Sec-WebSocket-Location: ws://example.com/demo</pre>
   man-in-the-middle cache or proxy.</p>
 
 
+  <h6>Closing Handshake</h6>
+
+  <p><i>This section is non-normative.</i></p>
+
+  <p>The closing handshake is far simpler than the opening handshake.</p>
+
+  <p>Either peer can send a 0xFF frame with length 0x00 to begin the
+  closing handshake. Upon receiving a 0xFF frame, the other peer
+  sends an identical 0xFF frame in acknowledgement, if it hasn't
+  already sent one. Upon receiving <em>that</em> 0xFF frame, the first
+  peer then closes the connection, safe in the knowledge that no
+  further data is forthcoming.</p>
+
+  <p>After sending a 0xFF frame, a peer does not send any further
+  data; after receiving a 0xFF frame, a peer discards any further
+  data received.</p>
+
+  <p>It is safe for both peers to initiate this handshake
+  simultaneously.</p>
+
+  <p>The closing handshake is intended to replace the TCP closing
+  handshake (FIN/ACK), on the basis that the TCP closing handshake is
+  not always reliable end-to-end, especially in the presence of
+  man-in-the-middle proxies and other intermediaries.</p>
+
+
 
   <h6>Design philosophy</h6>
 
@@ -75907,12 +76024,10 @@ Sec-WebSocket-Location: ws://example.com/demo</pre>
   <p>Conceptually, WebSocket is really just a layer on top of TCP
   that adds a Web "origin"-based security model for browsers; adds an
   addressing and protocol naming mechanism to support multiple
-  services on one port and multiple host names on one IP address; and
+  services on one port and multiple host names on one IP address;
   layers a framing mechanism on top of TCP to get back to the IP
   packet mechanism that TCP is built on, but without length
-  limits.
-
-  <!-- XXX Close Handshake -->
+  limits; and reimplements the closing handshake in-band.
 
   Other than that, it adds nothing. Basically it is intended
   to be as close to just exposing raw TCP to script as possible
@@ -76195,7 +76310,7 @@ Sec-WebSocket-Location: ws://example.com/demo</pre>
   establish to a server.</p>
 
 
-  <h6>Handshake</h6>
+  <h6>Opening Handshake</h6>
 
   <p>When the user agent is to <dfn>establish a WebSocket
   connection</dfn> to a host <var title="">host</var>, on a port <var
@@ -77138,7 +77253,7 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
        <li id="ws-cd-length"><p><i>Length</i>: Read a byte, let <var
        title="">b</var> be that byte.</p></li>
 
-       <li><p>Let <var title="">b<sub title="">v</sub></var> be
+       <li><p>Let <var title="">b<sub title="">v</sub></var> be an
        integer corresponding to the low 7 bits of <var title="">b</var>
        (the value you would get by <i>and</i>ing <var title="">b</var>
        with 0x7F).</p></li>
@@ -77156,7 +77271,38 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
 
        <li><p>Discard the read bytes.</p></li>
 
-       <li><p>Let <var title="">error</var> be true.</p></li>
+       <li>
+
+        <p>If the <var title="">frame type</var> is 0xFF and the <var
+        title="">length</var> was 0, then run the following
+        substeps:</p>
+
+        <ol>
+
+         <li>If <span title="the WebSocket closing handshake has
+         started">the WebSocket closing handshake has not yet
+         started</span>, then <span>start the WebSocket closing
+         handshake</span>.</li>
+
+         <li>Wait until either <span>the WebSocket closing handshake
+         has started</span> or the <span>WebSocket connection is
+         closed</span>.</li>
+
+         <li>If the <span title="WebSocket connection is
+         closed">WebSocket connection is not already closed</span>,
+         then <span>close the WebSocket connection</span>: <dfn>The
+         WebSocket closing handshake has finished</dfn>. (If the
+         connection closes before this happens, then the closing
+         handshake doesn't finish.)</li>
+
+         <li>Abort these steps. Any data on the connection after the
+         0xFF frame is discarded.</li>
+
+        </ol>
+
+        <p>Otherwise, let <var title="">error</var> be true.</p>
+
+       </li>
 
       </ol>
 
@@ -77201,7 +77347,7 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
    <li>
 
     <p>If <var title="">error</var> is true, then <dfn>a WebSocket
-    error has been detected</dfn>.</p></li>
+    error has been detected</dfn>.</p>
 
    </li>
 
@@ -77217,7 +77363,8 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
 
   <hr>
 
-  <p>Once a <span>WebSocket connection is established</span>, the
+  <p>Once a <span>WebSocket connection is established</span>, but
+  before <span>the WebSocket closing handshake has started</span>, the
   user agent must use the following steps to <dfn>send <var
   title="">data</var> using the WebSocket</dfn>:</p>
 
@@ -77232,6 +77379,43 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
 
   </ol>
 
+  <p>Once <span>the WebSocket closing handshake has started</span>,
+  the user agent must not send any further data on the connection.</p>
+
+  <hr>
+
+  <p>Once a <span>WebSocket connection is established</span>, the user
+  agent must use the following steps to <dfn>start the WebSocket
+  closing handshake</dfn>. These steps must be run asynchronously
+  relative to whatever algorithm invoked this one.</p>
+
+  <ol>
+
+   <li><p>If <span>the WebSocket closing handshake has started</span>,
+   then abort these steps.</p></li>
+
+   <li><p>Send a 0xFF byte to the server.</p></li>
+
+   <li><p>Send a 0x00 byte to the server.</p></li>
+
+   <li><p><dfn>The WebSocket closing handshake has started</dfn>.</p></li>
+
+   <li><p>Wait a user-agent-determined length of time, or until the
+   <span>WebSocket connection is closed</span>.</p>
+
+   <li>If the <span title="WebSocket connection is closed">WebSocket
+   connection is not already closed</span>, then <span>close the
+   WebSocket connection</span>. (If this happens, then the closing
+   handshake doesn't finish.)</li>
+
+  </ol>
+
+  <p class="note">The closing handshake <span title="the WebSocket
+  closing handshake has finished">finishes</span> once the server
+  returns the 0xFF packet, as described above.</p>
+
+  <hr>
+
   <p>If at any point there is a fatal problem with sending data to the
   server, the user agent must <span>fail the WebSocket
   connection</span>.</p>
@@ -77242,21 +77426,7 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
   data. -->
 
 
-  <h6>Failing the connection</h6>
-
-  <p>To <dfn>fail the WebSocket connection</dfn>, the user agent must
-  <span>close the WebSocket connection</span>, and may report the
-  problem to the user (which would be especially useful for
-  developers). However, user agents must not convey the failure
-  information to the script that attempted the connection in a way
-  distinguishable from the WebSocket being closed normally.</p>
-
-  <p>Except as indicated above or as specified by the application
-  layer (e.g. a script using the WebSocket API), user agents should
-  not close the connection.</p>
-
-
-  <h6>Handling errors in UTF-8</h6>
+  <h6>Handling errors in UTF-8 from the server</h6>
 
   <p>When a client is to interpret a byte stream as UTF-8 but finds
   that the byte stream is not in fact a valid UTF-8 stream, then any
@@ -77270,12 +77440,12 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
   <p><i>This section only applies to servers.</i></p>
 
 
-  <h6>Reading the client's handshake</h6>
+  <h6>Reading the client's opening handshake</h6>
 
   <p>When a client starts a WebSocket connection, it sends its part of
-  the handshake. The server must parse at least part of this handshake
-  in order to obtain the necessary information to generate the server
-  part of the handshake.</p>
+  the opening handshake. The server must parse at least part of this
+  handshake in order to obtain the necessary information to generate
+  the server part of the handshake.</p>
 
   <p>The client handshake consists of the following parts. If the
   server, while reading the handshake, finds that the client did not
@@ -77477,7 +77647,7 @@ multi-origin semantics described in [ORIGIN] applying. (http-origin)
   doesn't support.</p>
 
   
-  <h6>Sending the server's handshake</h6>
+  <h6>Sending the server's opening handshake</h6>
 
   <p>When a client establishes a WebSocket connection to a server, the
   server must run the following steps.</p>
@@ -77834,7 +78004,7 @@ WjN}|M(6</pre>
      <li id="ws-sd-length"><p><i>Length</i>: Read a byte, let <var
      title="">b</var> be that byte.</p></li>
 
-     <li><p>Let <var title="">b<sub title="">v</sub></var> be
+     <li><p>Let <var title="">b<sub title="">v</sub></var> be an
      integer corresponding to the low 7 bits of <var title="">b</var>
      (the value you would get by <i>and</i>ing <var title="">b</var>
      with 0x7F).</p></li>
@@ -77851,6 +78021,11 @@ WjN}|M(6</pre>
      <li><p>Read <var title="">length</var> bytes.</p></li>
 
      <li><p>Discard the read bytes.</p></li>
+
+     <li><p>If <var title="">type</var> is 0xFF and <var
+     title="">length</var> is 0, then set the <var title="">client
+     terminated</var> flag and abort these steps. All further data
+     sent by the client should be discarded.</p></li>
 
     </ol>
 
@@ -77879,15 +78054,31 @@ WjN}|M(6</pre>
 
   </ol>
 
+  <hr>
 
-  <h6>Aborting the connection</h6>
+  <p>At any time, the server may decide to terminate the WebSocket
+  connection by running through the following steps:</p>
 
-  <p>To <dfn>abort the WebSocket connection</dfn> during the
-  handshake, the server must <span>close the WebSocket
-  connection</span>.</p>
+  <ol>
+
+   <li><p>Send a 0xFF byte and a 0x00 byte to the client to indicate
+   the start of the closing handshake.</p></li>
+
+   <li><p>Wait until the <var title="">client terminated</var> flag
+   has been set, or until a server-defined timeout expires.</p></li>
+
+   <li><p><span>Close the WebSocket connection</span>.</p></li>
+
+  </ol>
+
+  <p>Once these steps have started, the server must not send any
+  further data to the server. The 0xFF 0x00 bytes indicate the end of
+  the server's data, and further bytes will be discarded by the
+  client.</p>
 
 
-  <h6>Handling errors in UTF-8</h6>
+
+  <h6>Handling errors in UTF-8 from the client</h6>
 
   <p>When a server is to interpret a byte stream as UTF-8 but finds
   that the byte stream is not in fact a valid UTF-8 stream, behaviour
@@ -77901,15 +78092,67 @@ WjN}|M(6</pre>
 
   <h5>Closing the connection</h5>
 
-  <p>To <dfn>close the WebSocket connection</dfn>, either the user
-  agent or the server closes the TCP connection. There is no
-  closing handshake. When a user agent notices that the server has
-  closed its connection, it must immediately close its side of the
-  connection also. Whether the user agent or the server closes the
-  connection first, it is said that the <dfn>WebSocket connection is
-  closed</dfn>.</p>
+  <h6>Client-initiated closure</h6>
 
-  <!-- XXX Close Handshake but NOT for FAILing or ABORTing -->
+  <p>Certain algorithms require the user agent to <dfn>fail the
+  WebSocket connection</dfn>. To do so, the user agent must
+  <span>close the WebSocket connection</span>, and may report the
+  problem to the user (which would be especially useful for
+  developers).</p>
+
+  <p>Except as indicated above or as specified by the application
+  layer (e.g. a script using the WebSocket API), user agents should
+  not close the connection.</p>
+
+  <p>User agents must not convey any failure information to scripts in
+  a way that would allow a script to distinguish the following
+  situations:</p>
+
+  <ul>
+
+   <li>A server whose host name could not be resolved.</li>
+
+   <li>A server to which packets could not successfully be
+   routed.</li>
+
+   <li>A server that refused the connection on the specified
+   port.</li>
+
+   <li>A server that did not complete the opening handshake
+   (e.g. because it was not a WebSocket server).</li>
+
+   <li>A WebSocket server that sent a correct opening handshake, but
+   that specified options that caused the client to drop the
+   connection (e.g. the server specified an origin that differed from
+   the script's).</li>
+
+   <li>A WebSocket server that abruptly closed the connection after
+   successfully completing the opening handshake.</li>
+
+  </ul>
+
+
+  <h6>Server-initiated closure</h6>
+
+  <p>Certain algorithms require or recommend that the server
+  <dfn>abort the WebSocket connection</dfn> during the opening
+  handshake. To do so, the server must simply <span>close the
+  WebSocket connection</span>.</p>
+
+
+  <h6>Closure</h6>
+
+  <p>To <dfn>close the WebSocket connection</dfn>, the user agent or
+  server must close the TCP connection, using whatever mechanism
+  possible (e.g. either the TCP RST or FIN mechanisms). When a user
+  agent notices that the server has closed its connection, it must
+  immediately close its side of the connection also. Whether the user
+  agent or the server closes the connection first, it is said that the
+  <dfn>WebSocket connection is closed</dfn>. If the connection was
+  closed after the client <span title="the WebSocket closing handshake
+  has finished">finished the WebSocket closing handshake</span>, then
+  the WebSocket connection is said to have been closed <i
+  title="">cleanly</i>.</p>
 
   <p>Servers may <span>close the WebSocket connection</span> whenever
   desired. User agents should not <span>close the WebSocket
