@@ -50493,38 +50493,108 @@ interface <dfn>DataGridListener</dfn> {
   <pre class="idl">[NoInterfaceObject]
 interface <dfn>AbstractPeer</dfn> {
   void sendText(in DOMString text);
-  attribute Function ontext; // receiving
+  attribute <span>Function</span> ontext; // receiving
 
   void sendBitmap(in HTMLImageElement image);
-  attribute Function onbitmap; // receiving
+  attribute <span>Function</span> onbitmap; // receiving
 
   void sendFile(in File file);
-  attribute Function onfile; // receiving
+  attribute <span>Function</span> onfile; // receiving
 
-  attribute Stream localStream; // video/audio to send
-  readonly attribute Stream remoteStream; // video/audio from remote peer
-  attribute Function onstreamchange; // when the remote peer changes whether the video is being sent or not
+  attribute <span>Stream</span> localStream; // video/audio to send
+  readonly attribute <span>Stream</span> remoteStream; // video/audio from remote peer
+  attribute <span>Function</span> onstreamchange; // when the remote peer changes whether the video is being sent or not
 
-  attribute Function onconnect; // called when the connection is established
-  attribute Function ondisconnect;
+  attribute <span>Function</span> onconnect;
+  attribute <span>Function</span> onerror;
+  attribute <span>Function</span> ondisconnect;
 };
 
-[Constructor]
+[Constructor(in DOMString serverConfiguration)]
 interface <dfn>PeerToPeerServer</dfn> : <span>AbstractPeer</span> {
-  DOMString <span title="dom-PeerToPeerServer-getAddress">getAddress</span>(); // returns a string that encodes all the various ways to connect to this peer
-
-  attribute Function onincoming; // incoming call detected
+  void <span title="dom-PeerToPeerServer-getClientConfiguration">getClientConfiguration</span>(in <span>PeerToPeerConfigurationCallback</span> callback);
+<!--(doesn't make much sense to not accept it, after going to all the effort of setting it up)
+  attribute <span>Function</span> onincoming; // incoming call detected
   void accept(); // accepts incoming call
   void reject(in optional DOMString message); // explicitly rejects incoming call
-
+-->
   void close(); // disconnects and stops listening
 };
 
-[Constructor(in DOMString address)] // pass it the result of getAddress() from the other peer
+[Constructor]
 interface <dfn>PeerToPeerClient</dfn> : <span>AbstractPeer</span> {
+  void <span title="dom-PeerToPeerClient-addConfiguration">addConfiguration</span>(in DOMString configuration);
+  void close(); // disconnects
+};
+
+[Callback=FunctionOnly, NoInterfaceObject]
+interface <dfn>PeerToPeerConfigurationCallback</dfn> {
+  void <span title="dom-PeerToPeerConfigurationCallback-handleEvent">handleEvent</span>(in <span>PeerToPeerServer</span> server, in DOMString configuration);
 };</pre>
 
   <p class="XXX">...</p>
+
+  <div class="XXX">
+
+   <p>This relies on some currently hypothetical other standard to
+   define:</p>
+
+   <ul>
+    <li>The format of server configuration strings.
+    <li>The format of client configuration strings.
+    <li>The protocols that servers and clients use to talk to third-party servers mentioned in the server configuration strings.
+    <li>The protocols that servers and clients use to talk to each other.
+   </ul>
+
+  </div>
+
+  <div class="example">
+
+   <p>Server:</p>
+
+   <pre>var serverConfig = ...; // configuration string obtained from server
+// contains details such as the IP address of a server that can speak some
+// protocol to help the client determine its public IP address, route packets
+// if necessary, etc.
+
+var local = new PeerToPeerServer(serverConfig);
+local.getClientConfiguration(function (configuration) {
+  if (configuration != '') {
+    ...; // send configuration to other peer using out-of-band mechanism
+  } else {
+    // we've exhausted our options; wait for connection
+  }
+});</pre>
+
+   <p>Client:</p>
+
+   <pre>var local = new PeerToPeerClient();
+function ... (configuration) {
+  // called whenever we get configuration information out-of-band
+  local.addConfiguration(configuration);
+}</pre>
+
+   <p>Both client and server:</p>
+
+   <pre>local.onconnect = function (event) {
+  // we are connected!
+  local.sendText('Hello');
+  local.localStream = ...; // send video
+  local.onstreamchange = function (event) {
+    // receive video
+    // (videoElement is some &lt;video> element)
+    videoElement.src = local.remoteStream.URL;
+  };
+};</pre>
+
+  </div>
+
+  <p class="warning">To prevent network sniffing from allowing a
+  fourth party to establish a connection to the
+  <code>PeerToPeerServer</code> using the information sent out-of-band
+  to the <code>PeerToPeerClient</code> and thus spoofing the client,
+  the configuration information should always be transmitted using an
+  encrypted connection.</p>
 
 <!--END html-device--><!--START w3c-html-->
 
