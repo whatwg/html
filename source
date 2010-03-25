@@ -26372,16 +26372,41 @@ interface <dfn>CueRangeCallback</dfn> {
   <p>When the user agent is required to <dfn
   title="dom-media-seek">seek</dfn> to a particular <var title="">new
   playback position</var> in the <span>media resource</span>, it means
-  that the user agent must run the following steps:</p>
+  that the user agent must run the following steps. This algorithm
+  interacts closely with the <span>event loop</span> mechanism; in
+  particular, it has a <span>synchronous
+  section</span> (which is triggered as part of the <span>event
+  loop</span> algorithm). Steps in that section are marked with
+  &#x231B;.</p>
 
   <ol>
 
    <li><p>If the <span>media element</span>'s <code
    title="dom-media-readyState">readyState</code> is <code
-   title="dom-media-HAVE_NOTHING">HAVE_NOTHING</code>, then the user
-   agent must raise an <code>INVALID_STATE_ERR</code> exception (if
-   the seek was in response to a DOM method call or setting of an IDL
-   attribute), and abort these steps.</p></li>
+   title="dom-media-HAVE_NOTHING">HAVE_NOTHING</code>, then raise an
+   <code>INVALID_STATE_ERR</code> exception (if the seek was in
+   response to a DOM method call or setting of an IDL attribute), and
+   abort these steps.</p></li>
+
+   <li><p>If the element's <code
+   title="dom-media-seeking">seeking</code> IDL attribute is true,
+   then another instance of this algorithm is already running. Abort
+   that other instance of the algorithm without waiting for the step
+   that it is running to complete.</p></li>
+
+   <li><p>Set the <code title="dom-media-seeking">seeking</code> IDL
+   attribute to true.</p></li>
+
+   <li id="seekUpdate"><p><span>Queue a task</span> to <span>fire a
+   simple event</span> named <code
+   title="event-media-timeupdate">timeupdate</code> at the
+   element.</p></li>
+
+   <li><p>If the seek was in response to a DOM method call or setting
+   of an IDL attribute, then continue the script. The remainder of
+   these steps must be run asynchronously. With the exception of the
+   steps marked with &#x231B;, they could be aborted at any time by
+   another instance of this algorithm being invoked.</p></li>
 
    <li><p>If the <var title="">new playback position</var> is later
    than the end of the <span>media resource</span>, then let it be the
@@ -26393,53 +26418,55 @@ interface <dfn>CueRangeCallback</dfn> {
 
    <li><p>If the (possibly now changed) <var title="">new playback
    position</var> is not in one of the ranges given in the <code
-   title="dom-media-seekable">seekable</code> attribute, then the user
-   agent must raise an <code>INDEX_SIZE_ERR</code> exception (if the
-   seek was in response to a DOM method call or setting of an IDL
-   attribute), and abort these steps.</p></li>
+   title="dom-media-seekable">seekable</code> attribute, then let it
+   be the position in one of the ranges given in the <code
+   title="dom-media-seekable">seekable</code> attribute that is the
+   nearest to the <var title="">new playback position</var>. If two
+   positions both satisfy that constraint (i.e. the <var title="">new
+   playback position</var> is exactly in the middle of a range in the
+   <code title="dom-media-seekable">seekable</code> attribute) then
+   use the position that is closest to the <span>current playback
+   position</span>. If there are no ranges given in the <code
+   title="dom-media-seekable">seekable</code> attribute then set the
+   <code title="dom-media-seeking">seeking</code> IDL attribute to
+   false and abort these steps.</p></li>
 
-   <li><p>The <span>current playback position</span> must be set to
-   the given <var title="">new playback position</var>.</p></li>
-
-   <li><p>The <code title="dom-media-seeking">seeking</code> IDL
-   attribute must be set to true.</p></li>
-
-   <li id="seekUpdate"><p>The user agent must <span>queue a
-   task</span> to <span>fire a simple event</span> named <code
-   title="event-media-timeupdate">timeupdate</code> at the element.</p></li>
+   <li><p>Set the <span>current playback position</span> to the given
+   <var title="">new playback position</var>.</p></li>
 
    <li><p>If the <span>media element</span> was <span>potentially
    playing</span> immediately before it started seeking, but seeking
    caused its <code title="dom-media-readyState">readyState</code>
    attribute to change to a value lower than <code
-   title="dom-media-HAVE_FUTURE_DATA">HAVE_FUTURE_DATA</code>, the
-   user agent must <span>queue a task</span> to <span>fire a simple
-   event</span> named <code title="event-media-waiting">waiting</code> at
-   the element.</p></li>
+   title="dom-media-HAVE_FUTURE_DATA">HAVE_FUTURE_DATA</code>, then
+   <span>queue a task</span> to <span>fire a simple event</span> named
+   <code title="event-media-waiting">waiting</code> at the
+   element.</p></li>
 
    <li><p>If, when it reaches this step, the user agent has still not
    established whether or not the <span>media data</span> for the <var
    title="">new playback position</var> is available, and, if it is,
-   decoded enough data to play back that position, the user agent must
-   <span>queue a task</span> to <span>fire a simple event</span>
-   named <code title="event-media-seeking">seeking</code> at the
-   element.</p></li>
+   decoded enough data to play back that position, then <span>queue a
+   task</span> to <span>fire a simple event</span> named <code
+   title="event-media-seeking">seeking</code> at the element.</p></li>
 
-   <li><p>If the seek was in response to a DOM method call or setting
-   of an IDL attribute, then continue the script. The remainder of
-   these steps must be run asynchronously.</p></li>
+   <li><p>Wait until it has established whether or not the <span>media
+   data</span> for the <var title="">new playback position</var> is
+   available, and, if it is, until it has decoded enough data to play
+   back that position.</p></li>
 
-   <li><p>The user agent must wait until it has established whether or
-   not the <span>media data</span> for the <var title="">new playback
-   position</var> is available, and, if it is, until it has decoded
-   enough data to play back that position.</p></li>
+   <li><p><span>Await a stable state</span>. The <span>synchronous
+   section</span> consists of all the remaining steps of this
+   algorithm. (Steps in the <span>synchronous section</span> are
+   marked with &#x231B;.)</p></li>
 
-   <li><p>The <code title="dom-media-seeking">seeking</code> IDL
-   attribute must be set to false.</p></li>
+   <li><p>&#x231B; Set the <code
+   title="dom-media-seeking">seeking</code> IDL attribute to
+   false.</p></li>
 
-   <li><p>The user agent must <span>queue a task</span> to <span>fire
-   a simple event</span> named <code
-   title="event-media-seeked">seeked</code> at the element.</p></li>
+   <li><p>&#x231B; <span>Queue a task</span> to <span>fire a simple
+   event</span> named <code title="event-media-seeked">seeked</code>
+   at the element.</p></li>
 
   </ol>
 
