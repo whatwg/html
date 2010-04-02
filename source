@@ -937,14 +937,14 @@ a.setAttribute('href', 'http://example.com/'); // change the content attribute d
      <pre class="bad">&lt;a href="?original=1&amp;copy=2">Compare&lt;/a></pre>
 
      <p>To avoid this problem, all named character references are
-     required to end with a semicolon, and any ampersands followed by
-     letters are required to be escaped.</p>
+     required to end with a semicolon, and uses of named character
+     references without a semicolon are flagged as errors.</p>
 
      <p>Thus, the correct way to express the above cases is as
      follows:</p>
 
-     <pre>&lt;a href="?hello=1&amp;amp;world=2">Demo&lt;/a></pre>
-     <pre>&lt;a href="?original=1&amp;amp;copy=2">Compare&lt;/a></pre>
+     <pre>&lt;a href="?hello=1&amp;world=2">Demo&lt;/a> &lt;!-- &amp;world is ok, since it's not a named character reference --></pre>
+     <pre>&lt;a href="?original=1&amp;amp;copy=2">Compare&lt;/a> &lt;!-- the &amp; has to be escaped, since &amp;copy <em>is</em> a named character reference --></pre>
 
     </div>
 
@@ -83737,9 +83737,12 @@ interface <dfn>SQLTransactionSync</dfn> {
 
   <p>An <dfn title="syntax-ambiguous-ampersand">ambiguous
   ampersand</dfn> is a U+0026 AMPERSAND character (&amp;) that is
-  followed by some <span title="syntax-text">text</span> other than a
-  <span>space character</span>, a U+003C LESS-THAN SIGN character
-  (&lt;), or another U+0026 AMPERSAND character (&amp;).</p>
+  followed by one or more characters in the range U+0030 DIGIT ZERO
+  (0) to U+0039 DIGIT NINE (9), U+0061 LATIN SMALL LETTER A to U+007A
+  LATIN SMALL LETTER Z, and U+0041 LATIN CAPITAL LETTER A to U+005A
+  LATIN CAPITAL LETTER Z, followed by a U+003B SEMICOLON character
+  (;), where these characters do not match any of the names given in
+  the <span>named character references</span> section.</p>
 
 
   <h4>CDATA sections</h4>
@@ -87684,12 +87687,14 @@ interface <dfn>SQLTransactionSync</dfn> {
     column of the <span>named character references</span> table (in a
     <span>case-sensitive</span> manner).</p>
 
-    <p>If no match can be made, then this is a <span>parse
-    error</span>. No characters are consumed, and nothing is
-    returned.</p>
-
-    <p>If the last character matched is not a U+003B SEMICOLON
-    character (;), there is a <span>parse error</span>.</p>
+    <p>If no match can be made, then no characters are consumed, and
+    nothing is returned. In this case, if the characters after the
+    U+0026 AMPERSAND character (&amp;) consist of a sequence of one or
+    more characters in the range U+0030 DIGIT ZERO (0) to U+0039 DIGIT
+    NINE (9), U+0061 LATIN SMALL LETTER A to U+007A LATIN SMALL LETTER
+    Z, and U+0041 LATIN CAPITAL LETTER A to U+005A LATIN CAPITAL
+    LETTER Z, followed by a U+003B SEMICOLON character (;), then this
+    is a <span>parse error</span>.</p>
 
     <p>If the character reference is being consumed <span
     title="character reference in attribute value state">as part of an
@@ -87703,19 +87708,24 @@ interface <dfn>SQLTransactionSync</dfn> {
     (&amp;) must be unconsumed, and nothing is returned.</p>
     <!-- "=" added because of http://www.w3.org/Bugs/Public/show_bug.cgi?id=9207#c5 -->
 
-    <p>Otherwise, return a character token for the character
-    corresponding to the character reference name (as given by the
-    second column of the <span>named character references</span>
-    table).</p>
+    <p>Otherwise, a character reference is parsed. If the last
+    character matched is not a U+003B SEMICOLON character (;), there
+    is a <span>parse error</span>.</p>
+
+    <p>Return a character token for the character corresponding to the
+    character reference name (as given by the second column of the
+    <span>named character references</span> table).</p>
 
     <div class="example">
 
-     <p>If the markup contains <code title="">I'm &amp;notit; I tell
-     you</code>, the character reference is parsed as "not", as in,
-     <code title="">I'm &not;it; I tell you</code>. But if the markup
+     <p>If the markup contains (not in an attribute) the string <code
+     title="">I'm &amp;notit; I tell you</code>, the character
+     reference is parsed as "not", as in, <code title="">I'm &not;it;
+     I tell you</code> (and this is a parse error). But if the markup
      was <code title="">I'm &amp;notin; I tell you</code>, the
      character reference would be parsed as "notin;", resulting in
-     <code title="">I'm &notin; I tell you</code>.</p>
+     <code title="">I'm &notin; I tell you</code> (and no parse
+     error).</p>
 
     </div>
 
