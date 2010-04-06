@@ -5623,9 +5623,10 @@ a.setAttribute('href', 'http://example.com/'); // change the content attribute d
 
   <p>When a user agent is to <dfn>fetch</dfn> a resource or
   <span>URL</span>, optionally from an origin <i title="">origin</i>,
-  and optionally with a <i>synchronous flag</i>, the following steps
-  must be run. (When a <em>URL</em> is to be fetched, the URL
-  identifies a resource to be obtained.)</p>
+  and optionally with a <i>synchronous flag</i> and/or a <i>manual
+  redirect flag</i>, the following steps must be run. (When a
+  <em>URL</em> is to be fetched, the URL identifies a resource to be
+  obtained.)</p>
 
   <!-- if invoked with the synchronous flag, make sure to release the
   storage mutex first -->
@@ -5679,6 +5680,8 @@ a.setAttribute('href', 'http://example.com/'); // change the content attribute d
 
    <li>
 
+    <p>This is the <i>main step</i>.</p>
+
     <p>If the resource is identified by an <span>absolute URL</span>,
     and the resource is to be obtained using an idempotent action
     (such as an HTTP GET <span title="concept-http-equivalent-get">or
@@ -5694,15 +5697,10 @@ a.setAttribute('href', 'http://example.com/'); // change the content attribute d
     <p>Otherwise, at a time convenient to the user and the user agent,
     download (or otherwise obtain) the resource, applying the
     semantics of the relevant specifications (e.g. performing an HTTP
-    GET or POST operation, or reading the file from disk, following
-    redirects, <span title="concept-js-deref">dereferencing <span
-    title="javascript protocol"><code title="">javascript:</code>
-    URLs</span></span>, etc).</p>
-
-    <p class="note">The HTTP specification requires that 301, 302, and
-    307 redirects, when applied to methods other than the safe
-    methods, not be followed without user confirmation. <a
-    href="#refsHTTP">[HTTP]</a></p>
+    GET or POST operation, or reading the file from disk, <span
+    title="concept-js-deref">dereferencing <span title="javascript
+    protocol"><code title="">javascript:</code> URLs</span></span>,
+    etc).</p>
 
     <p>For the purposes of the <code
     title="http-referer">Referer</code> (sic) header, use the
@@ -5744,6 +5742,44 @@ a.setAttribute('href', 'http://example.com/'); // change the content attribute d
      again free.</p></li>
 
     </ol>
+
+   </li>
+
+   <li>
+
+    <p>If the fetched resource is an HTTP redirect <span
+    title="concept-http-equivalent-codes">or equivalent</span>,
+    then:</p>
+
+    <dl class="switch">
+
+     <dt>If the <i>manual redirect flag</i> is set</dt>
+
+     <dd>
+
+      <p>Continue, using the fetched resource (the redirect) as the
+      result of the algorithm.</p>
+
+     </dd>
+
+     <dt>Otherwise</dt>
+
+     <dd>
+
+      <p>First, apply any relevant requirements for redirects (such as
+      showing any appropriate prompts). Then, redo <i>main step</i>,
+      but using the target of the redirect as the resource to fetch,
+      rather than the original resource.</p>
+
+      <p class="note">The HTTP specification requires that 301, 302,
+      and 307 redirects, when applied to methods other than the safe
+      methods, not be followed without user confirmation. That would
+      be an appropriate prompt for the purposes of the requirement in
+      the paragraph above. <a href="#refsHTTP">[HTTP]</a></p>
+
+     </dd>
+
+    </dl>
 
    </li>
 
@@ -62901,9 +62937,9 @@ State: &lt;OUTPUT NAME=I>1&lt;/OUTPUT> &lt;INPUT VALUE="Increment" TYPE=BUTTON O
     application cache at all; the submission will be made to the
     network.</p>
 
-    <p>Otherwise, <span>fetch</span> the new resource, if it has not
-    already been obtained<!-- it's obtained by <object>, for instance
-    -->.</p>
+    <p>Otherwise, unless it has already been obtained<!-- it's
+    obtained by <object>, for instance -->, <span>fetch</span> the new
+    resource, with the <i>manual redirect flag</i> set.</p>
 
     <p>If the resource is being fetched using a method other than one
     <span title="concept-http-equivalent-get">equivalent to</span>
@@ -62928,17 +62964,29 @@ State: &lt;OUTPUT NAME=I>1&lt;/OUTPUT> &lt;INPUT VALUE="Increment" TYPE=BUTTON O
 
    <li>
 
-    <p>At this point the user agents must return to whatever algorithm
-    invoked the navigation steps and must continue these steps
-    asynchronously.</p>
+    <p>At this point, unless this step has already been reached once
+    before in the execution of this instance of the algorithm, the
+    user agents must return to whatever algorithm invoked the
+    navigation steps and must continue these steps asynchronously.</p>
 
    </li>
 
    <li>
 
-    <p>If fetching the resource results in a redirect, return to <a
-    href="#navigate-fragid-step">the step labeled "fragment
-    identifiers"</a> with the new resource.</p>
+    <p>If fetching the resource results in a redirect, and either the
+    <span>URL</span> of the target of the redirect has the <span>same
+    origin</span> as the original resource, or the resource is being
+    obtained using the POST method or a safe method (in HTTP terms),
+    return to <a href="#navigate-fragid-step">the step labeled
+    "fragment identifiers"</a> with the new resource.</p>
+
+    <p>Otherwise, if fetching the resource results in a redirect but
+    the <span>URL</span> of the target of the redirect does not have
+    the <span>same origin</span> as the original resource and the
+    resource is being obtained using a method that is neither the POST
+    method nor a safe method (in HTTP terms), then abort these
+    steps. The user agent may indicate to the user that the navigation
+    has been aborted for security reasons.</p>
 
    </li>
 
@@ -103026,6 +103074,7 @@ interface <span>HTMLDocument</span> {
   Dean Edwards,
   Debi Orton,
   Derek Featherstone,
+  Devdatta,
   Dimitri Glazkov,
   Dimitry Golubovsky,
   Divya Manian,
