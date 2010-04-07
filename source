@@ -55004,7 +55004,9 @@ document.body.appendChild(outer);</pre>
 
   <p>To <dfn>crawl the properties</dfn> of an element <var
   title="">root</var> with a list <var title="">memory</var>, the user
-  agent must run the following steps:</p>
+  agent must run the following steps. These steps either fail or
+  return a list with a count of errors. The count of errors is used as
+  part of the authoring conformance criteria below.</p>
 
   <ol>
 
@@ -55013,16 +55015,9 @@ document.body.appendChild(outer);</pre>
    steps.</p></li>
 
    <li><p><span>Collect all the elements in the item</span> <var
-   title="">root</var>, and let <var title="">results</var> be the
-   result.</p></li>
-
-   <li><p>If <var title="">root</var> is in <var
-   title="">results</var>, then the algorithm fails; abort these
-   steps.</p></li>
-
-   <li><p>If any elements are listed in <var title="">results</var>
-   more than once, then the algorithm fails; abort these
-   steps.</p></li>
+   title="">root</var>; let <var title="">results</var> be the
+   resulting list of elements, and <var title="">errors</var> be the
+   resulting count of errors.</p></li>
 
    <li><p>Remove any elements from <var title="">results</var> that do
    not have an <code title="attr-itemprop">itemprop</code> attribute
@@ -55035,24 +55030,29 @@ document.body.appendChild(outer);</pre>
    <li><p>For each element in <var title="">results</var> that has an
    <code title="attr-itemscope">itemscope</code> attribute specified,
    <span>crawl the properties</span> of the element, with <var
-   title="">new memory</var> as the memory. If this fails, then this
-   instance of the algorithm fails as well; abort these steps. (If it
-   succeeds, the return value is discarded.)</p></li>
+   title="">new memory</var> as the memory. If this fails, then remove
+   the element from <var title="">results</var> and increment <var
+   title="">errors</var>. (If it succeeds, the return value is
+   discarded.)</p></li>
 
    <li><p>Sort <var title="">results</var> in <span>tree
    order</span>.</p></li>
 
-   <li><p>Return <var title="">results</var>.</p></li>
+   <li><p>Return <var title="">results</var> and <var
+   title="">errors</var>.</p></li>
 
   </ol>
 
   <p>To <dfn>collect all the elements in the item</dfn> <var
-  title="">root</var>, the user agent must run these steps:</p>
+  title="">root</var>, the user agent must run these steps. They
+  return a list of elements and a count of errors.</p>
 
   <ol>
 
    <li><p>Let <var title="">results</var> and <var
    title="">pending</var> be empty lists of elements.</p></li>
+
+   <li><p>Let <var title="">errors</var> be zero.</p></li>
 
    <li><p>Add all the children elements of <var title="">root</var> to
    <var title="">pending</var>.</p></li>
@@ -55070,18 +55070,25 @@ document.body.appendChild(outer);</pre>
    title="">pending</var> and let <var title="">current</var> be that
    element.</p></li>
 
-   <li><p>Add <var title="">current</var> to <var
-   title="">results</var>.</p></li>
+   <li><p>If <var title="">current</var> is already in <var
+   title="">results</var>, increment <var
+   title="">errors</var>.</p></li>
 
-   <li><p>If <var title="">current</var> does not have an <code
-   title="attr-itemscope">itemscope</code> attribute, then: add all
-   the child elements of <var title="">current</var> to <var
-   title="">pending</var>.</p></li>
+   <li><p>If <var title="">current</var> is not already in <var
+   title="">results</var> and <var title="">current</var> does not
+   have an <code title="attr-itemscope">itemscope</code> attribute,
+   then: add all the child elements of <var title="">current</var> to
+   <var title="">pending</var>.</p></li>
+
+   <li><p>If <var title="">current</var> is not already in <var
+   title="">results</var>, then: add <var title="">current</var> to
+   <var title="">results</var>.</p></li>
 
    <li><p><i>End of loop</i>: If <var title="">pending</var> is not
    empty, return to the step labeled <i>loop</i>.</p></li>
 
-   <li><p>Return <var title="">results</var>.</p></li>
+   <li><p>Return <var title="">results</var> and <var
+   title="">errors</var>.</p></li>
 
   </ol>
 
@@ -55113,7 +55120,8 @@ document.body.appendChild(outer);</pre>
   <p>A document must not contain any <span
   title="concept-item">items</span> for which <span title="crawl the
   properties">crawling the properties</span> of the element, with an
-  empty list as the value of <var title="">memory</var>, fails.</p>
+  empty list as the value of <var title="">memory</var>, either fails
+  or returns an error count other than zero.</p>
 
   <p class="note">The algorithms in this section are especially
   inefficient, in the interests of keeping them easy to
@@ -55171,31 +55179,6 @@ document.body.appendChild(outer);</pre>
     <dt>license
     <dd><code title="">http://www.opensource.org/licenses/mit-license.php</code>
    </dl>
-
-  </div>
-
-  <div class="example">
-
-   <p>In the following invalid example, the items are all empty,
-   because the <code title="attr-itemref">itemref</code> attribute on
-   the inner nested item indirectly references the same element twice
-   in the same item:</p>
-
-   <pre class="bad">&lt;!-- invalid example - do not copy -->
-&lt;div itemscope>
- &lt;span itemprop="example">This is &lt;em>not&lt;/em> a property of the
- &lt;code>div&lt;/code> element.&lt;/span>
- &lt;p itemprop="demo" itemscope itemref="test thing"> &lt;!-- "thing" is a descendant
-                   of "test", which leads to it being included twice, which is invalid -->
-  &lt;span itemprop="sample">This isn't part of anything either.&lt;/span>
- &lt;/p>
-&lt;/div>
-&lt;p id="test">
- &lt;span id="thing">(this element is referenced twice by the
- &lt;code>p&lt;/code> above, causing all the items that involve that
- &lt;code>itemref=""&lt;/code> attribute to act as if they had no
- properties.)&lt;/span>
-&lt;/p></pre>
 
   </div>
 
@@ -59282,14 +59265,25 @@ END:VCARD</pre>
            &lt;ifragment> production of the IRI syntax being
            %-escaped. <a href="#refsRFC3987">[RFC3987]</a></p></li>
 
-           <li><p>Let <var title="">predicate</var> be the
-           concatenation of the string "<code
-           title="">http://www.w3.org/1999/xhtml/microdata#</code>"
-           and <var title="">s</var>, with any characters in <var
-           title="">s</var> that are not valid in the &lt;ifragment>
-           production of the IRI syntax being %-escaped. <a
-           href="#refsRFC3987">[RFC3987]</a></p></li> <!-- this ensures
-           you can't use a URL to get the same effect -->
+           <li>
+
+            <p>Let <var title="">predicate</var> be the concatenation
+            of the string "<code
+            title="">http://www.w3.org/1999/xhtml/microdata#</code>"
+            and <var title="">s</var>, with any characters in <var
+            title="">s</var> that are not valid in the &lt;ifragment>
+            production of the IRI syntax being %-escaped, but without
+            double-escaping existing %-escapes. <a
+            href="#refsRFC3987">[RFC3987]</a></p> <!-- this ensures
+            you can't use a URL to get the same effect -->
+
+            <p class="example">For example if the string <var
+            title="">s</var> is "<code
+            title="">http://example.com/a#:q%20r</code>", the
+            resulting <var title="">predicate</var> would be "<code
+            title="">http://www.w3.org/1999/xhtml/microdata#http://example.com/a%23:q%20r</code>".</p>
+
+           </li>
 
           </ol>
 
