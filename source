@@ -1614,6 +1614,12 @@ a.setAttribute('href', 'http://example.com/'); // change the content attribute d
   <code>Document</code> nor introduces any <code>Node</code> objects
   to the <code>Document</code>'s DOM.</p>
 
+  <p>A user agent must not consider the types <code>text/plain</code>
+  and <code>application/octet-stream</code> as having a registered
+  <span>plugin</span>.</p> <!-- because of the way <object> handles
+  those types, if nothing else (it also doesn't make any sense to have
+  a plugin registered for those types, of course) -->
+
   <p>Typically such content handlers are provided by third parties,
   though a user agent can designate content handlers to be
   plugins.</p>
@@ -22390,7 +22396,7 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
 
     </ol>
 
-    <p><i>Empty:</i> When the steps above require the user agent to
+    <p><i>Empty</i>: When the steps above require the user agent to
     jump to the <i title="">empty</i> step, if the user agent is
     processing this <code>iframe</code>'s attributes for the first
     time, then the user agent must <span>queue a task</span> to
@@ -23693,19 +23699,67 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
      <code title="event-error">error</code> at the element, then jump
      to the last step in the overall set of steps (fallback).</p></li>
 
-     <li><p>Determine the <var title="">resource type</var>, as follows:</p>
+     <li id="object-type-detection">
+
+      <p>Determine the <var title="">resource type</var>, as follows:</p>
+
+<!-- Hopefully this step is exactly equivalent to the following:
+
+ START
+   |
+   V
+ Is there a Content-Type and is the UA going to obey it blindly?
+   |                   |
+   | YES               | NO
+   |                   V                                                          YES
+   |                 Is there a type="" attribute whose value is a plugin type? ============================================-.
+   |                   |                                                                                                     |
+   |                   | NO                                                                                                  |
+   |                   V                        NO                                       YES                                 V
+   |                 Is there a Content type? ========-> Is there a type="" attribute? ====================================>-+
+   |                   |                                                           |                                         |
+   |                   | YES                                                       | NO                                      |
+   V            NO     V                                                           |                                         |
+   +-<============== Is it text/plain or application/octet-stream?                 `============> Sniff ==-.                 |
+   |                   |                                     |                                             |                 |
+   |                   | text/plain                          | octet-stream                                V                 |
+   |                   V                              YES    V                                    Is the sniffed-type        |
+   |                 Does the page sniff as binary? ======> Is there a type="" attribute?       application/octet-stream?    |
+   |                   |                                     |              |                      |                |        |
+   |                   | NO                                  | YES          | NO                   | YES            | NO     |
+   |                   |                                     |              V                      V                |        |
+   |                   |                                     |             Extension that is plugin type?           |        |
+   |                   |                                     |                          |          |                |        |
+   |                   |                                     |                          | NO       | YES            |        |
+   |                   |                                     V                          |          |                |        |
+   |                   |                           Type attribute is XML or     YES     V          |                |        |
+   |                   |                           doesn't start with image/* ======> FALLBACK     |                |        |
+   |                   |                           and is not a plugin type?                       |                |        |
+   |                   |                                          |                                |                |        |
+   |                   |                                          | NO                             |                V        V
+   V                   V                                          V                                V               Use      Use
+  Use                 Use                                        Use it (will be                  Use              sniffed  type=""
+  Content-Type        text/plain                                 bitmap or plugin)                extension        type     attribute
+   |                   |                                          |                                |                |        |
+   |                   V                                          V                                V                V        |
+   `================->-+========================================>-+==============>-+-<============-+-<==============+-<======'
+                                                                                   |
+                                                                                   V
+                                                                  Continue following rules in the spec, which might
+                                                                  result in a plugin, a browsing context, an image,
+                                                                  or using fallback, depending on the UA and the type.
+
+
+   "Extension that is plugin type?" means "Is there an extension that matches one that a plugin supports?".
+   Plugins are not allowed to register text/plain or application/octet-stream.
+
+-->
 
       <ol>
 
        <li>
 
         <p>Let the <var title="">resource type</var> be unknown.</p>
-
-       </li>
-
-       <li>
-
-        <p>Let the <var title="">sniffed</var> flag be false.</p>
 
        </li>
 
@@ -23719,7 +23773,8 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
         metadata</span>, then let the <var title="">resource
         type</var> be the type specified in <span
         title="Content-Type">the resource's Content-Type
-        metadata</span>, and abort these substeps.</p>
+        metadata</span>, and jump to the step below labeled
+        <i>handler</i>.</p>
 
        </li>
 
@@ -23731,45 +23786,138 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
         but it <em>is</em> a type that a <span>plugin</span> supports,
         then let the <var title="">resource type</var> be the type
         specified in that <code title="attr-object-type">type</code>
-        attribute.</p>
+        attribute, and jump to the step below labeled
+        <i>handler</i>.</p>
 
        </li>
 
        <li>
 
-        <p>Otherwise, if the <var title="">resource type</var> is
-        unknown, and the resource has <span
-        title="Content-Type">associated Content-Type metadata</span>,
-        then let the <var title="">resource type</var> be the type
-        specified in <span title="Content-Type">the resource's
-        Content-Type metadata</span>.</p>
+        <p>Run the approprate set of steps from the following
+        list:</p>
 
-        <p>If this results in the <var title="">resource type</var>
-        being "<code title="">text/plain</code>", then let the <var
-        title="">resource type</var> be the result of applying the
-        <span title="Content-Type sniffing: text or binary">rules for
-        distingushing if a resource is text or binary</span> to the
-        resource instead, and then set the <var title="">sniffed</var>
-        flag to true.</p>
+        <dl class="switch">
 
-       </li>
+         <dt>The resource has <span title="Content-Type">associated
+         Content-Type metadata</span></dt>
 
-       <li>
+         <dd>
 
-        <p>If the <var title="">resource type</var> is unknown or
-        "<code title="">application/octet-stream</code>" at this point
-        and there is a <code title="attr-object-type">type</code>
-        attribute present on the <code>object</code> element, then
-        change the <var title="">resource type</var> to instead be the
-        type specified in that <code
-        title="attr-object-type">type</code> attribute.</p>
+          <ol>
 
-        <p>Otherwise, if the <var title="">resource type</var> is
-        "<code title="">application/octet-stream</code>" but there is
-        no <code title="attr-object-type">type</code> attribute on the
-        <code>object</code> element, then change the <var
-        title="">resource type</var> to be unknown, so that the
-        sniffing rules in the following steps are invoked.</p>
+           <li>
+
+            <p>Let <var title="">binary</var> be false.</p>
+
+           </li>
+
+           <li>
+
+            <p>If the type specified in <span title="Content-Type">the
+            resource's Content-Type metadata</span> is
+            "<code>text/plain</code>", and the result of applying the
+            <span title="Content-Type sniffing: text or binary">rules
+            for distingushing if a resource is text or binary</span>
+            to the resource is that the resource is not
+            <code>text/plain</code>, then set <var
+            title="">binary</var> to true.</p>
+
+           </li>
+
+           <li>
+
+            <p>If the type specified in <span title="Content-Type">the
+            resource's Content-Type metadata</span> is
+            "<code>application/octet-stream</code>", then set <var
+            title="">binary</var> to true.</p>
+
+           </li>
+
+           <li>
+
+            <p>If <var title="">binary</var> is false, then let the
+            <var title="">resource type</var> be the type specified in
+            <span title="Content-Type">the resource's Content-Type
+            metadata</span>, and jump to the step below labeled
+            <i>handler</i>.</p>
+
+           </li>
+
+           <li>
+
+            <p>If there is a <code
+            title="attr-object-type">type</code> attribute present on
+            the <code>object</code> element, then run the
+            following steps:</p>
+
+            <ol>
+
+             <li>
+
+              <p>If the attribute's value is a type that a <span>plugin</span> supports, or
+              the attribute's value is a type that starts with "<code>image/</code>" that is not also an <span>XML MIME type</span>,
+              then let the <var title="">resource type</var> be the type specified in that <code title="attr-object-type">type</code> attribute.</p>
+
+             </li>
+
+             <li>
+
+              <p>Jump to the step below labeled <i>handler</i>.</p>
+
+             </li>
+
+            </ol>
+
+           </li>
+
+          </ol>
+
+         </dd>
+
+         <dt>The resource does not have <span
+         title="Content-Type">associated Content-Type
+         metadata</span></dt>
+
+         <dd>
+
+          <ol>
+
+           <li>
+
+            <p>If there is a <code
+            title="attr-object-type">type</code> attribute present on
+            the <code>object</code> element, then let the <var
+            title="">resource type</var> be the type specified in that
+            <code title="attr-object-type">type</code> attribute, and
+            jump to the step below labeled <i>handler</i>.</p>
+
+           </li>
+
+           <li>
+
+            <!-- no content-type and no attribute -->
+
+            <p>Let <var title="">sniffed type</var> be the <span
+            title="content-type sniffing">sniffed type of the
+            resource</span>.</p>
+
+           </li>
+
+           <li>
+
+            <p>If <var title="">sniffed type</var> is <em>not</em>
+            <code>application/octet-stream</code>, then let <var
+            title="">resource type</var> be <var title="">sniffed
+            type</var> and jump to the step below labeled
+            <i>handler</i>.</p>
+
+           </li>
+
+          </ol>
+
+         </dd>
+
+        </dl>
 
        </li>
 
@@ -23779,45 +23927,33 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
         parsed the URL, since this algorithm is only used after
         fetching the resource in the steps above -->
 
-        <p>If the <var title="">resource type</var> is still unknown
-        at this point, but the <span
-        title="url-path">&lt;path&gt;</span> component of the
-        <span>URL</span> of the specified resource (after any
+        <p>If the <span title="url-path">&lt;path&gt;</span> component
+        of the <span>URL</span> of the specified resource (after any
         redirects) matches a pattern that a <span>plugin</span>
         supports, then let <var title="">resource type</var> be the
         type that that plugin can handle.</p>
 
         <p class="example">For example, a plugin might say that it can
-        handle resources with <span title="url-path">&lt;path&gt;</span>
-        components that end with the four character string "<code
-        title="">.swf</code>".</p>
+        handle resources with <span
+        title="url-path">&lt;path&gt;</span> components that end with
+        the four character string "<code title="">.swf</code>".</p>
 
         <!-- it's sad that we have to do extension sniffing. sigh. -->
         <!-- see also <embed> which has a similar step -->
 
        </li>
 
-       <li>
-
-        <p>If the <var title="">resource type</var> is still unknown,
-        and the <var title="">sniffed</var> flag is false, then change
-        the <var title="">resource type</var> to instead be the <span
-        title="content-type sniffing">sniffed type of the
-        resource</span>.</p>
-
-        <p>Otherwise, if the <var title="">resource type</var> is
-        still unknown, and the <var title="">sniffed</var> flag is
-        <em>true</em>, then change the <var title="">resource
-        type</var> back to <code title="">text/plain</code>.</p>
-
-       </li>
-
       </ol>
+
+      <p class="note">It is possible for this step to finish with <var
+      title="">resource type</var> still being unknown, or for one of
+      the substeps above to jump straight to the next step. In both
+      cases, the next step will trigger fallback.</p>
 
      </li>
 
-     <li><p>Handle the content as given by the first of the following
-     cases that matches:</p>
+     <li><p><i>Handler</i>: Handle the content as given by the first
+     of the following cases that matches:</p>
 
       <dl class="switch">
 
@@ -23920,6 +24056,10 @@ href="?audio">audio&lt;/a> test instead.)&lt;/p></pre>
         <p>The given <var title="">resource type</var> is not
         supported. Jump to the last step in the overall set of steps
         (fallback).</p>
+
+        <p class="note">If the previous step ended with the <var
+        title="">resource type</var> being unknown, this is the case
+        that is triggered.</p>
 
        </dd>
 
@@ -84367,7 +84507,7 @@ interface <dfn>SQLTransactionSync</dfn> {
      <li><p>Advance <var title="">position</var> past the 0x3D (ASCII
      =) byte.</p></li>
 
-     <li><p><i>Value:</i> If the byte at <var
+     <li><p><i>Value</i>: If the byte at <var
      title="">position</var> is one of 0x09 (ASCII TAB), 0x0A (ASCII
      LF), 0x0C (ASCII FF), 0x0D (ASCII CR), or 0x20 (ASCII space) then
      advance <var title="">position</var> to the next byte, then,
