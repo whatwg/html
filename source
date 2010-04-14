@@ -79755,15 +79755,17 @@ WjN}|M(6</pre>
    <li id="ws-sd-frame"><p><i title="">Frame</i>: Read a byte from the
    client. Let <var title="">type</var> be that byte.</p></li>
 
-   <li><p>If <var title="">type</var> is not a 0x00 byte, then the
-   server may disconnect from the client.</p>
-
    <li>
 
     <p>If the most significant bit of <var title="">type</var> is not
     set, then run the following steps:</p>
 
     <ol>
+
+     <li><p>If <var title="">type</var> is not a 0x00 byte, then the
+     server may abort these steps and either immediately disconnect
+     from the client or set the <var title="">client terminated</var>
+     flag.</p></li>
 
      <li><p>Let <var title="">raw data</var> be an empty byte
      array.</p></li>
@@ -79776,57 +79778,75 @@ WjN}|M(6</pre>
      the previous step (labeled <a
      href="#ws-sd-data"><i>data</i></a>).</p></li>
 
-     <li><p>Interpret <var title="">raw data</var> as a UTF-8 string,
-     and apply whatever server-specific processing is to occur for the
-     resulting string (the message from the client).</p>
+     <li><p>If <var title="">type</var> was 0x00, interpret <var
+     title="">raw data</var> as a UTF-8 string, and apply whatever
+     server-specific processing is to occur for the resulting string
+     (the message from the client).</p>
 
     </ol>
 
     <p>Otherwise, the most significant bit of <var title="">type</var>
-    is set. Run the following steps. This can never happen if <var
-    title="">type</var> is 0x00, and therefore these steps are not
-    necessary if the server aborts when <var title="">type</var> is
-    not 0x00, as allowed above.</p>
+    is set. Run the following steps.</p>
 
     <ol>
+
+     <li><p>If <var title="">type</var> is not a 0xFF byte, then the
+     server may abort these steps and either immediately disconnect
+     from the client or set the <var title="">client terminated</var>
+     flag.</p></li>
 
      <li><p>Let <var title="">length</var> be zero.</p></li>
 
      <li id="ws-sd-length"><p><i>Length</i>: Read a byte, let <var
      title="">b</var> be that byte.</p></li>
 
-     <li><p>Let <var title="">b<sub title="">v</sub></var> be an
-     integer corresponding to the low 7 bits of <var title="">b</var>
-     (the value you would get by <i>and</i>ing <var title="">b</var>
-     with 0x7F).</p></li>
-
-     <li><p>Multiply <var title="">length</var> by 128, add <var
-     title="">b<sub title="">v</sub></var> to that result, and store
-     the final result in <var title="">length</var>.</p></li>
-
-     <li><p>If the high-order bit of <var title="">b</var> is set
-     (i.e. if <var title="">b</var> <i title="">and</i>ed with 0x80
-     returns 0x80), then return to the step above labeled <a
-     href="#ws-sd-length"><i>length</i></a>.</p></li>
-
      <li>
 
-      <p>Read <var title="">length</var> bytes.</p>
+      <p>If <var title="">b</var> is not a 0x00 byte, then run these
+      substeps:</p>
 
-      <p class="warning">It is possible for a malicious client to send
-      frames with lengths greater than 2<sup>31</sup> or
-      2<sup>32</sup> bytes, overflowing a signed or unsigned 32bit
-      integer. Servers may therefore impose implementation-specific
-      limits on the lengths of invalid frames that they will skip, if
-      they support skipping such frames at all. If a server cannot
-      correctly skip past a long frame, then the server must abort
-      these steps (discarding all future data), and should either
-      immediately disconnect from the client or set the <var
-      title="">client terminated</var> flag.</p>
+      <ol>
+
+       <li><p>The server may abort these steps and either immediately
+       disconnect from the client or set the <var title="">client
+       terminated</var> flag.</p></li>
+
+       <li><p>Let <var title="">b<sub title="">v</sub></var> be an
+       integer corresponding to the low 7 bits of <var title="">b</var>
+       (the value you would get by <i>and</i>ing <var title="">b</var>
+       with 0x7F).</p></li>
+
+       <li><p>Multiply <var title="">length</var> by 128, add <var
+       title="">b<sub title="">v</sub></var> to that result, and store
+       the final result in <var title="">length</var>.</p></li>
+
+       <li><p>If the high-order bit of <var title="">b</var> is set
+       (i.e. if <var title="">b</var> <i title="">and</i>ed with 0x80
+       returns 0x80), then return to the step above labeled <a
+       href="#ws-sd-length"><i>length</i></a>.</p></li>
+
+       <li>
+
+        <p>Read <var title="">length</var> bytes.</p>
+
+        <p class="warning">It is possible for a malicious client to send
+        frames with lengths greater than 2<sup>31</sup> or
+        2<sup>32</sup> bytes, overflowing a signed or unsigned 32bit
+        integer. Servers may therefore impose implementation-specific
+        limits on the lengths of invalid frames that they will skip, if
+        they support skipping such frames at all. If a server cannot
+        correctly skip past a long frame, then the server must abort
+        these steps (discarding all future data), and should either
+        immediately disconnect from the client or set the <var
+        title="">client terminated</var> flag.</p>
+
+       </li>
+
+       <li><p>Discard the read bytes.</p></li>
+
+      </ol>
 
      </li>
-
-     <li><p>Discard the read bytes.</p></li>
 
      <li><p>If <var title="">type</var> is 0xFF and <var
      title="">length</var> is 0, then set the <var title="">client
