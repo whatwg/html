@@ -6,4 +6,4 @@ The short version is that all you need to do is change the `source` resource and
 
 ### Merge policy
 
-The green button shall not be pushed. Each change needs to result in a single commit on the master repository.
+The green button shall not be pushed. Each change needs to result in a single commit on the master branch.
