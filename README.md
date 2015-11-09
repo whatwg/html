@@ -4,6 +4,8 @@ This repository hosts the [HTML Standard](https://html.spec.whatwg.org/).
 
 The short version is that all you need to do is change the `source` resource and submit a patch. The longer version is that you probably want to read the [WHATWG FAQ](https://wiki.whatwg.org/wiki/FAQ) first.
 
+Please also add your name to the Acknowledgements section (search for `<!-- ACKS`) in your first pull request, even for simple typo fixes. The names are sorted alphabetically.
+
 To preview your changes locally, follow the instructions in the [html-build repository](https://github.com/whatwg/html-build).
 
 The source for the spec is formatted in such a way that its paragraphs have line breaks after about every 100 characters or so. Any patch you contribute must follow that same formatting convention. So, use whatever option your text editor may provide for automatically doing that kind of "hard" wrapping of lines at 100 characters; for example, in Emacs, set `fill-column` to `100`; in Vim, set `textwidth` to `100`; and in Sublime, set `wrap_width` to `100`.
