@@ -43,3 +43,9 @@ $ mypr branch-name
 ```
 
 It will rebase the PR on top of `master`, then force-push it to the appropriate branch, thus updating the PR. Then it will do the fast-forward only merge into `master`. At this point you can do a `git push origin master` to push the changes, which will _automatically_ close the PR and mark it as merged, since you managed to update the commits contained there.
+
+## Handling bugs in W3C Bugzilla
+
+Bugs in the WHATWG product should be RESOLVED MOVED when there's an issue or a pull request for it, and a comment linking to it.
+
+Some bugs that are not filed in the WHATWG product might still be relevant for us, and some of these show up in the spec itself in the margin. If the bug has already been fixed, or doesn't apply, add `whatwg-resolved` to the whiteboard to remove it from the generated spec.
