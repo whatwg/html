@@ -24,7 +24,17 @@ pr () {
 $ pr 123
 ```
 
-It will pull down the PR into a local branch, using [the special refs GitHub provides](https://help.github.com/articles/checking-out-pull-requests-locally/). Then it will rebase the PR's commits on top of `master`, and do a fast-forward only merge into `master`. At that point you can do `git push origin master` to push the changes, and comment on the pull request with something like "Merged as 123deadb33f" before closing.
+It will pull down the PR into a local branch, using [the special refs GitHub provides](https://help.github.com/articles/checking-out-pull-requests-locally/). Then it will rebase the PR's commits on top of `master`, and do a fast-forward only merge into `master`. You should then amend the commit message with a final line containing `PR https://github.com/whatwg/html/pull/XYZ`, so that we can easily see a link back to the pull request's discussion. Finally, you can do `git push origin master` to push the changes, and comment on the pull request with something like "Merged as 123deadb33f" before closing.
+
+If you would like to review a pull request's changes locally, you can manually do the first few steps of that script:
+
+```bash
+$ git fetch origin refs/pull/$1/head:refs/remotes/origin/pr/$1 --force
+$ git checkout -b pr/$1 origin/pr/$1
+$ git rebase master
+```
+
+(substituting the pull request number for `$1`). This will leave you on a branch named `pr/$1` that is rebased on top of `master`, which you can then e.g. build to check for errors or review the output.
 
 ### Merging pull requests from branches
 
@@ -44,8 +54,25 @@ $ mypr branch-name
 
 It will rebase the PR on top of `master`, then force-push it to the appropriate branch, thus updating the PR. Then it will do the fast-forward only merge into `master`. At this point you can do a `git push origin master` to push the changes, which will _automatically_ close the PR and mark it as merged, since you managed to update the commits contained there.
 
-## Handling bugs in W3C Bugzilla
+To review the changes locally, you can do
 
-Bugs in the WHATWG product should be RESOLVED MOVED when there's an issue or a pull request for it, and a comment linking to it.
+```bash
+$ git checkout $1
+$ git rebase master
+```
 
-Some bugs that are not filed in the WHATWG product might still be relevant for us, and some of these show up in the spec itself in the margin. If the bug has already been fixed, or doesn't apply, add `whatwg-resolved` to the whiteboard to remove it from the generated spec.
+to get a local checkout of the branch, rebased on `master`.
+
+## Bugs
+
+There are three sources of bugs we should be managing:
+
+- [This repository's GitHub issue tracker](https://github.com/whatwg/html/issues)
+- [The remaining bugs from the W3C's WHATWG/HTML Bugzilla component](https://www.w3.org/Bugs/Public/buglist.cgi?bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&component=HTML&list_id=59457&product=WHATWG&query_format=advanced&resolution=---)
+- [Some bugs from the W3C's HTML WG/HTML5 spec Bugzilla component](https://www.w3.org/Bugs/Public/buglist.cgi?bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&component=HTML5%20spec&f1=status_whiteboard&list_id=61030&o1=notequals&product=HTML%20WG&query_format=advanced&v1=whatwg-resolved)
+
+### Handling bugs in W3C Bugzilla
+
+Bugs in the WHATWG/HTML component should be RESOLVED MOVED when we create a GitHub issue or a pull request for it, while adding a comment linking to the new issue or pull request URL.
+
+Some bugs that are not filed in that component might still be relevant for us; these are mostly captured by the above search, although it's possible there are other components where people are filing relevant bugs. When we fix such bugs, or if you notice such a bug that is already fixed or doesn't apply, add `whatwg-resolved` to the bug's whiteboard field, which will ensure that it disappears from the above search and does not show up in the margin of the generated spec.
