@@ -8,60 +8,82 @@ The green button shall not be pushed. Each change needs to result in a single co
 
 For optimal merges, the following instructions may be helpful:
 
+### Fetching and reviewing pull requests from forks
+
+Pull requests from external contributors come from their forks. To be able to more easily review the commits in those pull requests, you can optionally configure your clone such that:
+
+* Alongside the remote branches you already have [created by the team](https://github.com/whatwg/html/branches), you'll also have remote branches for all existing PRs.
+* Thus you can `git checkout` any PR branch you want to build/review, and use `git pull` to pull any updates to it.
+
+To do all that, use these steps:
+
+1. Do one of the following:
+   * Run the following command to **globally configure, for all repositories you pull from**, automatic fetch of branches for PRs from forks:
+
+     ```bash
+     git config --global --add remote.origin.fetch "+refs/pull/*/head:refs/remotes/origin/pr/*"
+     ```
+     That will add the following two lines to your `$HOME/.gitconfig` file:
+
+     ```
+     [remote "origin"]
+              fetch = +refs/pull/*/head:refs/remotes/origin/pr/*
+	   ```
+
+	   If you change your mind later about globally enabling that behavior, you can disable it by removing those lines.
+
+	* Alternatively, to enable automatic fetch of branches in PRs from forks **just for this repo**, make the following addition to your `.git/config` file in this directory:
+
+     ```diff
+       [remote "origin"]
+               url = git@github.com:whatwg/html.git
+               fetch = +refs/heads/*:refs/remotes/origin/*
+     +        fetch = +refs/pull/*/head:refs/remotes/origin/pr/*
+     ```
+
+     (Omit the `+` sign; it’s just `diff` syntax to get the markdown viewer to highlight the line.)
+
+2. Run `git fetch` or `git pull` to do the initial fetch of all branches for current PRs.
+
+3. Run `git checkout pr/NNN` to check out a particular PR branch. For review purposes, you may want to subsequently do `git rebase master` to make sure it is on top of the latest changes from `master`.
+
+4. If a contributor subsequently pushes changes to the corresponding branch for that PR in their fork (for example, in response to your review comments), then while you're on the checked-out `pr/NNN` branch locally you can reset to the latest from the remote by doing the following:
+
+   ```bash
+   git fetch
+   git reset --hard origin/pr/NNN
+   ```
+
 ### Merging pull requests from forks
 
-Pull requests from external contributors come from their forks. Here is a Bash function that you can add to your `.bash_profile` or similar that makes it easy to merge such PRs:
+ Once you have completed the above setup, merging pull requests is fairly easy:
 
 ```bash
-pr () {
-  git fetch origin refs/pull/$1/head:refs/remotes/origin/pr/$1 --force
-  git checkout -b pr/$1 origin/pr/$1
-  git rebase master
-  git checkout master
-  git merge pr/$1 --ff-only
-}
-
-$ pr 123
+git checkout pr/NNN
+git rebase master
+... build and review the spec ...
+git checkout master
+git merge pr/NNN ---ff-only
 ```
 
-It will pull down the PR into a local branch, using [the special refs GitHub provides](https://help.github.com/articles/checking-out-pull-requests-locally/). Then it will rebase the PR's commits on top of `master`, and do a fast-forward only merge into `master`. You should then amend the commit message with a final line containing `PR https://github.com/whatwg/html/pull/XYZ`, so that we can easily see a link back to the pull request's discussion. Finally, you can do `git push origin master` to push the changes, and comment on the pull request with something like "Merged as 123deadb33f" before closing.
+This checks out the PR's commits, rebases them on `master`, then fast-forwards `master` to include them.
 
-If you would like to review a pull request's changes locally, you can manually do the first few steps of that script:
-
-```bash
-$ git fetch origin refs/pull/$1/head:refs/remotes/origin/pr/$1 --force
-$ git checkout -b pr/$1 origin/pr/$1
-$ git rebase master
-```
-
-(substituting the pull request number for `$1`). This will leave you on a branch named `pr/$1` that is rebased on top of `master`, which you can then e.g. build to check for errors or review the output.
+Before pushing, you should amend the commit message with a final line containing `PR: https://github.com/whatwg/html/pull/XYZ`, so that we can easily see a link back to the pull request's discussion. Finally, you can do `git push origin master` to push the changes. Don't forget to comment on the pull request with something like "Merged as 123deadb33f" before closing.
 
 ### Merging pull requests from branches
 
-Pull requests from other editors or members of the WHATWG GitHub organization may come from branches within this repository. Here is a function that you can use to merge such PRs:
+Pull requests from other editors or members of the WHATWG GitHub organization may come from branches within this repository. To merge these cleanly, we add an extra step:
 
 ```bash
-mypr () {
-  git checkout $1
-  git rebase master
-  git push origin $1 --force
-  git checkout master
-  git merge $1 --ff-only
-}
-
-$ mypr branch-name
+git checkout BRANCH_NAME
+git rebase master
+... build and review the spec ...
+git push --force
+git checkout master
+git merge BRANCH_NAME --ff-only
 ```
 
-It will rebase the PR on top of `master`, then force-push it to the appropriate branch, thus updating the PR. Then it will do the fast-forward only merge into `master`. At this point you can do a `git push origin master` to push the changes, which will _automatically_ close the PR and mark it as merged, since you managed to update the commits contained there.
-
-To review the changes locally, you can do
-
-```bash
-$ git checkout $1
-$ git rebase master
-```
-
-to get a local checkout of the branch, rebased on `master`.
+The additional `git push --force` line here ensures that the original branch gets updated to sit on top of `master` as well. This ensures GitHub can automatically figure out that the commits were merged, and thus automatically close the pull request with a nice purple "merged" status. So at this point you can do a `git push origin master` to push the changes, and GitHub will close the PR and mark it as merged.
 
 ## Bugs
 
