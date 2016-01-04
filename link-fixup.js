@@ -7,6 +7,6 @@ window.addEventListener('DOMContentLoaded', function () {
     return;
 
   var script = document.createElement('script');
-  script.src = 'fragment-links.js';
+  script.src = '/multipage/fragment-links.js';
   document.body.appendChild(script);
 });
