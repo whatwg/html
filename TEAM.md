@@ -47,9 +47,10 @@ To do all that, use these steps:
 
 3. Run `git checkout pr/NNN` to check out a particular PR branch. For review purposes, you may want to subsequently do `git rebase master` to make sure it is on top of the latest changes from `master`.
 
-4. If a contributor subsequently pushes changes to the corresponding branch for that PR in their fork (for example, in response to your review comments), then while you're on the checked-out `pr/NNN` branch locally you can reset to the latest from the remote by doing the following:
+4. If a contributor subsequently pushes changes to the corresponding branch for that PR in their fork (for example, in response to your review comments), then: make sure you're on the checked-out `pr/NNN` branch locally, and reset to the latest from the remote, by doing the following:
 
    ```bash
+   git checkout pr/NNN
    git fetch
    git reset --hard origin/pr/NNN
    ```
