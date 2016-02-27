@@ -64,7 +64,7 @@ git checkout pr/NNN
 git rebase master
 ... build and review the spec ...
 git checkout master
-git merge pr/NNN ---ff-only
+git merge pr/NNN --ff-only
 ```
 
 This checks out the PR's commits, rebases them on `master`, then fast-forwards `master` to include them.
