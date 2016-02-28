@@ -4,6 +4,17 @@ This repository hosts the [HTML Standard](https://html.spec.whatwg.org/).
 
 We are committed to providing a friendly, safe and welcoming environment for all. Please read and respect the [WHATWG Code of Conduct](https://wiki.whatwg.org/wiki/Code_of_Conduct).
 
+### Contribution opportunities
+
+The HTML Standard is quite complex and people notice minor and larger issues with it all the time. We'd love your help fixing these. Pull requests for typographical and grammar errors are also most welcome.
+
+We've collected a list of good first bugs that you could help us fix, to get a taste for how to submit pull requests, how the build process works, and so on:
+
+- [GitHub issues](https://github.com/whatwg/html/labels/good%20first%20bug)
+- [Legacy Bugzilla bugs](https://www.w3.org/Bugs/Public/buglist.cgi?bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&component=HTML&list_id=59457&product=WHATWG&query_format=advanced&resolution=---&status_whiteboard=[good%20first%20bug]&status_whiteboard_type=allwordssubstr)
+
+We'd be happy to mentor you through this process. If you're interested and need help getting started, leave a comment on the issue or bug, or ask around [on IRC](https://wiki.whatwg.org/wiki/IRC).
+
 ### Pull requests
 
 The short version is that all you need to do is change the `source` resource and submit a patch. The longer version is that you probably want to read the [WHATWG FAQ](https://wiki.whatwg.org/wiki/FAQ) first.
@@ -16,15 +27,6 @@ The source for the spec is formatted in such a way that its paragraphs have line
 
 Please follow the [guidelines for writing good commit messages](https://github.com/erlang/otp/wiki/Writing-good-commit-messages).
 
-### Contribution opportunities
+### Tests
 
-The HTML Standard is complex and people notice minor (and large) issues with it all the time. We'd love your help fixing these.
-
-We've collected a list of good first bugs that you could help us fix, to get a taste for how to submit pull requests, how the build process works, and so on:
-
-- [Legacy Bugzilla bugs](https://www.w3.org/Bugs/Public/buglist.cgi?bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&component=HTML&list_id=59457&product=WHATWG&query_format=advanced&resolution=---&status_whiteboard=[good%20first%20bug]&status_whiteboard_type=allwordssubstr)
-- [GitHub issues](https://github.com/whatwg/html/labels/good%20first%20bug)
-
-Pull requests for typographical and grammar errors are also most welcome.
-
-We'd be happy to mentor you through this process. If you're interested and need help getting started, leave a comment on the bug or issue, or ask around [on IRC](https://wiki.whatwg.org/wiki/IRC).
+Tests can be found in the `html/` directory of the [web-platform-tests repository](https://github.com/w3c/web-platform-tests).
