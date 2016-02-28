@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Worker example: image decoding</title>
+
+<label>
+  Type an image URL to decode
+  <input type="url" id="image-url" list="image-list">
+  <datalist id="image-list">
+    <option value="https://html.spec.whatwg.org/images/drawImage.png">
+    <option value="https://html.spec.whatwg.org/images/robots.jpeg">
+    <option value="https://html.spec.whatwg.org/images/arcTo2.png">
+  </datalist>
+</label>
+
+<label>
+  Choose a filter to apply
+  <select id="filter">
+    <option value="none">none</option>
+    <option value="grayscale">grayscale</option>
+    <option value="brighten">brighten by 20%</option>
+  </select>
+</label>
+
+<script type="module">
+  const worker = new Worker("worker.js", { type: "module" });
+  worker.onmessage = receiveFromWorker;
+
+  const url = document.querySelector("#image-url");
+  const filter = document.querySelector("#filter");
+  const output = document.querySelector("#output");
+
+  url.oninput = updateImage;
+  filter.oninput = sendToWorker;
+
+  let imageData, context;
+
+  function updateImage() {
+    const img = new Image();
+    img.src = url.value;
+
+    img.onload = () => {
+      output.innerHTML = "";
+
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      context = canvas.getContext("2d");
+      context.drawImage(img, 0, 0);
+      imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+      sendToWorker();
+      output.appendChild(canvas);
+    };
+  }
+
+  function sendToWorker() {
+    worker.postMessage({ imageData, filter: filter.value });
+  }
+
+  function receiveFromWorker(e) {
+    context.putImageData(e.data, 0, 0);
+  }
+</script>

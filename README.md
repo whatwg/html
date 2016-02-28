@@ -1,5 +1,9 @@
 This repository hosts the [HTML Standard](https://html.spec.whatwg.org/).
 
+### Code of conduct
+
+We are committed to providing a friendly, safe and welcoming environment for all. Please read and respect the [WHATWG Code of Conduct](https://wiki.whatwg.org/wiki/Code_of_Conduct).
+
 ### Pull requests
 
 The short version is that all you need to do is change the `source` resource and submit a patch. The longer version is that you probably want to read the [WHATWG FAQ](https://wiki.whatwg.org/wiki/FAQ) first.
@@ -21,4 +25,6 @@ We've collected a list of good first bugs that you could help us fix, to get a t
 - [Legacy Bugzilla bugs](https://www.w3.org/Bugs/Public/buglist.cgi?bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&component=HTML&list_id=59457&product=WHATWG&query_format=advanced&resolution=---&status_whiteboard=[good%20first%20bug]&status_whiteboard_type=allwordssubstr)
 - [GitHub issues](https://github.com/whatwg/html/labels/good%20first%20bug)
 
-We'd be happy to mentor you through this process. If you're interested and need help getting started, leave a comment on the bug or issue, or ask around [in IRC](https://wiki.whatwg.org/wiki/IRC).
+Pull requests for typographical and grammar errors are also most welcome.
+
+We'd be happy to mentor you through this process. If you're interested and need help getting started, leave a comment on the bug or issue, or ask around [on IRC](https://wiki.whatwg.org/wiki/IRC).
