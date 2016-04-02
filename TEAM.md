@@ -4,7 +4,7 @@ This document contains info used by the team maintaining the standard. Mostly bo
 
 ## Handling pull requests
 
-Each change needs to result in a single commit on the master branch, with no merge commits. The green squash and merge button is OK to use.
+Each change needs to result in a single commit on the master branch, with no merge commits. The green squash and merge button is OK to use, but be sure to tidy up the commit message per [guidelines for writing good commit messages](https://github.com/erlang/otp/wiki/Writing-good-commit-messages).
 
 For optimal merges, the following instructions may be helpful:
 
@@ -57,7 +57,9 @@ To do all that, use these steps:
 
 ### Merging pull requests from forks
 
- Once you have completed the above setup, merging pull requests is fairly easy:
+Just use the normal green button (labeled **Merge pull request**) in the pull-request page in the GitHub Web UI. After you press that, another green button will appear, labeled **Confirm squash and merge**. Ensure that the commit message follows [the guidelines](https://github.com/erlang/otp/wiki/Writing-good-commit-messages), then press that and all the commits from that PR branch will be combined into one commit to the master branch.
+
+Otherwise, if you want to merge a PR from the command line, you can, once you have completed the **Fetching and reviewing pull requests from forks** setup (above), by doing the following:
 
 ```bash
 git checkout pr/NNN
@@ -73,7 +75,11 @@ Before pushing, you should amend the commit message with a final line containing
 
 ### Merging pull requests from branches
 
-Pull requests from other editors or members of the WHATWG GitHub organization may come from branches within this repository. To merge these cleanly, we add an extra step:
+Pull requests from other editors or members of the WHATWG GitHub organization may come from branches within this repository.
+
+Just as with PRs from forks, you can merge PRs from branches in this repo to the master branch just using the normal green button (labeled **Merge pull request**) in the pull-request page in the GitHub Web UI. After you press that, another green button will appear, labeled **Confirm squash and merge**. Press that and all the commits from that PR branch will be combined into one commit to the master branch.
+
+Otherwise, if you want to cleanly merge a PR from a branch within the repo using the command line, you need to add an extra step in addition to the steps you'd follow for merging a PR from a fork. These are the steps:
 
 ```bash
 git checkout BRANCH_NAME
