@@ -4,7 +4,7 @@ This document contains info used by the team maintaining the standard. Mostly bo
 
 ## Handling pull requests
 
-The green button shall not be pushed. Each change needs to result in a single commit on the master branch, with no merge commits.
+Each change needs to result in a single commit on the master branch, with no merge commits. The green squash and merge button is OK to use.
 
 For optimal merges, the following instructions may be helpful:
 
