@@ -14,15 +14,49 @@ We'd be happy to mentor you through this process. If you're interested and need 
 
 ### Pull requests
 
-The short version is that all you need to do is change the `source` resource and submit a patch. The longer version is that you probably want to read the [WHATWG FAQ](https://wiki.whatwg.org/wiki/FAQ) first.
+In short, change `source` and submit your patch, with a [good commit message](https://github.com/erlang/otp/wiki/Writing-good-commit-messages). Consider reading through the [WHATWG FAQ](https://wiki.whatwg.org/wiki/FAQ) if you are new here.
 
-Please also add your name to the Acknowledgements section (search for `<!-- ACKS`) in your first pull request, even for simple typo fixes. The names are sorted alphabetically.
+Please add your name to the Acknowledgements section (search for `<!-- ACKS`) in your first pull request, even for trivial fixes. The names are sorted lexicographically.
 
 To preview your changes locally, follow the instructions in the [html-build repository](https://github.com/whatwg/html-build).
 
-The source for the spec is formatted in such a way that its paragraphs have line breaks after about every 100 characters or so. Any patch you contribute must follow that same formatting convention. So, use whatever option your text editor may provide for automatically doing that kind of "hard" wrapping of lines at 100 characters; for example, in Emacs, set `fill-column` to `100`; in Vim, set `textwidth` to `100`; and in Sublime, set `wrap_width` to `100`.
+#### Formatting
 
-Please follow the [guidelines for writing good commit messages](https://github.com/erlang/otp/wiki/Writing-good-commit-messages).
+Use a column width of 100 characters.
+
+Using newlines between "inline" element tag names and their content is forbidden. (This actually alters the content, by adding spaces.) That is
+```html
+<a>token</a>
+```
+is fine and
+```html
+<a>token
+</a>
+```
+is not.
+
+Using newlines between attributes and inside attribute values that contain whitespace is allowed.
+Always wrap after putting the maximum number of characters on a single line within these guidelines.
+
+An `<li>` element always has a `<p>` element inside it, unless it's a child of `<ul class="brief">`.
+
+If a "block" element contains a single "block" element, do not put it on a newline.
+
+Do not indent for anything except a new "block" element. For instance
+```html
+ <li><p>Set <var>response</var>'s <span title=concept-response-url-list>url list</span> to a copy of
+ <var>request</var>'s <span title=concept-request-url-list>url list</span>.
+```
+is not indented, but
+```html
+ <li>
+  <p>Run these substeps <span data-anolis-spec=html>in parallel</span>:
+
+  <ol>
+```
+is.
+
+End tags must not be omitted and attribute values must be quoted (use double quotes).
 
 ### Tests
 
