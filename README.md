@@ -22,16 +22,17 @@ To preview your changes locally, follow the instructions in the [html-build repo
 
 #### Formatting
 
-Use a column width of 100 characters.
+Use a column width of 100 characters and add newlines where whitespace is used. (Emacs, set `fill-column` to `100`; in Vim, set `textwidth` to `100`; and in Sublime, set `wrap_width` to `100`.)
 
-Using newlines between "inline" element tag names and their content is forbidden. (This actually alters the content, by adding spaces.) That is
+Using newlines between "inline" element tag names and their content is forbidden. (This actually alters the content, by adding spaces.) That is,
 ```html
-<a>token</a>
+   <dd><span>Parse error</span>. Create a new DOCTYPE token. Set its <i data-x="force-quirks
+   flag">force-quirks flag</i> to …
 ```
 is fine and
 ```html
-<a>token
-</a>
+   <dd><span>Parse error</span>. Create a new DOCTYPE token. Set its <i data-x="force-quirks flag">
+   force-quirks flag</i> to …
 ```
 is not.
 
@@ -44,19 +45,20 @@ If a "block" element contains a single "block" element, do not put it on a newli
 
 Do not indent for anything except a new "block" element. For instance
 ```html
- <li><p>Set <var>response</var>'s <span title=concept-response-url-list>url list</span> to a copy of
- <var>request</var>'s <span title=concept-request-url-list>url list</span>.
+   <li><p>Let <var>corsAttributeState</var> be the current state of the element's <code
+   data-x="attr-link-crossorigin">crossorigin</code> content attribute.</p></li>
 ```
 is not indented, but
 ```html
- <li>
-  <p>Run these substeps <span data-anolis-spec=html>in parallel</span>:
+      <li>
+       <p>For each <var>element</var> in <var>candidate elements</var>, run the following
+       substeps:</p>
 
-  <ol>
+       <ol>
 ```
 is.
 
-End tags must not be omitted and attribute values must be quoted (use double quotes).
+End tags must not be omitted (except where it is consistent to do so) and attribute values must be quoted (use double quotes).
 
 ### Tests
 
