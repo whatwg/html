@@ -98,7 +98,7 @@ There are three sources of bugs we should be managing:
 
 - [This repository's GitHub issue tracker](https://github.com/whatwg/html/issues)
 - [The remaining bugs from the W3C's WHATWG/HTML Bugzilla component](https://www.w3.org/Bugs/Public/buglist.cgi?bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&component=HTML&list_id=59457&product=WHATWG&query_format=advanced&resolution=---)
-- [Some bugs from the W3C's HTML WG/HTML5 spec Bugzilla component](https://www.w3.org/Bugs/Public/buglist.cgi?bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&component=HTML5%20spec&f1=status_whiteboard&list_id=61030&o1=notequals&product=HTML%20WG&query_format=advanced&v1=whatwg-resolved)
+- [Some bugs from the W3C's HTML WG/HTML5 spec Bugzilla component](https://www.w3.org/Bugs/Public/buglist.cgi?bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&bug_status=RESOLVED&bug_status=VERIFIED&bug_status=CLOSED&component=HTML5%20spec&list_id=64339&longdesc=Bugzilla%20Bug%20Triage&longdesc_type=substring&product=HTML%20WG&query_format=advanced&resolution=---&resolution=FIXED&resolution=NEEDSINFO&resolution=INVALID&resolution=WONTFIX&resolution=LATER&resolution=REMIND&resolution=DUPLICATE&resolution=WORKSFORME&resolution=MOVED&status_whiteboard=whatwg-resolved&status_whiteboard_type=notregexp)
 
 ### Handling bugs in W3C Bugzilla
 
