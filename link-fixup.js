@@ -16,7 +16,7 @@
 
   // handle section-foo.html links from the old old multipage version,
   // and broken foo.html from the new version
-  if ((!fragid) || !(fragid in fragment_links)) {
+  if (!fragid || !(fragid in fragmentLinks)) {
     var m = window.location.pathname.match(/\/(?:section-)?([\w\-]+)\.html/);
     if (m) {
       fragid = m[1];
