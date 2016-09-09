@@ -16,6 +16,12 @@ We'd be happy to mentor you through this process. If you're interested and need 
 
 In short, change `source` and submit your patch, with a [good commit message](https://github.com/erlang/otp/wiki/Writing-good-commit-messages). Consider reading through the [WHATWG FAQ](https://wiki.whatwg.org/wiki/FAQ) if you are new here.
 
+When creating your pull request, consider checking the **Allow edits from maintainers** option in the GitHub **Create pull request** form, as shown in the following image.
+
+![The "Allow edits from maintainers" checkbox](https://cloud.githubusercontent.com/assets/118412/18292613/01fa90ba-7443-11e6-952f-a35a34d07c62.png)
+
+That allows reviewers (the HTML Standard maintainers) to make edits directly on your pull-request branch. That way, reviewers can directly make minor changes such as simple typo fixes, rather than needing to write a review comment asking you to make them. For more details, see [Improving collaboration with forks](https://github.com/blog/2247-improving-collaboration-with-forks) in the GitHub Blog.
+
 Please add your name to the Acknowledgements section (search for `<!-- ACKS`) in your first pull request, even for trivial fixes. The names are sorted lexicographically.
 
 To preview your changes locally, follow the instructions in the [html-build repository](https://github.com/whatwg/html-build).
