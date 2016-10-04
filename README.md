@@ -6,7 +6,7 @@ We are committed to providing a friendly, safe and welcoming environment for all
 
 ### Contribution opportunities
 
-We welcome all contributions, see [guidelines for contributing](CONTRIBUTING.md).
+We appreciate all contributions, see the [guidelines for contributing](CONTRIBUTING.md) for details.
 
 ### Tests
 
