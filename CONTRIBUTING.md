@@ -2,17 +2,13 @@ The HTML Standard is quite complex and people notice minor and larger issues wit
 
 We label [good first bugs](https://github.com/whatwg/html/labels/good%20first%20bug) that you could help us fix, to get a taste for how to submit pull requests, how the build process works, and so on.
 
-We'd be happy to mentor you through this process. If you're interested and need help getting started, leave a comment on the issue or bug, or ask around [on IRC](https://wiki.whatwg.org/wiki/IRC).
+We'd be happy to mentor you through this process. If you're interested and need help getting started, leave a comment on the issue or bug, or ask around [on IRC](https://wiki.whatwg.org/wiki/IRC). The [WHATWG FAQ](https://wiki.whatwg.org/wiki/FAQ) may also be helpful.
 
 ### Pull requests
 
-In short, change `source` and submit your patch, with a [good commit message](https://github.com/erlang/otp/wiki/Writing-good-commit-messages). Consider reading through the [WHATWG FAQ](https://wiki.whatwg.org/wiki/FAQ) if you are new here.
+In short, change `source` and submit your patch, with a [good commit message](https://github.com/erlang/otp/wiki/Writing-good-commit-messages).
 
-When creating your pull request, notice the **Allow edits from maintainers** option in the GitHub **Create pull request** form, as shown in the following image.
-
-![The "Allow edits from maintainers" checkbox](https://cloud.githubusercontent.com/assets/118412/18292613/01fa90ba-7443-11e6-952f-a35a34d07c62.png)
-
-For minor changes such as simple typo fixes, time can be saved if reviewers (the HTML Standard maintainers) just make the edits directly on your pull-request branch rather than needing to write review comments asking you make the edits. Leaving the **Allow edits from maintainers** option enables that. For more details, see [Improving collaboration with forks](https://github.com/blog/2247-improving-collaboration-with-forks) in the GitHub Blog.
+Leave the **Allow edits from maintainers** option enabled to allow reviewers (the HTML Standard maintainers) to fix trivial issues directly on your branch rather than needing to write review comments asking you make the edits.  For more details, see [Improving collaboration with forks](https://github.com/blog/2247-improving-collaboration-with-forks) in the GitHub Blog.
 
 Please add your name to the Acknowledgements section (search for `<!-- ACKS`) in your first pull request, even for trivial fixes. The names are sorted lexicographically.
 
