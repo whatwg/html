@@ -14,6 +14,10 @@ Please add your name to the Acknowledgements section (search for `<!-- ACKS`) in
 
 To preview your changes locally, follow the instructions in the [html-build repository](https://github.com/whatwg/html-build).
 
+#### Tests
+
+For normative changes, a corresponding [web-platform-tests](https://github.com/w3c/web-platform-tests) PR is highly appreciated. The author and reviewer can be different from the HTML Standard PR. If testing is not practical, please explain why and if appropriate [file an issue](https://github.com/w3c/web-platform-tests/issues/new) to follow up later.
+
 #### Formatting
 
 Use a column width of 100 characters and add newlines where whitespace is used. (Emacs, set `fill-column` to `100`; in Vim, set `textwidth` to `100`; and in Sublime, set `wrap_width` to `100`.)
