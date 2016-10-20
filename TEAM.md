@@ -6,7 +6,9 @@ This document contains info used by the team maintaining the standard. Mostly bo
 
 Each change needs to result in a single commit on the master branch, with no merge commits. The green squash and merge button is OK to use, but be sure to tidy up the commit message per [guidelines for writing good commit messages](https://github.com/erlang/otp/wiki/Writing-good-commit-messages).
 
-For normative changes, ask for a [web-platform-tests](https://github.com/w3c/web-platform-tests) PR if testing is practical and not overly burdensome. If a follow up issue is filed, add the `html` label.
+For normative changes, ask for a [web-platform-tests](https://github.com/w3c/web-platform-tests) PR if testing is practical and not overly burdensome. Aim to merge both PRs at the same time. If one PR is approved but the other needs more work, add the `do not merge yet` label.
+
+If a follow-up issue is filed, add the `html` label.
 
 ### Fetching and reviewing pull requests from forks
 
