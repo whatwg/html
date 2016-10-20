@@ -16,7 +16,9 @@ To preview your changes locally, follow the instructions in the [html-build repo
 
 #### Tests
 
-For normative changes, a corresponding [web-platform-tests](https://github.com/w3c/web-platform-tests) PR is highly appreciated. The author and reviewer can be different from the HTML Standard PR. If testing is not practical, please explain why and if appropriate [file an issue](https://github.com/w3c/web-platform-tests/issues/new) to follow up later.
+For normative changes, a corresponding [web-platform-tests](https://github.com/w3c/web-platform-tests) PR is highly appreciated. The author and reviewer can be different from the HTML Standard PR. If current behavior is unclear, writing tests first can help inform the discussion. Typically, both PRs will be merged at the same time.
+
+If testing is not practical, please explain why and if appropriate [file an issue](https://github.com/w3c/web-platform-tests/issues/new) to follow up later.
 
 #### Formatting
 
