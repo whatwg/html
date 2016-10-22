@@ -10,80 +10,212 @@ For normative changes, ask for a [web-platform-tests](https://github.com/w3c/web
 
 If a follow-up issue is filed, add the `html` label.
 
-### Fetching and reviewing pull requests from forks
+### Checking out pull requests from forks
 
-Pull requests from external contributors come from their forks. To be able to more easily review the commits in those pull requests, you can optionally configure your clone such that:
+Pull requests from external contributors come from branches in their forks. You can check out those external branches in order to review and test the commits in those pull requests, and to be able to push changes to them on your own (e.g., fixes for typos)—rather than needing to write review comments asking the PR contributor to make the edits.
 
-* Alongside the remote branches you already have [created by the team](https://github.com/whatwg/html/branches), you'll also have remote branches for all existing PRs.
-* Thus you can `git checkout` any PR branch you want to build/review, and use `git pull` to pull any updates to it.
+For checking out a PR branch, use one of the following options:
 
-To do all that, use these steps:
+* Option 1: Use the [checkout-pr](./checkout-pr) script
+* Option 2: Use the [hub checkout *PULLREQ-URL*](https://hub.github.com/hub.1.html) command
+* Option 3: Use standard git commands to check out a PR branch
 
-1. Do one of the following:
-   * Run the following command to **globally configure, for all repositories you pull from**, automatic fetch of branches for PRs from forks:
-
-     ```bash
-     git config --global --add remote.origin.fetch "+refs/pull/*/head:refs/remotes/origin/pr/*"
-     ```
-     That will add the following two lines to your `$HOME/.gitconfig` file:
-
-     ```
-     [remote "origin"]
-             fetch = +refs/pull/*/head:refs/remotes/origin/pr/*
-     ```
-
-     If you change your mind later about globally enabling that behavior, you can disable it by removing those lines.
-
-    * Alternatively, to enable automatic fetch of branches in PRs from forks **just for this repo**, omit `--global` from the above command.
-
-2. Run `git fetch` or `git pull` to do the initial fetch of all branches for current PRs.
-
-3. Run `git checkout pr/NNN` to check out a particular PR branch. For review purposes, you may want to subsequently do `git rebase master` to make sure it is on top of the latest changes from `master`.
-
-4. If a contributor subsequently pushes changes to the corresponding branch for that PR in their fork (for example, in response to your review comments), then: make sure you're on the checked-out `pr/NNN` branch locally, and reset to the latest from the remote, by doing the following:
-
-   ```bash
-   git checkout pr/NNN
-   git fetch
-   git reset --hard origin/pr/NNN
-   ```
-
-### Merging pull requests from forks
-
-Just use the normal green button (labeled **Merge pull request**) in the pull-request page in the GitHub Web UI. After you press that, another green button will appear, labeled **Confirm squash and merge**. Ensure that the commit message follows [the guidelines](https://github.com/erlang/otp/wiki/Writing-good-commit-messages), then press that and all the commits from that PR branch will be combined into one commit to the master branch.
-
-Otherwise, if you want to merge a PR from the command line, you can, once you have completed the **Fetching and reviewing pull requests from forks** setup (above), by doing the following:
+The options are explained in detail below. Regardless of which option you use, it's recommended that you also make the following change to your `git` configuration:
 
 ```bash
-git checkout pr/NNN
-git rebase master
-... build and review the spec ...
-git checkout master
-git merge pr/NNN --ff-only
+git config push.default upstream
 ```
 
-This checks out the PR's commits, rebases them on `master`, then fast-forwards `master` to include them.
+If you make that change, then whenever you're in a local PR branch and want to push changes back to the corresponding external branches, you can just run `git push` with no arguments (rather than also needing to specify the remote name and branch name as arguments). Otherwise, you need to also specify the remote name and branch name each time you push.
 
-Before pushing, you should amend the commit message with a final line containing `PR: https://github.com/whatwg/html/pull/XYZ`, so that we can easily see a link back to the pull request's discussion. Finally, you can do `git push origin master` to push the changes. Don't forget to comment on the pull request with something like "Merged as 123deadb33f" before closing.
+If you want to enable that same ability for all your project clones, also specify the `--global` option: `git config --global push.default upstream`.
 
-### Merging pull requests from branches
+#### Option 1: Use the checkout-pr script
 
-Pull requests from other editors or members of the WHATWG GitHub organization may come from branches within this repository.
+You can check out a PR branch by running the `checkout-pr` script in the root directory of your `html` repository clone:
 
-Just as with PRs from forks, you can merge PRs from branches in this repo to the master branch just using the normal green button (labeled **Merge pull request**) in the pull-request page in the GitHub Web UI. After you press that, another green button will appear, labeled **Confirm squash and merge**. Press that and all the commits from that PR branch will be combined into one commit to the master branch.
+**Example using just a PR number**
+```bash
+./checkout-pr 1871
+```
+**Example using a PR URL**
+```bash
+./checkout-pr https://github.com/whatwg/html/pull/1871
+```
 
-Otherwise, if you want to cleanly merge a PR from a branch within the repo using the command line, you need to add an extra step in addition to the steps you'd follow for merging a PR from a fork. These are the steps:
+You should see output similar to this:
+
+```bash
+Getting data for whatwg/html PR #1871...
+
+Author: estark37 (Emily Stark)
+Title:  Honor srcdoc document referrer policies when set
+
+Preparing for checkout into 'estark37-srcdoc-meta-referrer-policy' local branch.
+Adding new remote 'estark37'.
+Fetching 'srcdoc-meta-referrer-policy' branch from remote 'estark37'.
+Checking out into 'estark37-srcdoc-meta-referrer-policy' local branch.
+Switched to a new branch 'estark37-srcdoc-meta-referrer-policy'
+Branch estark37-srcdoc-meta-referrer-policy set up to track remote branch srcdoc-meta-referrer-policy from estark37.
+```
+
+#### Option 2: Use the "hub checkout *PULLREQ-URL*" command
+
+[hub](https://hub.github.com/) is a specialized GitHub-aware command-line wrapper for `git`, "with extra features and commands that make working with GitHub easier".
+
+There are `hub` install packages for most OS distros; for example, on MacOS you can install it with `brew install hub`. Or if you have an existing [`go`](https://golang.org/) environment, you can install `hub` with `go get github.com/github/hub`. Alternatively, you can download a [precompiled hub binary](https://github.com/github/hub/releases) and install it yourself anywhere in your `PATH`.
+
+If you want to use `hub` for checking out PR branches, it's recommended that you to make the following change to your `git` configuration:
+
+```bash
+git config url.git@github.com:.pushInsteadOf git://github.com/
+```
+
+That's necessary because of a current shortcoming in `hub`: It has to do with the fact that GitHub remotes with git-protocol URLs are *read-only* (you can't push to them), while GitHub remotes with SSH (`git@github.com:*`) URLs are *read-write* (you can push to them). But when `hub` creates a PR branch, it adds the remote for that branch using a git-protocol URL instead of an SSH URL.
+
+So the config change above fixes that problem by causing the URLs for remotes which get added to your config for your PR branches to be rewritten with `git@github.com:` in place of `git://github.com/`. That ensures you can actually push to them.
+
+You can check out a PR branch using the command `hub checkout` followed by a PR URL:
+
+**Example**
+```bash
+hub checkout https://github.com/whatwg/html/pull/1871
+```
+
+You should see output similar to this:
+
+```bash
+Updating estark37
+From git://github.com/estark37/html
+ * [new branch]      srcdoc-meta-referrer-policy -> estark37/srcdoc-meta-referrer-policy
+Branch estark37-srcdoc-meta-referrer-policy set up to track remote branch srcdoc-meta-referrer-policy from estark37.
+Switched to a new branch 'estark37-srcdoc-meta-referrer-policy'
+```
+
+#### Option 3: Use standard git commands to check out a PR branch
+
+Behind the scenes, the `checkout-pr` script and `hub checkout *PULLREQ-URL*` both invoke the same sequence of underlying `git` commands. So you can achieve the same result by running the commands manually directly.
+
+To get started, you first need to look at the GitHub Web for the PR with the changes you want to check out. At the end of all the comments you'll find a line in the following form:
+
+> Add more commits by pushing to the *BRANCHNAME* branch on *AUTHOR*/html.
+
+Take those *BRANCHNAME* and *AUTHOR* values and run the following sequence of commands:
+
+1. If you don't already have a remote named *AUTHOR* configured (to check, see the output of `git remote -v` or look in your `html/.git/config` file), then run:
+
+   ```bash
+   git remote add --no-tags -t BRANCHNAME AUTHOR git@github.com:*AUTHOR*/html.git
+   ```
+
+   That command will create a new remote named *AUTHOR* in your clone, set to track the branch named *BRANCHNAME*.
+
+2. If you do already have a remote named *AUTHOR* configured, then instead of `git remote add`, run:
+
+   ```bash
+   git remote set-branches --add AUTHOR BRANCHNAME
+   ```
+
+   That command will add tracking for the branch named *BRANCHNAME* to your existing *AUTHOR* remote.
+
+3. To fetch the branch *BRANCHNAME* from `git@github.com:*AUTHOR*/html.git`, run:
+
+   ```bash
+   git fetch AUTHOR +refs/heads/BRANCHNAME:refs/remotes/AUTHOR/BRANCHNAME
+   ```
+
+4. Finally, create a local branch in your clone and set it track the corresponding branch from the *AUTHOR* remote:
+
+   ```bash
+   git checkout -b AUTHOR-BRANCHNAME --track AUTHOR/BRANCHNAME
+   ```
+
+   **Important:** Note that as above you should name the local branch *AUTHOR*-*BRANCHNAME* (that is, with the prefix "*AUTHOR*-"), not just *BRANCHNAME*. That naming strategy both avoids possible naming collisions if you have multiple remotes with branches of the same name, as well as clearly indicating to you which author/remote the branch is from.
+
+**Example**
+In https://github.com/whatwg/html/pull/1871 you'll see the following line:
+
+> Add more commits by pushing to the **srcdoc-meta-referrer-policy** branch on **estark37/html**.
+
+So you can check out that branch using the following sequence of commands:
+
+```bash
+git remote add --no-tags -t srcdoc-meta-referrer-policy estark37 git@github.com:estark37/html.git
+git fetch estark37 +refs/heads/srcdoc-meta-referrer-policy:refs/remotes/estark37/srcdoc-meta-referrer-policy
+git checkout -b estark37-srcdoc-meta-referrer-policy --track estark37/srcdoc-meta-referrer-policy
+```
+
+That checks out the PR changes into a new local branch named `estark37-srcdoc-meta-referrer-policy` and switches you to that branch.
+
+#### Pulling updates to PR branches from a fork
+
+If a contributor or other editor subsequently pushes changes to the remote branch in the author's fork (for example, in response to your review comments), you can pull the changes in pretty much the same way you do for non-external branches: You first check out the *AUTHOR*-*BRANCHNAME* branch (where *AUTHOR*-*BRANCHNAME* is the local branch name), and the just run `git pull`:
+
+**Example**
+ ```bash
+ git checkout estark37-srcdoc-meta-referrer-policy
+ git pull
+ ```
+
+#### Pushing local commits made in PR branches
+
+If you have `git config push.default upstream` configured, you can push the changes on your local branch for the PR back to contributor's external branch just by running `git push` with no arguments:
+
+```bash
+git push
+```
+
+If you do not have `git config push.default upstream` configured, you need to specify the remote name and branch name each time you push, in the following form:
+
+<pre>
+git push <i>AUTHOR</i> HEAD:<i>BRANCHNAME</i>
+</pre>
+
+Note that *BRANCHNAME* is the **remote** branch name, not your corresponding local branch name (which if you followed the steps above to check out the branch is instead in the form *AUTHOR*-*BRANCHNAME*).
+
+**Example**
+```bash
+git push estark37 HEAD:srcdoc-meta-referrer-policy
+```
+
+### Merging pull requests into master
+
+Just use the normal green button (labeled either **Squash and merge** or **Rebase and merge**) in the pull-request page in the GitHub Web UI, but first ensure the commit message follows [the guidelines](https://github.com/erlang/otp/wiki/Writing-good-commit-messages).
+
+#### "Squash and merge" button
+
+If you use the **Squash and merge** button, you can edit the commit message directly within the GitHub Web UI to make any changes needed to have it match [the guidelines](https://github.com/erlang/otp/wiki/Writing-good-commit-messages):
+
+1. Press the **Squash and merge** button to have the GitHub Web UI show an input form with the commit message.
+2. Edit the commit message as needed directly in the input form provided.
+3. Press the **Confirm squash and merge** button to complete the merge to master.
+
+#### "Rebase and merge" button
+
+If you use the **Rebase and merge** version of the green button, you first need to complete the following steps locally:
+
+1. Run `git rebase -i` to squash the commits into a single commit.
+2. Edit the commit message as needed to make it follow [the guidelines](https://github.com/erlang/otp/wiki/Writing-good-commit-messages).
+3. Use `git push --force` to push the commit back to the contributor's external remote.
+4. Press the **Rebase and merge** button in the GitHub Web UI and a **Confirm rebase and merge** button will appear.
+5. Press the **Confirm rebase and merge** button to complete the merge to master.
+
+#### Merging to master from the command line
+
+Regardless of whether a pull request comes from a contributor (in which case the branch is from a different remote repository and you've already used the **Checking out pull requests from forks** steps above to fetch the branch) or from other editors or members of the WHATWG GitHub organization (in which case the branch is within this repository), the steps for cleanly merging it to master are the same:
 
 ```bash
 git checkout BRANCH_NAME
 git rebase master
 ... build and review the spec ...
-git push --force
 git checkout master
+git push --force
 git merge BRANCH_NAME --ff-only
 ```
 
-The additional `git push --force` line here ensures that the original branch gets updated to sit on top of `master` as well. This ensures GitHub can automatically figure out that the commits were merged, and thus automatically close the pull request with a nice purple "merged" status. So at this point you can do a `git push origin master` to push the changes, and GitHub will close the PR and mark it as merged.
+This checks out the PR's commits, rebases them on `master`, then fast-forwards `master` to include them.
+
+The `git push --force` line here ensures that the original branch gets updated to sit on top of `master` as well. This ensures GitHub can automatically figure out that the commits were merged, and thus automatically close the pull request with a nice purple "merged" status. So at this point you can do a `git push origin master` to push the changes, and GitHub will close the PR and mark it as merged.
 
 ## Bugs
 
