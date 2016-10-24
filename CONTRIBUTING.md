@@ -10,7 +10,7 @@ In short, change `source` and submit your patch, with a [good commit message](ht
 
 Leave the **Allow edits from maintainers** option enabled to allow reviewers (the HTML Standard maintainers) to fix trivial issues directly on your branch rather than needing to write review comments asking you make the edits.  For more details, see [Improving collaboration with forks](https://github.com/blog/2247-improving-collaboration-with-forks) in the GitHub Blog.
 
-Please add your name to the Acknowledgements section (search for `<!-- ACKS`) in your first pull request, even for trivial fixes. The names are sorted lexicographically.
+Please add your name to the Acknowledgments section (search for `<!-- ACKS`) in your first pull request, even for trivial fixes. The names are sorted lexicographically.
 
 To preview your changes locally, follow the instructions in the [html-build repository](https://github.com/whatwg/html-build).
 
