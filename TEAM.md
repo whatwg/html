@@ -55,25 +55,7 @@ checkout-pr domenic example-fix
 
 ### Merging pull requests into master
 
-Just use the normal green button (labeled either **Squash and merge** or **Rebase and merge**) in the pull-request page in the GitHub Web UI, but first ensure the commit message follows [the guidelines](https://github.com/erlang/otp/wiki/Writing-good-commit-messages).
-
-#### "Squash and merge" button
-
-If you use the **Squash and merge** button, you can edit the commit message directly within the GitHub Web UI to make any changes needed to have it match [the guidelines](https://github.com/erlang/otp/wiki/Writing-good-commit-messages):
-
-1. Press the **Squash and merge** button to have the GitHub Web UI show an input form with the commit message.
-2. Edit the commit message as needed directly in the input form provided.
-3. Press the **Confirm squash and merge** button to complete the merge to master.
-
-#### "Rebase and merge" button
-
-If you use the **Rebase and merge** version of the green button, you first need to complete the following steps locally:
-
-1. Run `git rebase -i` to squash the commits into a single commit.
-2. Edit the commit message as needed to make it follow [the guidelines](https://github.com/erlang/otp/wiki/Writing-good-commit-messages).
-3. Use `git push --force` to push the commit back to the contributor's external remote.
-4. Press the **Rebase and merge** button in the GitHub Web UI and a **Confirm rebase and merge** button will appear.
-5. Press the **Confirm rebase and merge** button to complete the merge to master.
+Just use the normal green button in the pull-request page in the GitHub Web UI, but first ensure the commit message follows [the guidelines](https://github.com/erlang/otp/wiki/Writing-good-commit-messages).
 
 #### Merging to master from the command line
 
