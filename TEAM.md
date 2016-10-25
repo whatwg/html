@@ -66,8 +66,8 @@ Regardless of whether a pull request comes from a contributor (in which case the
 git checkout BRANCH_NAME
 git rebase master
 ... build and review the spec ...
-git checkout master
 git push --force
+git checkout master
 git merge BRANCH_NAME --ff-only
 ```
 
