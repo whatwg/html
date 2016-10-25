@@ -14,15 +14,15 @@ If a follow-up issue is filed, add the `html` label.
 
 Pull requests from external contributors come from branches in their forks. You can check out those external branches in order to review and test the commits in those pull requests, and to be able to push changes to them on your own (e.g., fixes for typos)—rather than needing to write review comments asking the PR contributor to make the edits.
 
-To checkout a PR branch, note the user it's coming from and the branch they used in their fork. For example, for user `domenic` with branch `example-fix`, you would do
+To checkout a PR branch, note the user it's coming from and the branch they used in their fork. For example, for user `estark37` with branch `example-fix`, you would do
 
 ```bash
-git remote add domenic https://github.com/domenic/html.git
-git fetch domenic
-git checkout -b example-fix domenic/example-fix
+git remote add estark37 https://github.com/estark37/html.git
+git fetch estark37
+git checkout -b example-fix estark37/example-fix
 ```
 
-You can then push to the `example-fix` branch and it will update that branch in `domenic`'s fork, and thus will update the pull request.
+You can then push to the `example-fix` branch and it will update that branch in `estark37`'s fork, and thus will update the pull request.
 
 #### Git config tweak
 
@@ -51,7 +51,7 @@ checkout-pr() {
 You can then use it as
 
 ```bash
-checkout-pr domenic example-fix
+checkout-pr estark37 example-fix
 ```
 
 ### Merging pull requests into master
