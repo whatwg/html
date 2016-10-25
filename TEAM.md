@@ -45,6 +45,7 @@ checkout-pr() {
   git remote add $1 https://github.com/$1/html.git
   git fetch $1
   git checkout -b $2 $1/$2
+}
 ```
 
 You can then use it as
