@@ -42,7 +42,8 @@ You can add the following helper script to your `.bash_profile` or similar to ma
 
 ```bash
 checkout-pr() {
-  git remote add $1 https://github.com/$1/html.git
+  local REPO=`basename $(git remote show -n origin | grep Fetch | cut -d: -f2-)`
+  git remote add $1 https://github.com/$1/$REPO
   git fetch $1
   git checkout -b $2 $1/$2
 }
