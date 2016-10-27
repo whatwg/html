@@ -22,7 +22,7 @@ git fetch estark37
 git checkout -b estark37-example-fix estark37/example-fix
 ```
 
-You can then push to the `estark-37-example-fix` branch and it will update the `example-fix` branch in `estark37`'s fork, and thus will update the pull request.
+You can then push to the `estark37-example-fix` branch and it will update the `example-fix` branch in `estark37`'s fork, and thus will update the pull request.
 
 #### Git config tweak
 
