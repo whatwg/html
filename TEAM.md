@@ -47,7 +47,7 @@ checkout-pr() {
   if [ "`git config remote.origin.url | cut -d: -f1`" == "git@github.com" ]; then
       REMOTE_URL="git@github.com:$1/$REPO"
   fi
-  git remote add $1 $REMOTE_URL
+  git remote add $1 $REMOTE_URL 2> /dev/null
   git fetch $1
   git checkout -b $1-$2 $1/$2
 }
