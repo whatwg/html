@@ -19,7 +19,7 @@ To checkout a PR branch, note the user it's coming from and the branch they used
 ```bash
 git remote add estark37 https://github.com/estark37/html.git
 git fetch estark37
-git checkout -b example-fix estark37/example-fix
+git checkout -b estark37-example-fix estark37/example-fix
 ```
 
 You can then push to the `example-fix` branch and it will update that branch in `estark37`'s fork, and thus will update the pull request.
@@ -49,7 +49,7 @@ checkout-pr() {
   fi
   git remote add $1 $REMOTE_URL
   git fetch $1
-  git checkout -b $2 $1/$2
+  git checkout -b $1-$2 $1/$2
 }
 ```
 
