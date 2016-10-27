@@ -42,8 +42,12 @@ You can add the following helper script to your `.bash_profile` or similar to ma
 
 ```bash
 checkout-pr() {
-  local REPO=`basename $(git remote show -n origin | grep Fetch | cut -d: -f2-)`
-  git remote add $1 https://github.com/$1/$REPO
+  local REPO=`basename $(git config remote.origin.url | cut -d: -f2-)`
+  local REMOTE_URL=https://github.com/$1/$REPO
+  if [ "`git config remote.origin.url | cut -d: -f1`" == "git@github.com" ]; then
+      REMOTE_URL="git@github.com:$1/$REPO"
+  fi
+  git remote add $1 $REMOTE_URL
   git fetch $1
   git checkout -b $2 $1/$2
 }
