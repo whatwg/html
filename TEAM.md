@@ -6,80 +6,70 @@ This document contains info used by the team maintaining the standard. Mostly bo
 
 Each change needs to result in a single commit on the master branch, with no merge commits. The green squash and merge button is OK to use, but be sure to tidy up the commit message per [guidelines for writing good commit messages](https://github.com/erlang/otp/wiki/Writing-good-commit-messages).
 
-For optimal merges, the following instructions may be helpful:
+Prefix the summary line with "Editorial: " if the change is just to fix formatting, typos, or is a refactoring that does not change how the standard is understood. Note that bug fixes or clarifications are not editorial, even if they only affect non-normative text.
 
-### Fetching and reviewing pull requests from forks
+Prefix the summary line with "Meta: " for changes that do not directly affect the text of the standard, but instead the ecosystem around it, such as spec tooling or contributor documentation.
 
-Pull requests from external contributors come from their forks. To be able to more easily review the commits in those pull requests, you can optionally configure your clone such that:
+For normative changes, ask for a [web-platform-tests](https://github.com/w3c/web-platform-tests) PR if testing is practical and not overly burdensome. Aim to merge both PRs at the same time. If one PR is approved but the other needs more work, add the `do not merge yet` label.
 
-* Alongside the remote branches you already have [created by the team](https://github.com/whatwg/html/branches), you'll also have remote branches for all existing PRs.
-* Thus you can `git checkout` any PR branch you want to build/review, and use `git pull` to pull any updates to it.
+If a follow-up issue is filed, add the `html` label.
 
-To do all that, use these steps:
+### Checking out pull requests from forks
 
-1. Do one of the following:
-   * Run the following command to **globally configure, for all repositories you pull from**, automatic fetch of branches for PRs from forks:
+Pull requests from external contributors come from branches in their forks. You can check out those external branches in order to review and test the commits in those pull requests, and to be able to push changes to them on your own (e.g., fixes for typos)—rather than needing to write review comments asking the PR contributor to make the edits.
 
-     ```bash
-     git config --global --add remote.origin.fetch "+refs/pull/*/head:refs/remotes/origin/pr/*"
-     ```
-     That will add the following two lines to your `$HOME/.gitconfig` file:
-
-     ```
-     [remote "origin"]
-              fetch = +refs/pull/*/head:refs/remotes/origin/pr/*
-	   ```
-
-	   If you change your mind later about globally enabling that behavior, you can disable it by removing those lines.
-
-	* Alternatively, to enable automatic fetch of branches in PRs from forks **just for this repo**, make the following addition to your `.git/config` file in this directory:
-
-     ```diff
-       [remote "origin"]
-               url = git@github.com:whatwg/html.git
-               fetch = +refs/heads/*:refs/remotes/origin/*
-     +        fetch = +refs/pull/*/head:refs/remotes/origin/pr/*
-     ```
-
-     (Omit the `+` sign; it’s just `diff` syntax to get the markdown viewer to highlight the line.)
-
-2. Run `git fetch` or `git pull` to do the initial fetch of all branches for current PRs.
-
-3. Run `git checkout pr/NNN` to check out a particular PR branch. For review purposes, you may want to subsequently do `git rebase master` to make sure it is on top of the latest changes from `master`.
-
-4. If a contributor subsequently pushes changes to the corresponding branch for that PR in their fork (for example, in response to your review comments), then: make sure you're on the checked-out `pr/NNN` branch locally, and reset to the latest from the remote, by doing the following:
-
-   ```bash
-   git checkout pr/NNN
-   git fetch
-   git reset --hard origin/pr/NNN
-   ```
-
-### Merging pull requests from forks
-
-Just use the normal green button (labeled **Merge pull request**) in the pull-request page in the GitHub Web UI. After you press that, another green button will appear, labeled **Confirm squash and merge**. Ensure that the commit message follows [the guidelines](https://github.com/erlang/otp/wiki/Writing-good-commit-messages), then press that and all the commits from that PR branch will be combined into one commit to the master branch.
-
-Otherwise, if you want to merge a PR from the command line, you can, once you have completed the **Fetching and reviewing pull requests from forks** setup (above), by doing the following:
+To checkout a PR branch, note the user it's coming from and the branch they used in their fork. For example, for user `estark37` with branch `example-fix`, you would do
 
 ```bash
-git checkout pr/NNN
-git rebase master
-... build and review the spec ...
-git checkout master
-git merge pr/NNN --ff-only
+git remote add estark37 https://github.com/estark37/html.git
+git fetch estark37
+git checkout -b estark37-example-fix estark37/example-fix
 ```
 
-This checks out the PR's commits, rebases them on `master`, then fast-forwards `master` to include them.
+You can then push to the `estark37-example-fix` branch and it will update the `example-fix` branch in `estark37`'s fork, and thus will update the pull request.
 
-Before pushing, you should amend the commit message with a final line containing `PR: https://github.com/whatwg/html/pull/XYZ`, so that we can easily see a link back to the pull request's discussion. Finally, you can do `git push origin master` to push the changes. Don't forget to comment on the pull request with something like "Merged as 123deadb33f" before closing.
+#### Git config tweak
 
-### Merging pull requests from branches
+It's recommended that you also make the following change to your `git` configuration:
 
-Pull requests from other editors or members of the WHATWG GitHub organization may come from branches within this repository.
+```bash
+git config push.default upstream
+```
 
-Just as with PRs from forks, you can merge PRs from branches in this repo to the master branch just using the normal green button (labeled **Merge pull request**) in the pull-request page in the GitHub Web UI. After you press that, another green button will appear, labeled **Confirm squash and merge**. Press that and all the commits from that PR branch will be combined into one commit to the master branch.
+If you make that change, then whenever you're in a local PR branch and want to push changes back to the corresponding external branches, you can just run `git push` with no arguments (rather than also needing to specify the remote name and branch name as arguments). Otherwise, you need to also specify the remote name and branch name each time you push.
 
-Otherwise, if you want to cleanly merge a PR from a branch within the repo using the command line, you need to add an extra step in addition to the steps you'd follow for merging a PR from a fork. These are the steps:
+If you want to enable that same ability for all your project clones, also specify the `--global` option: `git config --global push.default upstream`.
+
+#### Helper script
+
+You can add the following helper script to your `.bash_profile` or similar to make the process above slightly simpler:
+
+```bash
+checkout-pr() {
+  local REPO=`basename $(git config remote.origin.url | cut -d: -f2-)`
+  local REMOTE_URL=https://github.com/$1/$REPO
+  if [ "`git config remote.origin.url | cut -d: -f1`" == "git@github.com" ]; then
+      REMOTE_URL="git@github.com:$1/$REPO"
+  fi
+  git remote add $1 $REMOTE_URL 2> /dev/null
+  git fetch $1
+  git checkout -b $1-$2 $1/$2
+}
+```
+
+You can then use it as
+
+```bash
+checkout-pr estark37 example-fix
+```
+
+### Merging pull requests into master
+
+Just use the normal green button in the pull-request page in the GitHub Web UI, but first ensure the commit message follows [the guidelines](https://github.com/erlang/otp/wiki/Writing-good-commit-messages).
+
+#### Merging to master from the command line
+
+Regardless of whether a pull request comes from a contributor (in which case the branch is from a different remote repository and you've already used the **Checking out pull requests from forks** steps above to fetch the branch) or from other editors or members of the WHATWG GitHub organization (in which case the branch is within this repository), the steps for cleanly merging it to master are the same:
 
 ```bash
 git checkout BRANCH_NAME
@@ -90,7 +80,9 @@ git checkout master
 git merge BRANCH_NAME --ff-only
 ```
 
-The additional `git push --force` line here ensures that the original branch gets updated to sit on top of `master` as well. This ensures GitHub can automatically figure out that the commits were merged, and thus automatically close the pull request with a nice purple "merged" status. So at this point you can do a `git push origin master` to push the changes, and GitHub will close the PR and mark it as merged.
+This checks out the PR's commits, rebases them on `master`, then fast-forwards `master` to include them.
+
+The `git push --force` line here ensures that the original branch gets updated to sit on top of `master` as well. This ensures GitHub can automatically figure out that the commits were merged, and thus automatically close the pull request with a nice purple "merged" status. So at this point you can do a `git push origin master` to push the changes, and GitHub will close the PR and mark it as merged.
 
 ## Bugs
 
