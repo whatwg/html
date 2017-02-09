@@ -1,6 +1,6 @@
 # HTML Standard maintainer guidelines
 
-These are the guidelines for the team maintaining the HTML Standard. First see the [WHATWG maintainer guidelines](https://github.com/whatwg/meta/blob/master/CONTRIBUTING.md).
+These are the guidelines for the team maintaining the HTML Standard. First see the [WHATWG maintainer guidelines](https://github.com/whatwg/meta/blob/master/TEAM.md).
 
 ## Bugs
 
