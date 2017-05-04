@@ -4,7 +4,7 @@
     return;
   }
 
-  var fragid = window.location.hash.substr(1);
+  var fragid = decodeURIComponent(window.location.hash.substr(1));
 
   if (fragid && document.getElementById(fragid)) {
     return;
@@ -27,7 +27,7 @@
 
     var page = fragmentLinks[fragid];
     if (page) {
-      window.location.replace(page + '.html#' + fragid);
+      window.location.replace(page + '.html#' + encodeURIComponent(fragid));
     }
   };
   xhr.send();
