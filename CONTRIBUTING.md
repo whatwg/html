@@ -37,7 +37,7 @@ Always wrap after putting the maximum number of characters on a single line with
 
 An `<li>` element always has a `<p>` element inside it, unless it's a child of `<ul class="brief">`.
 
-If a "block" element contains a single "block" element, do not put it on a newline.
+If a "block" element contains a single "block" element, do not put it on a new line.
 
 Do not indent for anything except a new "block" element. For instance
 ```html
