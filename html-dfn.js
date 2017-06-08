@@ -145,7 +145,7 @@ function dfnMovePanel(event) {
   }
 }
 
-document.documentElement.classList.add('dfnEnabled');
+document.body.classList.add('dfnEnabled');
 document.addEventListener('click', dfnLoad);
 
 })();
