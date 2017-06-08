@@ -8,7 +8,21 @@ var dfnMap = {};
 var dfnPanel;
 var dfnTimeout;
 function dfnLoad(event) {
-  if (event.target && event.target instanceof HTMLAnchorElement) {
+  var node = event.target;
+  if (node && node instanceof HTMLAnchorElement) {
+    return;
+  }
+  dfncheck:
+  if (node.tagName !== "DFN") {
+    while (node.parentNode) {
+      node = node.parentNode;
+      if (node.tagName === "DFN") {
+        break dfncheck;
+      }
+      if (node.tagName === "BODY") {
+        return;
+      }
+    }
     return;
   }
   if (dfnPanel) {
