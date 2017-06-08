@@ -238,13 +238,16 @@
   searchButton.id = "searchbutton";
   searchButton.textContent = "Search";
   searchButton.title = placeholderText;
+  searchButton.tabIndex = 0;
   searchWidget.id = "searchwidget";
   searchWidgetClose.id = "searchwidgetclose";
   searchWidgetClose.textContent = "×";
+  searchWidgetClose.tabIndex = 0;
   searchWidgetStyle.textContent = searchWidgetStyleProperties;
   resultsOverlay.className = "results-wrapper-overlay";
   resultsClose.id = "resultsclose";
   resultsClose.textContent = "×";
+  resultsClose.tabIndex = 0;
   resultsModalBackground.className = "results-modal-background";
   resultsStyle.textContent = resultsStyleProperties;
   results.id = "results";
@@ -266,16 +269,44 @@
 
   searchWidgetClose.addEventListener("click",
     e => searchWidget.style.display = "none");
+  searchWidgetClose.addEventListener("keyup",
+    e => {
+      if (e.keyCode === 13) {
+        searchWidget.style.display = "none"
+      }
+    });
   searchButton.addEventListener("click",
     function() {
       searchWidget.style.display = "block";
       searchInput.placeholder = placeholderText;
       searchInput.focus();
     });
+  searchButton.addEventListener("keyup",
+    e => {
+      if (e.keyCode === 13) {
+        searchWidget.style.display = "block";
+        searchInput.placeholder = placeholderText;
+        searchInput.focus();
+      }
+    });
   resultsClose.addEventListener("click",
     function() {
       resultsOverlay.classList.remove('results-wrapper-visible');
       resultsModalBackground.classList.remove('results-modal-background-visible');
+    });
+  resultsClose.addEventListener("keyup",
+    e => {
+      if (e.keyCode === 13) {
+        resultsOverlay.classList.remove('results-wrapper-visible');
+        resultsModalBackground.classList.remove('results-modal-background-visible');
+      }
+    });
+  resultsOverlay.addEventListener("transitionend",
+    e => {
+      var firstResultLink = document.querySelector(".result a");
+      if (firstResultLink) {
+        firstResultLink.focus();
+      }
     });
 
   const suggestionslist = document.querySelector("#suggestionslist");
@@ -326,6 +357,7 @@
       resultLink.href = doc.sku;
       resultURL.textContent = doc.sku;
       resultLink.innerHTML = "HTML Standard";
+      resultLink.tabIndex = 0;
       if (doc.inboundlinks_anchortext_txt) {
         if (doc.inboundlinks_anchortext_txt[0] === "Table of Contents"
           && doc.inboundlinks_anchortext_txt[2]) {
@@ -381,7 +413,7 @@
     }
   }
   function changeFocus(e) {
-    if (e.keyCode === 38 || e.keyCode === 40) {
+    if (e.keyCode === 38 || e.keyCode === 40 || e.keyCode === 9) {
       return;
     }
     if (e.keyCode === 13) {
