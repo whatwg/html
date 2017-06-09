@@ -98,7 +98,7 @@ function dfnCreatePanel(id, path, specURL) {
     var realLinkA = document.createElement('a');
     realLinkA.href = specURL;
     realLinkA.onclick = dfnClosePanel;
-    realLinkA.textContent = node.firstChild.href;
+    realLinkA.textContent = specURL;
     realLinkP.appendChild(realLinkA);
     panel.appendChild(realLinkP);
   }
