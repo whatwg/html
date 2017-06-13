@@ -174,6 +174,10 @@ function movePanel(event) {
 }
 
 function restoreOrClosePanelOnNav(event) {
+  // Invoking this function twice is fine since on the second invocation,
+  // if the panel is open, `dfnPanel.dataset.id === id` so nothing happens;
+  // if the panel is closed, it will call `closePanel` which only clean up
+  // sessionStorage (which should already be cleared in that case).
   if (sessionStorage.dfnId) {
     var id = sessionStorage.dfnId;
     var path = sessionStorage.dfnPath;
@@ -192,6 +196,7 @@ document.body.classList.add('dfnEnabled');
 document.addEventListener('click', handleClick);
 if (isMultipage) {
   document.addEventListener('DOMContentLoaded', restoreOrClosePanelOnNav);
+  // Also listen for pageshow to handle history navigation without page-reload.
   window.addEventListener('pageshow', restoreOrClosePanelOnNav);
 }
 
