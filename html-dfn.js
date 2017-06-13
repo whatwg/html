@@ -12,7 +12,10 @@ function isCrossSpecDfn(dfn) {
   return dfn.firstChild && dfn.firstChild instanceof HTMLAnchorElement;
 }
 
-function dfnLoad(event) {
+function handleClick(event) {
+  if (event.button !== 0) {
+    return;
+  }
   var current = event.target;
   var node;
   var eventInDfnPanel = false;
@@ -26,73 +29,94 @@ function dfnLoad(event) {
     current = current.parentElement;
   }
   if (!eventInDfnPanel) {
-    dfnClosePanel();
+    closePanel();
   }
   if (!node) {
     return;
   }
+  var id = node.id || node.parentNode.id;
+  var path = '';
+  if (isMultipage) {
+    path = location.pathname;
+  }
+  var specURL = '';
   if (isCrossSpecDfn(node)) {
+    specURL = node.firstChild.href;
     event.preventDefault();
   }
-  dfnPanel = document.createElement('div');
-  dfnPanel.className = 'dfnPanel';
-  if (node.id || node.parentNode.id) {
-    var permalinkP = document.createElement('p');
-    var permalinkA = document.createElement('a');
-    permalinkA.href = '#' + (node.id || node.parentNode.id);
-    permalinkA.onclick = dfnClosePanel;
-    permalinkA.textContent = '#' + (node.id || node.parentNode.id);
-    permalinkP.appendChild(permalinkA);
-    dfnPanel.appendChild(permalinkP);
+  loadReferences(id, path, specURL);
+  node.appendChild(dfnPanel);
+  if (isMultipage) {
+    sessionStorage.dfnId = id;
+    sessionStorage.dfnPath = path;
+    sessionStorage.dfnSpecURL = specURL;
   }
-  if (isCrossSpecDfn(node)) {
-    var realLinkP = document.createElement('p');
-    realLinkP.className = 'spec-link';
-    realLinkP.textContent = 'Spec: ';
-    var realLinkA = document.createElement('a');
-    realLinkA.href = node.firstChild.href;
-    realLinkA.onclick = dfnClosePanel;
-    realLinkA.textContent = node.firstChild.href;
-    realLinkP.appendChild(realLinkA);
-    dfnPanel.appendChild(realLinkP);
+}
+
+function loadReferences(id, path, specURL) {
+  if (dfnPanel) {
+    dfnPanel.remove();
+    dfnPanel = null;
   }
+  dfnPanel = createPanel(id, path, specURL);
   var p = document.createElement('p');
   dfnPanel.appendChild(p);
   if (!dfnMapDone) {
     p.textContent = 'Loading cross-references…';
-    node.appendChild(dfnPanel);
     fetch('/xrefs.json')
       .then(response => response.json())
       .then(data => {
         dfnMap = data;
         dfnMapDone = true;
         if (dfnPanel) {
-          dfnShow(p, node);
+          fillInReferences(id);
         }
       }).catch(err => {
         p.textContent = 'Error loading cross-references.';
       });
   } else {
-    dfnShow(p, node);
+    fillInReferences(id);
   }
-  node.appendChild(dfnPanel);
 }
-function dfnShow(p, node) {
-  if (node.id in dfnMap || node.parentNode.id in dfnMap) {
+
+function createPanel(id, path, specURL) {
+  var panel = document.createElement('div');
+  panel.className = 'dfnPanel';
+  if (id) {
+    var permalinkP = document.createElement('p');
+    var permalinkA = document.createElement('a');
+    permalinkA.href = path + '#' + id;
+    permalinkA.onclick = closePanel;
+    permalinkA.textContent = '#' + id;
+    permalinkP.appendChild(permalinkA);
+    panel.appendChild(permalinkP);
+  }
+  if (specURL) {
+    var realLinkP = document.createElement('p');
+    realLinkP.className = 'spec-link';
+    realLinkP.textContent = 'Spec: ';
+    var realLinkA = document.createElement('a');
+    realLinkA.href = specURL;
+    realLinkA.onclick = closePanel;
+    realLinkA.textContent = specURL;
+    realLinkP.appendChild(realLinkA);
+    panel.appendChild(realLinkP);
+  }
+  panel.dataset.id = id;
+  return panel;
+}
+
+function fillInReferences(id) {
+  var p = dfnPanel.lastChild;
+  if (id in dfnMap) {
     p.textContent = 'Referenced in:';
     var ul = document.createElement('ul');
-    var anchorMap = {};
-    if (node.id in dfnMap) {
-      anchorMap = dfnMap[node.id];
-    }
-    if (node.parentNode.id in dfnMap) {
-      anchorMap = dfnMap[node.parentNode.id];
-    }
+    var anchorMap = dfnMap[id];
     for (var header in anchorMap) {
       var li = document.createElement('li');
       for (var i = 0; i < anchorMap[header].length; i += 1) {
         var a = document.createElement('a');
-        a.onclick = dfnMovePanel;
+        a.onclick = movePanel;
         a.href = anchorMap[header][i];
         if (!isMultipage) {
           a.href = a.href.substring(a.href.indexOf('#'));
@@ -119,7 +143,7 @@ function dfnShow(p, node) {
   }
 }
 
-function dfnClosePanel(event) {
+function closePanel(event) {
   if (dfnPanel) {
     dfnPanel.remove();
     dfnPanel = null;
@@ -127,9 +151,14 @@ function dfnClosePanel(event) {
   if (event) {
     event.stopPropagation();
   }
+  if (isMultipage) {
+    delete sessionStorage.dfnId;
+    delete sessionStorage.dfnPath;
+    delete sessionStorage.dfnSpecURL;
+  }
 }
 
-function dfnMovePanel(event) {
+function movePanel(event) {
   if (!dfnPanel) {
     return;
   }
@@ -139,13 +168,36 @@ function dfnMovePanel(event) {
   dfnPanel.style.maxWidth = '20em';
   dfnPanel.style.maxHeight = '50vh';
   dfnPanel.style.overflow = 'auto';
-  document.body.appendChild(dfnPanel);
   if (event) {
     event.stopPropagation();
   }
 }
 
+function restoreOrClosePanelOnNav(event) {
+  // Invoking this function twice is fine since on the second invocation,
+  // if the panel is open, `dfnPanel.dataset.id === id` so nothing happens;
+  // if the panel is closed, it will call `closePanel` which only clean up
+  // sessionStorage (which should already be cleared in that case).
+  if (sessionStorage.dfnId) {
+    var id = sessionStorage.dfnId;
+    var path = sessionStorage.dfnPath;
+    var specURL = sessionStorage.dfnSpecURL;
+    if (!dfnPanel || (dfnPanel && dfnPanel.dataset.id !== id)) {
+      loadReferences(id, path, specURL);
+      movePanel();
+      document.body.insertBefore(dfnPanel, document.body.firstChild);
+    }
+  } else {
+    closePanel();
+  }
+}
+
 document.body.classList.add('dfnEnabled');
-document.addEventListener('click', dfnLoad);
+document.addEventListener('click', handleClick);
+if (isMultipage) {
+  document.addEventListener('DOMContentLoaded', restoreOrClosePanelOnNav);
+  // Also listen for pageshow to handle history navigation without page-reload.
+  window.addEventListener('pageshow', restoreOrClosePanelOnNav);
+}
 
 })();
