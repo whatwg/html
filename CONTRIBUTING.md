@@ -10,13 +10,37 @@ We'd be happy to mentor you through this process. If you're interested and need 
 
 ## Pull requests
 
-In short, change `source` and submit your patch, with a [good commit message](https://github.com/erlang/otp/wiki/Writing-good-commit-messages).
+In short, change `source` and submit your patch, with a [good commit message](https://github.com/erlang/otp/wiki/Writing-good-commit-messages). Try to follow the source formatting rules below.
 
 Please add your name to the Acknowledgments section (search for `<!-- ACKS`) in your first pull request, even for trivial fixes. The names are sorted lexicographically.
 
 To preview your changes locally, follow the instructions in the [html-build repository](https://github.com/whatwg/html-build).
 
-### Formatting
+## The developer's edition
+
+In addition to generating the [singlepage](https://html.spec.whatwg.org/) and [multipage](https://html.spec.whatwg.org/multipage/) specifications, we also generate an [edition for developers](https://html.spec.whatwg.org/dev/). This is meant to exclude content that is of interest only to implementers. We can always use community help in properly enforcing this distinction, especially since for a long period the developer's edition was not working and so we made a lot of changes without properly considering their impact on it.
+
+To mark an element as being omitted from the developer's edition, use a `w-nodev` attribute. Similarly, to mark something up as being omitted from the singlepage and multipage versions, use a `w-nohtml` attribute. This may require introducing container `<div>`s or `<span>`s; that's fine. Note that Web IDL blocks (`<pre class="idl">`) are automatically omitted by the build process, and so don't need `w-nodev` attributes.
+
+Another interesting feature is the `subdfn` attribute. This is useful for when something is defined inside text that is not present in the developer's edition (such as a Web IDL block). In that case, we can use the `subdfn` attribute on something which has a matching `data-x` attribute, to indicate the definition of the term for the purposes of the developer's edition.
+
+In general we want to omit from the developer's edition:
+
+* Any Web IDL; instead, the `<dl class="domintro">` descriptions suffice.
+* The definitions of IDL attributes and operations as algorithmic steps (ditto).
+* Other instructions for user agents on how to implement a feature.
+* Definitions of low-level concepts and terms that do not impact web development.
+
+On the other hand, we want to especially keep:
+
+* High-level descriptions and introductions
+* Authoring instructions
+* Examples
+* Helpful notes about common situations
+
+In between these clear-cut categories, there is some gray area. Please feel free to open an issue if you think something is being included that shouldn't be, or is being excluded but should be kept.
+
+## Source formatting
 
 Use a column width of 100 characters and add newlines where whitespace is used. (Emacs, set `fill-column` to `100`; in Vim, set `textwidth` to `100`; and in Sublime, set `wrap_width` to `100`.)
 
@@ -37,7 +61,7 @@ Always wrap after putting the maximum number of characters on a single line with
 
 An `<li>` element always has a `<p>` element inside it, unless it's a child of `<ul class="brief">`.
 
-If a "block" element contains a single "block" element, do not put it on a newline.
+If a "block" element contains a single "block" element, do not put it on a new line.
 
 Do not indent for anything except a new "block" element. For instance
 ```html
