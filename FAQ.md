@@ -110,7 +110,7 @@ Yes. Unlike HTML4 and XHTML1, the choice of HTML or XHTML is solely dependent up
 
 In HTML:
 
-```
+```html
 <!DOCTYPE html>
 ```
 
@@ -118,7 +118,7 @@ In XHTML: no DOCTYPE is required and its use is generally unnecessary. However, 
 
 For compatibility with legacy producers designed for outputting HTML, but which are unable to easily output the above DOCTYPE, this alternative legacy-compat version may be used instead.
 
-```
+```html
 <!DOCTYPE html SYSTEM "about:legacy-compat">
 ```
 
@@ -196,7 +196,9 @@ A word of warning though. You have to be **really** careful for this to work, an
 
 In XHTML, you are required to specify the namespace:
 
-<pre><html xmlns="[http://www.w3.org/1999/xhtml](http://www.w3.org/1999/xhtml)"></pre>
+```html
+<html xmlns="[http://www.w3.org/1999/xhtml](http://www.w3.org/1999/xhtml)">
+```
 
 In HTML, the `xmlns` attribute is currently allowed on any HTML element, but only if it has the value `[http://www.w3.org/1999/xhtml](http://www.w3.org/1999/xhtml)`. It doesn't do anything at all, it is merely allowed to ease migration from XHTML1\. It is not actually a namespace declaration in HTML, because HTML doesn't yet support namespaces. See the question [will there be support for namespaces in HTML](#Will_there_be_support_for_namespaces_in_HTML.3F).
 
@@ -212,7 +214,9 @@ In conclusion, while HTML does not allow the XML namespace syntax, there is a wa
 
 For HTML, it is strongly recommended that you specify the encoding using the HTTP `Content-Type` header. If you are unable to [configure your server](http://www.w3.org/International/O-HTTP-charset) to send the correct headers, then you may use the `meta` element:
 
-<pre><meta charset="UTF-8"></pre>
+```html
+<meta charset="UTF-8">
+```
 
 The following restrictions apply to character encoding declarations:
 
@@ -230,11 +234,15 @@ For polyglot documents, which may be served as either HTML or XHTML, you may als
 
 To ease transition from HTML4 to the latest HTML specification, although the former is the recommended syntax, you may also use the following. (This does not apply to XHTML or polyglot documents)
 
-<pre><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></pre>
+```html
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+```
 
 In XHTML, XML rules for determining the character encoding apply. The meta element is never used for determining the encoding of an XHTML document (although it may appear in UTF-8 encoded XHTML documents). You should use either the HTTP `Content-Type` header or the XML declaration to specify the encoding.
 
-<pre><?xml version="1.0" encoding="UTF-8"?></pre>
+```html
+<?xml version="1.0" encoding="UTF-8"?>
+```
 
 Otherwise, you must use the default of `UTF-8` or `UTF-16`. It is recommended that you use `UTF-8`.
 
@@ -288,24 +296,29 @@ The only advantage it seems to add is that it reduces typing for authors in some
 
 Wrapping <a> elements around blocks solves most use cases. It doesn't handle making rows in tables into links, though; for those just do something like this instead:
 
-<pre><tr onclick="location = this.getElementsByTagName('a')[0]"> ... </tr></pre>
+```html
+<tr onclick="location = this.getElementsByTagName('a')[0]"> ... </tr>
+```
 
 #### HTML should support list headers!
 
 You can give a header to a list using the <figure> and <figcaption> elements:
 
-<pre><figure>
+```html
+<figure>
  <figcaption>Apples</figcaption>
  <ul>
   <li>Granny Smith</li>
   <li>Evil Apple of Knowledge</li>
   <li>Apple, Inc</li>
  </ul>
-</figure></pre>
+</figure>
+```
 
 You can also label a group of lists using a definition list:
 
-<pre><dl>
+```html
+<dl>
  <dt>Dry:</dt>
  <dd>
   <ul>
@@ -322,7 +335,8 @@ You can also label a group of lists using a definition list:
    <li>1tsp vanilla extract</li>
   </ul>
  </dd>
-</dl></pre>
+</dl>
+```
 
 These techniques are preferred over adding an <lh> element as proposed in the old HTML3 draft, mostly because of thorny issues with parsing near <li> elements.
 
