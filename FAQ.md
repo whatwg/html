@@ -164,7 +164,7 @@ With an [HTML validator](/validator) that follows the latest specification.
 
 #### What is an HTML Serialization?
 
-The HTML serialization refers to the syntax of an HTML document defined in the HTML specification. The syntax is inspired by the SGML syntax from earlier versions of HTML, bits of XML (e.g. allowing a trailing slash on void elements, xmlns attributes), and reality of deployed content on the Web.
+The HTML serialization refers to the syntax of an HTML document defined in the HTML specification. The syntax is inspired by the SGML syntax from earlier versions of HTML, bits of XML (e.g. allowing a trailing slash on void elements, `xmlns` attributes), and reality of deployed content on the Web.
 
 Any document whose MIME type is determined to be `text/html` is considered to be an HTML serialization and must be parsed using an HTML parser.
 
@@ -208,7 +208,7 @@ HTML is being defined in terms of the DOM and during parsing of a text/html all 
 
 In addition, the HTML syntax provides for a way to embed elements from MathML and SVG. Elements placed inside the container element `math` or `svg` will automatically be put in the MathML namespace or the SVG namespace, respectively, by the parser. Namespace syntax is not required, but again an `xmlns` attribute is allowed if its value is the right namespace.
 
-In conclusion, while HTML does not allow the XML namespace syntax, there is a way to embed MathML and SVG and the xmlns attribute can be used on any element under the given constraints, in a way that is reasonably compatible on the DOM level.
+In conclusion, while HTML does not allow the XML namespace syntax, there is a way to embed MathML and SVG and the `xmlns` attribute can be used on any element under the given constraints, in a way that is reasonably compatible on the DOM level.
 
 #### How do I specify the character encoding?
 
@@ -282,7 +282,7 @@ It is important to make the distinction between the rules that apply to user age
 
 #### HTML should support `href` on any element!
 
-The spec allows <a> to contain blocks. It doesn't support putting href="" on any element, though.
+The spec allows `<a>` to contain blocks. It doesn't support putting `href=""` on any element, though.
 
 Supporting `href` on any element has several problems associated with it that make it difficult to support in HTML. The main reason this isn't in HTML is that browser vendors have reported that implementing it would be extremely complex. Browser vendors get to decide what they implement, and there's no point to us telling them to do something they aren't going to do. In addition:
 
@@ -294,7 +294,7 @@ Supporting `href` on any element has several problems associated with it that ma
 
 The only advantage it seems to add is that it reduces typing for authors in some cases, but that is not a strong enough reason to support it in light of the other reasons.
 
-Wrapping <a> elements around blocks solves most use cases. It doesn't handle making rows in tables into links, though; for those just do something like this instead:
+Wrapping `<a>` elements around blocks solves most use cases. It doesn't handle making rows in tables into links, though; for those just do something like this instead:
 
 ```html
 <tr onclick="location = this.getElementsByTagName('a')[0]"> ... </tr>
@@ -302,7 +302,7 @@ Wrapping <a> elements around blocks solves most use cases. It doesn't handle mak
 
 #### HTML should support list headers!
 
-You can give a header to a list using the <figure> and <figcaption> elements:
+You can give a header to a list using the `<figure>` and `<figcaption>` elements:
 
 ```html
 <figure>
@@ -338,27 +338,27 @@ You can also label a group of lists using a definition list:
 </dl>
 ```
 
-These techniques are preferred over adding an <lh> element as proposed in the old HTML3 draft, mostly because of thorny issues with parsing near <li> elements.
+These techniques are preferred over adding an `<lh>` element as proposed in the old HTML3 draft, mostly because of thorny issues with parsing near `<li>` elements.
 
 #### HTML should support a way for anyone to invent new elements!
 
 There are actually quite a number of ways for people to invent their own extensions to HTML:
 
-*   Authors can use the _class_ attribute to extend elements, effectively creating their own elements, while using the most applicable existing "real" HTML element, so that browsers and other tools that don't know of the extension can still support it somewhat well. This is the tack used by Microformats, for example.
+*   Authors can use the `class` attribute to extend elements, effectively creating their own elements, while using the most applicable existing "real" HTML element, so that browsers and other tools that don't know of the extension can still support it somewhat well. This is the tack used by Microformats, for example.
 
-*   Authors can include data for scripts to process using the _data-*=""_ attributes. These are guaranteed to never be touched by browsers, and allow scripts to include data on HTML elements that scripts can then look for and process.
+*   Authors can include data for scripts to process using the `data-*=""` attributes. These are guaranteed to never be touched by browsers, and allow scripts to include data on HTML elements that scripts can then look for and process.
 
-*   Authors can use the _<meta name="" content="">_ mechanism to include page-wide metadata. Names should be registered on the wiki's [MetaExtensions](https://wiki.whatwg.org/wiki/MetaExtensions) page.
+*   Authors can use the `<meta name="" content="">` mechanism to include page-wide metadata. Names should be registered on the wiki's [MetaExtensions](https://wiki.whatwg.org/wiki/MetaExtensions) page.
 
-*   Authors can use the _rel=""_ mechanism to annotate links with specific meanings. This is also used by Microformats. Names should be registered on the wiki's [RelExtensions](https://wiki.whatwg.org/wiki/RelExtensions) page.
+*   Authors can use the `rel=""` mechanism to annotate links with specific meanings. This is also used by Microformats. Names should be registered on the wiki's [RelExtensions](https://wiki.whatwg.org/wiki/RelExtensions) page.
 
-*   Authors can embed raw data using the _<script type="">_ mechanism with a custom type, for further handling by a script.
+*   Authors can embed raw data using the `<script type="">` mechanism with a custom type, for further handling by a script.
 
-*   Authors can create plugins and invoke them using the _<embed>_ element. This is how Flash works.
+*   Authors can create plugins and invoke them using the `<embed>` element. This is how Flash works.
 
 *   Authors can extend APIs using the JS prototyping mechanism. This is widely used by script libraries, for instance.
 
-*   Authors can use the microdata feature (the item="" and itemprop="" attributes) to embed nested name-value pairs of data to be shared with other applications and sites.
+*   Authors can use the microdata feature (the `item=""` and `itemprop=""` attributes) to embed nested name-value pairs of data to be shared with other applications and sites.
 
 *   Authors can use [custom elements](https://html.spec.whatwg.org/multipage/custom-elements.html).
 
@@ -368,13 +368,13 @@ There is currently no mechanism for introducing new proprietary features in HTML
 
 We request that people not invent new elements and attributes to add to HTML without first contacting the working group and getting a proposal discussed with interested parties.
 
-#### HTML should group <dt>s and <dd>s together in <di>s!
+#### HTML should group `<dt>`s and `<dd>`s together in `<di>`s!
 
 This was thought to be a styling problem and should be fixed in CSS. There was no reason to add a grouping element to HTML, as the semantics are already unambiguous without an additional element.
 
-In October 2016 it became clear that CSS would not fix this in the foreseeable future, HTML was changed to allow <div> as a grouping element in <dl>. See [https://github.com/whatwg/html/issues/1937](https://github.com/whatwg/html/issues/1937) and [https://github.com/whatwg/html/pull/1945](https://github.com/whatwg/html/pull/1945)
+In October 2016 it became clear that CSS would not fix this in the foreseeable future, HTML was changed to allow `<div>` as a grouping element in `<dl>`. See [https://github.com/whatwg/html/issues/1937](https://github.com/whatwg/html/issues/1937) and [https://github.com/whatwg/html/pull/1945](https://github.com/whatwg/html/pull/1945)
 
-#### Why are some presentational elements like <b>, <i> and <small> still included?
+#### Why are some presentational elements like `<b>`, `<i>` and `<small>` still included?
 
 The inclusion of these elements is a largely pragmatic decision based upon their widespread usage, and their usefulness for use cases which are not covered by more specific elements.
 
@@ -386,23 +386,23 @@ Some people argue that in such cases, the span element should be used with an ap
 
 In essence, they convey distinct, though non-specific, semantics, which are to be determined by the reader in the context of their use. In other words, although they don't convey specific semantics by themselves, they indicate that that the content is somehow distinct from its surroundings and leaves the interpretation of the semantics up to the reader.
 
-This is further explained in the article <cite>[The <b> and <i> Elements](http://lachy.id.au/log/2007/05/b-and-i)</cite>
+This is further explained in the article [The `<b>` and `<i>` Elements](http://lachy.id.au/log/2007/05/b-and-i)
 
 Similarly, the small element is defined for content that is commonly typographically rendered in small print, and which often referred to as fine print. This could include copyright statements, disclaimers and other legal text commonly found at the end of a document.
 
 ##### But they are PRESENTATIONAL!
 
-The problem with elements like <font> isn't that they are _presentational_ per se, it's that they are media-dependent (they apply to visual browsers but not to speech browsers). While <b>, <i> and <small> historically have been presentational, they are defined in a media-independent manner in HTML5\. For example, <small> corresponds to the really quickly spoken part at the end of radio advertisements.
+The problem with elements like `<font>` isn't that they are _presentational_ per se, it's that they are media-dependent (they apply to visual browsers but not to speech browsers). While `<b>`, `<i>` and `<small>` historically have been presentational, they are defined in a media-independent manner in HTML5\. For example, `<small>` corresponds to the really quickly spoken part at the end of radio advertisements.
 
-#### The <cite> element should allow names of people to be marked up
+#### The `<cite>` element should allow names of people to be marked up
 
-From what some have seen, <cite> is almost always used to mean "italics". More careful authors have used the element to mark up names and titles, and some people have gone out of their way to only mark up citations.
+From what some have seen, `<cite>` is almost always used to mean "italics". More careful authors have used the element to mark up names and titles, and some people have gone out of their way to only mark up citations.
 
 So, we can't really decide what the element should be based on past practice, like we usually do.
 
-This leaves the question of what is the most useful use we can put the element to, if we keep it. The conclusion so far has been that the most useful use for <cite> is as an element to allow typographic control over titles, since those are often made italics, and that semantic is roughly close to what it meant in previous versions, and happens to match at least one of the common uses for the element. Generally, however, names and titles aren't typeset the same way, so making the element apply to both would lead to confusing typography.
+This leaves the question of what is the most useful use we can put the element to, if we keep it. The conclusion so far has been that the most useful use for `<cite>` is as an element to allow typographic control over titles, since those are often made italics, and that semantic is roughly close to what it meant in previous versions, and happens to match at least one of the common uses for the element. Generally, however, names and titles aren't typeset the same way, so making the element apply to both would lead to confusing typography.
 
-There are already many ways of marking up names already (e.g. the [hCard microformat](http://microformats.org/wiki/hcard), the microdata vCard vocabulary, <span> and class names, etc), if you really need it.
+There are already many ways of marking up names already (e.g. the [hCard microformat](http://microformats.org/wiki/hcard), the microdata vCard vocabulary, `<span>` and class names, etc), if you really need it.
 
 #### Where's the harm in adding—
 
@@ -460,17 +460,17 @@ Here are some documents that detail the history of HTML:
 
 ### Using HTML
 
-#### Do you have any hints on how to use <section> and <article> and so on?
+#### Do you have any hints on how to use `<section>` and `<article>` and so on?
 
 Some hopefully helpful hints:
 
-*   One way to look at it is how would you draw the page outline/table-of-contents? Each entry in the table of contents should be a <section>/<article>/<aside>/<nav>, and if it's not in the table of contents and doesn't have an <h1>, it should probably not be a <section>/<article>/<aside>/<nav>.
+*   One way to look at it is how would you draw the page outline/table-of-contents? Each entry in the table of contents should be a `<section>`/`<article>`/`<aside>`/`<nav>`, and if it's not in the table of contents and doesn't have an `<h1>`, it should probably not be a `<section>`/`<article>`/`<aside>`/`<nav>`.
 
-*   You can still use <div>. It's the right element if you need a styling hook because CSS can't give you enough to do what you want.
+*   You can still use `<div>`. It's the right element if you need a styling hook because CSS can't give you enough to do what you want.
 
-*   Generally, <section>s should start with an <h1> and the section title. It's not a hard-and-fast rule, but if you find yourself in a situation where an <h1> would be inappropriate, you probably want <div> rather than <section>.
+*   Generally, `<section>`s should start with an `<h1>` and the section title. It's not a hard-and-fast rule, but if you find yourself in a situation where an `<h1>` would be inappropriate, you probably want `<div>` rather than `<section>`.
 
-*   Sections can contain Articles, and vice versa. e.g. you can have a section that is news, a section that is editorials, a section that is sports, each with many articles, and each of those can have subsections, and each section can have comments, which are marked up using <article>, and each comment could be big enough that it has separate <section>s, and so on.
+*   Sections can contain Articles, and vice versa. e.g. you can have a section that is news, a section that is editorials, a section that is sports, each with many articles, and each of those can have subsections, and each section can have comments, which are marked up using `<article>`, and each comment could be big enough that it has separate `<section>`s, and so on.
 
 ### Other specifications
 
