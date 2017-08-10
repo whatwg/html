@@ -40,7 +40,7 @@ There are a number of ways to track changes to the spec:
 
 *   The specification is available in the [Git repository](https://github.com/whatwg/html/). You may use any Git client to check out the latest version and use your client's diff tools to compare revisions and see what has been changed.
 
-*   At a broader level, Anne and Simon once wrote a document that gave a high-level overview of changes to HTML over the last decade or so: [https://html-differences.whatwg.org/](https://html-differences.whatwg.org/)
+*   At a broader level, Anne and Simon once wrote a document that gave a high-level overview of changes to HTML over the last decade or so: https://html-differences.whatwg.org/
 
 #### What are the various versions of the HTML spec?
 
@@ -52,19 +52,19 @@ The W3C publishes some forked versions of these specifications. We have requeste
 
 #### Are there versions of the HTML specification aimed specifically at authors/implementors?
 
-Yes! [https://html.spec.whatwg.org/dev/](https://html.spec.whatwg.org/dev/)
+Yes! https://html.spec.whatwg.org/dev/
 
 #### When will we be able to start using these new features?
 
 You can use some of them now. Others might take a few more years to get widely implemented. Here are some sites to help you work out what you can use:
 
-*   [http://diveintohtml5.info/](http://diveintohtml5.info/)
+*   http://diveintohtml5.info/
 
-*   [http://caniuse.com/](http://caniuse.com/)
+*   http://caniuse.com/
 
-*   [http://html5doctor.com/](http://html5doctor.com/)
+*   http://html5doctor.com/
 
-*   [https://developer.mozilla.org/](https://developer.mozilla.org/)
+*   https://developer.mozilla.org/
 
 If you know of any more (or if you have some yourself) then add them to the list! If there are some on the list that aren't very useful compared to the rest, then remove them!
 
@@ -197,14 +197,14 @@ A word of warning though. You have to be **really** careful for this to work, an
 In XHTML, you are required to specify the namespace:
 
 ```html
-<html xmlns="[http://www.w3.org/1999/xhtml](http://www.w3.org/1999/xhtml)">
+<html xmlns="http://www.w3.org/1999/xhtml">
 ```
 
-In HTML, the `xmlns` attribute is currently allowed on any HTML element, but only if it has the value `[http://www.w3.org/1999/xhtml](http://www.w3.org/1999/xhtml)`. It doesn't do anything at all, it is merely allowed to ease migration from XHTML1\. It is not actually a namespace declaration in HTML, because HTML doesn't yet support namespaces. See the question [will there be support for namespaces in HTML](#Will_there_be_support_for_namespaces_in_HTML.3F).
+In HTML, the `xmlns` attribute is currently allowed on any HTML element, but only if it has the value `http://www.w3.org/1999/xhtml`. It doesn't do anything at all, it is merely allowed to ease migration from XHTML1\. It is not actually a namespace declaration in HTML, because HTML doesn't yet support namespaces. See the question [will there be support for namespaces in HTML](#Will_there_be_support_for_namespaces_in_HTML.3F).
 
 #### Will there be support for namespaces in HTML?
 
-HTML is being defined in terms of the DOM and during parsing of a text/html all HTML elements will be automatically put in the HTML namespace, `[http://www.w3.org/1999/xhtml](http://www.w3.org/1999/xhtml)`. However, unlike the XHTML serialization, there is no real namespace syntax available in the HTML serialization (see previous question). In other words, you do not need to declare the namespace in your HTML markup, as you do in XHTML. However, you are permitted to put an `xmlns` attribute on each HTML element as long as the namespace is `[http://www.w3.org/1999/xhtml](http://www.w3.org/1999/xhtml)`.
+HTML is being defined in terms of the DOM and during parsing of a text/html all HTML elements will be automatically put in the HTML namespace, `http://www.w3.org/1999/xhtml`. However, unlike the XHTML serialization, there is no real namespace syntax available in the HTML serialization (see previous question). In other words, you do not need to declare the namespace in your HTML markup, as you do in XHTML. However, you are permitted to put an `xmlns` attribute on each HTML element as long as the namespace is `http://www.w3.org/1999/xhtml`.
 
 In addition, the HTML syntax provides for a way to embed elements from MathML and SVG. Elements placed inside the container element `math` or `svg` will automatically be put in the MathML namespace or the SVG namespace, respectively, by the parser. Namespace syntax is not required, but again an `xmlns` attribute is allowed if its value is the right namespace.
 
@@ -372,7 +372,7 @@ We request that people not invent new elements and attributes to add to HTML wit
 
 This was thought to be a styling problem and should be fixed in CSS. There was no reason to add a grouping element to HTML, as the semantics are already unambiguous without an additional element.
 
-In October 2016 it became clear that CSS would not fix this in the foreseeable future, HTML was changed to allow `<div>` as a grouping element in `<dl>`. See [https://github.com/whatwg/html/issues/1937](https://github.com/whatwg/html/issues/1937) and [https://github.com/whatwg/html/pull/1945](https://github.com/whatwg/html/pull/1945)
+In October 2016 it became clear that CSS would not fix this in the foreseeable future, HTML was changed to allow `<div>` as a grouping element in `<dl>`. See https://github.com/whatwg/html/issues/1937 and https://github.com/whatwg/html/pull/1945
 
 #### Why are some presentational elements like `<b>`, `<i>` and `<small>` still included?
 
