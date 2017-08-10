@@ -10,7 +10,7 @@ Going forward, the WHATWG is just working on "HTML", without worrying about vers
 
 #### How do I validate my pages?
 
-Use a [validator](/validator).
+Use a [validator](https://whatwg.org/validator/).
 
 #### What parts of the specification are stable?
 
@@ -70,7 +70,7 @@ If you know of any more (or if you have some yourself) then add them to the list
 
 #### When will HTML5 be finished?
 
-The WHATWG is now using a Living Standard development model, so this question is no longer really pertinent. See above, under "[What is HTML5?](#What_is_HTML.3F)". The real question is, when can you use new features? For an answer to that question, see "[When will we be able to start using these new features?](#When_will_we_be_able_to_start_using_these_new_features.3F)".
+The WHATWG is now using a Living Standard development model, so this question is no longer really pertinent. See above, under "[What is HTML5?](#what-is-html5)". The real question is, when can you use new features? For an answer to that question, see "[When will we be able to start using these new features?](#when-will-we-be-able-to-start-using-these-new-features)".
 
 #### What's this I hear about 2022?
 
@@ -160,7 +160,7 @@ Validators are allowed to have different code paths for previous levels of HTML.
 
 #### If there is no DTD, how can I validate my page?
 
-With an [HTML validator](/validator) that follows the latest specification.
+With an [HTML validator](https://whatwg.org/validator/) that follows the latest specification.
 
 #### What is an HTML Serialization?
 
@@ -200,7 +200,7 @@ In XHTML, you are required to specify the namespace:
 <html xmlns="http://www.w3.org/1999/xhtml">
 ```
 
-In HTML, the `xmlns` attribute is currently allowed on any HTML element, but only if it has the value `http://www.w3.org/1999/xhtml`. It doesn't do anything at all, it is merely allowed to ease migration from XHTML1\. It is not actually a namespace declaration in HTML, because HTML doesn't yet support namespaces. See the question [will there be support for namespaces in HTML](#Will_there_be_support_for_namespaces_in_HTML.3F).
+In HTML, the `xmlns` attribute is currently allowed on any HTML element, but only if it has the value `http://www.w3.org/1999/xhtml`. It doesn't do anything at all, it is merely allowed to ease migration from XHTML1\. It is not actually a namespace declaration in HTML, because HTML doesn't yet support namespaces. See the question [will there be support for namespaces in HTML](#will-there-be-support-for-namespaces-in-html).
 
 #### Will there be support for namespaces in HTML?
 
