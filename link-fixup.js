@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  if (window.location.hash.length < 1) {
+  if (!(/^\/(dev|multipage)\//.test(window.location.pathname))) {
     return;
   }
 
