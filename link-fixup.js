@@ -25,9 +25,14 @@
       }
     }
 
-    var page = fragmentLinks[fragid];
-    if (page) {
-      window.location.replace(page + '.html#' + encodeURIComponent(fragid));
+    if (fragid in fragmentLinks) {
+      var page = fragmentLinks[fragid];
+      if (page === '') {
+        page = './';
+      } else {
+        page += '.html';
+      }
+      window.location.replace(page + '#' + encodeURIComponent(fragid));
     }
   };
   xhr.send();
