@@ -73,6 +73,14 @@ If you know of any more (or if you have some yourself) then send a pull request 
 
 The WHATWG is now using a Living Standard development model, so this question is no longer really pertinent. See above, under "[What is HTML5?](#what-is-html5)". The real question is, when can you use new features? For an answer to that question, see "[How do I know if a particular feature in the spec is ready to use?](#how-do-i-know-if-a-particular-feature-in-the-standard-is-ready-to-use)".
 
+### What's this I hear about 2022?
+
+Back before the Living Standard development model, we were planning to put the contents of the HTML Standard through the W3C process. This was before we understood the fatal flaws of such a snapshot-based development mode.
+
+At the time, the W3C Recommendation label had high standards, such as 100% test coverage of two complete and fully interoperable implementations. In 2008, the editor estimated it would take another 14 years to reach that point, based on comparing it to the amount of work done for HTML4 and other large specifications like CSS2/2.1.
+
+Since then, we've realized that much like the [waterfall model](https://en.wikipedia.org/wiki/Waterfall_model) is not a good fit for software development, it is also not a good way of developing standards. These days we keep the HTML Standard continually under development, adding tests as we go and verifying them against implementations, [per our working mode](https://whatwg.org/working-mode). So, the 2022 date is no longer relevant.
+
 ### Is design rationale documented?
 
 Sort of. Often some record of the rationale for a particular design choice can be found within discussions in the GitHub issue tracker, commit logs, or the mailing-list archive or IRC channel archives. Sometimes, there is an explanation in the specification, but doing that everywhere would make the specification huge.
@@ -423,20 +431,3 @@ The Web Forms 2.0 specification was folded into what is now the HTML Standard.
 The Web Controls 1.0 specification was overtaken by events and has been abandoned. Its problem space is mostly handled by ARIA and Web Components now.
 
 The DOM Parsing specification was abandoned by the WHATWG because the W3C was doing a better job of maintaining that specification. We do not want to cause confusion in the market place, so when another organization writes a specification that covers the same technology as one of ours, we only continue to publish it if our version is technically superior.
-
-## Legacy questions
-
-The following questions were relevant in the earlier days of the work on the current HTML specification. They are preserved here as-is for the historical record.
-
-### What's this I hear about 2022?
-
-Before the WHATWG transitioned to an unversioned model for HTML, when we were still working on HTML5 and still thought in terms of snapshot drafts reaching milestones as a whole rather than on a per-section basis, the editor estimated that we'd reach Last Call in October 2009, Candidate Recommendation in the year 2012, and Recommendation in the year 2022 or later. This would be approximately 18-20 years of development, since beginning in mid-2004, which is on par with the amount of work that other specs of similar size and similar maturity receive to get to the same level of quality. For instance, it's in line with the timeline of CSS2/2.1. Compared to HTML4's timetable it may seem long, but consider: work on HTML4 started in the mid 90s, and HTML4 _still_, more than ten years later, hadn't reached the level that we want to reach with HTML now. There was no real test suite, there are many parts of the HTML4 spec that are lacking real implementations, there are big parts of HTML4 that aren't interoperable, and the HTML4 spec has hundreds if not thousands of known errors that haven't been fixed. When HTML4 came out, REC meant something much less exciting than the WHATWG is aiming for. We now look for two 100% complete and fully interoperable implementations, which is proven by each successfully passing literally thousands of test cases (20,000 tests for the whole spec would probably be a conservative estimate). When you consider how long it takes to write that many test cases and how long it takes to implement each feature, you'll begin to understand why the time frame seems so long.
-
-Now that we've moved to a more incremental model without macro-level milestones, the 2022 date is no longer relevant.
-
-### What about Microsoft and Internet Explorer?
-
-Microsoft started implementing new parts of the contemporary HTML standard in IE8 and has been adding more to IE since.
-
-HTML is being developed with compatibility with existing browsers in mind, though (including IE). Support for many features can be simulated using JavaScript.
-
