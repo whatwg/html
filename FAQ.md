@@ -6,7 +6,7 @@ _See also the [WHATWG FAQ](https://whatwg.org/faq)._
 
 ### What is HTML?
 
-[HTML](https://html.spec.whatwg.org/multipage/) is the core foundational standard being worked on by the WHATWG community. It is continuously maintained and supersedes HTML4, XHTML1, DOM Level 2 HTML, and all previous HTML specifications — addressing many of the shortcomings of those specifications while at the same time enhancing HTML to more adequately cover the needs of Web applications. Along with defining the HTML markup language, it also defines many of the core requirements that form the basis of the Web runtime.
+[HTML](https://html.spec.whatwg.org/multipage/) is the core foundational standard being worked on by the WHATWG community. It is continuously maintained and supersedes HTML4, XHTML1, DOM Level 2 HTML, and all previous HTML specifications — addressing many of the shortcomings of those specifications while at the same time enhancing HTML to more adequately cover the needs of web applications. Along with defining the HTML markup language, it also defines many of the core requirements that form the basis of the web runtime.
 
 ### What is HTML5?
 
@@ -26,7 +26,7 @@ In practice, implementations all follow the latest standard anyway, not so-calle
 
 This has in fact been a real problem at the W3C, where mistakes are found and fixed in the editors' drafts of specifications, but implementors who aren't fully engaged in the process go and implement obsolete snapshots instead, including those bugs. This has resulted in serious differences between browsers.
 
-For more information on this, see the WHATWG FAQ Entry [What does "Living Standard" mean?](https://whatwg.org/faq#living-standard).
+For more information on this, see the WHATWG FAQ entry [What does "Living Standard" mean?](https://whatwg.org/faq#living-standard).
 
 ### Will future browsers have any idea what older HTML documents mean?
 
@@ -141,7 +141,7 @@ Fundamentally, this is an XML issue, and is not specific to HTML documents deliv
 
 ### How are documents from HTML4 and earlier versions parsed?
 
-All documents with a `text/html` media type (that is, including those without or with an HTML 2.0, HTML 3.2, HTML4, or XHTML1 DOCTYPE) will be parsed using the same parser algorithm as defined by the HTML spec. This matches what Web browsers have done for HTML documents so far and keeps code complexity down. That in turn is good for security, maintainability, and in general keeping the amount of bugs down. The HTML syntax as now defined therefore does not require a per-version parser, and documents with an HTML4 DOCTYPE for example will be parsed as described by the new HTML specification.
+All documents with a `text/html` media type (that is, including those without or with an HTML 2.0, HTML 3.2, HTML4, or XHTML1 DOCTYPE) will be parsed using the same parser algorithm as defined by the HTML spec. This matches what web browsers have done for HTML documents so far and keeps code complexity down. That in turn is good for security, maintainability, and in general keeping the amount of bugs down. The HTML syntax as now defined therefore does not require a per-version parser, and documents with an HTML4 DOCTYPE for example will be parsed as described by the new HTML specification.
 
 Validators are allowed to have different code paths for previous levels of HTML.
 
@@ -151,7 +151,7 @@ With an [HTML validator](https://whatwg.org/validator/) that follows the latest 
 
 ### What is an "HTML serialization"?
 
-The HTML serialization refers to the syntax of an HTML document defined in the HTML specification. The syntax is inspired by the SGML syntax from earlier versions of HTML, bits of XML (e.g. allowing a trailing slash on void elements, `xmlns` attributes), and reality of deployed content on the Web.
+The HTML serialization refers to the syntax of an HTML document defined in the HTML specification. The syntax is inspired by the SGML syntax from earlier versions of HTML, bits of XML (e.g. allowing a trailing slash on void elements, `xmlns` attributes), and reality of deployed content on the web.
 
 Any document whose media type is determined to be `text/html` is considered to be an HTML serialization and must be parsed using an HTML parser.
 
@@ -163,13 +163,13 @@ The XML serialization refers to the syntax defined by XML 1.0 and Namespaces in 
 
 The HTML serialization _must_ be served using the `text/html` media type.
 
-The XML serialization _must_ be served using an XML media type, such as `application/xhtml+xml` or `application/xml`. Unlike the situation as of XHTML1, the HTML specification requires that "XHTML" documents must not be served with the `text/html` media type.
+The XML serialization _must_ be served using an XML media type, such as `application/xhtml+xml` or `application/xml`. Unlike the situation as of XHTML1, the HTML specification requires that "XHTML" documents not be served with the `text/html` media type.
 
 Using the incorrect media type (`text/html`) for a document in the XML serialization will cause the document to be parsed according to parsing requirements for HTML. In other words, it will be treated as what's sometimes called "tag soup". Ensuring the use of an XML media type is the only way to ensure that browsers handle the document as XML.
 
 ### Should I close empty elements with `/>` or `>`?
 
-Void elements in HTML (e.g. the `br`, `img` and `input` elements) do not require a trailing slash. e.g. Instead of writing `<br />`, you only need to write `<br>`. This is the same as in HTML4. However, due to the widespread attempts to use XHTML1, there are a significant number of pages using the trailing slash. Because of this, the trailing slash syntax has been permitted on void elements in HTML in order to ease migration from XHTML1 back to HTML.
+Void elements in HTML (e.g. the `<br>`, `<img>` and `<input>` elements) do not require a trailing slash. e.g. Instead of writing `<br />`, you only need to write `<br>`. This is the same as in HTML4. However, due to the widespread attempts to use XHTML1, there are a significant number of pages using the trailing slash. Because of this, the trailing slash syntax has been permitted on void elements in HTML in order to ease migration from XHTML1 back to HTML.
 
 The current HTML specification also introduces the ability to embed MathML elements. On elements inside a `math` element, the trailing slash works just like it does in XML; that is, it closes the element. This is only inside that context however; it does not work for normal HTML elements.
 
@@ -187,11 +187,11 @@ In the XML syntax, you are required to specify the namespace:
 <html xmlns="http://www.w3.org/1999/xhtml">
 ```
 
-In text/html documents, the `xmlns` attribute is currently allowed on any HTML element, but only if it has the value `http://www.w3.org/1999/xhtml`. It doesn't do anything at all; it is merely allowed for the purpose of easing migration from XHTML1. It is not actually a namespace declaration in HTML, because HTML doesn't support namespaces. See the question "[Will there be support for namespaces in HTML?](#will-there-be-support-for-namespaces-in-html)".
+In `text/html` documents, the `xmlns` attribute is currently allowed on any HTML element, but only if it has the value `http://www.w3.org/1999/xhtml`. It doesn't do anything at all; it is merely allowed for the purpose of easing migration from XHTML1. It is not actually a namespace declaration in HTML, because HTML doesn't support namespaces. See the question "[Will there be support for namespaces in HTML?](#will-there-be-support-for-namespaces-in-html)".
 
 ### What about namespaces in HTML?
 
-HTML is defined in terms of the DOM and during parsing of a text/html document, all HTML elements are automatically put in the HTML namespace, `http://www.w3.org/1999/xhtml`. However, unlike the XML serialization, there is no real namespace syntax available in the HTML serialization (see previous question). In other words, you do not need to declare the namespace in your HTML markup, as you do in XHTML.
+HTML is defined in terms of the DOM and during parsing of a `text/html` document, all HTML elements are automatically put in the HTML namespace, `http://www.w3.org/1999/xhtml`. However, unlike the XML serialization, there is no real namespace syntax available in the HTML serialization (see previous question). In other words, you do not need to declare the namespace in your HTML markup, as you do in XHTML.
 
 In addition, the HTML syntax provides for a way to embed elements from MathML and SVG. Elements placed inside the container element `math` or `svg` will automatically be put in the MathML namespace or the SVG namespace, respectively, by the parser. Namespace syntax is not required, but again an `xmlns` attribute is allowed if its value is the right namespace.
 
@@ -341,7 +341,7 @@ HTML allows `<div>` as a grouping element in `<dl>`. See [the `<dl>` specificati
 
 ### Where's the harm in adding...?
 
-Every feature we add to the Web platform has a cost:
+Every feature we add to the web platform has a cost:
 
 * Implementation: someone has to write code for it in each browser
 * Testing: someone has to write the tests to check the features is working
@@ -377,7 +377,7 @@ The plan to get the specs to converge again, such as it is, is to just do a bett
 
 Here are some documents that detail the history of HTML:
 
-* [A feature history of the modern Web Platform](https://platform.html5.org/history/) (2003 onward) ([on GitHub](https://github.com/whatwg/platform.html5.org/blob/master/history/index.html))
+* [A feature history of the modern web platform](https://platform.html5.org/history/) (2003 onward) ([on GitHub](https://github.com/whatwg/platform.html5.org/blob/master/history/index.html))
 * [HTML's timeline on the ESW wiki](http://esw.w3.org/topic/HTML/history) (1997 to 2008)
 * [The history section in the HTML standard itself](https://html.spec.whatwg.org/multipage/introduction.html#history-2)
 
