@@ -141,7 +141,7 @@ Fundamentally, this is an XML issue, and is not specific to HTML documents deliv
 
 ### How are documents from HTML4 and earlier versions parsed?
 
-All documents with a `text/html` media type (that is, including those without or with an HTML 2.0, HTML 3.2, HTML4, or XHTML1 DOCTYPE) will be parsed using the same parser algorithm as defined by the HTML spec. This matches what web browsers have done for HTML documents so far and keeps code complexity down. That in turn is good for security, maintainability, and in general keeping the amount of bugs down. The HTML syntax as now defined therefore does not require a per-version parser, and documents with an HTML4 DOCTYPE for example will be parsed as described by the current HTML specification.
+All documents with a `text/html` media type (that is, including those without or with an HTML 2.0, HTML 3.2, HTML4, or XHTML1 DOCTYPE) will be parsed using the same parser algorithm as defined by the HTML spec. This matches what web browsers have done for HTML documents so far and keeps code complexity down. That in turn is good for security, maintainability, and in general keeping the amount of bugs down. The HTML syntax as now defined therefore does not require a per-version parser, and documents with an HTML4 DOCTYPE for example will be parsed as described by the HTML specification.
 
 Validators are allowed to have different code paths for previous levels of HTML.
 
