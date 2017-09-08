@@ -92,7 +92,7 @@ For a few cases that someone did take the time document, the information can be 
 * [Why no script implements](https://wiki.whatwg.org/wiki/Why_no_script_implements)
 * [Why not reuse legend](https://wiki.whatwg.org/wiki/Why_not_reuse_legend) or another _mini-header_ element.
 
-Also see _HTML feature proposals_ below.
+Also see [HTML feature proposals](#html-feature-proposals).
 
 ## HTML syntax issues
 
@@ -141,7 +141,7 @@ Fundamentally, this is an XML issue, and is not specific to HTML documents deliv
 
 ### How are documents from HTML4 and earlier versions parsed?
 
-All documents with a `text/html` media type (that is, including those without or with an HTML 2.0, HTML 3.2, HTML4, or XHTML1 DOCTYPE) will be parsed using the same parser algorithm as defined by the HTML spec. This matches what web browsers have done for HTML documents so far and keeps code complexity down. That in turn is good for security, maintainability, and in general keeping the amount of bugs down. The HTML syntax as now defined therefore does not require a per-version parser, and documents with an HTML4 DOCTYPE for example will be parsed as described by the new HTML specification.
+All documents with a `text/html` media type (that is, including those without or with an HTML 2.0, HTML 3.2, HTML4, or XHTML1 DOCTYPE) will be parsed using the same parser algorithm as defined by the HTML spec. This matches what web browsers have done for HTML documents so far and keeps code complexity down. That in turn is good for security, maintainability, and in general keeping the amount of bugs down. The HTML syntax as now defined therefore does not require a per-version parser, and documents with an HTML4 DOCTYPE for example will be parsed as described by the current HTML specification.
 
 Validators are allowed to have different code paths for previous levels of HTML.
 
@@ -187,7 +187,7 @@ In the XML syntax, you are required to specify the namespace:
 <html xmlns="http://www.w3.org/1999/xhtml">
 ```
 
-In `text/html` documents, the `xmlns` attribute is currently allowed on any HTML element, but only if it has the value `http://www.w3.org/1999/xhtml`. It doesn't do anything at all; it is merely allowed for the purpose of easing migration from XHTML1. It is not actually a namespace declaration in HTML, because HTML doesn't support namespaces. See the question "[Will there be support for namespaces in HTML?](#will-there-be-support-for-namespaces-in-html)".
+In `text/html` documents, the `xmlns` attribute is currently allowed on any HTML element, but only if it has the value `http://www.w3.org/1999/xhtml`. It doesn't do anything at all; it is merely allowed for the purpose of easing migration from XHTML1. It is not actually a namespace declaration in HTML, because HTML doesn't support namespaces. See the question "[What about namespaces in HTML?](#what-about-namespaces-in-html)".
 
 ### What about namespaces in HTML?
 
