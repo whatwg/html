@@ -1,10 +1,10 @@
 (function () {
   'use strict';
-  if (window.location.hash.length < 1) {
+  if (!(/^\/(dev|multipage)\//.test(window.location.pathname))) {
     return;
   }
 
-  var fragid = window.location.hash.substr(1);
+  var fragid = decodeURIComponent(window.location.hash.substr(1));
 
   if (fragid && document.getElementById(fragid)) {
     return;
@@ -16,18 +16,23 @@
   xhr.onload = function() {
     var fragmentLinks = xhr.response;
 
-    // handle section-foo.html links from the old old multipage version,
-    // and broken foo.html from the new version
-    if (!fragid || !(fragid in fragmentLinks)) {
+    // Handle section-foo.html links from the old old multipage version,
+    // and broken foo.html from the new version. Only run this for 404s.
+    if ((!fragid || !(fragid in fragmentLinks)) && document.title === '404 Not Found') {
       var m = window.location.pathname.match(/\/(?:section-)?([\w\-]+)\.html/);
       if (m) {
         fragid = m[1];
       }
     }
 
-    var page = fragmentLinks[fragid];
-    if (page) {
-      window.location.replace(page + '.html#' + fragid);
+    if (fragid in fragmentLinks) {
+      var page = fragmentLinks[fragid];
+      if (page === '') {
+        page = './';
+      } else {
+        page += '.html';
+      }
+      window.location.replace(page + '#' + encodeURIComponent(fragid));
     }
   };
   xhr.send();
