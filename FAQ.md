@@ -6,110 +6,109 @@ _See also the [WHATWG FAQ](https://whatwg.org/faq)._
 
 ### What is HTML?
 
-[HTML](https://html.spec.whatwg.org/multipage/) is one of the standards being worked on by the WHATWG community. It is a new version of HTML4, XHTML1, and DOM Level 2 HTML addressing many of the issues of those specifications while at the same time enhancing (X)HTML to more adequately address Web applications. Besides defining a markup language that can be written in both HTML and XML (XHTML) it also defines many APIs that form the basis of the Web architecture. Some of these APIs were known as "DOM Level 0" and were never documented before, yet are extremely important for browser vendors to support existing Web content and for authors to be able to build Web applications.
+[HTML](https://html.spec.whatwg.org/multipage/) is the core foundational standard being worked on by the WHATWG community. It is continuously maintained and supersedes HTML4, XHTML1, DOM Level 2 HTML, and all previous HTML specifications — addressing many of the shortcomings of those specifications while at the same time enhancing HTML to more adequately cover the needs of web applications. Along with defining the HTML markup language, it also defines many of the core requirements that form the basis of the web runtime.
 
 ### What is HTML5?
 
-Going forward, the WHATWG is just working on "HTML", without worrying about version numbers. When people talk about HTML5 in the context of the WHATWG, they usually mean just "the latest work on HTML", not necessarily a specific version. For more details, see the section called "[Is this HTML5?](https://html.spec.whatwg.org/multipage/introduction.html#is-this-html5?)" in the specification.
+Going forward, the WHATWG is just working on "HTML", without worrying about version numbers. When people talk about "HTML5" in the context of the WHATWG, they usually mean just "the latest work on HTML", not necessarily a specific version. For more details, see the section called "[Is this HTML5?](https://html.spec.whatwg.org/multipage/introduction.html#is-this-html5?)" in the standard.
 
 ### How do I validate my pages?
 
 Use a [validator](https://whatwg.org/validator/).
 
-### What parts of the specification are stable?
+### What parts of the standard are stable?
 
-The whole specification is more or less stable except where there are big messages pointing out some unresolved issue. (These are pretty rare.) There are some parts of the spec that describe new technology that has not yet been implemented, but at this point these additions are only added after the design itself is pretty stable.
+The whole standard is more or less stable. There are some parts of it that describe new technologies that have not yet been implemented everywhere, but at this point those additions are only added after the design itself is pretty stable. Such additions must also have the support of two or more implementers, [per our working mode](https://whatwg.org/working-mode#additions).
 
-(In practice, implementations all follow the latest specification drafts anyway, not so-called "finished" snapshots. The problem with following a snapshot is that you end up following something that is _known to be wrong_. That's obviously not the way to get interoperability! This has in fact been a real problem at the W3C, where mistakes are found and fixed in the editors' drafts of specifications, but implementors who aren't fully engaged in the process go and implement obsolete snapshots instead, including those bugs, without realising the problems, and resulting in differences between the browsers.)
+### Why are there no stable snapshots, or versions, of the standard?
+
+In practice, implementations all follow the latest standard anyway, not so-called "finished" snapshots. The problem with following a snapshot is that you end up following something that is _known to be wrong_. That's obviously not the way to get interoperability!
+
+This has in fact been a real problem at the W3C, where mistakes are found and fixed in the editors' drafts of specifications, but implementors who aren't fully engaged in the process go and implement obsolete snapshots instead, including those bugs. This has resulted in serious differences between browsers.
+
+For more information on this, see the WHATWG FAQ entry [What does "Living Standard" mean?](https://whatwg.org/faq#living-standard).
 
 ### Will future browsers have any idea what older HTML documents mean?
 
-Browsers do not implement HTML+, HTML2, HTML3.2 HTML4, HTML4.01, etc, as separate versions. They all just have a single implementation that covers all these versions at once. That is what the WHATWG HTML specification defines: how to write a browser (or other implementation) that handles _all previous versions of HTML_, as well as all the latest features.
+Browsers do not implement HTML+, HTML2, HTML3.2, HTML4, HTML4.01, etc, as separate versions. They all just have a single implementation that covers all these versions at once. That is what the HTML Standard defines: how to write a browser (or other implementation) that handles _all previous versions of HTML_, as well as all the latest features.
 
-One of the main goals of the HTML specification and the WHATWG effort as a whole is to make it possible for archeologists hundreds of years from now to write a browser and view HTML content, regardless of when it was written. Making sure that we handle all documents is one of our most important goals. Not having versions does not preclude this; indeed it makes it significantly easier.
+One of the main goals of the HTML Standard and the WHATWG effort as a whole is to make it possible for archeologists hundreds of years from now to write a browser and view HTML content, regardless of when it was written. Making sure that we handle all documents is one of our most important goals. Not having versions does not preclude this; indeed it makes it significantly easier.
 
 ### How are developers to determine when certain parts of their pages will become invalid?
 
 It shouldn't matter if and when old pages become invalid.
 
-Validity (more often referred to as document conformance in the WHATWG) is a quality assurance tool to help authors avoid mistakes. We don't make things non-conforming (invalid) for the sake of it, we use conformance as a guide for developers to help them avoid bad practices or mistakes (like typos). So there's not really any need to worry about whether old pages are conforming or not, it's only helpful when you're writing a new page, and it's always most helpful to have the latest advice. It wouldn't be useful to check for compliance against last week's rules, for instance. After all, we fixed mistakes in those rules this week! For more details, see [part of the introduction](https://html.spec.whatwg.org/multipage/introduction.html#conformance-requirements-for-authors) of the specification.
+Validity (more often referred to as document conformance in the WHATWG) is a quality assurance tool to help authors avoid mistakes. We don't make things non-conforming (invalid) for the sake of it, we use conformance as a guide for developers to help them avoid bad practices or mistakes (like typos). So there's not really any need to worry about whether old pages are conforming or not. It's only helpful when you're writing a new page, and it's always most helpful to have the latest advice. It wouldn't be useful to check for conformance against last week's rules, for instance. After all, we fixed mistakes in those rules this week! For more details, see [part of the introduction](https://html.spec.whatwg.org/multipage/introduction.html#conformance-requirements-for-authors) of the standard.
 
-### How can I keep track of changes to the spec?
+### How can I keep track of changes to the standard?
 
-There are a number of ways to track changes to the spec:
+There are a number of ways to track changes to the standard:
 
 * The Twitter feed: [@htmlstandard](https://twitter.com/htmlstandard)
 * The [GitHub commits log](https://github.com/whatwg/html/commits/master)
-* The specification is available in the [Git repository](https://github.com/whatwg/html/). You may use any Git client to check out the latest version and use your client's diff tools to compare revisions and see what has been changed.
+* The standard is available in the [Git repository](https://github.com/whatwg/html/). You may use any Git client to check out the latest version and use your client's diff tools to compare revisions and see what has been changed.
 * At a broader level, Anne and Simon once wrote a document that gave a high-level overview of changes to HTML over the last decade or so: https://html-differences.whatwg.org/
 
-### What are the various versions of the HTML spec?
+### What are the various versions of the HTML Standard?
 
-The HTML Standard is available in two forms: [single-page](https://html.spec.whatwg.org/) (_very large_) and [multi-page](https://html.spec.whatwg.org/multipage/).
+The HTML Standard is available in three forms: [single-page](https://html.spec.whatwg.org/) (_very large_), [multi-page](https://html.spec.whatwg.org/multipage/), and the [developer's edition](https://html.spec.whatwg.org/dev/).
 
-The WHATWG [also works on other standards](https://spec.whatwg.org/), such as the DOM, URL, and XMLHttpRequest standards.
+The W3C publishes some [forked versions](https://wiki.whatwg.org/wiki/Fork_tracking) of the HTML Standard, and of other WHATWG standards. We have requested that they stop publishing these but they have refused. They copy most of our fixes into their forks, but their forks are usually weeks to months behind. They also make intentional changes, and sometimes even unintentional changes, to their versions. We highly recommend not paying any attention to the W3C forks of WHATWG standards.
 
-The W3C publishes some forked versions of these specifications. We have requested that they stop publishing these but they have refused. They copy most of our fixes into their forks, but their forks are usually weeks to months behind. They also make intentional changes, and sometimes even unintentional changes, to their versions. We highly recommend not paying any attention to the W3C forks of WHATWG standards.
+### How do I know if a particular feature in the standard is ready to use?
 
-### Are there versions of the HTML specification aimed specifically at authors/implementors?
+Here are some sites to help you work out what you can use:
 
-Yes! https://html.spec.whatwg.org/dev/
-
-### When will we be able to start using these new features?
-
-You can use some of them now. Others might take a few more years to get widely implemented. Here are some sites to help you work out what you can use:
-
-* http://diveintohtml5.info/
 * http://caniuse.com/
-* http://html5doctor.com/
 * https://developer.mozilla.org/
 
-If you know of any more (or if you have some yourself) then add them to the list! If there are some on the list that aren't very useful compared to the rest, then remove them!
+The following sites also have some useful information:
+
+* http://html5doctor.com/
+* http://diveintohtml5.info/
+
+If you know of any more (or if you have some yourself) then send a pull request to add them to the list! (Or, if you think any of the above have lost usefulness over time, send a pull request removing them and outlining your reasoning.)
 
 ### When will HTML5 be finished?
 
-The WHATWG is now using a Living Standard development model, so this question is no longer really pertinent. See above, under "[What is HTML5?](#what-is-html5)". The real question is, when can you use new features? For an answer to that question, see "[When will we be able to start using these new features?](#when-will-we-be-able-to-start-using-these-new-features)".
+The WHATWG is now using a Living Standard development model, so this question is no longer really pertinent. See above, under "[What is HTML5?](#what-is-html5)". The real question is, when can you use new features? For an answer to that question, see "[How do I know if a particular feature in the spec is ready to use?](#how-do-i-know-if-a-particular-feature-in-the-standard-is-ready-to-use)".
 
 ### What's this I hear about 2022?
 
-Before the WHATWG transitioned to an unversioned model for HTML, when we were still working on HTML5 and still thought in terms of snapshot drafts reaching milestones as a whole rather than on a per-section basis, the editor estimated that we'd reach Last Call in October 2009, Candidate Recommendation in the year 2012, and Recommendation in the year 2022 or later. This would be approximately 18-20 years of development, since beginning in mid-2004, which is on par with the amount of work that other specs of similar size and similar maturity receive to get to the same level of quality. For instance, it's in line with the timeline of CSS2/2.1. Compared to HTML4's timetable it may seem long, but consider: work on HTML4 started in the mid 90s, and HTML4 _still_, more than ten years later, hadn't reached the level that we want to reach with HTML now. There was no real test suite, there are many parts of the HTML4 spec that are lacking real implementations, there are big parts of HTML4 that aren't interoperable, and the HTML4 spec has hundreds if not thousands of known errors that haven't been fixed. When HTML4 came out, REC meant something much less exciting than the WHATWG is aiming for. We now look for two 100% complete and fully interoperable implementations, which is proven by each successfully passing literally thousands of test cases (20,000 tests for the whole spec would probably be a conservative estimate). When you consider how long it takes to write that many test cases and how long it takes to implement each feature, you'll begin to understand why the time frame seems so long.
+Back before the Living Standard development model, we were planning to put the contents of the HTML Standard through the W3C process. This was before we understood the fatal flaws of such a snapshot-based development mode.
 
-Now that we've moved to a more incremental model without macro-level milestones, the 2022 date is no longer relevant.
+At the time, the W3C Recommendation label had high standards, such as 100% test coverage of two complete and fully interoperable implementations. In 2008, the editor estimated it would take another 14 years to reach that point, based on comparing it to the amount of work done for HTML4 and other large specifications like CSS2/2.1.
 
-### What about Microsoft and Internet Explorer?
-
-Microsoft started implementing new parts of the contemporary HTML standard in IE8 and has been adding more to IE since.
-
-HTML is being developed with compatibility with existing browsers in mind, though (including IE). Support for many features can be simulated using JavaScript.
+Since then, we've realized that much like the [waterfall model](https://en.wikipedia.org/wiki/Waterfall_model) is not a good fit for software development, it is also not a good way of developing standards. These days we keep the HTML Standard continually under development, adding tests as we go and verifying them against implementations, [per our working mode](https://whatwg.org/working-mode). So, the 2022 date is no longer relevant.
 
 ### Is design rationale documented?
 
-Sort of. Often the documentation can be found in the mailing list or IRC channel archives. Sometimes an issue was raised formally, and resolution is recorded in the issue tracker. Sometimes, there is an explanation in the specification, but doing that everywhere would make the specification huge.
+Sort of. Often some record of the rationale for a particular design choice can be found within discussions in the GitHub issue tracker, commit logs, or the mailing-list archive or IRC channel archives. Sometimes, there is an explanation in the specification, but doing that everywhere would make the specification huge.
 
 For a few cases that someone did take the time document, the information can be found at the following locations:
 
-* [Rationale](https://wiki.whatwg.org/wiki/Rationale) — a page that documents some reasons behind decisions in the spec, originally written and maintained by Variable. If anyone wants to help him out, try to grab someone on [IRC](https://wiki.whatwg.org/wiki/IRC) (e.g. Hixie), we're always looking for more contributors and this is a good place to start.
+* [Rationale](https://wiki.whatwg.org/wiki/Rationale) — a page that documents some reasons behind decisions in the spec, originally written and maintained by Variable. If anyone wants to help him out, try to grab someone on [IRC](https://wiki.whatwg.org/wiki/IRC); we're always looking for more contributors and this is a good place to start.
 * [Why no namespaces](https://wiki.whatwg.org/wiki/Why_no_namespaces)
 * [Why no script implements](https://wiki.whatwg.org/wiki/Why_no_script_implements)
 * [Why not reuse legend](https://wiki.whatwg.org/wiki/Why_not_reuse_legend) or another _mini-header_ element.
 
-Also see _HTML feature proposals_ below.
+Also see [HTML feature proposals](#html-feature-proposals).
 
 ## HTML syntax issues
 
-### Will HTML finally put an end to the XHTML as `text/html` debate?
+### Does HTML finally put an end to the XHTML as `text/html` debate?
 
-Yes. Unlike HTML4 and XHTML1, the choice of HTML or XHTML is solely dependent upon the choice of the media type, rather than the DOCTYPE. See [HTML vs. XHTML](https://wiki.whatwg.org/wiki/HTML_vs._XHTML)
+Yes. Unlike HTML4 and XHTML1, the choice of HTML or "XHTML" is solely dependent upon the choice of the media type, rather than the DOCTYPE. See [HTML vs. XHTML](https://wiki.whatwg.org/wiki/HTML_vs._XHTML)
 
 ### What is the DOCTYPE for modern HTML documents?
 
-In HTML:
+In `text/html` documents:
 
 ```html
 <!DOCTYPE html>
 ```
 
-In XHTML: no DOCTYPE is required and its use is generally unnecessary. However, you may use one if you want (see the following question). Note that the above is well-formed XML and so it may also appear in XHTML documents.
+In documents delivered with an XML media type: no DOCTYPE is required and its use is generally unnecessary. However, you may use one if you want (see the following question). Note that the above is well-formed XML.
 
 For compatibility with legacy producers designed for outputting HTML, but which are unable to easily output the above DOCTYPE, this alternative legacy-compat version may be used instead.
 
@@ -119,30 +118,30 @@ For compatibility with legacy producers designed for outputting HTML, but which 
 
 Note that this is _not_ intended for dealing with any compatibility issues with legacy browsers. It is meant for legacy authoring tools only.
 
-Excluding the string `"about:legacy-compat"`, the DOCTYPE is case insensitive in HTML. In XHTML, it is case sensitive and must be either of the two variants given above. For this reason, the DOCTYPEs given above are recommended to be used over other case variants, such as `<!DOCTYPE HTML>` or `<!doctype html>`.
+Excluding the string `"about:legacy-compat"`, the DOCTYPE is case insensitive in `text/html`. In documents delivered with an XML media type, it is case sensitive and must be either of the two variants given above. For this reason, the DOCTYPEs given above are recommended to be used over other case variants, such as `<!DOCTYPE HTML>` or `<!doctype html>`.
 
 These alternatives were chosen because they meet the following criteria:
 
 * They trigger standards mode in all current and all relevant legacy browsers.
-* They are well-formed in XML and can appear in XHTML documents.
+* They are well-formed in XML.
 * It is possible to output at least one of the alternatives, if not both, with extant markup generators.
 * They intentionally contain no language version identifier so the DOCTYPE will remain usable for all future revisions of HTML.
 * The first is short and memorable to encourage its use.
 * The legacy-compat DOCTYPE is intentionally unattractive and self descriptive of purpose to discourage unnecessary use.
 
-### Under what conditions should a DOCTYPE be used in XHTML?
+### Under what conditions should a DOCTYPE be used in a document delivered with an XML media type?
 
-Generally, the use of a DOCTYPE in XHTML is unnecessary. However, there are cases where inclusion of a DOCTYPE is a reasonable thing to do:
+Generally, the use of a DOCTYPE in an document delivered with an XML media type is unnecessary. However, there are cases where inclusion of a DOCTYPE is a reasonable thing to do:
 
-1. The document is intended to be a polyglot document that may be served as both HTML or XHTML.
+1. The document is intended to be a polyglot document such that the same text may be treated as either HTML or XML.
 2. You wish to declare entity references for use within the document. Note that most browsers only read the internal subset and do not retrieve external entities. (This is not compatible with HTML, and thus not suitable for polyglot documents.)
 3. You wish to use a custom DTD for DTD-based validation. But take note of [what's wrong with DTDs](https://about.validator.nu/#faq).
 
-Fundamentally, this is an XML issue, and is not specific to XHTML.
+Fundamentally, this is an XML issue, and is not specific to HTML documents delivered with an XML media type.
 
 ### How are documents from HTML4 and earlier versions parsed?
 
-All documents with a text/html media type (that is, including those without or with an HTML 2.0, HTML 3.2, HTML4, or XHTML1 DOCTYPE) will be parsed using the same parser algorithm as defined by the HTML spec. This matches what Web browsers have done for HTML documents so far and keeps code complexity down. That in turn is good for security, maintainability, and in general keeping the amount of bugs down. The HTML syntax as now defined therefore does not require a new parser and documents with an HTML4 DOCTYPE for example will be parsed as described by the new HTML specification.
+All documents with a `text/html` media type (that is, including those without or with an HTML 2.0, HTML 3.2, HTML4, or XHTML1 DOCTYPE) will be parsed using the same parser algorithm as defined by the HTML spec. This matches what web browsers have done for HTML documents so far and keeps code complexity down. That in turn is good for security, maintainability, and in general keeping the amount of bugs down. The HTML syntax as now defined therefore does not require a per-version parser, and documents with an HTML4 DOCTYPE for example will be parsed as described by the HTML specification.
 
 Validators are allowed to have different code paths for previous levels of HTML.
 
@@ -150,49 +149,49 @@ Validators are allowed to have different code paths for previous levels of HTML.
 
 With an [HTML validator](https://whatwg.org/validator/) that follows the latest specification.
 
-### What is an HTML Serialization?
+### What is an "HTML serialization"?
 
-The HTML serialization refers to the syntax of an HTML document defined in the HTML specification. The syntax is inspired by the SGML syntax from earlier versions of HTML, bits of XML (e.g. allowing a trailing slash on void elements, `xmlns` attributes), and reality of deployed content on the Web.
+The HTML serialization refers to the syntax of an HTML document defined in the HTML specification. The syntax is inspired by the SGML syntax from earlier versions of HTML, bits of XML (e.g. allowing a trailing slash on void elements, `xmlns` attributes), and reality of deployed content on the web.
 
-Any document whose MIME type is determined to be `text/html` is considered to be an HTML serialization and must be parsed using an HTML parser.
+Any document whose media type is determined to be `text/html` is considered to be an HTML serialization and must be parsed using an HTML parser.
 
-### What is an XML (or XHTML) Serialization?
+### What is an XML (or XHTML) serialization?
 
-The XML Serialization refers to the syntax defined by XML 1.0 and Namespaces in XML 1.0. A resource that has an XML MIME type, such as `application/xhtml+xml` or `application/xml`, is an XML document and if it uses elements in the HTML namespace, it contains XHTML. If the root element is `html` in the HTML namespace, the document is referred to as an XHTML document.
+The XML serialization refers to the syntax defined by XML 1.0 and Namespaces in XML 1.0. A resource that has an XML media type, such as `application/xhtml+xml` or `application/xml`, is an XML document. XML documents whose root element is `<html>` in the HTML namespace are sometimes referred to as "XHTML" documents.
 
-### What MIME type does HTML use?
+### What media (MIME) type does HTML use?
 
-The HTML serialization _must_ be served using the `text/html` MIME type.
+The HTML serialization _must_ be served using the `text/html` media type.
 
-The XHTML serialization _must_ be served using an XML MIME type, such as `application/xhtml+xml` or `application/xml`. Unlike the situation as of XHTML1, the HTML specification says that XHTML must no longer be served as `text/html`.
+The XML serialization _must_ be served using an XML media type, such as `application/xhtml+xml` or `application/xml`. Unlike the situation as of XHTML1, the HTML specification requires that "XHTML" documents not be served with the `text/html` media type.
 
-Using the incorrect MIME type (`text/html`) for XHTML will cause the document to be parsed according to parsing requirements for HTML. In other words, it will be treated as tag soup. Ensuring the use of an XML MIME type is the only way to ensure that browsers handle the document as XML.
+Using the incorrect media type (`text/html`) for a document in the XML serialization will cause the document to be parsed according to parsing requirements for HTML. In other words, it will be treated as what's sometimes called "tag soup". Ensuring the use of an XML media type is the only way to ensure that browsers handle the document as XML.
 
 ### Should I close empty elements with `/>` or `>`?
 
-Void elements in HTML (e.g. the `br`, `img` and `input` elements) do not require a trailing slash. e.g. Instead of writing `<br />`, you only need to write `<br>`. This is the same as in HTML4. However, due to the widespread attempts to use XHTML1, there are a significant number of pages using the trailing slash. Because of this, the trailing slash syntax has been permitted on void elements in HTML in order to ease migration from XHTML1 back to HTML.
+Void elements in HTML (e.g. the `<br>`, `<img>` and `<input>` elements) do not require a trailing slash. e.g. Instead of writing `<br />`, you only need to write `<br>`. This is the same as in HTML4. However, due to the widespread attempts to use XHTML1, there are a significant number of pages using the trailing slash. Because of this, the trailing slash syntax has been permitted on void elements in HTML in order to ease migration from XHTML1 back to HTML.
 
-The new HTML specification also introduces the ability to embed MathML elements. On elements inside a `math` element the trailing slash works just like it does in XML. I.e. it closes the element. This is only inside that context however, it does not work for normal HTML elements.
+The current HTML specification also introduces the ability to embed MathML elements. On elements inside a `math` element, the trailing slash works just like it does in XML; that is, it closes the element. This is only inside that context however; it does not work for normal HTML elements.
 
 ### If I'm careful with the syntax I use in my HTML document, can I process it with an XML parser?
 
-Yes. Find guidance in [HTML vs. XHTML](https://wiki.whatwg.org/wiki/HTML_vs._XHTML#Differences_Between_HTML_and_XHTML) and [Polyglot Markup: HTML-Compatible XHTML Documents](https://dev.w3.org/html5/html-polyglot/html-polyglot.html).
+You have to be _really_ careful for this to work, and it's almost certainly not worth it. You'd be better off just using an HTML-to-XML parser. That way you can just use HTML normally while still using XML pipeline tools.
 
-A word of warning though. You have to be _really_ careful for this to work, and it's almost certainly not worth it. You'd be better off just using an HTML-to-XML parser. That way you can just use HTML normally while still using XML pipeline tools.
+[HTML vs. XHTML](https://wiki.whatwg.org/wiki/HTML_vs._XHTML#Differences_Between_HTML_and_XHTML) has some related guidance.
 
 ### What is the namespace declaration?
 
-In XHTML, you are required to specify the namespace:
+In the XML syntax, you are required to specify the namespace:
 
 ```html
 <html xmlns="http://www.w3.org/1999/xhtml">
 ```
 
-In HTML, the `xmlns` attribute is currently allowed on any HTML element, but only if it has the value `http://www.w3.org/1999/xhtml`. It doesn't do anything at all, it is merely allowed to ease migration from XHTML1. It is not actually a namespace declaration in HTML, because HTML doesn't yet support namespaces. See the question "[Will there be support for namespaces in HTML?](#will-there-be-support-for-namespaces-in-html)".
+In `text/html` documents, the `xmlns` attribute is currently allowed on any HTML element, but only if it has the value `http://www.w3.org/1999/xhtml`. It doesn't do anything at all; it is merely allowed for the purpose of easing migration from XHTML1. It is not actually a namespace declaration in HTML, because HTML doesn't support namespaces. See the question "[What about namespaces in HTML?](#what-about-namespaces-in-html)".
 
-### Will there be support for namespaces in HTML?
+### What about namespaces in HTML?
 
-HTML is being defined in terms of the DOM and during parsing of a text/html all HTML elements will be automatically put in the HTML namespace, `http://www.w3.org/1999/xhtml`. However, unlike the XHTML serialization, there is no real namespace syntax available in the HTML serialization (see previous question). In other words, you do not need to declare the namespace in your HTML markup, as you do in XHTML. However, you are permitted to put an `xmlns` attribute on each HTML element as long as the namespace is `http://www.w3.org/1999/xhtml`.
+HTML is defined in terms of the DOM and during parsing of a `text/html` document, all HTML elements are automatically put in the HTML namespace, `http://www.w3.org/1999/xhtml`. However, unlike the XML serialization, there is no real namespace syntax available in the HTML serialization (see previous question). In other words, you do not need to declare the namespace in your HTML markup, as you do in XHTML.
 
 In addition, the HTML syntax provides for a way to embed elements from MathML and SVG. Elements placed inside the container element `math` or `svg` will automatically be put in the MathML namespace or the SVG namespace, respectively, by the parser. Namespace syntax is not required, but again an `xmlns` attribute is allowed if its value is the right namespace.
 
@@ -200,66 +199,63 @@ In conclusion, while HTML does not allow the XML namespace syntax, there is a wa
 
 ### How do I specify the character encoding?
 
-For HTML, it is strongly recommended that you specify the encoding using the HTTP `Content-Type` header. If you are unable to [configure your server](http://www.w3.org/International/O-HTTP-charset) to send the correct headers, then you may use the `meta` element:
+Regardless of whether documents are delivered as `text/html` or with an XML media type, UTF-8 is the only conformant character encoding.
+
+For HTML, it is strongly recommended that you specify the encoding using the HTTP `Content-Type` header. If you are unable to [configure your server](http://www.w3.org/International/O-HTTP-charset) to send the correct headers, then you may use the `<meta>` element:
 
 ```html
 <meta charset="UTF-8">
 ```
 
-The following restrictions apply to character encoding declarations:
+In addition, the following restrictions apply:
 
 * The character encoding name given must be the name of the character encoding used to serialize the file.
-* The value must be a [valid character encoding name](http://www.iana.org/assignments/character-sets), and must be the preferred name for that encoding.
 * The character encoding declaration must be serialized without the use of character references or character escapes of any kind.
-* The `meta` element used for this purpose must occur within the first 512 bytes of the file. It is considered good practice for this to be the first child of the `head` element so that it is as close to the beginning of the file as possible.
+* The `<meta>` element used for this purpose must occur within the first 512 bytes of the file. It is considered good practice for this to be the first child of the `<head>` element so that it is as close to the beginning of the file as possible.
 
-Note that this `meta` element is different from HTML 4, though it is compatible with many browsers because of the way encoding detection has been implemented.
+Note that this `<meta>` element is different from HTML4, though it is compatible with many browsers because of the way encoding detection has been implemented.
 
-For polyglot documents, which may be served as either HTML or XHTML, you may also include that in XHTML documents, but only if the encoding is UTF-8.
-
-To ease transition from HTML4 to the latest HTML specification, although the former is the recommended syntax, you may also use the following. (This does not apply to XHTML or polyglot documents)
+To ease transition from HTML4 to the current HTML specification, although the former is the recommended syntax, you may also use the following. (This does not apply to documents in the XML syntax):
 
 ```html
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 ```
 
-In XHTML, XML rules for determining the character encoding apply. The meta element is never used for determining the encoding of an XHTML document (although it may appear in UTF-8 encoded XHTML documents). You should use either the HTTP `Content-Type` header or the XML declaration to specify the encoding.
+In documents delivered with an XML media type, XML rules for determining the character encoding declaration apply. The `<meta>` element is never used for determining the encoding of such documents; for those, you should use either the HTTP `Content-Type` header or the XML declaration to specify the encoding.
 
 ```html
 <?xml version="1.0" encoding="UTF-8"?>
 ```
 
-Otherwise, you must use the default of `UTF-8` or `UTF-16`. It is recommended that you use `UTF-8`.
+However, because documents which do not have an XML declaration that explicitly specifies an encoding are processed as UTF-8, it's not necessary for conforming documents to include an XML declaration to specify the encoding.
 
 ### What are the differences between HTML and XHTML?
 
 See the list of [differences between HTML and XHTML](https://wiki.whatwg.org/wiki/HTML_vs._XHTML#Differences_Between_HTML_and_XHTML) in the wiki.
 
-### What are best practices to be compatible with HTML DOM and XHTML DOM?
+### What are best practices to be compatible with HTML DOM and XML DOM?
 
-Though the intent is that HTML and XHTML can both produce identical DOMs, there still are some differences between working with an HTML DOM and an XHTML one.
+Though the intent is that documents delivered with a `text/html` media type and that documents delivered with an XML media type can both produce identical DOMs, there still are some differences between working with an HTML DOM and an XML DOM.
 
 Case sensitivity:
 
-* Whenever possible, avoid testing Element.tagName and Node.nodeName (or do toLowerCase() before testing).
+* Whenever possible, avoid testing `element.tagName` and `node.nodeName` (or do `toLowerCase()` before testing).
 
 Namespaces:
 
-* Use the namespace-aware version for creating elements: Document.createElementNS(ns, elementName)
+* Use the namespace-aware version for creating elements: `document.createElementNS(ns, elementName)`.
 
-### Why does this new HTML spec legitimise tag soup?
+### Why does the HTML Standard legitimise tag soup?
 
 Actually it doesn't. This is a misconception that comes from the confusion between conformance requirements for documents, and the requirements for user agents.
 
-Due to the fundamental design principle of supporting existing content, the spec must define how to handle all HTML, regardless of whether documents are conforming or not. Therefore, the spec defines (or will define) precisely how to handle and recover from erroneous markup, much of which would be considered tag soup.
+Due to the fundamental design principle of supporting existing content, the spec must define how to handle all HTML, regardless of whether documents are conforming or not. Therefore, the spec defines precisely how to handle and recover from erroneous markup, much of which would be considered "tag soup".
 
-For example, the spec defines algorithms for dealing with syntax errors such as incorrectly nested tags, which will ensure that a well structured DOM tree can be produced.
-
-Defining that is essential for one day achieving interoperability between browsers and reducing the dependence upon reverse engineering each other.
+For example, the spec defines algorithms for dealing with syntax errors such as incorrectly-nested tags, which will ensure that a well-structured DOM tree can be produced. Defining that is essential for achieving interoperability between browsers and reducing the dependence upon browsers needing to reverse engineer each other's parsing behavior.
 
 However, the conformance requirements for authors are defined separately from the processing requirements. Just because browsers are required to handle erroneous content, it does not make such markup conforming.
 
-For example, user agents will be required to support the marquee element, but authors must not use the marquee element in conforming documents.
+For example, user agents are required to support processing of the `<marquee>` element, but authors must not use the `<marquee>` element in conforming documents.
 
 It is important to make the distinction between the rules that apply to user agents and the rules that apply to authors for producing conforming documents. They are completely orthogonal.
 
@@ -325,7 +321,9 @@ These techniques are preferred over adding an `<lh>` element as proposed in the 
 
 ### HTML should support a way for anyone to invent new elements!
 
-There are actually quite a number of ways for people to invent their own extensions to HTML:
+It does. You can use [custom elements](https://html.spec.whatwg.org/multipage/custom-elements.html) to build your own fully-featured DOM elements.
+
+Short of that, there are actually quite a number of ways for people to invent their own extensions to HTML:
 
 * Authors can use the `class` attribute to extend elements, effectively creating their own elements, while using the most applicable existing "real" HTML element, so that browsers and other tools that don't know of the extension can still support it somewhat well. This is the tack used by Microformats, for example.
 * Authors can include data for scripts to process using the `data-*=""` attributes. These are guaranteed to never be touched by browsers, and allow scripts to include data on HTML elements that scripts can then look for and process.
@@ -335,52 +333,15 @@ There are actually quite a number of ways for people to invent their own extensi
 * Authors can create plugins and invoke them using the `<embed>` element. This is how Flash works.
 * Authors can extend APIs using the JS prototyping mechanism. This is widely used by script libraries, for instance.
 * Authors can use the microdata feature (the `item=""` and `itemprop=""` attributes) to embed nested name-value pairs of data to be shared with other applications and sites.
-* Authors can use [custom elements](https://html.spec.whatwg.org/multipage/custom-elements.html).
-* Authors can propose new elements and attributes to the working group and, if the wider community agrees that they are worth the effort, they are added to the language. (If an addition is urgent, please let us know when proposing it, and we will try to address it quickly.)
-
-There is currently no mechanism for introducing new proprietary features in HTML documents (i.e. for introducing new elements and attributes) without discussing the extension with user agent vendors and the wider Web community. This is intentional; we don't want user agents inventing their own proprietary elements and attributes like in the "bad old days" without working with interested parties to make sure their feature is well designed.
-
-We request that people not invent new elements and attributes to add to HTML without first contacting the working group and getting a proposal discussed with interested parties.
+* Authors can propose new elements and attributes and, if the wider community and user-agent vendors agree that they are worth the effort, they can be added to the language.
 
 ### HTML should group `<dt>`s and `<dd>`s together in `<di>`s!
 
-This was thought to be a styling problem and should be fixed in CSS. There was no reason to add a grouping element to HTML, as the semantics are already unambiguous without an additional element.
-
-In October 2016 it became clear that CSS would not fix this in the foreseeable future, HTML was changed to allow `<div>` as a grouping element in `<dl>`. See https://github.com/whatwg/html/issues/1937 and https://github.com/whatwg/html/pull/1945
-
-### Why are some presentational elements like `<b>`, `<i>` and `<small>` still included?
-
-The inclusion of these elements is a largely pragmatic decision based upon their widespread usage, and their usefulness for use cases which are not covered by more specific elements.
-
-While there are a number of common use cases for italics which are covered by more specific elements, such as emphasis (em), citations (cite), definitions (dfn) and variables (var), there are many other use cases which are not covered well by these elements. For example, a taxonomic designation, a technical term, an idiomatic phrase from another language, a thought, or a ship name.
-
-Similarly, although a number of common use cases for bold text are also covered by more specific elements such as strong emphasis (strong), headings (h1-h6) or table headers (th); there are others which are not, such as key words in a document abstract or product names in a review.
-
-Some people argue that in such cases, the span element should be used with an appropriate class name and associated stylesheet. However, the b and i elements provide for a reasonable fallback styling in environments that don't support stylesheets or which do not render visually, such as screen readers, and they also provide some indication that the text is somehow distinct from its surrounding content.
-
-In essence, they convey distinct, though non-specific, semantics, which are to be determined by the reader in the context of their use. In other words, although they don't convey specific semantics by themselves, they indicate that that the content is somehow distinct from its surroundings and leaves the interpretation of the semantics up to the reader.
-
-This is further explained in the article [The `<b>` and `<i>` Elements](http://lachy.id.au/log/2007/05/b-and-i)
-
-Similarly, the small element is defined for content that is commonly typographically rendered in small print, and which often referred to as fine print. This could include copyright statements, disclaimers and other legal text commonly found at the end of a document.
-
-#### But they are PRESENTATIONAL!
-
-The problem with elements like `<font>` isn't that they are _presentational_ per se, it's that they are media-dependent (they apply to visual browsers but not to speech browsers). While `<b>`, `<i>` and `<small>` historically have been presentational, they are defined in a media-independent manner in HTML5. For example, `<small>` corresponds to the really quickly spoken part at the end of radio advertisements.
-
-### The `<cite>` element should allow names of people to be marked up
-
-From what some have seen, `<cite>` is almost always used to mean "italics". More careful authors have used the element to mark up names and titles, and some people have gone out of their way to only mark up citations.
-
-So, we can't really decide what the element should be based on past practice, like we usually do.
-
-This leaves the question of what is the most useful use we can put the element to, if we keep it. The conclusion so far has been that the most useful use for `<cite>` is as an element to allow typographic control over titles, since those are often made italics, and that semantic is roughly close to what it meant in previous versions, and happens to match at least one of the common uses for the element. Generally, however, names and titles aren't typeset the same way, so making the element apply to both would lead to confusing typography.
-
-There are already many ways of marking up names already (e.g. the [hCard microformat](http://microformats.org/wiki/hcard), the microdata vCard vocabulary, `<span>` and class names, etc), if you really need it.
+HTML allows `<div>` as a grouping element in `<dl>`. See [the `<dl>` specification](https://html.spec.whatwg.org/multipage/#the-dl-element) and [issue #1937](https://github.com/whatwg/html/issues/1937) wherein this was added.
 
 ### Where's the harm in adding...?
 
-Every feature we add to the Web platform has a cost:
+Every feature we add to the web platform has a cost:
 
 * Implementation: someone has to write code for it in each browser
 * Testing: someone has to write the tests to check the features is working
@@ -416,11 +377,41 @@ The plan to get the specs to converge again, such as it is, is to just do a bett
 
 Here are some documents that detail the history of HTML:
 
-* [A feature history of the modern Web Platform](https://platform.html5.org/history/) (2003 onward) ([on GitHub](https://github.com/whatwg/platform.html5.org/blob/master/history/index.html))
+* [A feature history of the modern web platform](https://platform.html5.org/history/) (2003 onward) ([on GitHub](https://github.com/whatwg/platform.html5.org/blob/master/history/index.html))
 * [HTML's timeline on the ESW wiki](http://esw.w3.org/topic/HTML/history) (1997 to 2008)
 * [The history section in the HTML standard itself](https://html.spec.whatwg.org/multipage/introduction.html#history-2)
 
 ## Using HTML
+
+### Why are some presentational elements like `<b>`, `<i>` and `<small>` still included?
+
+The inclusion of those elements is a largely pragmatic decision based upon their widespread usage, and their utility for cases which are not covered by more-specific elements.
+
+While there are a number of common use cases for italics which are covered by more-specific elements, such as emphasis (`<em>`), citations (`<cite>`), definitions (`<dfn>`) and variables (`<var>`), there are many other use cases which are not covered well by these elements. For example: a taxonomic designation, a technical term, an idiomatic phrase from another language, a thought, or a ship name.
+
+Similarly, although a number of common use cases for bold text are also covered by more-specific elements, such as strong emphasis (`<strong>`), headings (`<h1>`-`<h6>`) or table headers (`<th>`), there are others which are not, such as keywords in a document abstract or product names in a review.
+
+Some people argue that in such cases, the `<span>` element should be used with an appropriate class name and associated stylesheet. However, the `<b>` and `<i>` elements provide for a reasonable fallback styling in environments that don't support stylesheets or which do not render visually, such as screen readers, and they also provide some indication that the text is somehow distinct from its surrounding content.
+
+In essence, the `<i>` and `<b>` elements convey distinct, though non-specific, semantics, which are to be determined by the reader in the context of their use. In other words, although they don't convey specific semantics by themselves, but instead they indicate that the content is somehow semantically distinct from its surroundings — leaving the interpretation of the semantics up to the reader.
+
+This is further explained in the article [The `<b>` and `<i>` Elements](http://lachy.id.au/log/2007/05/b-and-i).
+
+Similarly, the `<small>` element is defined for content that is commonly typographically rendered in small print, and which is often referred to as "fine print"; that could include copyright statements, disclaimers and other legal text commonly found at the end of a document.
+
+#### But they are PRESENTATIONAL!
+
+The problem with elements like `<font>` isn't that they are _presentational_ per se, it's that they are media-dependent (they apply to visual browsers but not to speech browsers). While `<b>`, `<i>` and `<small>` historically have been presentational, they are defined in a media-independent manner in HTML5. For example, `<small>` corresponds to the really quickly spoken part at the end of radio advertisements.
+
+### Why is the `<cite>` element only used to mark up titles, not names of people or other citations?
+
+From what some have seen, `<cite>` is almost always used to mean "italics". More careful authors have used the element to mark up names and titles, and some people have gone out of their way to only mark up citations.
+
+So, we can't really decide what the element should be based on past practice, like we usually do.
+
+This leaves the question of what is the most useful use we can put the element to, if we keep it. The conclusion so far has been that the most useful use for `<cite>` is as an element to allow typographic control over titles, since those are often made italics, and that semantic is roughly close to what it meant in previous versions, and happens to match at least one of the common uses for the element. Generally, however, names and titles aren't typeset the same way, so making the element apply to both would lead to confusing typography.
+
+There are already many ways of marking up names already (e.g. the [hCard microformat](http://microformats.org/wiki/hcard), the microdata vCard vocabulary, `<span>` and class names, etc), if you really need it.
 
 ### Do you have any hints on how to use `<section>` and `<article>` and so on?
 
@@ -435,8 +426,8 @@ Some hopefully helpful hints:
 
 ### What ever happened to...?
 
-The Web Forms 2.0 specification was folded into what is now the HTML specification.
+The Web Forms 2.0 specification was folded into what is now the HTML Standard.
 
 The Web Controls 1.0 specification was overtaken by events and has been abandoned. Its problem space is mostly handled by ARIA and Web Components now.
 
-The DOM Parsing specification was abandoned by the WHATWG because the W3C was doing a better job of maintaining that specification. We do not want to cause confusion in the market place, so when another organisation writes a specification that covers the same technology as one of ours, we only continue to publish it if our version is technically superior.
+The DOM Parsing specification was abandoned by the WHATWG because the W3C was doing a better job of maintaining that specification. We do not want to cause confusion in the market place, so when another organization writes a specification that covers the same technology as one of ours, we only continue to publish it if our version is technically superior.
