@@ -24,7 +24,7 @@ The whole standard is more or less stable. There are some parts of it that descr
 
 In practice, implementations all follow the latest standard anyway, not so-called "finished" snapshots. The problem with following a snapshot is that you end up following something that is _known to be wrong_. That's obviously not the way to get interoperability!
 
-This has in fact been a real problem at the W3C, where mistakes are found and fixed in the editors' drafts of specifications, but implementors who aren't fully engaged in the process go and implement obsolete snapshots instead, including those bugs. This has resulted in serious differences between browsers.
+This has in fact been a real problem at the W3C, where mistakes are found and fixed in the editors' drafts of specifications, but implementers who aren't fully engaged in the process go and implement obsolete snapshots instead, including those bugs. This has resulted in serious differences between browsers.
 
 For more information on this, see the WHATWG FAQ entry [What does "Living Standard" mean?](https://whatwg.org/faq#living-standard).
 
