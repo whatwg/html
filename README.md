@@ -11,3 +11,7 @@ We appreciate all contributions, see the [guidelines for contributing](CONTRIBUT
 ### Tests
 
 Tests are in the `html/` directory of the [web-platform-tests repository](https://github.com/w3c/web-platform-tests).
+
+### Blame
+
+As the `source` file is too large for [GitHub's blame utility](https://help.github.com/articles/tracing-changes-in-a-file/), use [blame for `source` on searchfox](https://searchfox.org/whatwg-html/source/source) instead.
