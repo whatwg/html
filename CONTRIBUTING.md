@@ -61,6 +61,16 @@ Always wrap after putting the maximum number of characters on a single line with
 
 An `<li>` element always has a `<p>` element inside it, unless it's a child of `<ul class="brief">`.
 
+List items (`<li>`, `<dt>`, and `<dd>`) always start on their own line with a newline between them
+and the previous list item. No extra newline at the start or end of the list though:
+```html
+ <ol>
+  <li><p>Let <var>x</var> be 1.</p></li>
+
+  <li><p>Increment <var>x</var> by 2.</p></li>
+ </ol>
+```
+
 If a "block" element contains a single "block" element, do not put it on a new line.
 
 Do not indent for anything except a new "block" element. For instance
