@@ -42,6 +42,8 @@ In between these clear-cut categories, there is some gray area. Please feel free
 
 ## Source formatting
 
+Due to the long legacy of the existing text the guidelines below are not always applied. We do require that you apply the guidelines when making changes, though are happy to provide assistance if this proves to be a blocker to you.
+
 Use a column width of 100 characters and add newlines where whitespace is used. (Emacs, set `fill-column` to `100`; in Vim, set `textwidth` to `100`; and in Sublime, set `wrap_width` to `100`.)
 
 Using newlines between "inline" element tag names and their content is forbidden. (This actually alters the content, by adding spaces.) That is,
@@ -60,6 +62,16 @@ Using newlines between attributes and inside attribute values that contain white
 Always wrap after putting the maximum number of characters on a single line within these guidelines.
 
 An `<li>` element always has a `<p>` element inside it, unless it's a child of `<ul class="brief">`.
+
+List items (`<li>`, `<dt>`, and `<dd>`) always start on their own line with a newline between them
+and the previous list item. No extra newline at the start or end of the list though:
+```html
+ <ol>
+  <li><p>Let <var>x</var> be 1.</p></li>
+
+  <li><p>Increment <var>x</var> by 2.</p></li>
+ </ol>
+```
 
 If a "block" element contains a single "block" element, do not put it on a new line.
 
