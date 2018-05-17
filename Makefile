@@ -1,0 +1,2 @@
+review: source
+	./review.sh
