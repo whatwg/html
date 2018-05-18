@@ -20,4 +20,4 @@ sed -e 's/^  <title w-nodev>HTML Standard<\/title>$/  <title w-nodev>HTML Standa
     < "$INPUT" > "$REVIEW_DRAFT"
 echo "Created Review Draft at $REVIEW_DRAFT"
 echo "Please verify that only three lines changed relative to $INPUT:"
-diff -up "$INPUT" "$REVIEW_DRAFT"
+diff -up "$INPUT" "$REVIEW_DRAFT" || exit 0
