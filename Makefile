@@ -2,4 +2,4 @@ default:
 	@echo "Please see CONTRIBUTING.md for instructions on building HTML."
 
 review: source
-	@./review.sh
+	@./review-draft.sh
