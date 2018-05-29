@@ -2,7 +2,7 @@
 set -o errexit
 set -o nounset
 
-# This is based on a script with named review.sh over at
+# This is based on a script named review.sh over at
 # https://github.com/whatwg/whatwg.org/tree/master/resources.whatwg.org/build
 #
 # Please see https://github.com/whatwg/meta/blob/master/MAINTAINERS.md for information on creating
