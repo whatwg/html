@@ -10,7 +10,7 @@ We appreciate all contributions, see the [guidelines for contributing](CONTRIBUT
 
 ### Tests
 
-Tests are in the `html/` directory of the [web-platform-tests repository](https://github.com/w3c/web-platform-tests).
+Tests are in the `html/` directory of the [web-platform-tests repository](https://github.com/web-platform-tests/wpt).
 
 ### Blame
 
