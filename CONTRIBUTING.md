@@ -12,6 +12,8 @@ We'd be happy to mentor you through this process. If you're interested and need 
 
 In short, change `source` and submit your patch, with a [good commit message](https://github.com/erlang/otp/wiki/Writing-good-commit-messages). Try to follow the source formatting rules below.
 
+Note that `source` is written in a dialect of HTML, which is eventually compiled into the deployed standard by a tool called [Wattsi](https://github.com/whatwg/wattsi). Documentation for this dialect can be found [in the Wattsi repository](https://github.com/whatwg/wattsi/blob/master/Syntax.md).
+
 Please add your name to the Acknowledgments section (search for `<!-- ACKS`) in your first pull request, even for trivial fixes. The names are sorted lexicographically.
 
 To preview your changes locally, follow the instructions in the [html-build repository](https://github.com/whatwg/html-build).
