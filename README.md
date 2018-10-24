@@ -14,4 +14,4 @@ This repository hosts the [HTML Standard](https://html.spec.whatwg.org/).
 
 ### ->Blame
 
-<ul type="circle"><li>As the <b>`source`</b> file is too large for <b>[GitHub's blame utility]</b>(https://help.github.com/articles/tracing-changes-in-a-file/), use [blame for `source` on searchfox](https://searchfox.org/whatwg-html/source/source) instead.</li></ul>
+<ul type="circle"><li>As the <b>`source`</b> file is too large for <b>[GitHub's blame utility]</b>(https://help.github.com/articles/tracing-changes-in-a-file/), use <b>[blame for `source` on searchfox]</b>(https://searchfox.org/whatwg-html/source/source) instead.</li></ul>
