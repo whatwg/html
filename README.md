@@ -1,6 +1,6 @@
 This repository hosts the [HTML Standard](https://html.spec.whatwg.org/).
 
-->### Code of conduct
+### ->Code of conduct
 
 <ul type="circle"><li>We are committed to providing a friendly, safe and welcoming environment for all. Please read and respect the [WHATWG Code of Conduct](https://whatwg.org/code-of-conduct).</li></ul>
 
