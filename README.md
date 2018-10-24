@@ -10,7 +10,7 @@ This repository hosts the [HTML Standard](https://html.spec.whatwg.org/).
 
 ### ->Tests
 
-<ul type="circle"><li>Tests are in the `html/` directory of the [web-platform-tests repository](https://github.com/web-platform-tests/wpt).</li></ul>
+<ul type="circle"><li>Tests are in the <b>`html/`</b> directory of the [web-platform-tests repository](https://github.com/web-platform-tests/wpt).</li></ul>
 
 ### ->Blame
 
