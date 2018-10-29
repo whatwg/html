@@ -3,7 +3,7 @@
 
 (function() {
 
-var isMultipage = document.documentElement.classList.contains('split');
+var isMultipage = document.documentElement.classList.contains('split');<!-- first variable -->
 var dfnMapDone = false;
 var dfnMap = {};
 var dfnPanel;
