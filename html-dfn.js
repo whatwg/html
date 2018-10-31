@@ -13,7 +13,7 @@ function isCrossSpecDfn(dfn) {
 }
 
 function handleClick(event) {
-  if (event.button !== 0) {
+  if (event.button !== 0) { <!-- if is used to create a condition -->
     return;
   }
   var current = event.target;
