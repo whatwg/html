@@ -2,8 +2,8 @@
 set -o nounset
 
 # This is based on a script named review.sh over at
-# https://github.com/whatwg/whatwg.org/tree/master/resources.whatwg.org/build
-# It assumes English as your locale.
+# https://github.com/whatwg/whatwg.org/tree/master/resources.whatwg.org/build and assumes English as
+# your locale.
 #
 # Please see https://github.com/whatwg/meta/blob/master/MAINTAINERS.md for information on creating
 # and announcing Review Drafts.
