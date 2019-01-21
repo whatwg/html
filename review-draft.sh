@@ -8,6 +8,17 @@ set -o nounset
 # Please see https://github.com/whatwg/meta/blob/master/MAINTAINERS.md for information on creating
 # and announcing Review Drafts.
 
+header() {
+  echo ""
+  echo -e "\\x1b[1m$1\\x1b[0m"
+  echo ""
+}
+
+header "Creating a git branch with a Review Draft:"
+
+git checkout master
+git checkout -b "review-draft-$(date +'%F')"
+
 INPUT="source"
 
 mkdir -p "review-drafts"
@@ -19,5 +30,9 @@ sed -e 's/^  <title w-nodev>HTML Standard<\/title>$/  <title w-nodev>HTML Standa
     -e 's/<span class="pubyear">\[DATE: 1901\]<\/span>/'"$(date +'%Y')"'/' \
     < "$INPUT" > "$REVIEW_DRAFT"
 echo "Created Review Draft at $REVIEW_DRAFT"
-echo "Please verify that only three lines changed relative to $INPUT:"
-diff -up "$INPUT" "$REVIEW_DRAFT" || exit 0
+header "Please verify that only three lines changed relative to $INPUT:"
+diff -up "$INPUT" "$REVIEW_DRAFT" || true
+echo ""
+
+git add review-drafts/*
+git commit -m "Review Draft Publication: $(date +'%B %G')"
