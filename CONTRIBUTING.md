@@ -6,7 +6,7 @@ The HTML Standard is quite complex and people notice minor and larger issues wit
 
 We label [good first issues](https://github.com/whatwg/html/labels/good%20first%20issue) that you could help us fix, to get a taste for how to submit pull requests, how the build process works, and so on.
 
-We'd be happy to mentor you through this process. If you're interested and need help getting started, leave a comment on the issue or bug, or ask around [on IRC](https://wiki.whatwg.org/wiki/IRC). The [FAQ](FAQ.md) may also be helpful.
+We'd be happy to mentor you through this process. If you're interested and need help getting started, leave a comment on the issue or bug, or ask around [on IRC](https://whatwg.org/irc). The [FAQ](FAQ.md) may also be helpful.
 
 ## Pull requests
 
