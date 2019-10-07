@@ -1,3 +1,5 @@
+HTML(Hyper text markup language) defines the structure of the webpages.
+
 This repository hosts the [HTML Standard](https://html.spec.whatwg.org/).
 
 ### Code of conduct
