@@ -12,6 +12,19 @@ _See also the [WHATWG FAQ](https://whatwg.org/faq)._
 
 Going forward, the WHATWG is just working on "HTML", without worrying about version numbers. When people talk about "HTML5" in the context of the WHATWG, they usually mean just "the latest work on HTML", not necessarily a specific version. For more details, see the section called "[Is this HTML5?](https://html.spec.whatwg.org/multipage/introduction.html#is-this-html5?)" in the standard.
 
+### What is difference between HTML and HTML5?
+
+Some of the major differences between the two versions are: HTML5 supports both audio and video whereas none of these was a part of HTML. HTML does not allow JavaScript to run within the web browser whereas HTML5 provides full support for JavaScript to run in the background.
+
+### Which Is Best Free HTML Editor Software Tools?
+   # 1. Atom
+   # 2. Sublime Text 
+   # 3. VS code
+   # 4. Notepad ++
+   # 5. Adobe Dreamweaver CC
+
+
+
 ### How do I validate my pages?
 
 Use a [validator](https://whatwg.org/validator/).
