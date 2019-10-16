@@ -22,6 +22,7 @@ function resultTemplate(result) {
   return `<li><a href="${result.url}">${result.text} <span>Section ${result.section}</span></a></li>`;
 }
 
+// creting findsection function
 function findSections(word, responses) {
   // If input is empty, show nothing.
   if (!word) {
