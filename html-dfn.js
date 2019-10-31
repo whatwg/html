@@ -1,7 +1,7 @@
 // A fork of https://resources.whatwg.org/dfn.js which works for HTML's multipage version by using xrefs.json.
 'use strict';
 
-(function() {
+$(document).ready() {
 
 var isMultipage = document.documentElement.classList.contains('split');
 var dfnMapDone = false;
@@ -173,7 +173,7 @@ function movePanel(event) {
   }
 }
 
-function restoreOrClosePanelOnNav(event) {
+function restoreOrClosePanelOnNav() {
   // Invoking this function twice is fine since on the second invocation,
   // if the panel is open, `dfnPanel.dataset.id === id` so nothing happens;
   // if the panel is closed, it will call `closePanel` which only clean up
@@ -200,4 +200,4 @@ if (isMultipage) {
   window.addEventListener('pageshow', restoreOrClosePanelOnNav);
 }
 
-})();
+});

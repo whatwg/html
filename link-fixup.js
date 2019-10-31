@@ -1,4 +1,4 @@
-(function () {
+$(document).ready(function () {
   'use strict';
   if (!(/^\/(dev|multipage)\//.test(window.location.pathname))) {
     return;
@@ -36,4 +36,4 @@
     }
   };
   xhr.send();
-})();
+});
