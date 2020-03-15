@@ -17,6 +17,7 @@ header() {
 header "Creating a git branch with a Review Draft:"
 
 git checkout master
+git pull
 git checkout -b "review-draft-$(date +'%F')"
 
 INPUT="source"
