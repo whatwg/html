@@ -23,7 +23,7 @@ git checkout -b "review-draft-$(date +'%F')"
 INPUT="source"
 YYYYMM="$(date +'%Y-%m')"
 
-sed -E -i '' 's/<a href="\/review-drafts\/'[0-9]\+'-'[0-9]\+'\/">/<a href="\/review-drafts\/'"$YYYYMM"'">/' "$INPUT"
+sed -E -i '' 's/<a href="\/review-drafts\/'[0-9]\+'-'[0-9]\+'\/">/<a href="\/review-drafts\/'"$YYYYMM"'\/">/' "$INPUT"
 echo "Updated Living Standard to point to the new Review Draft"
 echo ""
 
