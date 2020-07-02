@@ -40,5 +40,6 @@ header "Please verify that only three lines changed relative to $INPUT:"
 diff -up "$INPUT" "$REVIEW_DRAFT" || true
 echo ""
 
+git add "$INPUT"
 git add review-drafts/*
 git commit -m "Review Draft Publication: $(date +'%B %G')"
