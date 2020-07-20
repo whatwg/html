@@ -19,12 +19,15 @@ header "Creating a git branch with a Review Draft:"
 git checkout master
 git pull
 git checkout -b "review-draft-$(date +'%F')"
+echo ""
 
 INPUT="source"
 YYYYMM="$(date +'%Y-%m')"
 
 sed -E -i '' 's/<a href="\/review-drafts\/'[0-9]\+'-'[0-9]\+'\/">/<a href="\/review-drafts\/'"$YYYYMM"'\/">/' "$INPUT"
 echo "Updated Living Standard to point to the new Review Draft"
+header "Please verify that only one line changed:"
+git diff -up
 echo ""
 
 mkdir -p "review-drafts"
@@ -36,7 +39,7 @@ sed -e 's/^  <title w-nodev>HTML Standard<\/title>$/  <title w-nodev>HTML Standa
     -e 's/<span class="pubyear">\[DATE: 1901\]<\/span>/'"$(date +'%Y')"'/' \
     < "$INPUT" > "$REVIEW_DRAFT"
 echo "Created Review Draft at $REVIEW_DRAFT"
-header "Please verify that only three lines changed relative to $INPUT:"
+header "Please verify that only two lines changed relative to $INPUT:"
 diff -up "$INPUT" "$REVIEW_DRAFT" || true
 echo ""
 
