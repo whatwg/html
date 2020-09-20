@@ -48,6 +48,18 @@ Due to the long legacy of the existing text the guidelines below are not always 
 
 Use a column width of 100 characters and add newlines where whitespace is used. (Emacs, set `fill-column` to `100`; in Vim, set `textwidth` to `100`; and in Sublime, set `wrap_width` to `100`. Alternatively, wrap the paragraph(s) with your changes with https://domenic.github.io/rewrapper/. Make sure that `column length to rewrap` is set to 100.)
 
+However, be careful not to wrap headings for element names across multiple lines. That is:
+
+```html
+  <h4 element data-lt="meta" id="the-meta-element">The <dfn id="meta"><code>meta</code></dfn> element</h4>
+```
+is fine, even though it's longer than 100 characters; but the following:
+```html
+  <h4 element data-lt="meta" id="the-meta-element">The <dfn id="meta"><code>meta</code></dfn>
+  element</h4>
+```
+is not fine. (The reason it's not is: to build the published spec, we have a script that injects the **Tag omission in text/html** subsection into each output element section, and that doesn't expect those headings to break across multiple lines.)
+
 Using newlines between "inline" element tag names and their content is forbidden. (This actually alters the content, by adding spaces.) That is,
 ```html
    <dd><span>Parse error</span>. Create a new DOCTYPE token. Set its <i data-x="force-quirks
