@@ -14,7 +14,9 @@ Going forward, the WHATWG is just working on "HTML", without worrying about vers
 
 ### How do I validate my pages?
 
-Use a [validator](https://whatwg.org/validator/).
+Use a [validator](https://whatwg.org/validator/) 
+or use https://validator.w3.org/
+
 
 ### What parts of the standard are stable?
 
