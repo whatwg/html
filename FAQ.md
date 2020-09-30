@@ -53,19 +53,19 @@ There are a number of ways to track changes to the standard:
 
 The HTML Standard is available in three forms: [single-page](https://html.spec.whatwg.org/) (_very large_), [multi-page](https://html.spec.whatwg.org/multipage/), and the [developer's edition](https://html.spec.whatwg.org/dev/).
 
-The W3C publishes some [forked versions](https://wiki.whatwg.org/wiki/Fork_tracking) of the HTML Standard, and of other WHATWG standards. We have requested that they stop publishing these but they have refused. They copy most of our fixes into their forks, but their forks are usually weeks to months behind. They also make intentional changes, and sometimes even unintentional changes, to their versions. We highly recommend not paying any attention to the W3C forks of WHATWG standards.
+The W3C has published some [forked versions](https://wiki.whatwg.org/wiki/Fork_tracking) of the HTML Standard. They are no longer maintained and expected to redirect to the HTML Standard in due course.
 
 ### How do I know if a particular feature in the standard is ready to use?
 
 Here are some sites to help you work out what you can use:
 
-* http://caniuse.com/
+* https://caniuse.com/
 * https://developer.mozilla.org/
 
 The following sites also have some useful information:
 
-* http://html5doctor.com/
-* http://diveintohtml5.info/
+* https://html5doctor.com/
+* https://diveintohtml5.info/
 
 If you know of any more (or if you have some yourself) then send a pull request to add them to the list! (Or, if you think any of the above have lost usefulness over time, send a pull request removing them and outlining your reasoning.)
 
@@ -79,7 +79,7 @@ Back before the Living Standard development model, we were planning to put the c
 
 At the time, the W3C Recommendation label had high standards, such as 100% test coverage of two complete and fully interoperable implementations. In 2008, the editor estimated it would take another 14 years to reach that point, based on comparing it to the amount of work done for HTML4 and other large specifications like CSS2/2.1.
 
-Since then, we've realized that much like the [waterfall model](https://en.wikipedia.org/wiki/Waterfall_model) is not a good fit for software development, it is also not a good way of developing standards. These days we keep the HTML Standard continually under development, adding tests as we go and verifying them against implementations, [per our working mode](https://whatwg.org/working-mode). So, the 2022 date is no longer relevant.
+Since then, we've realized that much like the [waterfall model](https://en.wikipedia.org/wiki/Waterfall_model) is not a good fit for software development, it is also not a good way of developing standards. These days we keep the HTML Standard continually under development, adding tests as we go and verifying them against implementations, [per our working mode](https://whatwg.org/working-mode). So, the year 2022 is no longer relevant.
 
 ### Is design rationale documented?
 
@@ -201,7 +201,7 @@ In conclusion, while HTML does not allow the XML namespace syntax, there is a wa
 
 Regardless of whether documents are delivered as `text/html` or with an XML media type, UTF-8 is the only conformant character encoding.
 
-For HTML, it is strongly recommended that you specify the encoding using the HTTP `Content-Type` header. If you are unable to [configure your server](http://www.w3.org/International/O-HTTP-charset) to send the correct headers, then you may use the `<meta>` element:
+For HTML, it is strongly recommended that you specify the encoding using the HTTP `Content-Type` header. If you are unable to [configure your server](https://www.w3.org/International/articles/http-charset/) to send the correct headers, then you may use the `<meta>` element:
 
 ```html
 <meta charset="UTF-8">
@@ -245,7 +245,7 @@ Namespaces:
 
 * Use the namespace-aware version for creating elements: `document.createElementNS(ns, elementName)`.
 
-### Why does the HTML Standard legitimise tag soup?
+### Why does the HTML Standard legitimize tag soup?
 
 Actually it doesn't. This is a misconception that comes from the confusion between conformance requirements for documents, and the requirements for user agents.
 
