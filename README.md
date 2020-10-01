@@ -1,4 +1,4 @@
-#An Amazing Project
+### An Amazing Project
 This repository hosts the [HTML Standard](https://html.spec.whatwg.org/).
 
 ### Code of conduct
