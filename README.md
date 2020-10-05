@@ -6,7 +6,7 @@ We are committed to providing a friendly, safe and welcoming environment for all
 
 ### Contribution opportunities
 
-We appreciate all contributions, see the [guidelines for contributing](CONTRIBUTING.md) for details, including information on how to build HTML output from the `source` file so you can preview your changes locally.
+We always appreciate all contributions, see the [guidelines for contributing](CONTRIBUTING.md) for details, including information about how to build a HTML output from the `source` file so that you can preview your changes locally.
 
 ### Tests
 
