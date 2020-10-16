@@ -173,7 +173,7 @@ Void elements in HTML (e.g. the `<br>`, `<img>` and `<input>` elements) do not r
 
 The current HTML specification also introduces the ability to embed MathML elements. On elements inside a `math` element, the trailing slash works just like it does in XML; that is, it closes the element. This is only inside that context however; it does not work for normal HTML elements.
 
-### If I'm careful with the syntax I use in my HTML document, can I process it with an XML parser?
+### If I am careful with the syntax I use in my HTML document, can I process it with an XML parser?
 
 You have to be _really_ careful for this to work, and it's almost certainly not worth it. You'd be better off just using an HTML-to-XML parser. That way you can just use HTML normally while still using XML pipeline tools.
 
