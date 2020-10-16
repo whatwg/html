@@ -289,7 +289,7 @@ You can give a header to a list using the `<figure>` and `<figcaption>` elements
  <ul>
   <li>Granny Smith</li>
   <li>Evil Apple of Knowledge</li>
-  <li>Apple, Inc</li>
+  <li>Apple,  Inc</li>
  </ul>
 </figure>
 ```
