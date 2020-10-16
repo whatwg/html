@@ -18,7 +18,7 @@ Use a [validator](https://whatwg.org/validator/).
 
 ### What parts of the standard are stable?
 
-The whole standard is more or less stable. There are some parts of it that describe new technologies that have not yet been implemented everywhere, but at this point those additions are only added after the design itself is pretty stable. Such additions must also have the support of two or more implementers, [per our working mode](https://whatwg.org/working-mode#additions).
+The whole standard is more or less Stable. There are some parts of it that describe new technologies that have not yet been implemented everywhere, but at this point those additions are only added after the design itself is pretty stable. Such additions must also have the support of two or more implementers, [per our working mode](https://whatwg.org/working-mode#additions).
 
 ### Why are there no stable snapshots, or versions, of the standard?
 
