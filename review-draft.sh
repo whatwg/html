@@ -3,9 +3,9 @@ set -o errexit
 set -o nounset
 
 # This is based on a script named review.sh over at
-# https://github.com/whatwg/whatwg.org/tree/master/resources.whatwg.org/build
+# https://github.com/whatwg/whatwg.org/tree/main/resources.whatwg.org/build
 #
-# Please see https://github.com/whatwg/meta/blob/master/MAINTAINERS.md for information on creating
+# Please see https://github.com/whatwg/meta/blob/main/MAINTAINERS.md for information on creating
 # and announcing Review Drafts.
 
 header() {
@@ -16,7 +16,7 @@ header() {
 
 header "Creating a git branch with a Review Draft:"
 
-git checkout master
+git checkout main
 git pull
 git checkout -b "review-draft-$(date +'%F')"
 echo ""
