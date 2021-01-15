@@ -45,7 +45,7 @@ Validity (more often referred to as document conformance in the WHATWG) is a qua
 There are a number of ways to track changes to the standard:
 
 * The Twitter feed: [@htmlstandard](https://twitter.com/htmlstandard)
-* The [GitHub commits log](https://github.com/whatwg/html/commits/master)
+* The [GitHub commits log](https://github.com/whatwg/html/commits)
 * The standard is available in the [Git repository](https://github.com/whatwg/html/). You may use any Git client to check out the latest version and use your client's diff tools to compare revisions and see what has been changed.
 * At a broader level, Anne and Simon once wrote a document that gave a high-level overview of changes to HTML over the last decade or so: https://html-differences.whatwg.org/
 
@@ -377,8 +377,8 @@ The plan to get the specs to converge again, such as it is, is to just do a bett
 
 Here are some documents that detail the history of HTML:
 
-* [A feature history of the modern web platform](https://platform.html5.org/history/) (2003 onward) ([on GitHub](https://github.com/whatwg/platform.html5.org/blob/master/history/index.html))
-* [HTML's timeline on the ESW wiki](http://esw.w3.org/topic/HTML/history) (1997 to 2008)
+* [A feature history of the modern web platform](https://platform.html5.org/history/) (2003 onward) ([on GitHub](https://github.com/whatwg/platform.html5.org/blob/main/history/index.html))
+* [HTML's timeline on the W3C HTML WG wiki](https://www.w3.org/html/wg/wiki/History) (1997 to 2008)
 * [The history section in the HTML standard itself](https://html.spec.whatwg.org/multipage/introduction.html#history-2)
 
 ## Using HTML
