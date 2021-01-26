@@ -47,7 +47,6 @@ There are a number of ways to track changes to the standard:
 * The Twitter feed: [@htmlstandard](https://twitter.com/htmlstandard)
 * The [GitHub commits log](https://github.com/whatwg/html/commits)
 * The standard is available in the [Git repository](https://github.com/whatwg/html/). You may use any Git client to check out the latest version and use your client's diff tools to compare revisions and see what has been changed.
-* At a broader level, Anne and Simon once wrote a document that gave a high-level overview of changes to HTML over the last decade or so: https://html-differences.whatwg.org/
 
 ### What are the various versions of the HTML Standard?
 
@@ -395,7 +394,7 @@ Some people argue that in such cases, the `<span>` element should be used with a
 
 In essence, the `<i>` and `<b>` elements convey distinct, though non-specific, semantics, which are to be determined by the reader in the context of their use. In other words, although they don't convey specific semantics by themselves, but instead they indicate that the content is somehow semantically distinct from its surroundings — leaving the interpretation of the semantics up to the reader.
 
-This is further explained in the article [The `<b>` and `<i>` Elements](http://lachy.id.au/log/2007/05/b-and-i).
+This is further explained in the article [The `<b>` and `<i>` Elements](https://lachy.id.au/log/2007/05/b-and-i).
 
 Similarly, the `<small>` element is defined for content that is commonly typographically rendered in small print, and which is often referred to as "fine print"; that could include copyright statements, disclaimers and other legal text commonly found at the end of a document.
 
@@ -411,7 +410,7 @@ So, we can't really decide what the element should be based on past practice, li
 
 This leaves the question of what is the most useful use we can put the element to, if we keep it. The conclusion so far has been that the most useful use for `<cite>` is as an element to allow typographic control over titles, since those are often made italics, and that semantic is roughly close to what it meant in previous versions, and happens to match at least one of the common uses for the element. Generally, however, names and titles aren't typeset the same way, so making the element apply to both would lead to confusing typography.
 
-There are already many ways of marking up names already (e.g. the [hCard microformat](http://microformats.org/wiki/hcard), the microdata vCard vocabulary, `<span>` and class names, etc), if you really need it.
+There are already many ways of marking up names already (e.g. the [hCard microformat](https://microformats.org/wiki/hcard), the microdata vCard vocabulary, `<span>` and class names, etc), if you really need it.
 
 ### Do you have any hints on how to use `<section>` and `<article>` and so on?
 
