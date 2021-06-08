@@ -82,11 +82,11 @@ Since then, we've realized that much like the [waterfall model](https://en.wikip
 
 ### Is design rationale documented?
 
-Sort of. Often some record of the rationale for a particular design choice can be found within discussions in the GitHub issue tracker, commit logs, or the mailing-list archive or IRC channel archives. Sometimes, there is an explanation in the specification, but doing that everywhere would make the specification huge.
+Sort of. Often some record of the rationale for a particular design choice can be found within discussions in the GitHub issue tracker, commit logs, or the mailing-list archive or [Chat archives](https://whatwg.org/chat#logs). Sometimes, there is an explanation in the specification, but doing that everywhere would make the specification huge.
 
 For a few cases that someone did take the time document, the information can be found at the following locations:
 
-* [Rationale](https://wiki.whatwg.org/wiki/Rationale) — a page that documents some reasons behind decisions in the spec, originally written and maintained by Variable. If anyone wants to help him out, try to grab someone on [IRC](https://wiki.whatwg.org/wiki/IRC); we're always looking for more contributors and this is a good place to start.
+* [Rationale](https://wiki.whatwg.org/wiki/Rationale) — a page that documents some reasons behind decisions in the spec, originally written and maintained by Variable. If anyone wants to help him out, try to find someone via [Chat](https://whatwg.org/chat); we're always looking for more contributors and this is a good place to start.
 * [Why no namespaces](https://wiki.whatwg.org/wiki/Why_no_namespaces)
 * [Why no script implements](https://wiki.whatwg.org/wiki/Why_no_script_implements)
 * [Why not reuse legend](https://wiki.whatwg.org/wiki/Why_not_reuse_legend) or another _mini-header_ element.
