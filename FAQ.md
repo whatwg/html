@@ -45,9 +45,8 @@ Validity (more often referred to as document conformance in the WHATWG) is a qua
 There are a number of ways to track changes to the standard:
 
 * The Twitter feed: [@htmlstandard](https://twitter.com/htmlstandard)
-* The [GitHub commits log](https://github.com/whatwg/html/commits/master)
+* The [GitHub commits log](https://github.com/whatwg/html/commits)
 * The standard is available in the [Git repository](https://github.com/whatwg/html/). You may use any Git client to check out the latest version and use your client's diff tools to compare revisions and see what has been changed.
-* At a broader level, Anne and Simon once wrote a document that gave a high-level overview of changes to HTML over the last decade or so: https://html-differences.whatwg.org/
 
 ### What are the various versions of the HTML Standard?
 
@@ -83,11 +82,11 @@ Since then, we've realized that much like the [waterfall model](https://en.wikip
 
 ### Is design rationale documented?
 
-Sort of. Often some record of the rationale for a particular design choice can be found within discussions in the GitHub issue tracker, commit logs, or the mailing-list archive or IRC channel archives. Sometimes, there is an explanation in the specification, but doing that everywhere would make the specification huge.
+Sort of. Often some record of the rationale for a particular design choice can be found within discussions in the GitHub issue tracker, commit logs, or the mailing-list archive or [Chat archives](https://whatwg.org/chat#logs). Sometimes, there is an explanation in the specification, but doing that everywhere would make the specification huge.
 
 For a few cases that someone did take the time document, the information can be found at the following locations:
 
-* [Rationale](https://wiki.whatwg.org/wiki/Rationale) — a page that documents some reasons behind decisions in the spec, originally written and maintained by Variable. If anyone wants to help him out, try to grab someone on [IRC](https://wiki.whatwg.org/wiki/IRC); we're always looking for more contributors and this is a good place to start.
+* [Rationale](https://wiki.whatwg.org/wiki/Rationale) — a page that documents some reasons behind decisions in the spec, originally written and maintained by Variable. If anyone wants to help him out, try to find someone via [Chat](https://whatwg.org/chat); we're always looking for more contributors and this is a good place to start.
 * [Why no namespaces](https://wiki.whatwg.org/wiki/Why_no_namespaces)
 * [Why no script implements](https://wiki.whatwg.org/wiki/Why_no_script_implements)
 * [Why not reuse legend](https://wiki.whatwg.org/wiki/Why_not_reuse_legend) or another _mini-header_ element.
@@ -377,8 +376,8 @@ The plan to get the specs to converge again, such as it is, is to just do a bett
 
 Here are some documents that detail the history of HTML:
 
-* [A feature history of the modern web platform](https://platform.html5.org/history/) (2003 onward) ([on GitHub](https://github.com/whatwg/platform.html5.org/blob/master/history/index.html))
-* [HTML's timeline on the ESW wiki](http://esw.w3.org/topic/HTML/history) (1997 to 2008)
+* [A feature history of the modern web platform](https://platform.html5.org/history/) (2003 onward) ([on GitHub](https://github.com/whatwg/platform.html5.org/blob/main/history/index.html))
+* [HTML's timeline on the W3C HTML WG wiki](https://www.w3.org/html/wg/wiki/History) (1997 to 2008)
 * [The history section in the HTML standard itself](https://html.spec.whatwg.org/multipage/introduction.html#history-2)
 
 ## Using HTML
@@ -395,7 +394,7 @@ Some people argue that in such cases, the `<span>` element should be used with a
 
 In essence, the `<i>` and `<b>` elements convey distinct, though non-specific, semantics, which are to be determined by the reader in the context of their use. In other words, although they don't convey specific semantics by themselves, but instead they indicate that the content is somehow semantically distinct from its surroundings — leaving the interpretation of the semantics up to the reader.
 
-This is further explained in the article [The `<b>` and `<i>` Elements](http://lachy.id.au/log/2007/05/b-and-i).
+This is further explained in the article [The `<b>` and `<i>` Elements](https://lachy.id.au/log/2007/05/b-and-i).
 
 Similarly, the `<small>` element is defined for content that is commonly typographically rendered in small print, and which is often referred to as "fine print"; that could include copyright statements, disclaimers and other legal text commonly found at the end of a document.
 
@@ -411,7 +410,7 @@ So, we can't really decide what the element should be based on past practice, li
 
 This leaves the question of what is the most useful use we can put the element to, if we keep it. The conclusion so far has been that the most useful use for `<cite>` is as an element to allow typographic control over titles, since those are often made italics, and that semantic is roughly close to what it meant in previous versions, and happens to match at least one of the common uses for the element. Generally, however, names and titles aren't typeset the same way, so making the element apply to both would lead to confusing typography.
 
-There are already many ways of marking up names already (e.g. the [hCard microformat](http://microformats.org/wiki/hcard), the microdata vCard vocabulary, `<span>` and class names, etc), if you really need it.
+There are already many ways of marking up names already (e.g. the [hCard microformat](https://microformats.org/wiki/hcard), the microdata vCard vocabulary, `<span>` and class names, etc), if you really need it.
 
 ### Do you have any hints on how to use `<section>` and `<article>` and so on?
 
