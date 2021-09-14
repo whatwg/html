@@ -338,6 +338,16 @@ Short of that, there are actually quite a number of ways for people to invent th
 
 HTML allows `<div>` as a grouping element in `<dl>`. See [the `<dl>` specification](https://html.spec.whatwg.org/multipage/#the-dl-element) and [issue #1937](https://github.com/whatwg/html/issues/1937) wherein this was added.
 
+### HTML should add more named character references!
+
+Although this would be convenient, the overall conclusion of the editors and of browser engine implementers is that expanding the [named character references](https://html.spec.whatwg.org/multipage/named-characters.html#named-character-references) list is not worth the cost to the ecosystem:
+
+* The backward-compatibility characteristics of such additions are bad. They do not add new capabilities, since you can already use numeric character references or unescaped code points; they just introduce new ways of writing the same thing, which will fail to display correctly in older browsers.
+
+* The benefits of such features can also be accomplished by preprocessor languages directly. That is, preprocessed languages that compile to HTML, such as Markdown, wiki syntax, JSX, or server-side templating systems, can add these capabilities themselves. The only reason to add these to the browser is to help people writing raw HTML. We do want to support people writing raw HTML, but features for that audience are less impactful than general web platform features, which weighs into the overall decision as to whether to add them or not.
+
+* Most importantly, [the HTML parser is security sensitive](https://github.com/whatwg/html/issues/919#issuecomment-276329905); any changes in it can cause mismatches between markup producers and markup producers until everyone is updated to the latest version, which can lead to security bugs. This means that changes to the parser have to add an extreme amount of value to the ecosystem, to overcome this security hazard. Per the above points, our judgment is that adding or modifying named character references does not meet this bar.
+
 ### Where's the harm in adding...?
 
 Every feature we add to the web platform has a cost:
