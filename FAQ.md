@@ -346,7 +346,7 @@ Although this would be convenient, the overall conclusion of the editors and of 
 
 * The benefits of such features can also be accomplished by preprocessor languages directly. That is, preprocessed languages that compile to HTML, such as Markdown, wiki syntax, JSX, or server-side templating systems, can add these capabilities themselves. The only reason to add these to the browser is to help people writing raw HTML. We do want to support people writing raw HTML, but features for that audience are less impactful than general web platform features, which weighs into the overall decision as to whether to add them or not.
 
-* Most importantly, [the HTML parser is security sensitive](https://github.com/whatwg/html/issues/919#issuecomment-276329905); any changes in it can cause mismatches between markup producers and markup producers until everyone is updated to the latest version, which can lead to security bugs. This means that changes to the parser have to add an extreme amount of value to the ecosystem, to overcome this security hazard. Per the above points, our judgment is that adding or modifying named character references does not meet this bar.
+* Most importantly, [the HTML parser is security sensitive](https://github.com/whatwg/html/issues/919#issuecomment-276329905). Any changes in it can cause mismatches between markup producers and markup consumers until everyone is updated to the latest version, which can lead to security bugs. This means that changes to the parser have to add an extreme amount of value to the ecosystem, to overcome this security hazard. Per the above points, our judgment is that adding or modifying named character references does not meet this bar.
 
 ### Where's the harm in adding...?
 
