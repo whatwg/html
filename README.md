@@ -1,6 +1,6 @@
 This repository hosts the [HTML Standard](https://html.spec.whatwg.org/).
 
-### Code of conduct
+### Code of conduct 
 
 We are committed to providing a friendly, safe and welcoming environment for all. Please read and respect the [WHATWG Code of Conduct](https://whatwg.org/code-of-conduct).
 
@@ -14,4 +14,4 @@ Tests are in the `html/` directory of the [web-platform-tests repository](https:
 
 ### Blame
 
-As the `source` file is too large for [GitHub's blame utility](https://help.github.com/articles/tracing-changes-in-a-file/), use [blame for `source` on searchfox](https://searchfox.org/whatwg-html/source/source) instead.
+As the `Source` File is too large for [GitHub's blame utility](https://help.github.com/articles/tracing-changes-in-a-file/), use [blame for `source` on searchfox](https://searchfox.org/whatwg-html/source/source) instead.
