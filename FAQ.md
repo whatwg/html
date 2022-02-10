@@ -439,4 +439,4 @@ The Web Forms 2.0 specification was folded into what is now the HTML Standard.
 
 The Web Controls 1.0 specification was overtaken by events and has been abandoned. Its problem space is mostly handled by ARIA and Web Components now.
 
-The DOM Parsing specification was abandoned by the WHATWG because the W3C was doing a better job of maintaining that specification. We do not want to cause confusion in the market place, so when another organization writes a specification that covers the same technology as one of ours, we only continue to publish it if our version is technically superior.
+The DOM Parsing specification was abandoned by the WHATWG because the W3C was doing a better job of maintaining that specification. We do not want to cause confusion in the marketplace, so when another organization writes a specification that covers the same technology as one of ours, we only continue to publish it if our version is technically superior.
