@@ -1,4 +1,4 @@
-This repository hosts the [HTML Standard](https://html.spec.whatwg.org/).
+This repository hosts the [HTML  Standard](https://html.spec.whatwg.org/).
 
 ### Code of conduct
 
@@ -9,6 +9,8 @@ We are committed to providing a friendly, safe and welcoming environment for all
 We appreciate all contributions, see the [guidelines for contributing](CONTRIBUTING.md) for details, including information on how to build HTML output from the `source` file so you can preview your changes locally.
 
 ### Tests
+Complete HTML Tutorial
+Everyone can leran [Html Tutorial](https://www.elementtutorials.com/html/html-tutorial.html) from [Element Tutorials](https://www.elementtutorials.com)
 
 Tests are in the `html/` directory of the [web-platform-tests repository](https://github.com/web-platform-tests/wpt).
 
