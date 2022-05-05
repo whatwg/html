@@ -334,7 +334,7 @@ Short of that, there are actually quite a number of ways for people to invent th
 * Authors can use the microdata feature (the `item=""` and `itemprop=""` attributes) to embed nested name-value pairs of data to be shared with other applications and sites.
 * Authors can propose new elements and attributes and, if the wider community and user-agent vendors agree that they are worth the effort, they can be added to the language.
 
-### HTML should group `<dt>`s and `<dd>`s together in `<di>`s!
+### HTML should group `<dt>`s and `<dd>`s together in `<div>`s!
 
 HTML allows `<div>` as a grouping element in `<dl>`. See [the `<dl>` specification](https://html.spec.whatwg.org/multipage/#the-dl-element) and [issue #1937](https://github.com/whatwg/html/issues/1937) wherein this was added.
 
