@@ -1,0 +1,208 @@
+// ==UserScript==
+// @name         1v1.LOL ESP & Wireframe View
+// @namespace    http://tampermonkey.net/
+// @version      0.2
+// @description  Let's you see players behind walls. Comes with a wireframe view mode too. Press V and N to toggle them.
+// @author       Zertalious (Zert)
+// @match        *://1v1.lol/*
+// @icon         https://www.google.com/s2/favicons?domain=1v1.lol
+// @grant        none
+// @run-at       document-start
+// @antifeature  ads
+// ==/UserScript==
+ 
+let espEnabled = true;
+let wireframeEnabled = false;
+ 
+const WebGL = WebGL2RenderingContext.prototype;
+ 
+const uniformName = 'myUniform';
+ 
+WebGL.shaderSource = new Proxy( WebGL.shaderSource, {
+	apply( target, thisArgs, args ) {
+ 
+		const isVertexShader = args[ 1 ].indexOf( 'gl_Position' ) > - 1;
+ 
+		if ( isVertexShader || args[ 1 ].indexOf( 'SV_Target0' ) > - 1 ) {
+ 
+			const varName = isVertexShader ? 'gl_Position.z' : 'SV_Target0';
+			const value = isVertexShader ? '1.0' : 'vec4(1.0, 0.0, 0.0, 1.0)';
+ 
+			args[ 1 ] = args[ 1 ].replace( 'void main', 'uniform bool ' + uniformName + ';\nvoid main' )
+				.replace( /return;/, `${varName} = ${uniformName} ? ${value} : ${varName};` );
+ 
+		}
+ 
+		return Reflect.apply( ...arguments );
+ 
+	}
+} );
+ 
+WebGL.getUniformLocation = new Proxy( WebGL.getUniformLocation, {
+	apply( target, thisArgs, [ program, name ] ) {
+ 
+		const result = Reflect.apply( ...arguments );
+ 
+		if ( result ) {
+ 
+			result.name = name;
+			result.program = program;
+ 
+		}
+ 
+		return result;
+ 
+	}
+} );
+ 
+WebGL.uniform4fv = new Proxy( WebGL.uniform4fv, {
+	apply( target, thisArgs, args ) {
+ 
+		if ( args[ 0 ].name === 'hlslcc_mtx4x4unity_ObjectToWorld' ) {
+ 
+			args[ 0 ].program.isUIProgram = true;
+ 
+		}
+ 
+		return Reflect.apply( ...arguments );
+ 
+	}
+} );
+ 
+WebGL.drawElements = new Proxy( WebGL.drawElements, {
+	apply( target, thisArgs, args ) {
+ 
+		const program = thisArgs.getParameter( thisArgs.CURRENT_PROGRAM );
+ 
+		if ( ! program.uniformLocation ) {
+ 
+			program.uniformLocation = thisArgs.getUniformLocation( program, uniformName );
+ 
+		}
+ 
+		thisArgs.uniform1i( program.uniformLocation, espEnabled && args[ 1 ] > 4000 );
+ 
+		args[ 0 ] = wireframeEnabled && ! program.isUIProgram && args[ 1 ] > 6 ? thisArgs.LINES : args[ 0 ];
+ 
+		return Reflect.apply( ...arguments );
+ 
+	}
+} );
+ 
+window.addEventListener( 'keyup', function ( event ) {
+ 
+	switch ( String.fromCharCode( event.keyCode ) ) {
+ 
+		case 'V' : espEnabled = ! espEnabled; break;
+		case 'N' : wireframeEnabled = ! wireframeEnabled; break;
+ 
+	}
+ 
+} );
+ 
+window.addEventListener( 'DOMContentLoaded', function () {
+ 
+	const value = parseInt( new URLSearchParams( window.location.search ).get( 'showAd' ), 16 );
+ 
+	const shouldShowAd = isNaN( value ) || Date.now() - value < 0 || Date.now() - value > 10 * 60 * 1000;
+ 
+	const el = document.createElement( 'div' );
+	
+	el.innerHTML = `<style>
+	
+	.dialog {
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		padding: 20px;
+		background: #1e294a;
+		color: #fff;
+		transform: translate(-50%, -50%);
+		text-align: center;
+		z-index: 999999;
+		font-family: cursive;
+	}
+	
+	.dialog * {
+		color: #fff;
+	}
+	
+	.close {
+		position: absolute;
+		right: 5px;
+		top: 5px;
+		width: 20px;
+		height: 20px;
+		opacity: 0.5;
+		cursor: pointer;
+	}
+	
+	.close:before, .close:after {
+		content: ' ';
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		width: 100%;
+		height: 20%;
+		transform: translate(-50%, -50%) rotate(-45deg);
+		background: #fff;
+	}
+	
+	.close:after {
+		transform: translate(-50%, -50%) rotate(45deg);
+	}
+	
+	.close:hover {
+		opacity: 1;
+	}
+	
+	.btn {
+		cursor: pointer;
+		padding: 0.5em;
+		background: red;
+		border: 3px solid rgba(0, 0, 0, 0.2);
+	}
+	
+	.btn:active {
+		transform: scale(0.8);
+	}
+	
+	</style>
+	<div class="dialog">${shouldShowAd ? `<big>Loading ad...</big>` : `<div class="close" onclick="this.parentNode.style.display='none';"></div>
+		<big>ESP & Wireframe</big>
+		<br>
+		<br>
+		[V] to toggle ESP
+		<br>
+		[N] to toggle wireframe
+		<br>
+		<br>
+		By Zertalious
+		<br>
+		<br>
+		<div style="display: grid; grid-template-columns: 1fr 1fr; grid-gap: 5px;">
+			<div class="btn" onclick="window.open('https://discord.gg/K24Zxy88VM')">Discord</div>
+			<div class="btn" onclick="window.open('https://www.instagram.com/zertalious/', '_blank')">Instagram</div>
+			<div class="btn" onclick="window.open('https://twitter.com/Zertalious', '_blank')">Twitter</div>
+			<div class="btn" onclick="window.open('https://greasyfork.org/en/users/662330-zertalious', '_blank')">More scripts</div>
+		</div>
+		` }
+	</div>`;
+	
+	while ( el.children.length > 0 ) {
+	
+		document.body.appendChild( el.children[ 0 ] );
+	
+	}
+	 
+	if ( shouldShowAd ) {
+ 
+		const url = new URL( window.location.href );
+	
+		url.searchParams.set( 'showAd', Date.now().toString( 16 ) );
+	
+		window.location.href = 'https://zertalious.xyz?ref=' + new TextEncoder().encode( url.href ).toString();
+	
+	}
+ 
+} );
