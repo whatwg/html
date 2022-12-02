@@ -52,7 +52,7 @@ There are a number of ways to track changes to the standard:
 
 The HTML Standard is available in three forms: [single-page](https://html.spec.whatwg.org/) (_very large_), [multi-page](https://html.spec.whatwg.org/multipage/), and the [developer's edition](https://html.spec.whatwg.org/dev/).
 
-The W3C has published some [forked versions](https://wiki.whatwg.org/wiki/Fork_tracking) of the HTML Standard. They are no longer maintained and expected to redirect to the HTML Standard in due course.
+The W3C used to publish some [forked versions](https://wiki.whatwg.org/wiki/Fork_tracking) of the HTML Standard. They are no longer maintained and now redirect to the HTML Standard. If you spot any others please open an issue on [w3c/whatwg-coord](https://github.com/w3c/whatwg-coord/issues/) so the W3C staff can work to get them redirected.
 
 ### How do I know if a particular feature in the standard is ready to use?
 
@@ -364,32 +364,6 @@ Every feature we add to the web platform has a cost:
 * Bug fixing: when bugs are found in the spec or implementations, someone has to figure out a fix, implement it, test it, ship it, tests have to be fixed, documentation has to be updated, etc
 * Code size: each feature increases the size of browsers (both on-disk binaries and in-memory resident size)
 
-## WHATWG and the W3C HTML WG
-
-### Are there plans to merge the groups?
-
-No. The two groups have different goals. The WHATWG spec is intended to describe what browsers should aim for, introducing new features and describing reality in as much, and as accurate, detail as possible. The W3C spec is intended to follow the W3C process to REC.
-
-On the WHATWG side, the editors read the feedback sent to both groups and take all input into account — and indeed there are far more places where input on HTML is sent than just these two mailing lists (e.g. blogs, www-html@w3.org, forums, direct mail, meetings, etc). (In particular, the editors do not look at the source of technical arguments when attempting to determine what path to take on an issue or other.)
-
-### Which group has authority in the event of a dispute?
-
-The two groups have different specs, so each has authority over its spec. The specs can and have diverged on some topics; unfortunately, these differences are not documented anywhere.
-
-### Isn't it bad that the specs have forked?
-
-Yes. The WHATWG originally committed to remaining consistent with the W3C spec unless the W3C working group showed a lapse in judgement. When that (in Hixie's opinion) occurred, there was little choice left but to let the specs diverge.
-
-The plan to get the specs to converge again, such as it is, is to just do a better job with the WHATWG spec, such that it becomes the logical and obvious choice for anyone wanting to figure out which spec they should use.
-
-### What is the history of HTML?
-
-Here are some documents that detail the history of HTML:
-
-* [A feature history of the modern web platform](https://platform.html5.org/history/) (2003 onward) ([on GitHub](https://github.com/whatwg/platform.html5.org/blob/main/history/index.html))
-* [HTML's timeline on the W3C HTML WG wiki](https://www.w3.org/html/wg/wiki/History) (1997 to 2008)
-* [The history section in the HTML standard itself](https://html.spec.whatwg.org/multipage/introduction.html#history-2)
-
 ## Using HTML
 
 ### Why are some presentational elements like `<b>`, `<i>` and `<small>` still included?
@@ -426,10 +400,32 @@ There are already many ways of marking up names already (e.g. the [hCard microfo
 
 Some hopefully helpful hints:
 
-* One way to look at it is how would you draw the page outline/table-of-contents? Each entry in the table of contents should be a `<section>`/`<article>`/`<aside>`/`<nav>`, and if it's not in the table of contents and doesn't have an `<h1>`, it should probably not be a `<section>`/`<article>`/`<aside>`/`<nav>`.
+* One way to look at it is how would you draw the page outline/table-of-contents? Each entry in the table of contents should be a `<section>`/`<article>`/`<aside>`/`<nav>`, and if it's not in the table of contents and doesn't have a heading, it should probably not be a `<section>`/`<article>`/`<aside>`/`<nav>`.
 * You can still use `<div>`. It's the right element if you need a styling hook because CSS can't give you enough to do what you want.
-* Generally, `<section>`s should start with an `<h1>` and the section title. It's not a hard-and-fast rule, but if you find yourself in a situation where an `<h1>` would be inappropriate, you probably want `<div>` rather than `<section>`.
-* Sections can contain Articles, and vice versa. e.g. you can have a section that is news, a section that is editorials, a section that is sports, each with many articles, and each of those can have subsections, and each section can have comments, which are marked up using `<article>`, and each comment could be big enough that it has separate `<section>`s, and so on.
+* Generally, `<section>`s should start with a heading element containing the section title. It's not a hard-and-fast rule, but if you find yourself in a situation where a heading would be inappropriate, you probably want `<div>` rather than `<section>`.
+* Sections can contain articles, and vice versa. e.g. you can have a section that is news, a section that is editorials, a section that is sports, each with many articles, and each of those can have subsections, and each section can have comments, which are marked up using `<article>`, and each comment could be big enough that it has separate `<section>`s, and so on.
+
+## WHATWG and the W3C HTML WG
+
+### Are there plans to merge the groups?
+
+No. The two groups have different goals. The WHATWG develops the standard. The W3C HTML WG's goal is to endorse the WHATWG [HTML Review Drafts](https://html.spec.whatwg.org/review-drafts/) as W3C Recommendations. You can learn more about this in the [Memorandum of Understanding](https://www.w3.org/2019/04/WHATWG-W3C-MOU.html) that outlines the process.
+
+On the WHATWG side, the editors accept feedback from all participants and organizations, including those from other standards bodies like the W3C or Ecma, via our GitHub issue tracker. (In particular, the editors do not look at the source of technical arguments when attempting to determine what path to take on an issue or other.)
+
+### Which group has authority in the event of a dispute?
+
+The WHATWG editors determine what gets merged into the WHATWG Living Standard, according to the [WHATWG Working Mode](https://whatwg.org/working-mode). If participants from the community, including from the W3C HTML WG, dispute an editor decision, they can [raise an issue for discussion with the WHATWG Steering Group](https://whatwg.org/workstream-policy#appeals).
+
+In the case of W3C HTML WG participants in particular, there is a [conflict procedure](https://www.w3.org/2019/04/WHATWG-W3C-MOU.html#conflict) they can follow to raise their concerns with others in the W3C. Ultimately, this might result in the group choosing not to endorse the most recent contents of the WHATWG HTML Standard as a W3C Recommendation.
+
+## What is the history of HTML?
+
+Here are some documents that detail the history of HTML:
+
+* [A feature history of the modern web platform](https://platform.html5.org/history/) (2003 onward) ([on GitHub](https://github.com/whatwg/platform.html5.org/blob/main/history/index.html))
+* [HTML's timeline on the W3C HTML WG wiki](https://www.w3.org/html/wg/wiki/History) (1997 to 2008)
+* [The history section in the HTML Standard itself](https://html.spec.whatwg.org/multipage/introduction.html#history-2)
 
 ## Other specifications
 
