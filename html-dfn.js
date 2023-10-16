@@ -197,4 +197,4 @@ if (isMultipage) {
   window.addEventListener('pageshow', restoreOrClosePanelOnNav);
 }
 
-})();
+});
