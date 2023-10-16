@@ -131,4 +131,4 @@ function getPreviousNavigationElement(currentEl) {
   return prevLI ? prevLI.firstChild : query;
 }
 
-})();
+});
