@@ -1,4 +1,4 @@
-# HTML Standard contributor guidelines
+# HTML Standard Contributor Guidelines
 
 These are the guidelines for contributing to the HTML Standard. First see the [WHATWG contributor guidelines](https://github.com/whatwg/meta/blob/main/CONTRIBUTING.md).
 
@@ -8,7 +8,7 @@ We label [good first issues](https://github.com/whatwg/html/labels/good%20first%
 
 We'd be happy to mentor you through this process. If you're interested and need help getting started, leave a comment on the issue or bug, or [ask around](https://whatwg.org/chat). The [FAQ](FAQ.md) may also be helpful.
 
-## Pull requests
+## Pull Requests
 
 In short, change `source` and submit your patch, with a [good commit message](https://github.com/erlang/otp/wiki/Writing-good-commit-messages). Try to follow the source formatting rules below.
 
@@ -18,7 +18,7 @@ Please add your name to the Acknowledgments section (search for `<!-- ACKS`) in 
 
 To preview your changes locally, follow the instructions in the [html-build repository](https://github.com/whatwg/html-build).
 
-## The developer's edition
+## The Developer's Edition
 
 In addition to generating the [singlepage](https://html.spec.whatwg.org/) and [multipage](https://html.spec.whatwg.org/multipage/) specifications, we also generate an [edition for developers](https://html.spec.whatwg.org/dev/). This is meant to exclude content that is of interest only to implementers. We can always use community help in properly enforcing this distinction, especially since for a long period the developer's edition was not working and so we made a lot of changes without properly considering their impact on it.
 
@@ -42,7 +42,7 @@ On the other hand, we want to especially keep:
 
 In between these clear-cut categories, there is some gray area. Please feel free to open an issue if you think something is being included that shouldn't be, or is being excluded but should be kept.
 
-## Source formatting
+## Source Formatting
 
 Due to the long legacy of the existing text the guidelines below are not always applied. We do require that you apply the guidelines when making changes, though are happy to provide assistance if this proves to be a blocker to you.
 
