@@ -35,10 +35,10 @@ In general we want to omit from the developer's edition:
 
 On the other hand, we want to especially keep:
 
-* High-level descriptions and introductions
-* Authoring instructions
-* Examples
-* Helpful notes about common situations
+* High-level descriptions and introductions.
+* Authoring instructions.
+* Examples.
+* Helpful notes about common situations.
 
 In between these clear-cut categories, there is some gray area. Please feel free to open an issue if you think something is being included that shouldn't be, or is being excluded but should be kept.
 
