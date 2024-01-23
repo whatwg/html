@@ -12,7 +12,7 @@ We'd be happy to mentor you through this process. If you're interested and need 
 
 In short, change `source` and submit your patch, with a [good commit message](https://github.com/erlang/otp/wiki/Writing-good-commit-messages). Try to follow the source formatting rules below.
 
-Note that `source` is written in a dialect of HTML, which is eventually compiled into the deployed standard by a tool called [Wattsi](https://github.com/whatwg/wattsi). Documentation for this dialect can be found [in the Wattsi repository](https://github.com/whatwg/wattsi/blob/main/Syntax.md).
+Note that `source` is written in [Wattsi Syntax](https://github.com/whatwg/wattsi/blob/main/Syntax.md), a dialect of HTML, which is eventually compiled into the deployed standard by a tool called [Wattsi](https://github.com/whatwg/wattsi).
 
 Please add your name to the Acknowledgments section (search for `<!-- ACKS`) in your first pull request, even for trivial fixes. The names are sorted lexicographically.
 
@@ -35,10 +35,10 @@ In general we want to omit from the developer's edition:
 
 On the other hand, we want to especially keep:
 
-* High-level descriptions and introductions
-* Authoring instructions
-* Examples
-* Helpful notes about common situations
+* High-level descriptions and introductions.
+* Authoring instructions.
+* Examples.
+* Helpful notes about common situations.
 
 In between these clear-cut categories, there is some gray area. Please feel free to open an issue if you think something is being included that shouldn't be, or is being excluded but should be kept.
 

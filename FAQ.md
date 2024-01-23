@@ -130,7 +130,7 @@ These alternatives were chosen because they meet the following criteria:
 
 ### Under what conditions should a DOCTYPE be used in a document delivered with an XML media type?
 
-Generally, the use of a DOCTYPE in an document delivered with an XML media type is unnecessary. However, there are cases where inclusion of a DOCTYPE is a reasonable thing to do:
+Generally, the use of a DOCTYPE in a document delivered with an XML media type is unnecessary. However, there are cases where inclusion of a DOCTYPE is a reasonable thing to do:
 
 1. The document is intended to be a polyglot document such that the same text may be treated as either HTML or XML.
 2. You wish to declare entity references for use within the document. Note that most browsers only read the internal subset and do not retrieve external entities. (This is not compatible with HTML, and thus not suitable for polyglot documents.)
