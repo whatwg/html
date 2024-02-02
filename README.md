@@ -1,4 +1,6 @@
-This repository hosts the [HTML Standard](https://html.spec.whatwg.org/).
+### About us
+
+This repository hosts the [HTML Standard](https://html.spec.whatwg.org/), which standardizes how documents are displayed on web pages and web applications. The HyperText Markup Language defines the syntax, parsing rules, and the document object model (DOM), ensuring consistency across the web. By adhering to the standard, developers aid in creating a compatible, resilient, and user friendly world wide web.
 
 ### Code of conduct
 
