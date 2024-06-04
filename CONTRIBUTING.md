@@ -44,9 +44,13 @@ In between these clear-cut categories, there is some gray area. Please feel free
 
 ## Source formatting
 
+### Line wrapping length
+
 Due to the long legacy of the existing text the guidelines below are not always applied. We do require that you apply the guidelines when making changes, though are happy to provide assistance if this proves to be a blocker to you.
 
 Use a column width of 100 characters and add newlines where whitespace is used. (Emacs, set `fill-column` to `100`; in Vim, set `textwidth` to `100`; and in Sublime, set `wrap_width` to `100`. Alternatively, wrap the paragraph(s) with your changes with https://domenic.github.io/rewrapper/. Make sure that `column length to rewrap` is set to 100.)
+
+### Wrapping opportunities
 
 Using newlines between "inline" element tag names and their content is forbidden. (This actually alters the content, by adding spaces.) That is,
 ```html
@@ -61,7 +65,15 @@ is fine and
 is not.
 
 Using newlines between attributes and inside attribute values that contain whitespace is allowed.
+
 Always wrap after putting the maximum number of characters on a single line within these guidelines.
+
+```html
+  <p>A <code>base</code> element that is the first <code>base</code> element with an <code
+  data-x="attr-base-href">href</code> content attribute <span>in a document tree</span> has a
+```
+
+### Element hierarchy
 
 An `<li>` element always has a `<p>` element inside it, unless it's a child of `<ul class="brief">`.
 
@@ -93,3 +105,22 @@ is not indented, but
 is.
 
 End tags must not be omitted (except where it is consistent to do so) and attribute values must be quoted (use double quotes).
+
+### Misc wording
+
+ - Use the **"run these steps"** convention to describe what an algorithm that starts with "To", does. [Example #1](https://html.spec.whatwg.org/C#parse-a-url); [Example #2](https://html.spec.whatwg.org/C#create-a-potential-cors-request).
+ - **"If foo, then bar"** instead of "If foo, bar". ([Example](https://github.com/whatwg/html/pull/10269#discussion_r1568114777)]
+ - **"Abort these steps" vs "return"**.
+   - We've passively evolved the pattern of reserving "return" for exiting algorithms and methods, and "abort these steps" for terminating a set of substeps / [in parallel](https://html.spec.whatwg.org/C#in-parallel) steps, without messing with the control flow of the "outer" procedure. See [this logic](https://github.com/WICG/portals/pull/138#discussion_r292649287), as well as https://github.com/whatwg/infra/issues/258 and https://github.com/whatwg/infra/pull/255.
+ - **Usage of positional, optional, and named[^1] (i.e., linkable) parameters**. See [this logic](https://docs.google.com/document/d/1yxnzjRDVmAR5CC9GcAyY448lBD0u0E98eUEMHDhx1Dw/edit?disco=AAAAeXYly54) for how to order and refer to these.
+ - **Nesting 3+ conditions** in an "if all of the following are true" clause, for readability. [Example](https://github.com/whatwg/html/pull/9778#discussion_r1540615160).
+ - **Conjugating algorithm invocations inline** so they read more naturally in English, instead of more procedurally. [Example](https://github.com/whatwg/html/pull/9778#discussion_r1574075112).
+
+
+Prefer American English to British English. Examples:
+
+ - "implement**e**r" instead of "implement**o**r"
+ - "e.g.," vs "e.g."
+ - "i.e.," vs "i.e."
+
+[^1]: For example, see parameters like https://html.spec.whatwg.org/C#navigation-referrer-policy, which are named/linkable parameters in an algorithm's declaration.
