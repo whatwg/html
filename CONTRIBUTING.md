@@ -107,9 +107,9 @@ End tags must not be omitted (except where it is consistent to do so) and attrib
 ### Misc wording
 
  - Use the **"run these steps"** convention to describe what an algorithm that starts with "To", does. [Example #1](https://html.spec.whatwg.org/C#parse-a-url); [Example #2](https://html.spec.whatwg.org/C#create-a-potential-cors-request).
- - **"If foo, then bar"** instead of "If foo, bar". ([Example](https://github.com/whatwg/html/pull/10269#discussion_r1568114777)]
+ - **"If foo, then bar"** instead of "If foo, bar".  [Example](https://github.com/whatwg/html/pull/10269#discussion_r1568114777).
  - **"Abort these steps" vs "return"**.
-   - We've passively evolved the pattern of reserving "return" for exiting algorithms and methods, and "abort these steps" for terminating a set of substeps / [in parallel](https://html.spec.whatwg.org/C#in-parallel) steps, without messing with the control flow of the "outer" procedure. See [this logic](https://github.com/WICG/portals/pull/138#discussion_r292649287), as well as https://github.com/whatwg/infra/issues/258 and https://github.com/whatwg/infra/pull/255.
+   - We've passively evolved the pattern of reserving "return" for exiting algorithms and methods, and "abort these steps" for terminating a set of substeps / [in parallel](https://html.spec.whatwg.org/C#in-parallel) steps without messing with the control flow of the "outer" procedure. See [this logic](https://github.com/WICG/portals/pull/138#discussion_r292649287), as well as https://github.com/whatwg/infra/issues/258 and https://github.com/whatwg/infra/pull/255.
  - **Usage of positional, optional, and named[^1] (i.e., linkable) parameters**. See [this logic](https://docs.google.com/document/d/1yxnzjRDVmAR5CC9GcAyY448lBD0u0E98eUEMHDhx1Dw/edit?disco=AAAAeXYly54) for how to order and refer to these.
  - **Nesting 3+ conditions** in an "if all of the following are true" clause, for readability. [Example](https://github.com/whatwg/html/pull/9778#discussion_r1540615160).
  - **Conjugating algorithm invocations inline** so they read more naturally in English, instead of more procedurally. [Example](https://github.com/whatwg/html/pull/9778#discussion_r1574075112).
