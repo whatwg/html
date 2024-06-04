@@ -64,9 +64,7 @@ is fine and
 ```
 is not.
 
-Using newlines between attributes and inside attribute values that contain whitespace is allowed.
-
-Always wrap after putting the maximum number of characters on a single line within these guidelines.
+Using newlines between attributes and inside attribute values that contain whitespace is allowed. Always wrap after putting the maximum number of characters on a single line within these guidelines.
 
 ```html
   <p>A <code>base</code> element that is the first <code>base</code> element with an <code
