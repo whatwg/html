@@ -42,15 +42,20 @@ On the other hand, we want to especially keep:
 
 In between these clear-cut categories, there is some gray area. Please feel free to open an issue if you think something is being included that shouldn't be, or is being excluded but should be kept.
 
-## Source formatting
+## Style guide
 
-### Line wrapping length
+The HTML Standard generally follows style conventions listed in the [Infra Standard](https://infra.spec.whatwg.org) and the [WHATWG style guide](https://whatwg.org/style-guide). Additionally, the HTML Standard follows some specific style conventions not captured by those documents, that we enumerate below.
 
-Due to the long legacy of the existing text the guidelines below are not always applied. We do require that you apply the guidelines when making changes, though are happy to provide assistance if this proves to be a blocker to you.
+Due to the long legacy of the existing text, these guidelines are not always applied. We do require that you apply the guidelines when making changes, though are happy to provide assistance if this proves to be a blocker to you.
+
+### Source formatting
+
+
+#### Line wrapping length
 
 Use a column width of 100 characters and add newlines where whitespace is used. (Emacs, set `fill-column` to `100`; in Vim, set `textwidth` to `100`; and in Sublime, set `wrap_width` to `100`. Alternatively, wrap the paragraph(s) with your changes with https://domenic.github.io/rewrapper/. Make sure that `column length to rewrap` is set to 100.)
 
-### Wrapping opportunities
+#### Wrapping opportunities
 
 Using newlines between "inline" element tag names and their content is forbidden. (This actually alters the content, by adding spaces.) That is,
 ```html
@@ -104,7 +109,9 @@ is.
 
 End tags must not be omitted (except where it is consistent to do so) and attribute values must be quoted (use double quotes).
 
-### Misc wording
+### Common mistakes around prose style
+
+This section lists style conventions that are typically covered by Infra or the WHATWG style guide, but that are nevertheless frequent sources of style nits by editors of the HTML Standard.
 
  - Use the **"run these steps"** convention to describe what an algorithm that starts with "To", does. [Example #1](https://html.spec.whatwg.org/C#parse-a-url); [Example #2](https://html.spec.whatwg.org/C#create-a-potential-cors-request).
  - **"If foo, then bar"** instead of "If foo, bar".  [Example](https://github.com/whatwg/html/pull/10269#discussion_r1568114777).
@@ -113,12 +120,6 @@ End tags must not be omitted (except where it is consistent to do so) and attrib
  - **Usage of positional, optional, and named[^1] (i.e., linkable) parameters**. See [this logic](https://docs.google.com/document/d/1yxnzjRDVmAR5CC9GcAyY448lBD0u0E98eUEMHDhx1Dw/edit?disco=AAAAeXYly54) for how to order and refer to these.
  - **Nesting 3+ conditions** in an "if all of the following are true" clause, for readability. [Example](https://github.com/whatwg/html/pull/9778#discussion_r1540615160).
  - **Conjugating algorithm invocations inline** so they read more naturally in English, instead of more procedurally. [Example](https://github.com/whatwg/html/pull/9778#discussion_r1574075112).
-
-
-Prefer American English to British English. Examples:
-
- - "implement**e**r" instead of "implement**o**r"
- - "e.g.," vs "e.g."
- - "i.e.," vs "i.e."
+ - Prefer American English to British English; see the [WHATWG style guide](https://whatwg.org/style-guide).
 
 [^1]: For example, see parameters like https://html.spec.whatwg.org/C#navigation-referrer-policy, which are named/linkable parameters in an algorithm's declaration.
