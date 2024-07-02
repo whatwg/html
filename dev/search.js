@@ -1,134 +1,119 @@
 'use strict';
+
 // Find-as-you-type search
+document.addEventListener('DOMContentLoaded', () => {
+  const search = document.getElementById('search');
+  const query = document.getElementById('query');
+  const resultsList = document.getElementById('results');
+  const maxResults = 10;
 
-(function() {
+  const UP_KEY_CODE = 38;
+  const DOWN_KEY_CODE = 40;
 
-const search = document.getElementById('search');
-const query = document.getElementById('query');
-const resultsList = document.getElementById('results');
-const maxResults = 10;
+  let jsonResponses = [];
 
-const UP_KEY_CODE = 38;
-const DOWN_KEY_CODE = 40;
-
-let jsonResponses = [];
-
-fetch('search-index.json')
-  .then(response => response.json())
-  .then(data => jsonResponses = data)
-  .catch(err => console.error('Error loading search-index.json'));
-
-function resultTemplate(result) {
-  return `<li><a href="${result.url}">${result.text} <span>Section ${result.section}</span></a></li>`;
-}
-
-function findSections(word, responses) {
-  // If input is empty, show nothing.
-  if (!word) {
-    return [];
-  }
-
-  return responses
-    .filter((response) => {
-      const regex = new RegExp(word, 'gi');
-      return response.text.match(regex);
-    })
-    .map(response => resultTemplate(response))
-    .slice(0, maxResults).join('');
-}
-
-function renderResults(results) {
-  resultsList.innerHTML = findSections(results, jsonResponses);
-}
-
-query.addEventListener('input', (event) => {
-  renderResults(event.target.value);
-});
-
-// Move between query and results with keyboard
-document.addEventListener('keydown', (event) => {
-  const current = getCurrentNavigationElement();
-  if (!current) {
-    return;
-  }
-
-  const keyCode = event.keyCode;
-  let element;
-  if (keyCode === UP_KEY_CODE) {
-    element = getPreviousNavigationElement(current);
-  }
-  if (keyCode === DOWN_KEY_CODE) {
-    element = getNextNavigationElement(current);
-  }
-
-  if (element) {
-    element.focus();
-    event.preventDefault();
-  }
-});
-
-// Focus element on mouse over
-resultsList.addEventListener('mousemove', (event) => {
-  const target = event.target;
-  if (target && target.nodeName === 'A') {
-    target.focus();
-  }
-});
-
-// If we go back from other place and click on the input, do the search again.
-query.addEventListener('click', event => renderResults(query.value));
-
-// When click on search area focus on input
-search.addEventListener('click', event => query.focus());
-
-// Slash to search '/'
-document.addEventListener('keyup', (event) => {
-  if (event.keyCode === 191) {
-    query.focus();
-  }
-});
-
-// Clean results when click outside the search bar
-document.addEventListener('click', (event) => {
-  if (event.target !== query) {
-    renderResults('');
-  }
-});
-
-function getCurrentNavigationElement() {
-  const active = document.activeElement;
-  if (active === query) {
-    return active;
-  }
-
-  const parent = active.parentNode;
-  if (parent) {
-    const grandparent = parent.parentNode;
-    if (grandparent === resultsList) {
-      return active;
+  async function fetchSearchIndex() {
+    try {
+      const response = await fetch('search-index.json');
+      jsonResponses = await response.json();
+    } catch (err) {
+      console.error('Error loading search-index.json', err);
     }
   }
-  return null;
-}
 
-function getNextNavigationElement(currentEl) {
-  if (currentEl === query) {
-    return resultsList.querySelector('a');
-  }
+  fetchSearchIndex();
 
-  const nextLI = currentEl.parentNode.nextSibling;
-  return nextLI ? nextLI.firstChild : query;
-}
+  const resultTemplate = (result) =>
+    `<li><a href="${result.url}">${result.text} <span>Section ${result.section}</span></a></li>`;
 
-function getPreviousNavigationElement(currentEl) {
-  const allResults = resultsList.querySelectorAll('a');
+  const findSections = (word, responses) => {
+    if (!word) return [];
 
-  if (currentEl === query) {
-    return allResults.length > 0 ? allResults[allResults.length - 1] : null;
-  }
+    const regex = new RegExp(word, 'gi');
+    return responses
+      .filter((response) => response.text.match(regex))
+      .map(resultTemplate)
+      .slice(0, maxResults)
+      .join('');
+  };
 
-  const prevLI = currentEl.parentNode.previousSibling;
-  return prevLI ? prevLI.firstChild : query;
-}
+  const renderResults = (results) => {
+    resultsList.innerHTML = findSections(results, jsonResponses);
+  };
 
-})();
+  query.addEventListener('input', (event) => {
+    renderResults(event.target.value);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    const current = getCurrentNavigationElement();
+    if (!current) return;
+
+    let element;
+    if (event.keyCode === UP_KEY_CODE) {
+      element = getPreviousNavigationElement(current);
+    }
+    if (event.keyCode === DOWN_KEY_CODE) {
+      element = getNextNavigationElement(current);
+    }
+
+    if (element) {
+      element.focus();
+      event.preventDefault();
+    }
+  });
+
+  resultsList.addEventListener('mousemove', (event) => {
+    const target = event.target;
+    if (target && target.nodeName === 'A') {
+      target.focus();
+    }
+  });
+
+  query.addEventListener('click', () => renderResults(query.value));
+
+  search.addEventListener('click', () => query.focus());
+
+  document.addEventListener('keyup', (event) => {
+    if (event.keyCode === 191) {
+      query.focus();
+    }
+  });
+
+  document.addEventListener('click', (event) => {
+    if (event.target !== query) {
+      renderResults('');
+    }
+  });
+
+  const getCurrentNavigationElement = () => {
+    const active = document.activeElement;
+    if (active === query) return active;
+
+    const parent = active.parentNode;
+    if (parent && parent.parentNode === resultsList) {
+      return active;
+    }
+    return null;
+  };
+
+  const getNextNavigationElement = (currentEl) => {
+    if (currentEl === query) {
+      return resultsList.querySelector('a');
+    }
+
+    const nextLI = currentEl.parentNode.nextSibling;
+    return nextLI ? nextLI.firstChild : query;
+  };
+
+  const getPreviousNavigationElement = (currentEl) => {
+    const allResults = resultsList.querySelectorAll('a');
+
+    if (currentEl === query) {
+      return allResults.length > 0 ? allResults[allResults.length - 1] : null;
+    }
+
+    const prevLI = currentEl.parentNode.previousSibling;
+    return prevLI ? prevLI.firstChild : query;
+  };
+});
