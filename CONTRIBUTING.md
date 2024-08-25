@@ -118,7 +118,28 @@ This section lists style conventions that are typically covered by Infra or the 
  - **"Abort these steps" vs "return"**.
    - We've passively evolved the pattern of reserving "return" for exiting algorithms and methods, and "abort these steps" for terminating a set of substeps / [in parallel](https://html.spec.whatwg.org/C#in-parallel) steps without altering with the control flow of the "outer" procedure. See examples in [this section on parallelism](https://html.spec.whatwg.org/C#parallelism) and elsewhere throughout the spec, as well as https://github.com/whatwg/infra/issues/258.
  - **Usage of positional, optional, and named[^1] (i.e., linkable) parameters**. See [this logic](https://docs.google.com/document/d/1yxnzjRDVmAR5CC9GcAyY448lBD0u0E98eUEMHDhx1Dw/edit?disco=AAAAeXYly54) for how to order and refer to these.
- - **Nesting 3+ conditions** in an "if all of the following are true" clause, for readability. [Example](https://github.com/whatwg/html/pull/9778#discussion_r1540615160).
+ - **Nesting 3+ conditions** in a list, the style should look like so:
+   ```html
+     <li><p>Foo.</p></li>
+
+     <li>
+      <p>If (any|all) of the following are true:</p>
+      
+      <ul class="brief">
+       <li><p>Condition 1;</p></li>
+
+       <li><p>Condition 2;</p></li>
+
+       <li><p>Condition 3; (and|or)</p></li>
+
+       <li><p>Condition 4,</p></li>
+      </ul>
+
+      <p>then…</p>
+     </li>
+     
+     <li><p>Baz.</p></li>
+   ```
  - **Conjugating algorithm invocations inline** so they read more naturally in English, instead of more procedurally. [Example](https://github.com/whatwg/html/pull/9778#discussion_r1574075112).
  - Prefer American English to British English; see the [WHATWG style guide](https://whatwg.org/style-guide).
 
