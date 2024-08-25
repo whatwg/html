@@ -114,9 +114,9 @@ End tags must not be omitted (except where it is consistent to do so) and attrib
 This section lists style conventions that are typically covered by Infra or the WHATWG style guide, but that are nevertheless frequent sources of style nits by editors of the HTML Standard.
 
  - Use the [algorithm declaration conventions](https://infra.spec.whatwg.org/#algorithm-declaration) in the Infra Standard.
- - **"If foo, then bar"** instead of "If foo, bar".  [Example](https://github.com/whatwg/html/pull/10269#discussion_r1568114777).
+ - **"If foo, then bar"** instead of "If foo, bar". [Example](https://github.com/whatwg/html/pull/10269#discussion_r1568114777).
  - **"Abort these steps" vs "return"**. We've passively evolved the pattern of reserving "return" for exiting algorithms and methods, and "abort these steps" for terminating a set of substeps / [in parallel](https://html.spec.whatwg.org/C#in-parallel) steps without altering with the control flow of the "outer" procedure. See examples in [this section on parallelism](https://html.spec.whatwg.org/C#parallelism) and elsewhere throughout the spec, as well as https://github.com/whatwg/infra/issues/258.
- - **Usage of positional, optional, and named[^1] (i.e., linkable) parameters**. See [this logic](https://docs.google.com/document/d/1yxnzjRDVmAR5CC9GcAyY448lBD0u0E98eUEMHDhx1Dw/edit?disco=AAAAeXYly54) for how to order and refer to these.
+ - **Usage of positional, optional, and named[^1] (i.e., linkable) parameters**. Follow the [algorithm parameter conventions](https://infra.spec.whatwg.org/#algorithm-params) in the Infra Standard. Specifically, this involves using named/linkable optional parameters in your algorithm declaration, when callsites pass in values for them while omitting earlier-positioned optional parameters.
  - **Nesting 3+ conditions** in a list, the style should look like so:
    ```html
      <li><p>Foo.</p></li>
