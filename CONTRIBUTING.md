@@ -117,7 +117,7 @@ Most of the style conventions in this section are covered by Infra or the WHATWG
  - **"If foo, then bar"** instead of "If foo, bar". [Example](https://github.com/whatwg/html/pull/10269#discussion_r1568114777).
  - **"Abort these steps" vs "return"**: Use "return" to exit a whole algorithm or method. Use "abort these steps" to terminate a set of substeps or [in parallel](https://html.spec.whatwg.org/C#in-parallel) steps and continue at the next step in the "outer" procedure. See examples in [this section on parallelism](https://html.spec.whatwg.org/C#parallelism) and elsewhere throughout the spec, as well as https://github.com/whatwg/infra/issues/258.
  - **Usage of positional, optional, and named[^1] (i.e., linkable) parameters**. Follow the [algorithm parameter conventions](https://infra.spec.whatwg.org/#algorithm-params) in the Infra Standard. In particular, use named/linkable optional parameters in your algorithm declaration when callsites pass in values for them while omitting earlier-positioned optional parameters.
- - **Nesting 3+ conditions** in a list, the style should look like so:
+ - When **nesting 3+ conditions** in a list, the style should look like so:
    ```html
      <li><p>Foo.</p></li>
 
@@ -139,7 +139,7 @@ Most of the style conventions in this section are covered by Infra or the WHATWG
      
      <li><p>Baz.</p></li>
    ```
- - **Conjugating algorithm invocations inline** so they read more naturally in English, instead of more procedurally. [Example](https://github.com/whatwg/html/pull/9778#discussion_r1574075112).
+ - **Conjugate algorithm invocations inline** so they read more naturally in English, instead of more procedurally. For [example](https://github.com/whatwg/html/pull/9778#discussion_r1574075112), use `the result of <span data-x="get the popcorn">getting the popcorn</span>` instead of `the result of running <span>get the popcorn</span>`.
  - Prefer American English to British English; see the [WHATWG style guide](https://whatwg.org/style-guide).
 
 [^1]: For example, see parameters like https://html.spec.whatwg.org/C#navigation-referrer-policy, which are named/linkable parameters in an algorithm's declaration.
