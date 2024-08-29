@@ -46,7 +46,7 @@ In between these clear-cut categories, there is some gray area. Please feel free
 
 The HTML Standard generally follows style conventions listed in the [Infra Standard](https://infra.spec.whatwg.org) and the [WHATWG style guide](https://whatwg.org/style-guide). Additionally, the HTML Standard follows some specific style conventions not captured by those documents, that we enumerate below.
 
-Due to the long legacy of the existing text, these guidelines are not always applied. We do require that you apply the guidelines when making changes, though are happy to provide assistance if this proves to be a blocker to you.
+Due to the long legacy of the existing text, these guidelines are not always applied. We do require that you apply the guidelines when making changes, though we are happy to provide assistance if this proves to be a blocker to you.
 
 ### Source formatting
 
