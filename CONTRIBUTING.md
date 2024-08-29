@@ -111,7 +111,7 @@ End tags must not be omitted (except where it is consistent to do so) and attrib
 
 ### Common mistakes around prose style
 
-This section lists style conventions that are typically covered by Infra or the WHATWG style guide, but that are nevertheless frequent sources of style nits by editors of the HTML Standard.
+Most of the style conventions in this section are covered by Infra or the WHATWG style guide, but the editors often have to correct them in contributions anyway.
 
  - Use the [algorithm declaration conventions](https://infra.spec.whatwg.org/#algorithm-declaration) in the Infra Standard.
  - **"If foo, then bar"** instead of "If foo, bar". [Example](https://github.com/whatwg/html/pull/10269#discussion_r1568114777).
