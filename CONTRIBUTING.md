@@ -122,7 +122,7 @@ Most of the style conventions in this section are covered by Infra or the WHATWG
      <li><p>Foo.</p></li>
 
      <li>
-      <p>If (any|all) of the following are true:</p>
+      <p>If (all|any) of the following are true:</p>
       
       <ul class="brief">
        <li><p>Condition 1;</p></li>
