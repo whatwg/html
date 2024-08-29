@@ -115,7 +115,7 @@ Most of the style conventions in this section are covered by Infra or the WHATWG
 
  - Use the [algorithm declaration conventions](https://infra.spec.whatwg.org/#algorithm-declaration) in the Infra Standard.
  - **"If foo, then bar"** instead of "If foo, bar". [Example](https://github.com/whatwg/html/pull/10269#discussion_r1568114777).
- - **"Abort these steps" vs "return"**. We've passively evolved the pattern of reserving "return" for exiting algorithms and methods, and "abort these steps" for terminating a set of substeps / [in parallel](https://html.spec.whatwg.org/C#in-parallel) steps without altering with the control flow of the "outer" procedure. See examples in [this section on parallelism](https://html.spec.whatwg.org/C#parallelism) and elsewhere throughout the spec, as well as https://github.com/whatwg/infra/issues/258.
+ - **"Abort these steps" vs "return"**: Use "return" to exit a whole algorithm or method. Use "abort these steps" to terminate a set of substeps or [in parallel](https://html.spec.whatwg.org/C#in-parallel) steps and continue at the next step in the "outer" procedure. See examples in [this section on parallelism](https://html.spec.whatwg.org/C#parallelism) and elsewhere throughout the spec, as well as https://github.com/whatwg/infra/issues/258.
  - **Usage of positional, optional, and named[^1] (i.e., linkable) parameters**. Follow the [algorithm parameter conventions](https://infra.spec.whatwg.org/#algorithm-params) in the Infra Standard. Specifically, this involves using named/linkable optional parameters in your algorithm declaration, when callsites pass in values for them while omitting earlier-positioned optional parameters.
  - **Nesting 3+ conditions** in a list, the style should look like so:
    ```html
