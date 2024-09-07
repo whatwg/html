@@ -125,13 +125,13 @@ Most of the style conventions in this section are covered by Infra or the WHATWG
       <p>If (all|any) of the following are true:</p>
       
       <ul class="brief">
-       <li><p>Condition 1;</p></li>
+       <li><p>condition 1;</p></li>
 
-       <li><p>Condition 2;</p></li>
+       <li><p>condition 2;</p></li>
 
-       <li><p>Condition 3; (and|or)</p></li>
+       <li><p>condition 3; (and|or)</p></li>
 
-       <li><p>Condition 4,</p></li>
+       <li><p>condition 4,</p></li>
       </ul>
 
       <p>then…</p>
