@@ -1,4 +1,4 @@
-// A fork of https://resources.whatwg.org/dfn.js which works for HTML's multipage version by using xrefs.json.
+// A fork of https://resources.whatwg.org/dfn.js which works for HTML's multipage version by using xrefs.json....
 'use strict';
 
 (function() {
@@ -193,7 +193,7 @@ document.body.classList.add('dfnEnabled');
 document.addEventListener('click', handleClick);
 if (isMultipage) {
   document.addEventListener('DOMContentLoaded', restoreOrClosePanelOnNav);
-  // Also listen for pageshow to handle history navigation without page-reload.
+  // Also listen for pageshow to handle history navigation without page-reload....
   window.addEventListener('pageshow', restoreOrClosePanelOnNav);
 }
 
