@@ -42,11 +42,20 @@ On the other hand, we want to especially keep:
 
 In between these clear-cut categories, there is some gray area. Please feel free to open an issue if you think something is being included that shouldn't be, or is being excluded but should be kept.
 
-## Source formatting
+## Style guide
 
-Due to the long legacy of the existing text the guidelines below are not always applied. We do require that you apply the guidelines when making changes, though are happy to provide assistance if this proves to be a blocker to you.
+The HTML Standard generally follows style conventions listed in the [Infra Standard](https://infra.spec.whatwg.org) and the [WHATWG style guide](https://whatwg.org/style-guide). Additionally, the HTML Standard follows some specific style conventions not captured by those documents, that we enumerate below.
+
+Due to the long legacy of the existing text, these guidelines are not always applied. We do require that you apply the guidelines when making changes, though we are happy to provide assistance if this proves to be a blocker to you.
+
+### Source formatting
+
+
+#### Line wrapping length
 
 Use a column width of 100 characters and add newlines where whitespace is used. (Emacs, set `fill-column` to `100`; in Vim, set `textwidth` to `100`; and in Sublime, set `wrap_width` to `100`. Alternatively, wrap the paragraph(s) with your changes with https://domenic.github.io/rewrapper/. Make sure that `column length to rewrap` is set to 100.)
+
+#### Wrapping opportunities
 
 Using newlines between "inline" element tag names and their content is forbidden. (This actually alters the content, by adding spaces.) That is,
 ```html
@@ -60,8 +69,14 @@ is fine and
 ```
 is not.
 
-Using newlines between attributes and inside attribute values that contain whitespace is allowed.
-Always wrap after putting the maximum number of characters on a single line within these guidelines.
+Using newlines between attributes and inside attribute values that contain whitespace is allowed. Always wrap after putting the maximum number of characters on a single line within these guidelines.
+
+```html
+  <p>A <code>base</code> element that is the first <code>base</code> element with an <code
+  data-x="attr-base-href">href</code> content attribute <span>in a document tree</span> has a
+```
+
+### Element hierarchy
 
 An `<li>` element always has a `<p>` element inside it, unless it's a child of `<ul class="brief">`.
 
@@ -93,3 +108,38 @@ is not indented, but
 is.
 
 End tags must not be omitted (except where it is consistent to do so) and attribute values must be quoted (use double quotes).
+
+### Common mistakes around prose style
+
+Most of the style conventions in this section are covered by Infra or the WHATWG style guide, but the editors often have to correct them in contributions anyway.
+
+ - Use the [algorithm declaration conventions](https://infra.spec.whatwg.org/#algorithm-declaration) in the Infra Standard.
+ - **"If foo, then bar"** instead of "If foo, bar". [Example](https://github.com/whatwg/html/pull/10269#discussion_r1568114777).
+ - **"Abort these steps" vs "return"**: Use "return" to exit a whole algorithm or method. Use "abort these steps" to terminate a set of substeps or [in parallel](https://html.spec.whatwg.org/C#in-parallel) steps and continue at the next step in the "outer" procedure. See examples in [this section on parallelism](https://html.spec.whatwg.org/C#parallelism) and elsewhere throughout the spec, as well as https://github.com/whatwg/infra/issues/258.
+ - **Usage of positional, optional, and named[^1] (i.e., linkable) parameters**. Follow the [algorithm parameter conventions](https://infra.spec.whatwg.org/#algorithm-params) in the Infra Standard. In particular, use named/linkable optional parameters in your algorithm declaration when callsites pass in values for them while omitting earlier-positioned optional parameters.
+ - When **nesting 3+ conditions** in a list, the style should look like so:
+   ```html
+     <li><p>Foo.</p></li>
+
+     <li>
+      <p>If (all|any) of the following are true:</p>
+      
+      <ul class="brief">
+       <li><p>condition 1;</p></li>
+
+       <li><p>condition 2;</p></li>
+
+       <li><p>condition 3; (and|or)</p></li>
+
+       <li><p>condition 4,</p></li>
+      </ul>
+
+      <p>then…</p>
+     </li>
+     
+     <li><p>Baz.</p></li>
+   ```
+ - **Conjugate algorithm invocations inline** so they read more naturally in English, instead of more procedurally. For [example](https://github.com/whatwg/html/pull/9778#discussion_r1574075112), use `the result of <span data-x="get the popcorn">getting the popcorn</span>` instead of `the result of running <span>get the popcorn</span>`.
+ - Prefer American English to British English; see the [WHATWG style guide](https://whatwg.org/style-guide).
+
+[^1]: For example, see parameters like https://html.spec.whatwg.org/C#navigation-referrer-policy, which are named/linkable parameters in an algorithm's declaration.
