@@ -70687,12 +70687,20 @@ interface mixin <dfn interface>CanvasUserInterface</dfn> {
   undefined <span data-x="dom-context-2d-drawFocusIfNeeded-path-element">drawFocusIfNeeded</span>(<span>Path2D</span> path, <span>Element</span> element);
 };
 
+
+dictionary <dfn dictionary>TextClusterOptions</dfn> {
+  <span>CanvasTextAlign</span> align;
+  <span>CanvasTextBaseline</span> baseline;
+  double x;
+  double y;
+};
+
 interface mixin <dfn interface>CanvasText</dfn> {
   // text (see also the <span>CanvasPathDrawingStyles</span> and <span>CanvasTextDrawingStyles</span> interfaces)
   undefined <span data-x="dom-context-2d-fillText">fillText</span>(DOMString text, unrestricted double x, unrestricted double y, optional unrestricted double maxWidth);
   undefined <span data-x="dom-context-2d-strokeText">strokeText</span>(DOMString text, unrestricted double x, unrestricted double y, optional unrestricted double maxWidth);
+  undefined <span data-x="dom-context-2d-fillTextCluster">fillTextCluster</span>(<span>TextCluster</span> cluster, double x, double y, optional <span>TextClusterOptions</span> options);
   <span>TextMetrics</span> <span data-x="dom-context-2d-measureText">measureText</span>(DOMString text);
-  undefined <span data-x="dom-context-2d-fillTextCluster">fillTextCluster</span>(<span>TextCluster</span> textCluster, double x, double y, optional <span>TextClusterOptions</span> options);
 };
 
 interface mixin <dfn interface>CanvasDrawImage</dfn> {
@@ -70809,11 +70817,20 @@ interface <dfn interface>TextCluster</dfn> {
     readonly attribute <span>CanvasTextBaseline</span> <span data-x="dom-TextCluster-baseline">baseline</span>;
 };
 
-dictionary <dfn dictionary>TextClusterOptions</dfn> {
-  <span>CanvasTextAlign</span> align;
-  <span>CanvasTextBaseline</span> baseline;
-  double x;
-  double y;
+dictionary <dfn dictionary>ImageDataSettings</dfn> {
+  <span>PredefinedColorSpace</span> <span data-x="dom-PredefinedColorSpace-srgb">colorSpace</span>;
+};
+
+[Exposed=(Window,Worker),
+ <span>Serializable</span>]
+interface <dfn interface>ImageData</dfn> {
+  <span data-x="dom-imagedata">constructor</span>(unsigned long sw, unsigned long sh, optional <span>ImageDataSettings</span> settings = {});
+  <span data-x="dom-imagedata-with-data">constructor</span>(<span data-x="idl-Uint8ClampedArray">Uint8ClampedArray</span> data, unsigned long sw, optional unsigned long sh, optional <span>ImageDataSettings</span> settings = {});
+
+  readonly attribute unsigned long <span data-x="dom-imagedata-width">width</span>;
+  readonly attribute unsigned long <span data-x="dom-imagedata-height">height</span>;
+  readonly attribute <span data-x="idl-Uint8ClampedArray">Uint8ClampedArray</span> <span data-x="dom-imagedata-data">data</span>;
+  readonly attribute <span>PredefinedColorSpace</span> <span data-x="dom-imagedata-colorSpace">colorSpace</span>;
 };
 
 [Exposed=(Window,Worker)]
@@ -74544,6 +74561,15 @@ try {
     provided, the text will be scaled to fit that width if necessary.</p>
    </dd>
 
+   <dt><code data-x=""><var>context</var>.<span subdfn data-x="dom-context-2d-fillTextCluster">fillTextCluster</span>(<var>cluster</var>, <var>x</var>, <var>y</var> [, <var>options</var> ])</code></dt>
+
+   <dd>
+    <p>Fills the given text cluster as it would be positioned if the text as a whole was rendered at
+    the given position. The align and baseline used to render, as well as the position of the
+    cluster in relation to the anchor point of the while text, can be modified with the options
+    dictionary.</p>
+   </dd>
+
    <dt><code data-x=""><var>metrics</var> = <var>context</var>.<span subdfn data-x="dom-context-2d-measureText">measureText</span>(<var>text</var>)</code></dt>
 
    <dd>
@@ -74569,8 +74595,6 @@ try {
    <dt><code data-x=""><var>metrics</var>.<span subdfn data-x="dom-textmetrics-getActualBoundingBox">getActualBoundingBox</span>(<var>start</var>, <var>end</var>)</code></dt>
    <dt><code data-x=""><var>metrics</var>.<span subdfn data-x="dom-textmetrics-getIndexFromOffset">getIndexFromOffset</span>(<var>offset</var>)</code></dt>
    <dt><code data-x=""><var>metrics</var>.<span subdfn data-x="dom-textmetrics-getTextClusters">getTextClusters</span>(<var>start</var>, <var>end</var> [, <var>options</var> ])</code></dt>
-
-   <dt><code data-x=""><var>context</var>.<span subdfn data-x="dom-context-2d-fillTextCluster">fillTextCluster</span>(<var>textCluster</var>, <var>x</var>, <var>y</var> [, <var>options</var> ])</code></dt>
   </dl>
 
   <div w-nodev>
@@ -74624,6 +74648,71 @@ try {
     operator</span>.</p>
    </li>
   </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn method for="CanvasText"><code
+  data-x="dom-context-2d-fillTextCluster">fillTextCluster(<var>cluster</var>, <var>x</var>,
+  <var>y</var>, <var>options</var>)</code></dfn> method renders a <code>TextCluster</code> object.
+  The cluster is rendered where it would be if the whole text that was passed to <code
+  data-x="dom-context-2d-measureText">measureText()</code> to obtain the cluster was rendered at
+  position (<var>x</var>,<var>y</var>), unless the positioning is modified with the options
+  argument. Specifically, when the method is invoked, the user agent must run these steps:</p>
+
+  <ol>
+    <li><p>If any of the arguments are infinite or NaN, then return.</p></li>
+
+    <li><p>Run the <span>text preparation algorithm</span>, passing it the <var>text</var>
+    originally passed to <code data-x="dom-context-2d-measureText">measureText()</code> to obtain
+    the cluster, and an object with the <code>CanvasTextDrawingStyles</code> values as they were
+    when the cluster was measured, with the exception of <code
+    data-x="dom-context-2d-textAlign">textAlign</code> and <code
+    data-x="dom-context-2d-textBaseline">textBaseline</code>, which are taken from the <code
+    data-x="dom-TextCluster-align">align</code> and <code
+    data-x="dom-TextCluster-baseline">baseline</code> attributes of <var>cluster</var>. Let
+    <var>glyphs</var> be the result.</p></li>
+
+    <li><p>Filter <var>glyphs</var> to include only the glyphs that contain <span
+    data-x="code point">code points</span> within the range <code
+    data-x="dom-TextCluster-begin">cluster["begin"]</code> to <code
+    data-x="dom-TextCluster-end">cluster["end"]</code>.</p></li>
+
+    <li><p>Move all the shapes in <var>glyphs</var> to the right by <var>x</var>
+    <span data-x="'px'">CSS pixels</span> and down by <var>y</var> <span data-x="'px'">CSS
+    pixels</span>.</p></li>
+
+    <li>
+      <p>If a <code>TextClusterOptions</code> options dictionary is passed and it has an <code
+      data-x="">options["x"]</code> value, move all the shapes in <var>glyphs</var> to the right by
+      <code data-x="">options["x"] &minus; cluster["x"]</code>.</p>
+
+      <p>If a <code>TextClusterOptions</code> options dictionary is passed and it has an <code
+      data-x="">options["y"]</code> value, move all the shapes in <var>glyphs</var> down by <code
+      data-x="">options["y"] &minus; cluster["y"]</code>.</p>
+    </li>
+
+    <li>
+      <p>Paint the shapes given in <var>glyphs</var>, as transformed by the <span
+      data-x="dom-context-2d-transformation">current transformation matrix</span>, with each <span
+      data-x="'px'">CSS pixel</span> in the coordinate space of <var>glyphs</var> mapped to one
+      coordinate space unit.</p>
+
+      <p><span>this</span>'s <span
+      data-x="concept-CanvasFillStrokeStyles-fill-style">fill style</span> must be applied to the
+      shapes and <span>this</span>'s <span
+      data-x="concept-CanvasFillStrokeStyles-stroke-style">stroke style</span> must be ignored.
+
+      <p>These shapes are painted without affecting the current path, and are subject to <span
+      data-x="shadows">shadow effects</span>, <span data-x="concept-canvas-global-alpha">global
+      alpha</span>, the <span>clipping region</span>, and the <span>current compositing and blending
+      operator</span>.</p>
+    </li>
+  </ol>
+
+  <p class="note">By setting <code data-x="">options["x"]</code> and <code
+  data-x="">options["y"]</code> to 0, the cluster will be rendered exactly at the position
+  (<var>x</var>,<var>y</var>) passed to <code
+  data-x="dom-context-2d-fillTextCluster">fillTextCluster()</code>.</p>
   </div>
 
   <div algorithm>
@@ -74810,7 +74899,7 @@ try {
         data-x="dom-context-2d-measureText">measureText()</code> was called) in relation to the text
         as a whole.</p>
 
-        <p>The x position specified for each cluster corresponds to the aligment point given by the
+        <p>The x position specified for each cluster corresponds to the alignment point given by the
         <code data-x="dom-TextCluster-align">align</code> attribute of the cluster (e.g. if
         this attribute is set to "<code data-x="">left</code>", the calculated position corresponds
         to the <code data-x="dom-context-2d-textAlign-left">left</code> of each cluster). The
@@ -74827,7 +74916,7 @@ try {
         data-x="dom-context-2d-measureText">measureText()</code> was called) in relation to the text
         as a whole.</p>
 
-        <p>The y position specified for each cluster corresponds to the aligment point given by the
+        <p>The y position specified for each cluster corresponds to the alignment point given by the
         <code data-x="dom-TextCluster-baseline">baseline</code> attribute of the cluster (e.g. if
         this attribute is set to "<code data-x="">top</code>", the calculated position corresponds
         to the <code data-x="dom-context-2d-textBaseline-top">top</code> of each cluster). The
@@ -74849,7 +74938,7 @@ try {
 
       <dd><p>The align for the specific point returned for the cluster. If a
       <code>TextClusterOptions</code> options dictionary is passed, and it has a value for
-      <code data-x="">options.align</code>, this will be the assigned value. Otherwise, it will be
+      <code data-x="">options["align"]</code>, this will be the assigned value. Otherwise, it will be
       set as the <code data-x="dom-context-2d-textAlign">textAlign</code> attribute. Note that this
       doesn't change the origin of the coordinate system, just which point is specified for each
       cluster.</p></dd>
@@ -74858,7 +74947,7 @@ try {
 
       <dd><p>The baseline for the specific point returned for the cluster. If a
       <code>TextClusterOptions</code> options dictionary is passed, and it has a value for
-      <code data-x="">options.baseline</code>, this will be the assigned value. Otherwise, it will
+      <code data-x="">options["baseline"]</code>, this will be the assigned value. Otherwise, it will
       be set as the <code data-x="dom-context-2d-textBaseline">textBaseline</code> attribute. Note
       that this doesn't change the origin of the coordinate system, just which point is specified
       for each cluster.</p></dd>
@@ -74880,68 +74969,6 @@ try {
   <p class="note">A future version of the 2D context API might provide a way to render fragments of
   documents, rendered using CSS, straight to the canvas. This would be provided in preference to a
   dedicated way of doing multiline layout.</p>
-
-  <p>The <dfn method for="CanvasText"><code
-  data-x="dom-context-2d-fillTextCluster">fillTextCluster(<var>textCluster</var>, <var>x</var>,
-  <var>y</var>, <var>options</var>)</code></dfn> method renders a <code>TextCluster</code> object.
-  The cluster is rendered where it would be if the whole text that was passed to <code
-  data-x="dom-context-2d-measureText">measureText()</code> to obtain the cluster was rendered at
-  position (<var>x</var>,<var>y</var>), unless the positioning is modified with the options
-  argument. Specifically, when the methods are invoked, the user agent must run these steps:</p>
-
-  <ol>
-    <li><p>If any of the arguments are infinite or NaN, then return.</p></li>
-
-    <li><p>Run the <span>text preparation algorithm</span>, passing it the <var>text</var>
-    originally passed to <code data-x="dom-context-2d-measureText">measureText()</code> to obtain
-    the cluster, and an object with the <code>CanvasTextDrawingStyles</code> values as they were
-    when the cluster was measured, with the exception of <code
-    data-x="dom-context-2d-textAlign">textAlign</code> and <code
-    data-x="dom-context-2d-textBaseline">textBaseline</code>, which are taken from the <code
-    data-x="dom-TextCluster-align">align</code> and <code
-    data-x="dom-TextCluster-baseline">baseline</code> attributes of <var>cluster</var>. Let
-    <var>glyphs</var> be the result.</p></li>
-
-    <li><p>Filter <var>glyphs</var> to include only glyphs that contain <span
-    data-x="code point">code points</span> within the range <code
-    data-x="dom-TextCluster-begin">cluster.begin</code> to <code
-    data-x="dom-TextCluster-end">cluster.end</code>.</p></li>
-
-    <li><p>Move all the shapes in <var>glyphs</var> to the right by <var>x</var>
-    <span data-x="'px'">CSS pixels</span> and down by <var>y</var> <span data-x="'px'">CSS
-    pixels</span>.</p></li>
-
-    <li>
-      <p>If a <code>TextClusterOptions</code> options dictionary is passed and it has an <code
-      data-x="">options.x</code> value, move all the shapes in <var>glyphs</var> to the right by
-      <code data-x="">options.x-cluster.x</code>.</p>
-
-      <p>If a <code>TextClusterOptions</code> options dictionary is passed and it has an <code
-      data-x="">options.y</code> value, move all the shapes in <var>glyphs</var> down by <code
-      data-x="">options.y-cluster.y</code>.</p>
-    </li>
-
-    <li>
-      <p>Paint the shapes given in <var>glyphs</var>, as transformed by the <span
-      data-x="dom-context-2d-transformation">current transformation matrix</span>, with each <span
-      data-x="'px'">CSS pixel</span> in the coordinate space of <var>glyphs</var> mapped to one
-      coordinate space unit.</p>
-
-      <p><span>this</span>'s <span
-      data-x="concept-CanvasFillStrokeStyles-fill-style">fill style</span> must be applied to the
-      shapes and <span>this</span>'s <span
-      data-x="concept-CanvasFillStrokeStyles-stroke-style">stroke style</span> must be ignored.
-
-      <p>These shapes are painted without affecting the current path, and are subject to <span
-      data-x="shadows">shadow effects</span>, <span data-x="concept-canvas-global-alpha">global
-      alpha</span>, the <span>clipping region</span>, and the <span>current compositing and blending
-      operator</span>.</p>
-    </li>
-  </ol>
-
-  <p class="note">By setting <code data-x="">options.x</code> and <code data-x="">options.y</code>
-  to 0, the cluster will be rendered exactly at the position (<var>x</var>,<var>y</var>) passed to
-  <code data-x="dom-context-2d-fillTextCluster">fillTextCluster()</code>.</p>
 
   <h6>Drawing paths to the canvas</h6>
 
