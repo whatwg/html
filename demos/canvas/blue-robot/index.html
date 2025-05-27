@@ -82,11 +82,20 @@
    this.sprites = new Image();
    this.sprites.src = 'blue-robot.png'; // this sprite sheet has 8 cells
    this.targetMode = 'idle';
+   this.jumpHeight = 0; // current height of jump
+   this.jumpVelocity = 0; // current vertical velocity
+   this.isJumping = false;
    this.walk = function () {
      this.targetMode = 'walk';
    };
    this.stop = function () {
      this.targetMode = 'idle';
+   };
+   this.jump = function () {
+     if (!this.isJumping) {
+       this.isJumping = true;
+       this.jumpVelocity = -15; // initial upward velocity
+     }
    };
    this.frameIndex = {
      'idle': [0], // first cell is the idle frame
@@ -98,6 +107,20 @@
    this.tick = function () {
      // this advances the frame and the robot
      // the return value is how many pixels the robot has moved
+     
+     // Handle jump physics
+     if (this.isJumping) {
+       this.jumpHeight += this.jumpVelocity;
+       this.jumpVelocity += 1.2; // gravity
+       
+       // Check if landed
+       if (this.jumpHeight >= 0) {
+         this.jumpHeight = 0;
+         this.jumpVelocity = 0;
+         this.isJumping = false;
+       }
+     }
+     
      this.frame += 1;
      if (this.frame >= this.frameIndex[this.mode].length) {
        // we've reached the end of this animation cycle
@@ -127,9 +150,13 @@
      // draw the right frame out of the sprite sheet onto the canvas
      // we assume each frame is as high as the sprite sheet
      // the x,y coordinates give the position of the bottom center of the sprite
+     
+     // Apply jump offset to y position
+     var drawY = y + this.jumpHeight;
+     
      context.drawImage(this.sprites,
                        this.frameIndex[this.mode][this.frame] * this.sprites.height, 0, this.sprites.height, this.sprites.height,
-                       x-this.sprites.height/2, y-this.sprites.height, this.sprites.height, this.sprites.height);
+                       x-this.sprites.height/2, drawY-this.sprites.height, this.sprites.height, this.sprites.height);
    };
  };
 </script>
@@ -156,6 +183,7 @@
 <p class="buttons">
  <input type=button value="Walk" onclick="blueRobot.walk()">
  <input type=button value="Stop" onclick="blueRobot.stop()">
+ <input type=button value="Jump" onclick="blueRobot.jump()" style="background-color: #4CAF50; color: white; font-weight: bold;">
 <footer>
  <small> Blue Robot Player Sprite by <a href="https://johncolburn.deviantart.com/">JohnColburn</a>.
  Licensed under the terms of the Creative Commons Attribution Share-Alike 3.0 Unported license.</small>
