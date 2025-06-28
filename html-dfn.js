@@ -1,200 +1,216 @@
 // A fork of https://resources.whatwg.org/dfn.js which works for HTML's multipage version by using xrefs.json.
 'use strict';
 
-(function() {
+(() => {
+  // Detect if we're in a multipage spec (used for restoring cross-references)
+  const isMultipage = document.documentElement.classList.contains('split');
+  let dfnMapDone = false; // True once xrefs.json has been loaded
+  let dfnMap = {};        // Parsed cross-reference data
+  let dfnPanel = null;    // The floating panel element
 
-var isMultipage = document.documentElement.classList.contains('split');
-var dfnMapDone = false;
-var dfnMap = {};
-var dfnPanel;
+  // Check if the definition is cross-spec (i.e., contains a link to another spec)
+  const isCrossSpecDfn = dfn => dfn.firstChild instanceof HTMLAnchorElement;
 
-function isCrossSpecDfn(dfn) {
-  return dfn.firstChild && dfn.firstChild instanceof HTMLAnchorElement;
-}
+  // Handle all document click events (capture clicks on <dfn> and headings)
+  const handleClick = event => {
+    if (event.button !== 0) return; // Only left-click
 
-function handleClick(event) {
-  if (event.button !== 0) {
-    return;
-  }
-  var current = event.target;
-  var node;
-  var eventInDfnPanel = false;
-  while (current) {
-    if (current.matches(
-      "dfn, h2[data-dfn-type], h3[data-dfn-type], h4[data-dfn-type], h5[data-dfn-type], h6[data-dfn-type]"
-    )) {
-      node = current;
+    let current = event.target;
+    let node = null;
+    let eventInDfnPanel = false;
+
+    // Traverse up to find a definition node or detect clicks inside the panel
+    while (current) {
+      if (dfnPanel && current === dfnPanel) eventInDfnPanel = true;
+      if (current.matches('dfn, h2[data-dfn-type], h3[data-dfn-type], h4[data-dfn-type], h5[data-dfn-type], h6[data-dfn-type]')) {
+        node = current;
+      }
+      current = current.parentElement;
     }
-    if (dfnPanel && current === dfnPanel) {
-      eventInDfnPanel = true;
+
+    // Close the panel if click happened outside it
+    if (!eventInDfnPanel) closePanel();
+    if (!node) return;
+
+    const id = node.id || node.parentNode?.id;
+    const path = isMultipage ? location.pathname : '';
+    const specURL = isCrossSpecDfn(node) ? node.firstChild.href : '';
+
+    if (specURL) event.preventDefault(); // Prevent leaving the page
+
+    loadReferences(id, path, specURL);
+    node.appendChild(dfnPanel);
+
+    // Save state in case user navigates back/forward (multipage only)
+    if (isMultipage) {
+      sessionStorage.dfnId = id;
+      sessionStorage.dfnPath = path;
+      sessionStorage.dfnSpecURL = specURL;
     }
-    current = current.parentElement;
-  }
-  if (!eventInDfnPanel) {
-    closePanel();
-  }
-  if (!node) {
-    return;
-  }
-  var id = node.id || node.parentNode.id;
-  var path = '';
-  if (isMultipage) {
-    path = location.pathname;
-  }
-  var specURL = '';
-  if (isCrossSpecDfn(node)) {
-    specURL = node.firstChild.href;
-    event.preventDefault();
-  }
-  loadReferences(id, path, specURL);
-  node.appendChild(dfnPanel);
-  if (isMultipage) {
-    sessionStorage.dfnId = id;
-    sessionStorage.dfnPath = path;
-    sessionStorage.dfnSpecURL = specURL;
-  }
-}
+  };
 
-function loadReferences(id, path, specURL) {
-  if (dfnPanel) {
-    dfnPanel.remove();
-    dfnPanel = null;
-  }
-  dfnPanel = createPanel(id, path, specURL);
-  var p = document.createElement('p');
-  dfnPanel.appendChild(p);
-  if (!dfnMapDone) {
-    p.textContent = 'Loading cross-references…';
-    fetch('/xrefs.json')
-      .then(response => response.json())
-      .then(data => {
-        dfnMap = data;
-        dfnMapDone = true;
-        if (dfnPanel) {
-          fillInReferences(id);
-        }
-      }).catch(err => {
-        p.textContent = 'Error loading cross-references.';
-      });
-  } else {
-    fillInReferences(id);
-  }
-}
+  // Load and show references for the selected definition
+  const loadReferences = (id, path, specURL) => {
+    dfnPanel?.remove(); // Remove existing panel if any
+    dfnPanel = createPanel(id, path, specURL);
 
-function createPanel(id, path, specURL) {
-  var panel = document.createElement('div');
-  panel.className = 'dfn-panel on';
-  if (id) {
-    var permalinkP = document.createElement('p');
-    var permalinkA = document.createElement('a');
-    permalinkA.href = path + '#' + id;
-    permalinkA.onclick = closePanel;
-    permalinkA.textContent = '#' + id;
-    permalinkP.appendChild(permalinkA);
-    panel.appendChild(permalinkP);
-  }
-  if (specURL) {
-    var realLinkP = document.createElement('p');
-    realLinkP.className = 'spec-link';
-    realLinkP.textContent = 'Spec: ';
-    var realLinkA = document.createElement('a');
-    realLinkA.href = specURL;
-    realLinkA.onclick = closePanel;
-    realLinkA.textContent = specURL;
-    realLinkP.appendChild(realLinkA);
-    panel.appendChild(realLinkP);
-  }
-  panel.dataset.id = id;
-  return panel;
-}
+    const p = document.createElement('p');
+    dfnPanel.appendChild(p);
 
-function fillInReferences(id) {
-  var p = dfnPanel.lastChild;
-  if (id in dfnMap) {
+    // Load xrefs.json if not already done
+    if (!dfnMapDone) {
+      p.textContent = 'Loading cross-references…';
+      fetch('/xrefs.json')
+        .then(res => {
+          if (!res.ok) throw new Error('xrefs.json not found');
+          return res.json();
+        })
+        .then(data => {
+          dfnMap = data;
+          dfnMapDone = true;
+          if (dfnPanel) fillInReferences(id);
+        })
+        .catch(err => {
+          console.error('Failed to load xrefs.json:', err);
+          p.textContent = 'Error loading cross-references.';
+        });
+    } else {
+      fillInReferences(id);
+    }
+  };
+
+  // Create the floating definition panel
+  const createPanel = (id, path, specURL) => {
+    const panel = document.createElement('div');
+    panel.className = 'dfn-panel on';
+    panel.setAttribute('tabindex', '0'); // Keyboard accessibility
+    panel.dataset.id = id;
+
+    // Add permalink to the definition
+    if (id) {
+      const p = document.createElement('p');
+      const a = document.createElement('a');
+      a.href = `${path}#${id}`;
+      a.onclick = closePanel;
+      a.textContent = `#${id}`;
+      p.appendChild(a);
+      panel.appendChild(p);
+    }
+
+    // Add cross-spec link if available
+    if (specURL) {
+      const p = document.createElement('p');
+      p.className = 'spec-link';
+      p.textContent = 'Spec: ';
+      const a = document.createElement('a');
+      a.href = specURL;
+      a.onclick = closePanel;
+      a.textContent = specURL;
+      p.appendChild(a);
+      panel.appendChild(p);
+    }
+
+    return panel;
+  };
+
+  // Fill the panel with references from xrefs.json
+  const fillInReferences = id => {
+    const p = dfnPanel.lastChild;
+
+    if (!(id in dfnMap)) {
+      p.textContent = 'No references in this specification.';
+      return;
+    }
+
     p.textContent = 'Referenced in:';
-    var ul = document.createElement('ul');
-    var anchorMap = dfnMap[id];
-    for (var header in anchorMap) {
-      var li = document.createElement('li');
-      for (var i = 0; i < anchorMap[header].length; i += 1) {
-        var a = document.createElement('a');
+    const ul = document.createElement('ul');
+    const anchorMap = dfnMap[id];
+
+    for (const header in anchorMap) {
+      const li = document.createElement('li');
+
+      anchorMap[header].forEach((href, i) => {
+        const a = document.createElement('a');
+        a.href = isMultipage ? href : href.substring(href.indexOf('#'));
         a.onclick = movePanel;
-        a.href = anchorMap[header][i];
-        if (!isMultipage) {
-          a.href = a.href.substring(a.href.indexOf('#'));
-        }
+
+        // First link: format the header
         if (i === 0) {
-          var headerFormatted = header.replace(/</g, '&lt;');
-          headerFormatted = headerFormatted.replace(/ ([^ ]+) (element(?!s)|attribute(?!s)|interface(?!s)|common interface|object)/g, ' <code>$1</code> $2');
-          headerFormatted = headerFormatted.replace(/<code>(Before|After|Other|The|on|an|for|user|User|custom|Custom|built-in|abstract|exotic|global|settings|Browser|Serializable|Transferable|HTML|IDL|document)<\/code>/, '$1');
-          headerFormatted = headerFormatted.replace(/(type=[^\)]+)/g, '<code>$1</code>');
-          headerFormatted = headerFormatted.replace(/(Link type) "([^"]+)"/g, '$1 "<code>$2</code>"');
-          headerFormatted = headerFormatted.replace(/(ImageBitmap|WindowOrWorkerGlobalScope|multipart\/x-mixed-replace|registerProtocolHandler\(\)|registerContentHandler\(\))|storage|/, '<code>$1</code>');
-          a.innerHTML = headerFormatted;
+          a.innerHTML = formatHeader(header);
         } else {
           li.appendChild(document.createTextNode(' '));
-          a.appendChild(document.createTextNode('(' + (i + 1) + ')'));
+          a.textContent = `(${i + 1})`;
         }
+
         li.appendChild(a);
-      }
+      });
+
       ul.appendChild(li);
     }
+
     dfnPanel.appendChild(ul);
-  } else {
-    p.textContent = 'No references in this specification.';
-  }
-}
+  };
 
-function closePanel(event) {
-  if (dfnPanel) {
-    dfnPanel.remove();
+  // Format the header label using basic heuristics and code tags
+  const formatHeader = header =>
+    header
+      .replace(/</g, '&lt;') // Escape angle brackets
+      .replace(/ ([^ ]+) (element(?!s)|attribute(?!s)|interface(?!s)|common interface|object)/g, ' <code>$1</code> $2')
+      .replace(/<code>(Before|After|Other|The|on|an|for|user|User|custom|Custom|built-in|abstract|exotic|global|settings|Browser|Serializable|Transferable|HTML|IDL|document)<\/code>/, '$1')
+      .replace(/(type=[^)]+)/g, '<code>$1</code>')
+      .replace(/(Link type) "([^"]+)"/g, '$1 "<code>$2</code>"')
+      .replace(/(ImageBitmap|WindowOrWorkerGlobalScope|multipart\/x-mixed-replace|registerProtocolHandler\(\)|registerContentHandler\(\))|storage|/, '<code>$1</code>');
+
+  // Remove and destroy the panel
+  const closePanel = event => {
+    dfnPanel?.remove();
     dfnPanel = null;
-  }
-  if (event) {
-    event.stopPropagation();
-  }
-  if (isMultipage) {
-    delete sessionStorage.dfnId;
-    delete sessionStorage.dfnPath;
-    delete sessionStorage.dfnSpecURL;
-  }
-}
 
-function movePanel(event) {
-  if (!dfnPanel) {
-    return;
-  }
-  dfnPanel.classList.add("activated");
-  if (event) {
-    event.stopPropagation();
-  }
-}
+    if (event) event.stopPropagation();
 
-function restoreOrClosePanelOnNav(event) {
-  // Invoking this function twice is fine since on the second invocation,
-  // if the panel is open, `dfnPanel.dataset.id === id` so nothing happens;
-  // if the panel is closed, it will call `closePanel` which only clean up
-  // sessionStorage (which should already be cleared in that case).
-  if (sessionStorage.dfnId) {
-    var id = sessionStorage.dfnId;
-    var path = sessionStorage.dfnPath;
-    var specURL = sessionStorage.dfnSpecURL;
-    if (!dfnPanel || (dfnPanel && dfnPanel.dataset.id !== id)) {
-      loadReferences(id, path, specURL);
-      movePanel();
-      document.body.insertBefore(dfnPanel, document.body.firstChild);
+    if (isMultipage) {
+      delete sessionStorage.dfnId;
+      delete sessionStorage.dfnPath;
+      delete sessionStorage.dfnSpecURL;
     }
-  } else {
-    closePanel();
+  };
+
+  // Move panel into "activated" state (i.e., follow link or highlight)
+  const movePanel = event => {
+    if (!dfnPanel) return;
+    dfnPanel.classList.add('activated');
+    if (event) event.stopPropagation();
+  };
+
+  // Restore panel after navigation (multipage only)
+  const restoreOrClosePanelOnNav = () => {
+    const { dfnId: id, dfnPath: path, dfnSpecURL: specURL } = sessionStorage;
+
+    if (id) {
+      if (!dfnPanel || dfnPanel.dataset.id !== id) {
+        loadReferences(id, path, specURL);
+        movePanel();
+        document.body.insertBefore(dfnPanel, document.body.firstChild);
+      }
+    } else {
+      closePanel();
+    }
+  };
+
+  // ===== Setup =====
+
+  // Add CSS hook to body for styling
+  document.body.classList.add('dfnEnabled');
+
+  // Global listeners
+  document.addEventListener('click', handleClick);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closePanel();
+  });
+
+  // Multipage spec: restore previous panel state on load/history nav
+  if (isMultipage) {
+    document.addEventListener('DOMContentLoaded', restoreOrClosePanelOnNav);
+    window.addEventListener('pageshow', restoreOrClosePanelOnNav);
   }
-}
-
-document.body.classList.add('dfnEnabled');
-document.addEventListener('click', handleClick);
-if (isMultipage) {
-  document.addEventListener('DOMContentLoaded', restoreOrClosePanelOnNav);
-  // Also listen for pageshow to handle history navigation without page-reload.
-  window.addEventListener('pageshow', restoreOrClosePanelOnNav);
-}
-
 })();
