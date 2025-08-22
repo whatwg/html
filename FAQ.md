@@ -44,7 +44,7 @@ Validity (more often referred to as document conformance in the WHATWG) is a qua
 
 There are a number of ways to track changes to the standard:
 
-* The Twitter feed: [@htmlstandard](https://twitter.com/htmlstandard)
+* The Twitter feed: [@htmlstandard](https://x.com/htmlstandard)
 * The [GitHub commits log](https://github.com/whatwg/html/commits)
 * The standard is available in the [Git repository](https://github.com/whatwg/html/). You may use any Git client to check out the latest version and use your client's diff tools to compare revisions and see what has been changed.
 
