@@ -109,6 +109,25 @@ is.
 
 End tags must not be omitted (except where it is consistent to do so) and attribute values must be quoted (use double quotes).
 
+### `<var>` and `var-scope`
+
+For every `<var>` element, one or more of the following should be true:
+- It has the `ignore` attribute.
+- It is within an element with the `var-scope` attribute.
+- It is within an element with the `algorithm` attribute.
+- It is within a `<dl>` element with `class="domintro"`.
+
+The build process will complain if it finds an 'unscoped' `<var>`, one for which none of the above is true.
+
+Most of the time, any `<var>` element that you introduce will be within a `<div algorithm>` or a `<dl class="domintro">`. But for other cases, the question arises as to whether to mark a `<var>` with `ignore` or mark an ancestor with `var-scope` (possibly creating a `<div>` to have the `var-scope`). Here are some guidelines:
+
+- When you have a set of consecutive algorithms that share variables, put `<div var-scope> ... </div>` around the algorithms and any preamble that mentions the shared variables.
+- In any context that has two or more `<var>` elements with the same variable-name, mark the context with `var-scope`, or put a `<div var-scope>` around it, so that the `<var>`s will participate in var-highlighting.
+- Even when a context has only single-use `<var>`s, it can be easier (if there's enough of them) to mark the context `var-scope` rather than mark each `<var>` as ignore.
+- But if a context has only one `<var>`, or two with different variable-names, probably use `ignore`.
+
+But there's an additional situation in which to use `ignore`. In addition to looking for unscoped `<var>`s, the build process will examine the `<var>`s within each algorithm. Typically, a given variable-name will appear at least twice in an algorithm: once when it's declared/defined, and one or more times when it's used. So it's supicious if a variable-name appears only *once* within an algorithm, and the build process will raise a warning about it. If you have a `<var>` that should be ignored by this check, mark it with `ignore`.
+
 ### Common mistakes around prose style
 
 Most of the style conventions in this section are covered by Infra or the WHATWG style guide, but the editors often have to correct them in contributions anyway.
