@@ -109,6 +109,47 @@ is.
 
 End tags must not be omitted (except where it is consistent to do so) and attribute values must be quoted (use double quotes).
 
+### Algorithms
+
+[The Infra Standard](https://infra.spec.whatwg.org/#algorithms) sets out the basics of algorithms, but the HTML spec goes way beyond that. [Site of future elaboration.]
+
+Each algorithm should be wrapped in `<div algorithm> ... </div>`.
+
+The 'body' of an algorithm will normally be preceded by a 'preamble', some text that gives:
+- the name of the algorithm, or some indication of how/when it is invoked,
+- the names and/or types of any parameters, and
+- maybe the type of the return value, if any.
+
+Include this preamble within the `<div algorithm>`. Sometimes the preamble will be preceded by other stuff (not specific to the algorithm) in the same `<p>`. It's generally okay to include the other stuff within the `<div>`, but consider splitting it off into its own `<p>`, so that the `<div>` can be focused on the algorithm.
+
+If the algorithm is followed by one or more paragraphs that refer to any of the algorithm's variables, include those paragraphs within the `<div>`, so that they can participate in var-highlighting.
+
+---
+
+The body of an algorithm is often an `<ol>` or a `<dl>` (as a 'switch'), but note that "very short algorithms can be declared and specified using a single sentence". (The HTML spec sometimes strains the idea of "very short".) So an algorithm might be contained by a single `<p>` element, and you might be tempted to just add the `algorithm` attribute to the `<p>`. But we prefer
+```html
+  <div algorithm>
+  <p>...</p>
+  </div>
+```
+over
+```html
+  <p algorithm>...</p>
+```
+as it makes refactoring easier, and is easy to spot.
+
+---
+
+In Bikeshed, the `algorithm` attribute has an optional value, which supplies the name of the algorithm. In the HTML spec, don't give the `algorithm` attribute a value.
+
+---
+
+The HTML spec has format-definitions, which typically start with wording such as:
+```A string is a <dfn>foo</dfn> if it consists of...```
+or
+```A <dfn>foo</dfn> is a string containing ...```
+These aren't algorithms per se, but they're wrapped in `<div algorithm>` by special dispensation.
+
 ### `<var>` and `var-scope`
 
 For every `<var>` element, one or more of the following should be true:
@@ -123,7 +164,7 @@ Most of the time, any `<var>` element that you introduce will be within a `<div 
 
 - When you have a set of consecutive algorithms that share variables, put `<div var-scope> ... </div>` around the algorithms and any preamble that mentions the shared variables.
 - In any context that has two or more `<var>` elements with the same variable-name, mark the context with `var-scope`, or put a `<div var-scope>` around it, so that the `<var>`s will participate in var-highlighting.
-- Even when a context has only single-use `<var>`s, it can be easier (if there's enough of them) to mark the context `var-scope` rather than mark each `<var>` as ignore.
+- Even when a context has only single-use `<var>`s, it can be easier (if there's enough of them) to mark the context `var-scope` rather than mark each `<var>` as `ignore`.
 - But if a context has only one `<var>`, or two with different variable-names, probably use `ignore`.
 
 But there's an additional situation in which to use `ignore`. In addition to looking for unscoped `<var>`s, the build process will examine the `<var>`s within each algorithm. Typically, a given variable-name will appear at least twice in an algorithm: once when it's declared/defined, and one or more times when it's used. So it's supicious if a variable-name appears only *once* within an algorithm, and the build process will raise a warning about it. If you have a `<var>` that should be ignored by this check, mark it with `ignore`.
