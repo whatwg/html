@@ -113,6 +113,8 @@ End tags must not be omitted (except where it is consistent to do so) and attrib
 
 [The Infra Standard](https://infra.spec.whatwg.org/#algorithms) sets out the basics of algorithms, but the HTML spec goes way beyond that. [Site of future elaboration.]
 
+#### The markup
+
 Each algorithm should be wrapped in `<div algorithm> ... </div>`.
 
 The 'body' of an algorithm will normally be preceded by a 'preamble', some text that gives:
@@ -124,9 +126,11 @@ Include this preamble within the `<div algorithm>`. Sometimes the preamble will 
 
 If the algorithm is followed by one or more paragraphs that refer to any of the algorithm's variables, include those paragraphs within the `<div>`, so that they can participate in var-highlighting.
 
+Sometimes, a set of related algorithms (e.g., the 4 associated algorithms of a reflected target) are presented in a `<dl>`, where each `<dt>/<dd>` pair are (roughly speaking) the preamble and body of an algorithm. In these cases, each `<dt>/<dd>` pair is wrapped in `<div algorithm> ... </div>`.
+
 ---
 
-The body of an algorithm is often an `<ol>` or a `<dl>` (as a 'switch'), but note that "very short algorithms can be declared and specified using a single sentence". (The HTML spec sometimes strains the idea of "very short".) So an algorithm might be contained by a single `<p>` element, and you might be tempted to just add the `algorithm` attribute to the `<p>`. But we prefer
+According to the Infra standard, "very short algorithms can be declared and specified using a single sentence". (The HTML spec sometimes strains the idea of "very short".) So an algorithm might be contained by a single `<p>` element, and you might be tempted to just add the `algorithm` attribute to the `<p>`. But we prefer
 ```html
   <div algorithm>
   <p>...</p>
@@ -138,17 +142,43 @@ over
 ```
 as it makes refactoring easier, and is easy to spot.
 
+In fact, a single `<p>` can contain two or more single-sentence algorithms. For instance, this sometimes happens with the getter and setter steps of an IDL attribute. You might think that each algorithm should get its own markup, but it's okay to put a single `<div algorithm>` around the multiple algorithms in the `<p>`.
+
 ---
 
 In Bikeshed, the `algorithm` attribute has an optional value, which supplies the name of the algorithm. In the HTML spec, don't give the `algorithm` attribute a value.
 
----
+#### What qualifies as an algorithm?
 
-The HTML spec has format-definitions, which typically start with wording such as:
-```A string is a <dfn>foo</dfn> if it consists of...```
-or
-```A <dfn>foo</dfn> is a string containing ...```
-These aren't algorithms per se, but they're wrapped in `<div algorithm>` by special dispensation.
+Algorithms are easy to spot when the body is a block element like `<ol>` or `<dl>` (when used like a 'switch' statement). But the existence of single-sentence algorithms (see above) can make it harder to know when you've written an algorithm.
+
+Here are some categories of algorithms (roughly from commonest to rarest):
+
+- Generally, if you have a term in a `<dfn>` element, followed by a description of how to 'implement' that term, that's probably an algorithm. Likewise if the term is in a `<span>` element; the `<dfn>` might be elsewhere in the spec, or even in a different spec.
+
+- Most Web IDL interface members (attributes and operations) have associated behavior. Any text that defines such behavior is an algorithm, even it just says that an IDL attribute reflects a content attribute, or that a method does nothing.
+
+- Text of roughly the form
+  ```When [something happens], the user agent must [do something].```
+  or
+  ```When [something happens], [do something].```
+  is probably an algorithm.
+
+- The behavior of each tokenization state is an algorithm. Similarly for the behavior of each insertion mode.
+
+- The JavaScript spec declares some internal methods and implementation-defined abstract operations, but leaves their definitions to the 'host'. Any text that defines such JavaScript-related behavior is an algorithm. Typically, the method/operation's signature (name and parameter list) is given in an `<hN>` element; include this in the `<div algorithm>`.
+
+- There are format-definitions, which typically start with wording such as:
+  ```A string is a <dfn>foo</dfn> if it consists of...```
+  or
+  ```A <dfn>foo</dfn> is a string containing ...```
+  These aren't algorithms per se, but they're wrapped in `<div algorithm>` by special dispensation.
+
+- Even algorithms that appear in examples should be marked up.
+
+Note that this list isn't exhaustive. There are things that are clearly algorithms that don't fit into any of the above categories. There are cases where it's unclear. 
+
+And it's possible that we'll change our minds about what should be marked as an algorithm.
 
 ### `<var>` and `var-scope`
 
