@@ -1,3 +1,4 @@
+// Derived from https://github.com/speced/bikeshed/blob/3a2640eecd45fd5d8abe5d37b5adaf23cc945b88/bikeshed/stylescript/var-click-highlighting.js with an addition for var-scope.
 /*
 Color-choosing design:
 
@@ -43,8 +44,7 @@ function highlightSameAlgoVars(v) {
 }
 function findAlgoContainer(el) {
     while(el != document.body) {
-        if(el.hasAttribute("algo") || el.hasAttribute("var-scope")) return el;
-	// INTERIM, should be "data-algorithm" and "data-var-scope"
+        if(el.hasAttribute("data-algorithm") || el.hasAttribute("data-var-scope")) return el;
         el = el.parentNode;
     }
     return null;
