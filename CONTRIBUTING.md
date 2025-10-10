@@ -109,6 +109,122 @@ is.
 
 End tags must not be omitted (except where it is consistent to do so) and attribute values must be quoted (use double quotes).
 
+### Algorithms
+
+[The Infra Standard](https://infra.spec.whatwg.org/#algorithms) sets out the basics of algorithms, but the HTML spec goes way beyond that.
+
+When contributing to HTML, we attempt to mark up algorithms and variable scopes. The main visible benefit of this is that it gives "var highlighting", where clicking on a `<var>` element highlights all other references to it. Behind the scenes, it also enables various static analysis checks. Do your best to follow the below guidelines when introducing new algorithms or modifying existing ones.
+
+HTML's algorithm system is based on, and intended to be compatible with, [that of Bikeshed](https://speced.github.io/bikeshed/#var-and-algorithms) (a build tool often used for other specifications).
+
+#### The markup
+
+Each algorithm should be wrapped in `<div algorithm> ... </div>`. The contents of this `<div>` should not be indented.
+
+The 'body' of an algorithm will normally be preceded by a 'preamble', some text that gives:
+
+* the name of the algorithm, or some indication of how/when it is invoked;
+* the names and/or types of any parameters; and
+* maybe the type of the return value, if any.
+
+Include this preamble within the `<div algorithm>`. Sometimes the preamble will be preceded by other stuff (not specific to the algorithm) in the same `<p>`. It's generally okay to include the other stuff within the `<div>`, but consider splitting it off into its own `<p>`, so that the `<div>` can be focused on the algorithm.
+
+If the algorithm is followed by one or more paragraphs that refer to any of the algorithm's variables, include those paragraphs within the `<div>`, so that they can participate in var-highlighting.
+
+Sometimes, a set of related algorithms (e.g., the 4 associated algorithms of a reflected target) are presented in a `<dl>`, where each `<dt>/<dd>` pair are (roughly speaking) the preamble and body of an algorithm. In these cases, each `<dt>/<dd>` pair is wrapped in `<div algorithm> ... </div>`.
+
+---
+
+According to the Infra standard, "very short algorithms can be declared and specified using a single sentence". (The HTML spec sometimes strains the idea of "very short".) So an algorithm might be contained by a single `<p>` element, and you might be tempted to just add the `algorithm` attribute to the `<p>`. But we prefer
+
+```html
+<div algorithm>
+<p>...</p>
+</div>
+```
+
+over
+
+```html
+<p algorithm>...</p>
+```
+
+as it makes refactoring easier, and is easy to spot.
+
+In fact, a single `<p>` can contain two or more single-sentence algorithms. For instance, this sometimes happens with the getter and setter steps of an IDL attribute. You might think that each algorithm should get its own markup, but it's okay to put a single `<div algorithm>` around the multiple algorithms in the `<p>`.
+
+---
+
+In Bikeshed, the `algorithm` attribute has an optional value, which supplies the name of the algorithm. In the HTML spec, don't give the `algorithm` attribute a value.
+
+#### What qualifies as an algorithm?
+
+Algorithms are easy to spot when the body is a block element like `<ol>` or `<dl>` (when used like a 'switch' statement). But the existence of single-sentence algorithms (see above) can make it harder to know when you've written an algorithm.
+
+Here are some categories of algorithms (roughly from commonest to rarest):
+
+* Generally, if you have a term in a `<dfn>` element, followed by a description of how to 'implement' that term, that's probably an algorithm. Likewise if the term is in a `<span>` element; the `<dfn>` might be elsewhere in the spec, or even in a different spec.
+
+* Most Web IDL interface members (attributes and operations) have associated behavior. Any text that defines such behavior is an algorithm, even it just says that an IDL attribute reflects a content attribute, or that a method does nothing.
+
+* Text of roughly the form
+
+  ```html
+  When [something happens], the user agent must [do something].
+  ```
+
+  or
+
+  ```html
+  When [something happens], [do something].
+  ```
+
+  is probably an algorithm.
+
+* The behavior of each tokenization state is an algorithm. Similarly for the behavior of each insertion mode.
+
+* The JavaScript spec declares some internal methods and implementation-defined abstract operations, but leaves their definitions to the 'host'. Any text that defines such JavaScript-related behavior is an algorithm. Typically, the method/operation's signature (name and parameter list) is given in an `<hN>` element; include this in the `<div algorithm>`.
+
+* There are format-definitions, which typically start with wording such as:
+
+  ```html
+  A string is a <dfn>foo</dfn> if it consists of...
+  ```
+
+  or
+
+  ```html
+  A <dfn>foo</dfn> is a string containing...
+  ```
+
+  These aren't algorithms per se, but they're wrapped in `<div algorithm>` by special dispensation.
+
+* Even algorithms that appear in examples should be marked up.
+
+Note that this list isn't exhaustive. There are things that are clearly algorithms that don't fit into any of the above categories. There are cases where it's unclear.
+
+And it's possible that we'll change our minds about what should be marked as an algorithm.
+
+### `<var>` and `var-scope`
+
+For every `<var>` element, one or more of the following should be true:
+
+* It has the `ignore` attribute.
+* It is within an element with the `var-scope` attribute.
+* It is within an element with the `algorithm` attribute.
+* It is within a `<dl>` element with `class="domintro"`.
+
+The build process will complain if it finds an 'unscoped' `<var>`, one for which none of the above is true.
+
+Most of the time, any `<var>` element that you introduce will be within a `<div algorithm>` or a `<dl class="domintro">`. But for other cases, the question arises as to whether to mark a `<var>` with `ignore` or mark an ancestor with `var-scope` (possibly creating a `<div>` to have the `var-scope`). Here are some guidelines:
+
+- When you have a set of consecutive algorithms that share variables, put `<div var-scope> ... </div>` around the algorithms and any preamble that mentions the shared variables.
+- In any context that has two or more `<var>` elements with the same variable-name, mark the context with `var-scope`, or put a `<div var-scope>` around it, so that the `<var>`s will participate in var-highlighting.
+- Even when a context has only single-use `<var>`s, it can be easier (if there's enough of them) to mark the context `var-scope` rather than mark each `<var>` as `ignore`.
+- But if a context has only one `<var>`, or two with different variable-names, probably use `ignore`.
+
+But there's an additional situation in which to use `ignore`. In addition to looking for unscoped `<var>`s, the build process will examine the `<var>`s within each algorithm. Typically, a given variable-name will appear at least twice in an algorithm: once when it's declared/defined, and one or more times when it's used. So it's supicious if a variable-name appears only *once* within an algorithm, and the build process will raise a warning about it. If you have a `<var>` that should be ignored by this check, mark it with `ignore`.
+
 ### Common mistakes around prose style
 
 Most of the style conventions in this section are covered by Infra or the WHATWG style guide, but the editors often have to correct them in contributions anyway.
@@ -123,7 +239,7 @@ Most of the style conventions in this section are covered by Infra or the WHATWG
 
      <li>
       <p>If (all|any) of the following are true:</p>
-      
+
       <ul class="brief">
        <li><p>condition 1;</p></li>
 
@@ -136,7 +252,7 @@ Most of the style conventions in this section are covered by Infra or the WHATWG
 
       <p>then…</p>
      </li>
-     
+
      <li><p>Baz.</p></li>
    ```
  - **Conjugate algorithm invocations inline** so they read more naturally in English, instead of more procedurally. For [example](https://github.com/whatwg/html/pull/9778#discussion_r1574075112), use `the result of <span data-x="get the popcorn">getting the popcorn</span>` instead of `the result of running <span>get the popcorn</span>`.
