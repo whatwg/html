@@ -53,28 +53,9 @@ Due to the long legacy of the existing text, these guidelines are not always app
 
 #### Line wrapping length
 
-Use a column width of 100 characters and add newlines where whitespace is used. (Emacs, set `fill-column` to `100`; in Vim, set `textwidth` to `100`; and in Sublime, set `wrap_width` to `100`. Alternatively, wrap the paragraph(s) with your changes with https://domenic.github.io/rewrapper/. Make sure that `column length to rewrap` is set to 100.)
+Do not wrap text within a paragraph (or list item, etc.). Custom wrapping for readability (e.g. one `code` element per line) is OK; add a `data-noreformat` attribute on the containing element.
 
-#### Wrapping opportunities
-
-Using newlines between "inline" element tag names and their content is forbidden. (This actually alters the content, by adding spaces.) That is,
-```html
-   <dd><span>Parse error</span>. Create a new DOCTYPE token. Set its <i data-x="force-quirks
-   flag">force-quirks flag</i> to …
-```
-is fine and
-```html
-   <dd><span>Parse error</span>. Create a new DOCTYPE token. Set its <i data-x="force-quirks flag">
-   force-quirks flag</i> to …
-```
-is not.
-
-Using newlines between attributes and inside attribute values that contain whitespace is allowed. Always wrap after putting the maximum number of characters on a single line within these guidelines.
-
-```html
-  <p>A <code>base</code> element that is the first <code>base</code> element with an <code
-  data-x="attr-base-href">href</code> content attribute <span>in a document tree</span> has a
-```
+You can run https://github.com/zcorpan/reformahtml locally to remove inter-paragraph line wrapping. This script is also run as a GitHub workflow.
 
 ### Element hierarchy
 
@@ -92,22 +73,20 @@ and the previous list item. No extra newline at the start or end of the list tho
 
 If a "block" element contains a single "block" element, do not put it on a new line.
 
-Do not indent for anything except a new "block" element. For instance
+For instance
 ```html
-   <li><p>Let <var>corsAttributeState</var> be the current state of the element's <code
-   data-x="attr-link-crossorigin">crossorigin</code> content attribute.</p></li>
+   <li><p>Let <var>corsAttributeState</var> be the current state of the element's <code data-x="attr-link-crossorigin">crossorigin</code> content attribute.</p></li>
 ```
 is not indented, but
 ```html
       <li>
-       <p>For each <var>element</var> in <var>candidate elements</var>, run the following
-       substeps:</p>
+       <p>For each <var>element</var> in <var>candidate elements</var>, run the following substeps:</p>
 
        <ol>
 ```
 is.
 
-End tags must not be omitted (except where it is consistent to do so) and attribute values must be quoted (use double quotes).
+End tags must not be omitted (except where it is consistent to do so) and non-empty attribute values must be quoted (use double quotes).
 
 ### Algorithms
 
