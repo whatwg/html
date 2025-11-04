@@ -7,6 +7,8 @@ We are committed to providing a friendly, safe and welcoming environment for all
 ### Contribution opportunities
 
 We appreciate all contributions, see the [guidelines for contributing](CONTRIBUTING.md) for details, including information on how to build HTML output from the `source` file so you can preview your changes locally.
+To preview changes locally, see the build instructions in CONTRIBUTING.md:
+https://github.com/whatwg/html/blob/main/CONTRIBUTING.md#building-the-standard
 
 ### Tests
 
