@@ -22377,7 +22377,11 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
 
   <p>Each <code>menuitem</code> element has <dfn
   data-x="concept-menuitem-checkedness">checkedness</dfn> and <dfn
-  data-x="concept-menuitem-dirty-checkedness">dirty checkedness</dfn> booleans, initially false.</p>
+  data-x="concept-menuitem-dirty-checkedness">dirty checkedness</dfn> booleans, initially false. The
+  <span data-x="concept-menuitem-dirty-checkedness">dirty checkedness</span> boolean controls
+  whether the <code data-x="attr-menuitem-defaultchecked">defaultchecked</code> content attribute
+  has any effect on the element's <span
+  data-x="concept-menuitem-checkedness">checkedness</span>.</p>
 
   <div algorithm>
   <p>The <dfn element-attr for="menuitem"><code
@@ -22428,6 +22432,26 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
   <ol>
    <li><p><span>Reset <code>menuitem</code> ancestor element cache</span> given
    <var>insertedNode</var>.</p></li>
+
+   <li>
+    <p>If <var>insertedNode</var>'s <code
+    data-x="attr-menuitem-defaultchecked">defaultchecked</code> attribute is present and its <span
+    data-x="concept-menuitem-dirty-checkedness">dirty checkedness</span> is false, then:</p>
+
+    <ol>
+     <li><p><span>Check a <code>menuitem</code> element</span> given <var>insertedNode</var> and
+     true.</p></li>
+
+     <li>
+      <p>Set <var>insertedNode</var>'s <span data-x="concept-menuitem-dirty-checkedness">dirty
+      checkedness</span> to false.</p>
+
+      <p class="note">We have to reset the dirtiness, because the algorithm above sets it, which is
+      usually what we want, except for in this path, where we're only checking the menu item to
+      reflect the <code data-x="attr-menuitem-defaultchecked">defaultchecked</code> attribute.</p>
+     </li>
+    </ol>
+   </li>
   </ol>
   </div>
 
@@ -22459,28 +22483,45 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
-  <!-- TODO(domfarolino): You'll want to break this out into another algorithm that this AND the
-  activation path both delegate to. That way the activation path can use checkedness to determine
-  whether or not the activation should dismiss the menulist popover. -->
   <p>The <dfn attribute for="HTMLMenuItemElement"><code
   data-x="dom-menuitem-checked">checked</code></dfn> IDL attribute, on getting, must return
   <span>this</span>'s <span data-x="concept-menuitem-checkedness">checkedness</span>. On setting, it
-  must run the following steps:</p>
+  must <span>check a <code>menuitem</code> element</span> given <span>this</span> and the new
+  value.</p>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>check a <code>menuitem</code> element</dfn> <var>element</var> with a boolean
+  <var>isChecked</var>, run these steps. They return either "<code data-x="">close-menulist</code>"
+  or "<code data-x="">stay-open</code>":</p>
+
+  <p class="note">This algorithm has these return values because when a <code>menuitem</code> is
+  activated, it needs to know whether checking an item needs to hide the <span>cached ancestor
+  <code>menulist</code> element</span> popover — as we do when checking an <span
+  data-x="attr-fieldset-checkable-state-single">exclusive</span> item — or leave it open — as we do
+  with <span data-x="attr-fieldset-checkable-state-multiple">multi-checked</span> items, to let the
+  user check more than one at a time.</p>
 
   <ol>
-   <li><p>If <span>this</span> <span data-x="menuitem-is-checkable">is checkable</span>, then set
-   the element's <span data-x="concept-menuitem-checkedness">checkedness</span> to the new
-   value.</p></li>
+   <!-- TODO(domfarolino): This step should not blindly return "stay-open". It should return whether
+   or not the menuitem invokes a submenu, when that algorithm is spec'ed. -->
+   <li><p>If <var>element</var>'s <span data-x="menuitem-is-checkable">is checkable</span> is false,
+   then return "<code data-x="">stay-open</code>".</p></li>
 
-   <li><p>Set <span>this</span>'s <span data-x="concept-menuitem-dirty-checkedness">dirty
+   <li><p>Set <var>element</var>'s <span data-x="concept-menuitem-checkedness">checkedness</span> to
+   <var>isChecked</var>.</p></li>
+
+   <li><p>Set <var>element</var>'s <span data-x="concept-menuitem-dirty-checkedness">dirty
    checkedness</span> to true.</p></li>
 
-   <li><p>If <span>this</span>'s <span data-x="concept-menuitem-checkedness">checkedness</span> is
-   true, and <span>this</span>'s <span>cached parent <code>fieldset</code> element</span>'s <span
+   <li><p>If <var>element</var>'s <span data-x="concept-menuitem-checkedness">checkedness</span> is
+   true and <var>element</var>'s <span>cached parent <code>fieldset</code> element</span>'s <span
    data-x="attr-fieldset-checkable">checkable</span> attribute is in the <span
    data-x="attr-fieldset-checkable-state-single">Single</span> state, then <span>reset
    <code>menuitem</code> checkedness</span> given <span>this</span>'s <span>parent</span> and
-   <span>this</span>.</p></li>
+   <span>this</span>, and return "<code data-x="">close-menulist</code>".</p></li>
+
+   <li><p>Return "<code data-x="">stay-open</code>".</p></li>
   </ol>
   </div>
 
