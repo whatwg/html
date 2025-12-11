@@ -22322,6 +22322,51 @@ interface <dfn interface>HTMLMenuListElement</dfn> : <span>HTMLElement</span> {
   <span>popover state</span> is not <span data-x="popover-state-no-popover">No Popover</span> by
   default, even when the <code data-x="attr-popover">popover</code> attribute is not present.</p>
 
+  <div algorithm>
+  <p>The <span>command steps</span> for <code>menulist</code> elements, given an element
+  <var>element</var>, an element <var>source</var>, and a <code data-x="attr-command">command</code>
+  attribute <var>command</var>, are:</p>
+
+  <ol>
+   <li>
+    <p>If <var>command</var> is in the <span data-x="attr-command-hide-menu-state">Hide Menu</span>
+    state:</p>
+
+    <ol>
+     <li><p>If the result of running <span>check popover validity</span> given <var>element</var>,
+     true, false, and null is true, then run the <span>hide popover algorithm</span> given
+     <var>element</var>, true, true, false, and <var>source</var>.</p></li>
+    </ol>
+   </li>
+
+   <li>
+    <p>Otherwise, if <var>command</var> is in the <span
+    data-x="attr-command-toggle-menu-state">Toggle Menu</span> state:</p>
+
+    <ol>
+     <li><p>If the result of running <span>check popover validity</span> given <var>element</var>,
+     false, false, and null is true, then run the <span data-x="show popover">show popover
+     algorithm</span> given <var>element</var>, false, and <span>source</span>.</p></li>
+
+     <li><p>Otherwise, if the result of running <span>check popover validity</span> given
+     <var>target</var>, true, false, and null is true, then run the <span>hide popover
+     algorithm</span> given <var>element</var>, true, true, false, and <var>source</var>.</p></li>
+    </ol>
+   </li>
+
+   <li>
+    <p>Otherwise, if <var>command</var> is in the <span data-x="attr-command-show-menu-state">Show
+    Menu</span> state:</p>
+
+    <ol>
+     <li><p>If the result of running <span>check popover validity</span> given <var>element</var>,
+     false, false, and null is true, then run the <span data-x="show popover">show popover
+     algorithm</span> given <var>element</var>, false, and <span>source</span>.</p></li>
+    </ol>
+   </li>
+  </ol>
+  </div>
+
 
   <h4>The <dfn element><code>menuitem</code></dfn> element</h4>
 
@@ -22355,7 +22400,6 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
    <dd w-dev>Uses <code>HTMLMenuItemElement</code>.</dd>
   </dl>
 
-  <!-- TODO(domfarolino): Do we need this? When do we use this? -->
   <div w-nodev>
 
   <div algorithm>
@@ -22480,14 +22524,40 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
   <ul class="brief">
    <li><p>its <span>cached ancestor <code>menulist</code> element</span> is non-null;</li>
 
-   <li><p>its <span>cached parent <code>fieldset</code> element</span> is non-null; and</li>
+   <li><p>its <span>cached parent <code>fieldset</code> element</span> is non-null;</li>
 
    <li><p>its <span>cached parent <code>fieldset</code> element</span>'s <span
    data-x="attr-fieldset-checkable">checkable</span> attribute is not in the <span
-   data-x="attr-fieldset-checkable-state-none">None</span> state.</p></li>
+   data-x="attr-fieldset-checkable-state-none">None</span> state; and</p></li>
 
-   <!-- TODO(domfarolino): Add the `InvokesSubmenu()` path that Chromium currently has too. -->
+   <li><p>its <span>cached parent <code>fieldset</code> element</span>'s <span
+   data-x="attr-fieldset-checkable">checkable</span> attribute is not in the <span
+   data-x="attr-fieldset-checkable-state-none">None</span> state; and</p></li>
+
+   <li><p>its <span data-x="menuitem-invoked-submenu">invoked submenu</span> is null.</p></li>
   </ul>
+  </div>
+
+  <div algorithm>
+  <p>To get a <code>menuitem</code> element <dfn data-x="menuitem-invoked-submenu">invoked
+  submenu</dfn>, run these steps. They return a <code>menulist</code> element-or-null.</p>
+
+  <ol>
+   <li><p>Let <var>target</var> be the result of running the element's <span data-x="get the
+   attr-associated element">get the <code data-x="">commandfor</code>-associated
+   element</span>.</p></li>
+
+   <li><p>If <var>target</var> is not a <code>menulist</code> element, then return null.</p></li>
+
+   <li><p>Let <var>command</var> be the element's <code data-x="attr-command">command</code>
+   attribute.</p></li>
+
+   <li><p>If <var>command</var> is not in the <span data-x="attr-command-toggle-menu-state">Toggle
+   Menu</span>, <span data-x="attr-command-show-menu-state">Show Menu</span>, or <span
+   data-x="attr-command-hide-menu-state">Hide Menu</span> state, then return.</p></li>
+
+   <li><p>Return <var>target</var>.</p></li>
+  </ol>
   </div>
 
   <div algorithm>
@@ -22507,14 +22577,18 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
   activated, it needs to know whether checking an item needs to hide the <span>cached ancestor
   <code>menulist</code> element</span> popover — as we do when checking an <span
   data-x="attr-fieldset-checkable-state-single">exclusive</span> item — or leave it open — as we do
-  with <span data-x="attr-fieldset-checkable-state-multiple">multi-checked</span> items, to let the
-  user check more than one at a time.</p>
+  with <span data-x="attr-fieldset-checkable-state-multiple">multi-checked</span> items, and those
+  that <span data-x="menuitem-invoked-submenu">invoke a submenu</span> — to let the user interact
+  with the item without immediately dismissing it.</p>
 
   <ol>
-   <!-- TODO(domfarolino): This step should not blindly return "stay-open". It should return whether
-   or not the menuitem invokes a submenu, when that algorithm is spec'ed. -->
    <li><p>If <var>element</var>'s <span data-x="menuitem-is-checkable">is checkable</span> is false,
-   then return "<code data-x="">stay-open</code>".</p></li>
+   then return "<code data-x="">stay-open</code>" if <var>element</var>'s <span
+   data-x="menuitem-invoked-submenu">invoked submenu</span> is not null, and "<code
+   data-x="">close-menulist</code>" otherwise.</p></li>
+
+   <li><p><span>Assert</span>: <var>element</var>'s <span data-x="menuitem-invoked-submenu">invoked
+   submenu</span> is null.</p></li>
 
    <li><p>Set <var>element</var>'s <span data-x="concept-menuitem-checkedness">checkedness</span> to
    <var>isChecked</var>.</p></li>
@@ -60674,8 +60748,8 @@ out of 233&#x2009;257&#x2009;824 bytes available&lt;/meter>&lt;/p></code></pre>
    <dd>Optionally, a <code>legend</code> element, followed by <span>flow content</span>.</dd>
    <dt><span data-x="concept-element-attributes">Content attributes</span>:</dt>
    <dd><span>Global attributes</span></dd>
-   <!-- TODO(domfarolino): If we end up going with fieldset, then make the disabled attribute apply
-   to menuitem elements -->
+   <!-- TODO(domfarolino): If we end up going with fieldset for the menu elements proposal, then
+   make the disabled attribute apply to menuitem elements -->
    <dd><code data-x="attr-fieldset-disabled">disabled</code></dd>
    <dd><code data-x="attr-fieldset-checkable">checkable</code></dd>
    <dd><code data-x="attr-fae-form">form</code></dd>
@@ -94346,6 +94420,21 @@ dictionary <dfn dictionary>DragEventInit</dfn> : <span>MouseEventInit</span> {
      <td>Hides the targeted <span data-x="popover state">popover</span> element.
     <tr>
      <td><dfn attr-value for="html-global/command"
+     data-x="attr-command-toggle-menu"><code>toggle-menu</code></dfn>
+     <td><dfn data-x="attr-command-toggle-menu-state">Toggle Menu</dfn>
+     <td>Shows or hides the targeted <code>menulist</code> element.
+    <tr>
+     <td><dfn attr-value for="html-global/command"
+     data-x="attr-command-show-menu"><code>show-menu</code></dfn>
+     <td><dfn data-x="attr-command-show-menu-state">Show Menu</dfn>
+     <td>Shows the targeted <code>menulist</code> element.
+    <tr>
+     <td><dfn attr-value for="html-global/command"
+     data-x="attr-command-hide-menu"><code>hide-menu</code></dfn>
+     <td><dfn data-x="attr-command-hide-menu-state">Hide Menu</dfn>
+     <td>Hides the targeted <code>menulist</code> element.
+    <tr>
+     <td><dfn attr-value for="html-global/command"
      data-x="attr-command-close"><code>close</code></dfn>
      <td><dfn data-x="attr-command-close-state">Close</dfn>
      <td>Closes the targeted <code>dialog</code> element.
@@ -94380,9 +94469,9 @@ dictionary <dfn dictionary>DragEventInit</dfn> : <span>MouseEventInit</span> {
   <div w-nodev>
 
   <!-- TODO(domfarolino): Probably add shared activation behavior algorithm here? -->
-  <p>An <span data-x="HTML Elements">HTML element</span> can have specific
-  <dfn>is valid command steps</dfn> and <dfn>command steps</dfn> defined for the
-  element's <span data-x="concept-element-local-name">local name</span>.</p>
+  <p>An <span data-x="HTML Elements">HTML element</span> can have specific <dfn>is valid command
+  steps</dfn> and <dfn>command steps</dfn> defined for the element's <span
+  data-x="concept-element-local-name">local name</span>.</p>
 
   </div>
 
