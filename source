@@ -129454,150 +129454,144 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
    <li><p>Let <var>savedAsyncContextMapping</var> be <span>AsyncContextSnapshot</span>().</p></li>
 
    <li>
-    <p>Let <var>task</var> be a <span data-x="concept-task">task</span> that runs the following
-    substeps:</p>
+    <p>Let <var>task</var> be a <span data-x="concept-task">task</span> that <span data-x="Async
+    Context Mapping run">runs</span> the following steps with the <span>Async Context Mapping</span>
+    <var>savedAsyncContextMapping</var>:</p>
 
     <ol>
+     <li><p><span>Assert</span>: <var>uniqueHandle</var> is a <span>unique internal value</span>,
+     not null.</p></li>
+
+     <li><p>If <var>id</var> does not <span data-x="map exists">exist</span> in <var>global</var>'s
+     <span>map of setTimeout and setInterval IDs</span>, then abort these steps.</p></li>
+
      <li>
-      <p><span data-x="Async Context Mapping run">Run</span> the following steps with the
-      <span>Async Context Mapping</span> <var>savedAsyncContextMapping</var>:
+      <p>If <var>global</var>'s <span>map of setTimeout and setInterval IDs</span>[<var>id</var>]
+      does not equal <var>uniqueHandle</var>, then abort these steps.</p>
+
+      <p class="note">This accommodates for the ID having been cleared by a <code
+      data-x="dom-clearTimeout">clearTimeout()</code> or <code
+      data-x="dom-clearInterval">clearInterval()</code> call, and being reused by a subsequent
+      <code data-x="dom-setTimeout">setTimeout()</code> or <code
+      data-x="dom-setInterval">setInterval()</code> call.</p>
+     </li>
+
+     <li><p>Let <var>settings object</var> be <var>global</var>'s <span>relevant settings
+     object</span>.</p></li>
+
+     <li><p>If <span data-x="concept-environment-noscript">scripting is disabled</span> for
+     <var>settings object</var>, then abort these steps.</p></li>
+
+     <li><p><span>Record timing info for timer handler</span> given <var>handler</var>,
+     <var>settings object</var>, and <var>repeat</var>.</p></li>
+
+     <li><p>If <var>handler</var> is a <code data-x="idl-Function">Function</code>, then <span
+     data-x="es-invoking-callback-functions">invoke</span> <var>handler</var> given
+     <var>arguments</var> and "<code data-x="">report</code>", and with <i
+     data-x="dfn-callback-this-value">callback this value</i> set to <var>thisArg</var>.</p></li>
+
+     <li>
+      <p>Otherwise:</p>
 
       <ol>
-       <li><p><span>Assert</span>: <var>uniqueHandle</var> is a <span>unique internal value</span>,
-       not null.</p></li>
-
-       <li><p>If <var>id</var> does not <span data-x="map exists">exist</span> in <var>global</var>'s
-       <span>map of setTimeout and setInterval IDs</span>, then abort these steps.</p></li>
-
        <li>
-        <p>If <var>global</var>'s <span>map of setTimeout and setInterval IDs</span>[<var>id</var>]
-        does not equal <var>uniqueHandle</var>, then abort these steps.</p>
-
-        <p class="note">This accommodates for the ID having been cleared by a <code
-        data-x="dom-clearTimeout">clearTimeout()</code> or <code
-        data-x="dom-clearInterval">clearInterval()</code> call, and being reused by a subsequent
-        <code data-x="dom-setTimeout">setTimeout()</code> or <code
-        data-x="dom-setInterval">setInterval()</code> call.</p>
-       </li>
-
-       <li><p>Let <var>settings object</var> be <var>global</var>'s <span>relevant settings
-       object</span>.</p></li>
-
-       <li><p>If <span data-x="concept-environment-noscript">scripting is disabled</span> for
-       <var>settings object</var>, then abort these steps.</p></li>
-
-       <li><p><span>Record timing info for timer handler</span> given <var>handler</var>,
-       <var>settings object</var>, and <var>repeat</var>.</p></li>
-
-       <li><p>If <var>handler</var> is a <code data-x="idl-Function">Function</code>, then <span
-       data-x="es-invoking-callback-functions">invoke</span> <var>handler</var> given
-       <var>arguments</var> and "<code data-x="">report</code>", and with <i
-       data-x="dfn-callback-this-value">callback this value</i> set to <var>thisArg</var>.</p></li>
-
-       <li>
-        <p>Otherwise:</p>
+        <p>If <var>previousId</var> was not given:</p>
 
         <ol>
-         <li>
-          <p>If <var>previousId</var> was not given:</p>
+         <li><p>Let <var>globalName</var> be "<code data-x="">Window</code>" if <var>global</var> is
+         a <code>Window</code> object; "<code data-x="">WorkerGlobalScope</code>"
+         otherwise.</p></li>
 
-          <ol>
-           <li><p>Let <var>globalName</var> be "<code data-x="">Window</code>" if <var>global</var> is
-           a <code>Window</code> object; "<code data-x="">WorkerGlobalScope</code>"
-           otherwise.</p></li>
+         <li><p>Let <var>methodName</var> be "<code data-x="">setInterval</code>" if
+         <var>repeat</var> is true; "<code data-x="">setTimeout</code>" otherwise.</p></li>
 
-           <li><p>Let <var>methodName</var> be "<code data-x="">setInterval</code>" if
-           <var>repeat</var> is true; "<code data-x="">setTimeout</code>" otherwise.</p></li>
+         <li><p>Let <var>sink</var> be a concatenation of <var>globalName</var>, U+0020 SPACE, and
+         <var>methodName</var>.</p></li>
 
-           <li><p>Let <var>sink</var> be a concatenation of <var>globalName</var>, U+0020 SPACE, and
-           <var>methodName</var>.</p></li>
-
-           <li><p>Set <var>handler</var> to the result of invoking the <span
-           data-x="tt-getcompliantstring">get trusted type compliant string</span> algorithm with
-           <code data-x="tt-trustedscript">TrustedScript</code>, <var>global</var>,
-           <var>handler</var>, <var>sink</var>, and "<code data-x="">script</code>".</p></li>
-          </ol>
-         </li>
-
-         <li><p><span>Assert</span>: <var>handler</var> is a string.</p></li>
-
-         <li><p>Perform <span
-         data-x="csp-EnsureCSPDoesNotBlockStringCompilation">EnsureCSPDoesNotBlockStringCompilation</span>(<var>realm</var>,
-         « », <var>handler</var>, <var>handler</var>, timer, « », <var>handler</var>). If this throws
-         an exception, catch it, <span data-x="report an exception">report</span> it for
-         <var>global</var>, and abort these steps.</p></li>
-         <!-- timer is an enum value. -->
-
-         <li><p>Let <var>fetch options</var> be the <span>default script fetch
-         options</span>.</p></li>
-
-         <li><p>Let <var>base URL</var> be <var>settings object</var>'s <span>API base
-         URL</span>.</p></li>
-
-         <li>
-          <p>If <var>initiating script</var> is not null:</p>
-
-          <ol>
-           <li><p>Set <var>fetch options</var> to a <span>script fetch options</span> whose <span
-           data-x="concept-script-fetch-options-nonce">cryptographic nonce</span> is <var>initiating
-           script</var>'s <span data-x="concept-script-script-fetch-options">fetch options</span>'s
-           <span data-x="concept-script-fetch-options-nonce">cryptographic nonce</span>, <span
-           data-x="concept-script-fetch-options-integrity">integrity metadata</span> is the empty
-           string, <span data-x="concept-script-fetch-options-parser">parser metadata</span> is
-           "<code data-x="">not-parser-inserted</code>", <span
-           data-x="concept-script-fetch-options-credentials">credentials mode</span> is
-           <var>initiating script</var>'s <span data-x="concept-script-script-fetch-options">fetch
-           options</span>'s <span data-x="concept-script-fetch-options-credentials">credentials
-           mode</span>, <span data-x="concept-script-fetch-options-referrer-policy">referrer
-           policy</span> is <var>initiating script</var>'s <span
-           data-x="concept-script-script-fetch-options">fetch options</span>'s <span
-           data-x="concept-script-fetch-options-referrer-policy">referrer policy</span>, and <span
-           data-x="concept-script-fetch-options-fetch-priority">fetch priority</span> is "<code
-           data-x="">auto</code>".</p></li>
-
-           <li><p>Set <var>base URL</var> to <var>initiating script</var>'s <span
-           data-x="concept-script-base-url">base URL</span>.</p></li>
-          </ol>
-
-          <p class="note">The effect of these steps ensures that the string compilation done by <code
-          data-x="dom-setTimeout">setTimeout()</code> and <code
-          data-x="dom-setInterval">setInterval()</code> behaves equivalently to that done by
-          <code>eval()</code>. That is, <span>module script</span> fetches via <code>import()</code>
-          will behave the same in both contexts.</p>
-         </li>
-
-         <li><p>Let <var>script</var> be the result of <span>creating a classic script</span> given
-         <var>handler</var>, <var>settings object</var>, <var>base URL</var>, and <var>fetch
-         options</var>.</p></li>
-
-         <li><p><span data-x="run a classic script">Run the classic script</span>
-         <var>script</var>.</p></li>
+         <li><p>Set <var>handler</var> to the result of invoking the <span
+         data-x="tt-getcompliantstring">get trusted type compliant string</span> algorithm with
+         <code data-x="tt-trustedscript">TrustedScript</code>, <var>global</var>,
+         <var>handler</var>, <var>sink</var>, and "<code data-x="">script</code>".</p></li>
         </ol>
        </li>
 
-       <li><p>If <var>id</var> does not <span data-x="map exists">exist</span> in <var>global</var>'s
-       <span>map of setTimeout and setInterval IDs</span>, then abort these steps.</p></li>
+       <li><p><span>Assert</span>: <var>handler</var> is a string.</p></li>
+
+       <li><p>Perform <span
+       data-x="csp-EnsureCSPDoesNotBlockStringCompilation">EnsureCSPDoesNotBlockStringCompilation</span>(<var>realm</var>,
+       « », <var>handler</var>, <var>handler</var>, timer, « », <var>handler</var>). If this throws
+       an exception, catch it, <span data-x="report an exception">report</span> it for
+       <var>global</var>, and abort these steps.</p></li>
+       <!-- timer is an enum value. -->
+
+       <li><p>Let <var>fetch options</var> be the <span>default script fetch
+       options</span>.</p></li>
+
+       <li><p>Let <var>base URL</var> be <var>settings object</var>'s <span>API base
+       URL</span>.</p></li>
 
        <li>
-        <p>If <var>global</var>'s <span>map of setTimeout and setInterval IDs</span>[<var>id</var>]
-        does not equal <var>uniqueHandle</var>, then abort these steps.</p>
+        <p>If <var>initiating script</var> is not null, then:</p>
 
-        <p class="note">The ID might have been removed via the author code in <var>handler</var>
-        calling <code data-x="dom-clearTimeout">clearTimeout()</code> or <code
-        data-x="dom-clearInterval">clearInterval()</code>. Checking that uniqueHandle isn't different
-        accounts for the possibility of the ID, after having been cleared, being reused by a
-        subsequent <code data-x="dom-setTimeout">setTimeout()</code> or <code
-        data-x="dom-setInterval">setInterval()</code> call.</p>
+        <ol>
+         <li><p>Set <var>fetch options</var> to a <span>script fetch options</span> whose <span
+         data-x="concept-script-fetch-options-nonce">cryptographic nonce</span> is <var>initiating
+         script</var>'s <span data-x="concept-script-script-fetch-options">fetch options</span>'s
+         <span data-x="concept-script-fetch-options-nonce">cryptographic nonce</span>, <span
+         data-x="concept-script-fetch-options-integrity">integrity metadata</span> is the empty
+         string, <span data-x="concept-script-fetch-options-parser">parser metadata</span> is
+         "<code data-x="">not-parser-inserted</code>", <span
+         data-x="concept-script-fetch-options-credentials">credentials mode</span> is
+         <var>initiating script</var>'s <span data-x="concept-script-script-fetch-options">fetch
+         options</span>'s <span data-x="concept-script-fetch-options-credentials">credentials
+         mode</span>, <span data-x="concept-script-fetch-options-referrer-policy">referrer
+         policy</span> is <var>initiating script</var>'s <span
+         data-x="concept-script-script-fetch-options">fetch options</span>'s <span
+         data-x="concept-script-fetch-options-referrer-policy">referrer policy</span>, and <span
+         data-x="concept-script-fetch-options-fetch-priority">fetch priority</span> is "<code
+         data-x="">auto</code>".</p></li>
+
+         <li><p>Set <var>base URL</var> to <var>initiating script</var>'s <span
+         data-x="concept-script-base-url">base URL</span>.</p></li>
+        </ol>
+
+        <p class="note">The effect of these steps ensures that the string compilation done by <code
+        data-x="dom-setTimeout">setTimeout()</code> and <code
+        data-x="dom-setInterval">setInterval()</code> behaves equivalently to that done by
+        <code>eval()</code>. That is, <span>module script</span> fetches via <code>import()</code>
+        will behave the same in both contexts.</p>
        </li>
 
-       <li><p>If <var>repeat</var> is true, then perform the <span>timer initialization
-       steps</span> again, given <var>global</var>, <var>handler</var>, <var>timeout</var>,
-       <var>arguments</var>, true, and <var>id</var>.</p></li>
+       <li><p>Let <var>script</var> be the result of <span>creating a classic script</span> given
+       <var>handler</var>, <var>settings object</var>, <var>base URL</var>, and <var>fetch
+       options</var>.</p></li>
 
-       <li><p>Otherwise, <span data-x="map remove">remove</span> <var>global</var>'s <span>map of
-       setTimeout and setInterval IDs</span>[<var>id</var>].</p></li>
+       <li><p><span data-x="run a classic script">Run the classic script</span>
+       <var>script</var>.</p></li>
       </ol>
      </li>
+
+     <li><p>If <var>id</var> does not <span data-x="map exists">exist</span> in <var>global</var>'s
+     <span>map of setTimeout and setInterval IDs</span>, then abort these steps.</p></li>
+
+     <li>
+      <p>If <var>global</var>'s <span>map of setTimeout and setInterval IDs</span>[<var>id</var>]
+      does not equal <var>uniqueHandle</var>, then abort these steps.</p>
+
+      <p class="note">The ID might have been removed via the author code in <var>handler</var>
+      calling <code data-x="dom-clearTimeout">clearTimeout()</code> or <code
+      data-x="dom-clearInterval">clearInterval()</code>. Checking that uniqueHandle isn't different
+      accounts for the possibility of the ID, after having been cleared, being reused by a
+      subsequent <code data-x="dom-setTimeout">setTimeout()</code> or <code
+      data-x="dom-setInterval">setInterval()</code> call.</p>
+     </li>
+
+     <li><p>If <var>repeat</var> is true, then perform the <span>timer initialization
+     steps</span> again, given <var>global</var>, <var>handler</var>, <var>timeout</var>,
+     <var>arguments</var>, true, and <var>id</var>.</p></li>
+
+     <li><p>Otherwise, <span data-x="map remove">remove</span> <var>global</var>'s <span>map of
+     setTimeout and setInterval IDs</span>[<var>id</var>].</p></li>
     </ol>
    </li>
 
