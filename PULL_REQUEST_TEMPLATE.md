@@ -1,6 +1,8 @@
 <!--
 Thank you for contributing to the HTML Standard! Please describe the change you are making and complete the checklist below if your change is not editorial.
-When editing this comment after the PR is created, check that PR-Preview doesn't overwrite your changes.
+
+When you submit this PR, and each time you edit this comment (including checking a checkbox through the UI!), PR Preview will run and update it. As such make any edits in one go and only after PR Preview has run.
+
 If you think your PR is ready to land, please double-check that the build is passing and the checklist is complete before pinging.
 -->
 
@@ -15,6 +17,7 @@ If you think your PR is ready to land, please double-check that the build is pas
    * WebKit: …
    * Deno (only for timers, structured clone, base64 utils, channel messaging, module resolution, web workers, and web storage): …
    * Node.js (only for timers, structured clone, base64 utils, channel messaging, and module resolution): …
+- [ ] Corresponding [HTML AAM](https://w3c.github.io/html-aam/) & [ARIA in HTML](https://w3c.github.io/html-aria/) issues & PRs:
 - [ ] [MDN issue](https://github.com/whatwg/meta/blob/main/MAINTAINERS.md#handling-pull-requests) is filed: …
 - [ ] The top of this comment includes a [clear commit message](https://github.com/whatwg/meta/blob/main/COMMITTING.md) to use. <!-- If you created this PR from a single commit, Github copied its message. Otherwise, you need to add a commit message yourself. -->
 
