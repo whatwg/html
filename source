@@ -4175,6 +4175,13 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li><dfn data-x-href="https://drafts.csswg.org/cssom/#serialize-a-css-value">Serializing a CSS value</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps">run the resize steps</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps">run the scroll steps</dfn></li>
+     <li>
+      <dfn data-x="concept-documentorshadowroot-extensions-mixin"
+      data-x-href="https://drafts.csswg.org/cssom/#extensions-to-the-document-or-shadow-root-interface">Extensions to the <code>DocumentOrShadowRoot</code> Interface Mixin</dfn>:
+      <ul class="brief">
+       <li><dfn data-x="adoptedstylesheets" data-x-href="https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets">adoptedStyleSheets</dfn></li>
+      </ul>
+     </li>
      <li><dfn data-x-href="https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes">evaluate media queries and report changes</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/cssom-view/#scroll-a-target-into-view">Scroll a target into view</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/cssom-view/#scroll-to-the-beginning-of-the-document">Scroll to the beginning of the document</dfn></li>
@@ -69334,6 +69341,7 @@ not-slash     = %x0000-002E / %x0030-10FFFF
    <dd><code data-x="attr-template-shadowrootclonable">shadowrootclonable</code></dd>
    <dd><code data-x="attr-template-shadowrootserializable">shadowrootserializable</code></dd>
    <dd><code data-x="attr-template-shadowrootcustomelementregistry">shadowrootcustomelementregistry</code></dd>
+   <dd><code data-x="attr-template-shadowrootadoptedstylesheets">shadowrootadoptedstylesheets</code></dd>
    <dt><span
    data-x="concept-element-accessibility-considerations">Accessibility considerations</span>:</dt>
    <dd><a href="https://w3c.github.io/html-aria/#el-template">For authors</a>.</dd>
@@ -69430,6 +69438,11 @@ interface <dfn interface>HTMLTemplateElement</dfn> : <span>HTMLElement</span> {
   <p>The <dfn element-attr for="template"><code
   data-x="attr-template-shadowrootcustomelementregistry">shadowrootcustomelementregistry</code></dfn>
   content attribute is a <span>boolean attribute</span>.</p>
+
+  <p>The <dfn element-attr for="template"><code
+  data-x="attr-template-shadowrootadoptedstylesheets">shadowrootadoptedstylesheets</code></dfn> content
+  contributes to the <span data-x="concept-DocumentFragment-host">host's</span>
+  <span>adoptedStyleSheets</span>.</p>
 
   <p>The <span>template contents</span> of a <code>template</code> element <a
   href="#template-syntax">are not children of the element itself</a>.</p>
@@ -69670,7 +69683,71 @@ interface <dfn interface>HTMLTemplateElement</dfn> : <span>HTMLElement</span> {
 
   </div>
 
+<hr>
 
+  <div algorithm>
+  <p>The <dfn>stylesheet adopting steps</dfn> for <code>template</code> elements are:</p>
+
+  <ol>
+   <li><p>If the value of
+   <span data-x="attr-template-shadowrootadoptedstylesheets">shadowrootadoptedstylesheets</span> is
+   empty, then return.</p></li>
+   <li><p>Let <var>adoptedStyleSheets</var> be an empty array.</p></li>
+
+   <li><p>For each <span>unordered set of unique space-separated tokens</span> <var>specifier</var> in
+   <span data-x="attr-template-shadowrootadoptedstylesheets">shadowrootadoptedstylesheets</span>:</p>
+    <ol>
+      <li><p>Let <var>url</var> be the result of <span data-x="resolve a module specifier">resolving
+      a module specifier</span> given <var>moduleScript</var> and <var>specifier</var>.</p> If
+      any errors occur, then <span>continue</span>.</li>
+      <li><p>Let <var>settingsObject</var> be the <span>current settings object</span>.</li>
+      <li><p>Let <var>moduleType</var> be "<code data-x="">css</code>".</p></li>
+      <li><p>Let <var>moduleMap</var> be <var>settingsObject</var>'s <span
+      data-x="concept-settings-object-module-map">module map</span>.</p></li>
+      <li><p>Let <var>moduleScript</var> be
+      <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)].</p></li>
+      <li><p>If <var>moduleScript</var> is null, then <span>continue</span>.</p></li> // TODO(kschmi): Add fetch!!!!!!!!!!!!!!!!!
+      <li><p>Extract the <code>CSSStyleSheet</code> from <var>moduleScript</var>'s
+      <span data-x="concept-script-record">record</span> and append it to
+      <var>adoptedStyleSheets</var>. If any error occurs, then <span>continue</span>.</p></li>
+    </ol>
+   </li>
+   <li><p><span data-x="list extend">Extend</span> <span data-x="concept-DocumentFragment-host">host</span>'s
+   <span>adoptedStyleSheets</span> with <var>adoptedStyleSheets</var>.</p></li>
+  </ol>
+  </div>
+
+  <div class="example">
+
+   <p>This example demonstrates two equivalent methods to import CSS module scripts, the
+   first using the JavaScript <code data-x="">import</code> method and the second using the
+   <span data-x="attr-template-shadowrootadoptedstylesheets">shadowrootadoptedstylesheets</span>
+   attribute.</p>
+
+   <pre><code class="html">
+&lt;script type="importmap">
+{
+  "imports": {
+    "foo": "data:text/css,div {color:blue}"
+  }
+}
+&lt;/script>
+&lt;div id="host">
+  &lt;template shadowrootmode="open">
+    &lt;script type="module">
+      import styles from "foo" with { type: "css"};
+      document.getElementById("host").shadowRoot.adoptedStyleSheets = [styles];
+    &lt;/script>
+    &lt;div>test&lt;/div>
+  &lt;/template>
+&lt;/div>
+&lt;div id="host_shadowrootadoptedstylesheets_attribute">
+  &lt;template shadowrootmode="open" shadowrootadoptedstylesheets="foo">
+    &lt;div>test&lt;/div>
+  &lt;/template>
+&lt;/div></code></pre>
+
+  </div>
 
   <div w-nodev>
 
@@ -145726,6 +145803,10 @@ document.body.appendChild(text);
          data-x="attr-template-shadowrootcustomelementregistry">shadowrootcustomelementregistry</code>
          attribute, then set <var>shadow</var>'s <span>keep custom element registry null</span> to
          true.</p></li>
+
+         <li><p>If <var>templateStartTag</var> has a <code
+         data-x="attr-template-shadowrootadoptedstylesheets">shadowrootadoptedstylesheets</code>
+         attribute, then perform the <span>stylesheet adopting steps</span> on <var>template</var>.</p></li>
         </ol>
        </li>
       </ol>
@@ -157548,7 +157629,8 @@ interface <dfn interface>External</dfn> {
          <code data-x="attr-template-shadowrootslotassignment">shadowrootslotassignment</code>;
          <code data-x="attr-template-shadowrootclonable">shadowrootclonable</code>;
          <code data-x="attr-template-shadowrootserializable">shadowrootserializable</code>;
-         <code data-x="attr-template-shadowrootcustomelementregistry">shadowrootcustomelementregistry</code></td>
+         <code data-x="attr-template-shadowrootcustomelementregistry">shadowrootcustomelementregistry</code>;
+         <code data-x="attr-template-shadowrootadoptedstylesheets">shadowrootadoptedstylesheets</code></td>
      <td><code>HTMLTemplateElement</code></td>
     </tr>
 
@@ -159052,6 +159134,11 @@ interface <dfn interface>External</dfn> {
      <td> <code data-x="attr-option-selected">option</code>
      <td> Whether the option is selected by default
      <td> <span>Boolean attribute</span>
+    <tr>
+     <th> <code data-x="">shadowrootadoptedstylesheets</code>
+     <td> <code data-x="attr-template-shadowrootadoptedstylesheets">template</code>
+     <td> Sets <span>adoptedStyleSheets</span> on a declarative shadow root
+     <td> <a href="#attribute-text">Text</a>
     <tr>
      <th> <code data-x="">shadowrootclonable</code>
      <td> <code data-x="attr-template-shadowrootclonable">template</code>
