@@ -5,7 +5,7 @@ title: Upcoming WHATNOT meeting on 20YY-MM-DD
 labels: agenda+
 ---
 
-Today we held our weekly triage call ([LINK TO PREVIOUS AGENDA ISSUE]) and the meeting notes have been posted there.
+Today we held our weekly triage call, see [LINK TO PREVIOUS AGENDA ISSUE], and the meeting notes have been posted there.
 
 [DELETE ONE OF THE FOLLOWING TWO LINES AND FILL IN THE DATE]
 The next one is scheduled for [DATE], at 9AM PT. Note that this is 1 week later in the AMER-EMEA friendly time.
