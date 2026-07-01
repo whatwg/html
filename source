@@ -125625,8 +125625,10 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   </div>
 
   <div algorithm>
-  <p>To <dfn>parse HTML from a string</dfn>, given a <code>Document</code> <var>document</var> and a
-  <span>string</span> <var>html</var>:</p>
+  <p>To <dfn>parse HTML from a string</dfn>, given a <code>Document</code> <var>document</var>, a
+  <span>string</span> <var>html</var>, an optional <span>SanitizerConfig</span> or null
+  <var>configuration</var> (default null), and an optional boolean <var>safe</var> (default
+  false):</p>
 
   <ol>
    <li><p>Set <var>document</var>'s <span data-x="concept-document-type">type</span> to "<code
@@ -125636,6 +125638,10 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    shadow roots</span> is <var>document</var>'s <span
    data-x="concept-document-allow-declarative-shadow-roots">allow declarative shadow roots</span>,
    associated with <var>document</var>.</p></li>
+
+   <li><p>If <var>configuration</var> is not null, then set <var>parser</var>'s <span>parser
+   sanitizer configuration</span> to <var>configuration</var> and set <var>parser</var>'s
+   <span>remove javascript navigation URLs</span> to <var>safe</var>.</p></li>
 
    <li><p>Place <var>html</var> into the <span>input stream</span> for <var>parser</var>. The
    encoding <span data-x="concept-encoding-confidence">confidence</span> is
@@ -125804,14 +125810,16 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    data-x="concept-document-allow-declarative-shadow-roots">allow declarative shadow roots</span> to
    true.</p></li>
 
-   <li><p><span>Parse HTML from a string</span> given <var>document</var> and
-   <var>html</var>.</p></li>
-
    <li><p>Let <var>sanitizer</var> be the result of calling <span>get a sanitizer instance from
    options</span> with <var>options</var> and true.</p></li>
 
-   <li><p>Call <span>sanitize</span> on <var>document</var> with <var>sanitizer</var> and
-   true.</p></li>
+   <li><p>Let <var>configuration</var> be <var>sanitizer</var>'s
+   <span>configuration</span>.</p></li>
+
+   <li><p><span>Remove unsafe</span> from <var>configuration</var>.</p></li>
+
+   <li><p><span>Parse HTML from a string</span> given <var>document</var>, <var>html</var>,
+   <var>configuration</var>, and true.</p></li>
 
    <li><p>Return <var>document</var>.</p></li>
   </ol>
@@ -125843,14 +125851,14 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    data-x="concept-document-allow-declarative-shadow-roots">allow declarative shadow roots</span> to
    true.</p></li>
 
-   <li><p><span>Parse HTML from a string</span> given <var>document</var> and
-   <var>compliantHTML</var>.</p></li>
-
    <li><p>Let <var>sanitizer</var> be the result of calling <span>get a sanitizer instance from
    options</span> with <var>options</var> and false.</p></li>
 
-   <li><p>Call <span>sanitize</span> on <var>document</var> with <var>sanitizer</var> and
-   false.</p></li>
+   <li><p>Let <var>configuration</var> be <var>sanitizer</var>'s
+   <span>configuration</span>.</p></li>
+
+   <li><p><span>Parse HTML from a string</span> given <var>document</var>, <var>compliantHTML</var>,
+   <var>configuration</var>, and false.</p></li>
 
    <li><p>Return <var>document</var>.</p></li>
   </ol>
@@ -127728,6 +127736,12 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
    <li><p>Let <var>sanitizer</var> be the result of calling <span data-x="get a sanitizer instance
    from options">getting a sanitizer</span> from <var>options</var> given <var>safe</var>.</p></li>
 
+   <li><p>Let <var>sanitizerConfig</var> be <var>sanitizer</var>'s
+   <span>configuration</span>.</p></li>
+
+   <li><p>If <var>safe</var> is true, then <span>remove unsafe</span> from
+   <var>sanitizerConfig</var>.</p></li>
+
    <li><p>Let <var>scriptingMode</var> be <span data-x="scripting-mode-inert">Inert</span>.</p></li>
 
    <li>
@@ -127744,15 +127758,13 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
 
    <li>
     <p>Let <var>fragment</var> be the result of invoking the <span>HTML fragment parsing
-    algorithm</span> given <var>target</var>, <var>html</var>, true, and
-    <var>scriptingMode</var>.</p>
+    algorithm</span> given <var>target</var>, <var>html</var>, true, <var>scriptingMode</var>,
+    <var>sanitizerConfig</var>, and <var>safe</var>.</p>
 
     <p class="note">Scripts in <var>fragment</var> will only execute once inserted into
     <var>target</var>.</p>
    </li>
 
-   <li><p><span data-x="sanitize">Sanitize</span> <var>fragment</var> given <var>sanitizer</var> and
-   <var>safe</var>.</p></li>
 
    <li><p><span data-x="concept-node-replace-all">Replace all</span> with <var>fragment</var> within
    <var>target</var>.</p></li>
@@ -127807,266 +127819,7 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
   </div>
 
   <div algorithm>
-  <p>To <dfn>sanitize</dfn> a <code>Node</code> <var>node</var> with a <code>Sanitizer</code>
-  <var>sanitizer</var> and a boolean <var>safe</var>:</p>
 
-  <ol>
-   <li><p>Let <var>configuration</var> be <var>sanitizer</var>'s
-   <span>configuration</span>.</p></li>
-
-   <li><p><span>Assert</span>: <var>configuration</var> is <span
-   data-x="dom-SanitizerConfig-valid">valid</span>.</p></li>
-
-   <li><p>If <var>safe</var> is true, then <span>remove unsafe</span> from
-   <var>configuration</var>.</p></li>
-
-   <li><p>Run the <span>inner sanitize steps</span> given <var>node</var>, <var>configuration</var>,
-   and <var>safe</var>.</p></li>
-  </ol>
-  </div>
-
-  <div algorithm>
-  <p>To perform the <dfn>inner sanitize steps</dfn> given a <code>Node</code> <var>node</var>, a
-  <span>SanitizerConfig</span> <var>configuration</var>, and a boolean
-  <var>handleJavascriptNavigationUrls</var>:</p>
-
-  <ol>
-   <li>
-    <p><span data-x="list iterate">For each</span> <var>child</var> of <var>node</var>'s <span
-    data-x="concept-tree-child">children</span>:</p>
-
-    <ol>
-     <li><p><span>Assert</span>: <var>child</var> is a <code>Text</code>, <code>Comment</code>,
-     <code>Element</code>, <code>ProcessingInstruction</code>, or <code>DocumentType</code>
-     node.</p></li>
-
-     <li><p>If <var>child</var> is a <code>DocumentType</code> or <code>Text</code> node, then
-     <span>continue</span>.</p></li>
-
-     <li>
-      <p>If <var>child</var> is a <code>Comment</code> node:</p>
-
-      <ol>
-       <li><p>If <var>configuration</var>["<code
-       data-x="dom-SanitizerConfig-comments">comments</code>"] is not true, then <span
-       data-x="concept-node-remove">remove</span> <var>child</var>.</p></li>
-
-       <li><p><span>Continue</span>.</p></li>
-      </ol>
-     </li>
-
-     <li>
-      <p>If <var>child</var> is a <code>ProcessingInstruction</code> node:</p>
-
-      <ol>
-       <li><p>Let <var>piTarget</var> be <var>child</var>'s <span
-       data-x="concept-pi-target">target</span>.</p></li>
-
-       <li>
-        <p>If <var>configuration</var>["<code
-        data-x="dom-SanitizerConfig-processingInstructions">processingInstructions</code>"] <span
-        data-x="map exists">exists</span>:</p>
-
-        <ol>
-         <li><p>If <var>configuration</var>["<code
-         data-x="dom-SanitizerConfig-processingInstructions">processingInstructions</code>"] does
-         not <span data-x="list contains">contain</span> <var>piTarget</var>, then <span
-         data-x="concept-node-remove">remove</span> <var>child</var>.</p></li>
-        </ol>
-       </li>
-
-       <li>
-        <p>Otherwise:</p>
-
-        <ol>
-         <li><p>If <var>configuration</var>["<code
-         data-x="dom-SanitizerConfig-removeProcessingInstructions">removeProcessingInstructions</code>"]
-         <span data-x="list contains">contains</span> <var>piTarget</var>, then <span
-         data-x="concept-node-remove">remove</span> <var>child</var>.</p></li>
-        </ol>
-       </li>
-      </ol>
-     </li>
-
-     <li>
-      <p>Otherwise:</p>
-
-      <ol>
-       <li><p>Let <var>elementName</var> be a <span>SanitizerElementNamespace</span> with
-       <var>child</var>'s <span data-x="concept-element-local-name">local name</span> and <span
-       data-x="concept-element-namespace">namespace</span>.</p></li>
-
-       <li><p>If <var>configuration</var>["<code
-       data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaceWithChildrenElements</code>"]
-       <span data-x="map exists">exists</span> and <var>configuration</var>["<code
-       data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaceWithChildrenElements</code>"]
-       <span data-x="list contains">contains</span> <var>elementName</var>:</p>
-
-        <ol>
-         <li><p><span>Assert</span>: <var>node</var> is not a <code>Document</code>.</p></li>
-
-         <li><p>Run the <span>inner sanitize steps</span> given <var>child</var>,
-         <var>configuration</var>, and <var>handleJavascriptNavigationUrls</var>.</p></li>
-
-         <li><p>Let <var>fragment</var> be the result of <span data-x="create a document
-         fragment">creating a document fragment</span> given <var>node</var>'s
-         <span>node document</span>.</p></li>
-
-         <li><p><span data-x="list iterate">For each</span> <var>innerChild</var> of
-         <var>child</var>'s <span data-x="concept-tree-child">children</span>, <span
-         data-x="concept-node-append">append</span> <var>innerChild</var> to
-         <var>fragment</var>.</p></li>
-
-         <li><p><span data-x="concept-node-replace">Replace</span> <var>child</var> with
-         <var>fragment</var> within <var>node</var>. <span>Assert</span> that this did not
-         throw.</p></li>
-
-         <li><p><span>Continue</span>.</p></li>
-        </ol>
-       </li>
-
-       <li>
-        <p>If <var>configuration</var>["<code
-        data-x="dom-SanitizerConfig-elements">elements</code>"] <span data-x="map
-        exists">exists</span>:</p>
-
-        <ol>
-         <li><p>If <var>configuration</var>["<code
-         data-x="dom-SanitizerConfig-elements">elements</code>"] does not <span data-x="list
-         contains">contain</span> <var>elementName</var>, then <span
-         data-x="concept-node-remove">remove</span> <var>child</var> and
-         <span>continue</span>.</p></li>
-        </ol>
-       </li>
-
-       <li>
-        <p>Otherwise:</p>
-
-        <ol>
-         <li><p>If <var>configuration</var>["<code
-         data-x="dom-SanitizerConfig-removeElements">removeElements</code>"] <span data-x="list
-         contains">contains</span> <var>elementName</var>, then <span
-         data-x="concept-node-remove">remove</span> <var>child</var> and
-         <span>continue</span>.</p></li>
-        </ol>
-       </li>
-
-       <li><p>If <var>elementName</var>["<code
-       data-x="dom-SanitizerElementNamespace-name">name</code>"] is "<code>template</code>" and
-       <var>elementName</var>["<code
-       data-x="dom-SanitizerElementNamespace-namespace">namespace</code>"] is the <span>HTML
-       namespace</span>, then run the <span>inner sanitize steps</span> given <var>child</var>'s
-       <span>template contents</span>, <var>configuration</var>, and
-       <var>handleJavascriptNavigationUrls</var>.</p></li>
-
-       <li><p>If <var>child</var> is a <span>shadow host</span>, then run the <span>inner sanitize
-       steps</span> given <var>child</var>'s <span>shadow root</span>, <var>configuration</var>, and
-       <var>handleJavascriptNavigationUrls</var>.</p></li>
-
-       <li><p>Let <var>elementWithLocalAttributes</var> be «[ ]».</p></li>
-
-       <li><p>If <var>configuration</var>["<code
-       data-x="dom-SanitizerConfig-elements">elements</code>"] <span data-x="map
-       exists">exists</span> and <var>configuration</var>["<code
-       data-x="dom-SanitizerConfig-elements">elements</code>"] <span data-x="list
-       contains">contains</span> <var>elementName</var>, then set
-       <var>elementWithLocalAttributes</var> to <var>configuration</var>["<code
-       data-x="dom-SanitizerConfig-elements">elements</code>"][<var>elementName</var>].</p></li>
-
-       <li>
-        <p><span data-x="list iterate">For each</span> <var>attribute</var> in <var>child</var>'s
-        <span>attribute list</span>:</p>
-
-        <ol>
-         <li><p>Let <var>attrName</var> be a <span>SanitizerAttributeNamespace</span> with
-         <var>attribute</var>'s <span data-x="concept-attribute-local-name">local name</span> and
-         <span data-x="concept-attribute-namespace">namespace</span>.</p></li>
-
-         <li><p>If <var>elementWithLocalAttributes</var>["<code
-         data-x="dom-SanitizerElementNamespaceWithAttributes-removeAttributes">removeAttributes</code>"]
-         <span data-x="map exists">exists</span> and <var>elementWithLocalAttributes</var>["<code
-         data-x="dom-SanitizerElementNamespaceWithAttributes-removeAttributes">removeAttributes</code>"]
-         <span data-x="list contains">contains</span> <var>attrName</var>, then <span
-         data-x="concept-element-attributes-remove">remove</span> <var>attribute</var>.</p></li>
-
-         <li>
-          <p>Otherwise, if <var>configuration</var>["<code
-          data-x="dom-SanitizerConfig-attributes">attributes</code>"] <span data-x="map
-          exists">exists</span>:</p>
-
-          <ol>
-           <li><p>If <var>configuration</var>["<code
-           data-x="dom-SanitizerConfig-attributes">attributes</code>"] does not <span data-x="list
-           contains">contain</span> <var>attrName</var> and
-           <var>elementWithLocalAttributes</var>["<code
-           data-x="dom-SanitizerElementNamespaceWithAttributes-attributes">attributes</code>"] <span
-           data-x="map with default">with default</span> « » does not <span data-x="list
-           contains">contain</span> <var>attrName</var>, and if "<code data-x="">data-</code>" is
-           not a <span>code unit prefix</span> of <var>attribute</var>'s <span
-           data-x="concept-attribute-local-name">local name</span> or <var>attribute</var>'s <span
-           data-x="concept-attribute-namespace">namespace</span> is not null or
-           <var>configuration</var>["<code
-           data-x="dom-SanitizerConfig-dataAttributes">dataAttributes</code>"] is not true, then
-           <span data-x="concept-element-attributes-remove">remove</span>
-           <var>attribute</var>.</p></li>
-          </ol>
-         </li>
-
-         <li>
-          <p>Otherwise:</p>
-
-          <ol>
-           <li><p>If <var>elementWithLocalAttributes</var>["<code
-           data-x="dom-SanitizerElementNamespaceWithAttributes-attributes">attributes</code>"] <span
-           data-x="map exists">exists</span> and <var>elementWithLocalAttributes</var>["<code
-           data-x="dom-SanitizerElementNamespaceWithAttributes-attributes">attributes</code>"] does
-           not <span data-x="list contains">contain</span> <var>attrName</var>, then <span
-           data-x="concept-element-attributes-remove">remove</span> <var>attribute</var>.</p></li>
-
-           <li><p>Otherwise, if <var>configuration</var>["<code
-           data-x="dom-SanitizerConfig-removeAttributes">removeAttributes</code>"] <span
-           data-x="list contains">contains</span> <var>attrName</var>, then <span
-           data-x="concept-element-attributes-remove">remove</span> <var>attribute</var>.</p></li>
-          </ol>
-         </li>
-
-         <li>
-          <p>If <var>handleJavascriptNavigationUrls</var> is true:</p>
-
-          <ol>
-           <li><p>If the pair (<var>elementName</var>, <var>attrName</var>) matches an entry in the
-           <span>built-in navigating URL attributes list</span>, and if <var>attribute</var>
-           <span>contains a <code>javascript:</code> URL</span>, then <span
-           data-x="concept-element-attributes-remove">remove</span> <var>attribute</var>.</p></li>
-
-           <li><p>If <var>child</var>'s <span data-x="concept-element-namespace">namespace</span> is
-           the <span>MathML Namespace</span>, <var>attribute</var>'s <span
-           data-x="concept-attribute-local-name">local name</span> is "<code data-x="">href</code>",
-           <var>attribute</var>'s <span data-x="concept-attribute-namespace">namespace</span> is
-           null or the <span>XLink namespace</span>, and <var>attribute</var> <span>contains a
-           javascript: URL</span>, then <span
-           data-x="concept-element-attributes-remove">remove</span> <var>attribute</var>.</p></li>
-
-           <li><p>If the <span>built-in animating URL attributes list</span> <span data-x="list
-           contains">contains</span> the pair (<var>elementName</var>, <var>attrName</var>), and
-           <var>attribute</var>'s <span data-x="concept-attribute-value">value</span> is "<code
-           data-x="">href</code>" or "<code data-x="">xlink:href</code>", then <span
-           data-x="concept-element-attributes-remove">remove</span> <var>attribute</var>.</p></li>
-          </ol>
-         </li>
-        </ol>
-       </li>
-
-       <li><p>Run the <span>inner sanitize steps</span> given <var>child</var>,
-       <var>configuration</var>, and <var>handleJavascriptNavigationUrls</var>.</p></li>
-      </ol>
-     </li>
-    </ol>
-   </li>
-  </ol>
-  </div>
-
-  <div algorithm>
   <p>To determine whether an attribute <var>attribute</var> <dfn>contains a <code>javascript:</code>
   URL</dfn>:</p>
 
@@ -128078,6 +127831,180 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
 
    <li><p>Return true if <var>url</var>'s <span data-x="concept-url-scheme">scheme</span> is "<code
    data-x="">javascript</code>", and false otherwise.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>To check if a <dfn>sanitizer config allows comments</dfn> given a <span>SanitizerConfig</span>
+  <var>configuration</var>: Return true if <var>configuration</var>["<code
+  data-x="dom-SanitizerConfig-comments">comments</code>"] is true; otherwise false.</p>
+  </div>
+
+  <div algorithm>
+  <p>To check if a <dfn>sanitizer config allows processing instruction target</dfn> given a
+  <span>string</span> <var>piTarget</var> and a <span>SanitizerConfig</span>
+  <var>configuration</var>:</p>
+
+  <ol>
+   <li>
+    <p>If <var>configuration</var>["<code
+    data-x="dom-SanitizerConfig-processingInstructions">processingInstructions</code>"] <span
+    data-x="map exists">exists</span>, then: </p>
+
+    <ol>
+     <li><p>If <var>configuration</var>["<code
+     data-x="dom-SanitizerConfig-processingInstructions">processingInstructions</code>"] does not
+     <span data-x="list contains">contain</span> <var>piTarget</var>, then return false.</p></li>
+    </ol>
+   </li>
+
+   <li><p>Otherwise, if <var>configuration</var>["<code
+   data-x="dom-SanitizerConfig-removeProcessingInstructions">removeProcessingInstructions</code>"]
+   <span data-x="list contains">contains</span> <var>piTarget</var>, return false.</p></li>
+
+   <li><p>Return true.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>sanitize</dfn> an <code>Element</code> <var>element</var> given a
+  <span>SanitizerConfig</span> <var>configuration</var> and a boolean
+  <var>removeJavascriptNavigationUrls</var>:</p>
+  <ol>
+   <li><p>Let <var>elementName</var> be a <span>SanitizerElementNamespace</span> with
+   <var>element</var>'s <span data-x="concept-element-local-name">local name</span> and <span
+   data-x="concept-element-namespace">namespace</span>.</p></li>
+
+   <li>
+    <p>If <var>configuration</var>["<code
+    data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaceWithChildrenElements</code>"]
+    <span data-x="map exists">exists</span> and <var>configuration</var>["<code
+    data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaceWithChildrenElements</code>"]
+    <span data-x="list contains">contains</span> <var>elementName</var>, then return "<code
+    data-x="">Replace with children</code>".</p>
+   </li>
+
+   <li>
+    <p>If <var>configuration</var>["<code data-x="dom-SanitizerConfig-elements">elements</code>"]
+    <span data-x="map exists">exists</span>: </p>
+
+    <ol>
+     <li>
+      <p>If <var>configuration</var>["<code data-x="dom-SanitizerConfig-elements">elements</code>"]
+      does not <span data-x="list contains">contain</span> <var>elementName</var>, then return
+      "<code data-x="">Remove</code>".</p>
+     </li>
+    </ol>
+   </li>
+
+   <li>
+    <p>Otherwise, if <var>configuration</var>["<code
+    data-x="dom-SanitizerConfig-removeElements">removeElements</code>"] <span data-x="list
+    contains">contains</span> <var>elementName</var>, return "<code data-x="">Remove</code>".</p>
+   </li>
+
+   <li>
+    <p><span data-x="list iterate">For each</span> <var>attribute</var> of <var>element</var>'s
+    <span>attribute list</span>:</p>
+
+    <ol>
+     <li><p>Let <var>attrName</var> be a <span>SanitizerAttributeNamespace</span> with
+     <var>attribute</var>'s <span data-x="concept-attribute-local-name">local name</span> and <span
+     data-x="concept-attribute-namespace">namespace</span>.</p></li>
+
+     <li><p>Let <var>elementWithLocalAttributes</var> be «[ ]».</p></li>
+
+     <li><p>If <var>configuration</var>["<code
+     data-x="dom-SanitizerConfig-elements">elements</code>"] <span data-x="map exists">exists</span>
+     and <var>configuration</var>["<code data-x="dom-SanitizerConfig-elements">elements</code>"]
+     <span data-x="list contains">contains</span> <var>elementName</var>, then set
+     <var>elementWithLocalAttributes</var> to <var>configuration</var>["<code
+     data-x="dom-SanitizerConfig-elements">elements</code>"][<var>elementName</var>].</p></li>
+
+     <li>
+      <p>If <var>elementWithLocalAttributes</var>["<code
+      data-x="dom-SanitizerElementNamespaceWithAttributes-removeAttributes"
+      >removeAttributes</code>"] <span data-x="map exists">exists</span> and
+      <var>elementWithLocalAttributes</var>["<code
+      data-x="dom-SanitizerElementNamespaceWithAttributes-removeAttributes"
+      >removeAttributes</code>"] <span data-x="list contains">contains</span> <var>attrName</var>,
+      then <span data-x="concept-element-attributes-remove">remove</span> <var>attribute</var> from
+      <var>element</var>'s <span>attribute list</span> and <span>continue</span>.</p>
+     </li>
+
+     <li>
+      <p>Otherwise, if <var>configuration</var>["<code
+      data-x="dom-SanitizerConfig-attributes">attributes</code>"] <span data-x="map
+      exists">exists</span>: </p>
+
+      <ol>
+       <li>
+        <p>If <var>configuration</var>["<code
+        data-x="dom-SanitizerConfig-attributes">attributes</code>"] does not <span data-x="list
+        contains">contain</span> <var>attrName</var> and
+        <var>elementWithLocalAttributes</var>["<code
+        data-x="dom-SanitizerElementNamespaceWithAttributes-attributes">attributes</code>"] <span
+        data-x="map with default">with default</span> « » does not <span data-x="list
+        contains">contain</span> <var>attrName</var>, and if "<code data-x="">data-</code>" is not a
+        <span>code unit prefix</span> of <var>attribute</var>'s <span
+        data-x="concept-attribute-local-name">local name</span> or <var>attribute</var>'s <span
+        data-x="concept-attribute-namespace">namespace</span> is not null or
+        <var>configuration</var>["<code
+        data-x="dom-SanitizerConfig-dataAttributes">dataAttributes</code>"] is not true, then <span
+        data-x="concept-element-attributes-remove">remove</span> <var>attribute</var> from
+        <var>element</var>'s <span>attribute list</span> and <span>continue</span>.</p>
+       </li>
+      </ol>
+     </li>
+
+     <li>
+      <p>Otherwise:</p>
+
+      <ol>
+       <li><p>If <var>elementWithLocalAttributes</var>["<code
+       data-x="dom-SanitizerElementNamespaceWithAttributes-attributes">attributes</code>"] <span
+       data-x="map exists">exists</span> and <var>elementWithLocalAttributes</var>["<code
+       data-x="dom-SanitizerElementNamespaceWithAttributes-attributes">attributes</code>"] does not
+       <span data-x="list contains">contain</span> <var>attrName</var>, then <span
+       data-x="concept-element-attributes-remove">remove</span> <var>attribute</var> from
+       <var>element</var>'s <span>attribute list</span> and <span>continue</span>.</p></li>
+
+       <li><p>Otherwise, if <var>configuration</var>["<code
+       data-x="dom-SanitizerConfig-removeAttributes">removeAttributes</code>"] <span data-x="list
+       contains">contains</span> <var>attrName</var>, <span
+       data-x="concept-element-attributes-remove">remove</span> <var>attribute</var> from
+       <var>element</var>'s <span>attribute list</span> and <span>continue</span>.</p></li>
+      </ol>
+     </li>
+
+     <li><p>If <var>removeJavascriptNavigationUrls</var> is false, then
+     <span>continue</span>.</p></li>
+
+     <li><p>If the pair (<var>elementName</var>, <var>attrName</var>) matches an entry in the
+     <span>built-in navigating URL attributes list</span>, and if <var>attribute</var>
+     <span>contains a <code>javascript:</code> URL</span>, then <span
+     data-x="concept-element-attributes-remove">remove</span> <var>attribute</var> from
+     <var>element</var>'s <span>attribute list</span>.</p></li>
+
+     <li><p>If <var>element</var>'s <span data-x="concept-element-namespace">namespace</span> is the
+     <span>MathML Namespace</span>, <var>attribute</var>'s <span
+     data-x="concept-attribute-local-name">local name</span> is "<code data-x="">href</code>",
+     <var>attribute</var>'s <span data-x="concept-attribute-namespace">namespace</span> is null or
+     the <span>XLink namespace</span>, and <var>attribute</var> <span>contains a
+     <code>javascript:</code> URL</span>, then <span
+     data-x="concept-element-attributes-remove">remove</span> <var>attribute</var> from
+     <var>element</var>'s <span>attribute list</span>.</p></li>
+
+     <li><p>If the <span>built-in animating URL attributes list</span> <span data-x="list
+     contains">contains</span> the pair (<var>elementName</var>, <var>attrName</var>), and
+     <var>attribute</var>'s <span data-x="concept-attribute-value">value</span> is "<code
+     data-x="">href</code>" or "<code data-x="">xlink:href</code>", then <span
+     data-x="concept-element-attributes-remove">remove</span> <var>attribute</var> from
+     <var>element</var>'s <span>attribute list</span>.</p></li>
+    </ol>
+   </li>
+
+   <li><p>Return "<code data-x="">Keep</code>".</p></li>
   </ol>
   </div>
 
@@ -141556,9 +141483,6 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <h5>Other parsing state flags</h5>
 
-  <p>The <dfn>root insertion target</dfn>, which is null or a <code>DocumentFragment</code>
-  (initially null).</p>
-
   <p>A boolean <dfn>allow declarative shadow roots</dfn> (initially false).</p>
 
   <p>The <dfn>scripting mode</dfn>, which is a <span>parser scripting mode</span>.</p>
@@ -141590,6 +141514,14 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <p>The <dfn>frameset-ok flag</dfn> is set to "ok" when the parser is created. It is set to "not
   ok" after certain tokens are seen.</p>
+
+  <p>A <span>SanitizerConfig</span>-or-null <dfn>parser sanitizer configuration</dfn>, initially
+  null.</p>
+
+  <p>A boolean <dfn>remove javascript navigation URLs</dfn>, initially false.</p>
+
+  <p>The <dfn>insertion target redirection map</dfn> is an <span>ordered map</span>, initially
+  empty.</p>
 
 
   <h4><dfn>Tokenization</dfn></h4>
@@ -144386,7 +144318,6 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   recognized that practical concerns will likely force user agents to impose nesting depth
   constraints.</p>
 
-
   <h5>Creating and inserting nodes</h5>
 
   <p>While the parser is processing a token, it can enable or disable <dfn data-x="foster
@@ -144609,17 +144540,47 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <ol>
    <li><p>Let <var>overrideTarget</var> be null if <var>insertionLocation</var> is null;
-   otherwise the node in which <var>insertionLocation</var> finds itself.</p></li>
+    otherwise the node in which <var>insertionLocation</var> finds itself.</p></li>
 
    <li><p>Let the <var>adjustedInsertionLocation</var> be the <span>appropriate place for inserting
-   a node</span> given <var>overrideTarget</var>.</p></li>
+    a node</span> given <var>overrideTarget</var>.</p></li>
 
-   <li><p>If the node in which the <var>adjustedInsertionLocation</var> finds itself is the first
-   element in the <span>stack of open elements</span> and the parser's <span>root insertion
-   target</span> is non-null, then set the <var>adjustedInsertionLocation</var> to the parser's
-   <span>root insertion target</span>, after its last child (if any).</p></li>
+   <li><p>Let <var>targetParent</var> be the node in which <var>adjustedInsertionLocation</var>
+    finds itself.</p></li>
 
-   <li><p>Return the <var>adjustedInsertionLocation</var>.</p></li>
+   <li><p>If the parser's <span>insertion target redirection map</span>[<var>targetParent</var>]
+    does not <span data-x="map exists">exist</span>, then return
+    <var>adjustedInsertionLocation</var>.</p></li>
+
+   <li><p>Let <var>refChild</var> be the node before which <var>adjustedInsertionLocation</var>
+    finds itself, if any.</p></li>
+
+   <li>
+    <p>Let <var>redirectedLocation</var> be the parser's <span>insertion target redirection
+    map</span>[<var>targetParent</var>].</p>
+
+    <p class="note">The <span>insertion target redirection map</span> is used to insert elements to
+    the target <code>DocumentFragment</code> during the <span>fragment parsing algorithm
+    steps</span>, or for elements that are <span
+    data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaced with children</span> as
+    part of <span data-x="sanitize">sanitization</span>.</p>
+   </li>
+
+   <li><p>Let <var>redirectedParent</var> be the node in which <var>redirectedLocation</var>
+    finds itself.</p></li>
+
+   <li>
+    <p>If <var>refChild</var> is a node whose parent node is <var>redirectedParent</var>, then
+    return a location inside <var>redirectedParent</var>, immediately before
+    <var>refChild</var>.</p>
+
+    <p class="note">This can occur when an element is <span
+    data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaced with its children</span> as
+    part of <span data-x="sanitize">sanitization</span> in the middle of <span
+    data-x="foster parent">foster parenting</span>.</p>
+   </li>
+
+   <li><p>Return <var>redirectedLocation</var>.</p></li>
   </ol>
   </div>
 
@@ -144631,6 +144592,32 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <ol>
    <li><p>Let <var>insertionLocation</var> be the <span>adjusted insertion location</span>.</p></li>
+
+   <li>
+    <p>If the parser's <span>parser sanitizer configuration</span> is not null, then:</p>
+
+    <ol>
+     <li><p>Let <var>action</var> be the result of <span data-x="sanitize">sanitizing</span>
+     <var>element</var> given the parser's <span>parser sanitizer configuration</span> and the
+     parser's <span>remove javascript navigation URLs</span>.</p></li>
+
+     <li>
+      <p>Switch on <var>action</var>:</p>
+
+      <dl class="switch">
+       <dt>"<code data-x="">Replace with children</code>"</dt>
+       <dd>Set the parser's <span>insertion target redirection map</span>[<var>element</var>] to
+       <var>insertionLocation</var>, and abort these steps.</dd>
+
+       <dt>"<code data-x="">Remove</code>"</dt>
+       <dd>Abort these steps.</dd>
+
+       <dt>"<code data-x="">Keep</code>"</dt>
+       <dd>Do nothing.</dd>
+      </dl>
+     </li>
+    </ol>
+   </li>
 
    <li><p>If it is not possible to insert <var>element</var> at <var>insertionLocation</var>, abort
    these steps.</p></li>
@@ -144874,11 +144861,17 @@ document.body.appendChild(text);
   the user agent must run the following steps:</p>
 
   <ol>
+   <li><p>If the parser's <span>parser sanitizer configuration</span> is non-null and does not
+   <span data-x="sanitizer config allows comments">allow comments</span>, then abort these
+   steps.</p></li>
+
    <li><p>Let <var>data</var> be the data given in the comment token being
    processed.</p></li>
 
    <li><p>Set <var>insertionLocation</var> to the <span>adjusted insertion location</span> given
    <var>insertionLocation</var>.</p></li>
+
+   <li><p>If <var>insertionLocation</var> is null, then abort these steps.</p></li>
 
    <li><p>Let <var>comment</var> be the result of <span data-x="create a comment node">creating a
    comment node</span> given the <span>node document</span> of the node in which the
@@ -144897,6 +144890,10 @@ document.body.appendChild(text);
    <li><p>Let <var>target</var> be the target given in the processing instruction token being
    processed.</p></li>
 
+   <li><p>If the parser's <span>parser sanitizer configuration</span> is non-null and it does not
+   <span data-x="sanitizer config allows processing instruction target">allow</span>
+   <var>target</var>, then abort these steps.</p></li>
+
    <li><p>Let <var>data</var> be the data given in the processing instruction token being
    processed.</p></li>
 
@@ -144908,7 +144905,7 @@ document.body.appendChild(text);
    node in which the <var>insertionLocation</var> finds itself, <var>target</var>, and
    <var>data</var>.</p>
 
-   <li><p>Insert <var>pi</var> at <var>insertionLocation</var>.</p></li>
+   <li><p>Insert the newly created node at <var>insertionLocation</var>.</p></li>
   </ol>
   </div>
 
@@ -149718,9 +149715,11 @@ console.assert(container.firstChild instanceof SuperP);
 
   <div algorithm>
   <p>The <dfn>HTML fragment parsing algorithm</dfn>, given an <code>Element</code> or
-  <code>DocumentFragment</code> <var>target</var>, a string <var>input</var>, an optional boolean
-  <var>allowDeclarativeShadowRoots</var> (default false), and an optional <span>parser scripting
-  mode</span> <var>scriptingMode</var> (default <span data-x="scripting-mode-inert">Inert</span>),
+  <code>DocumentFragment</code> <var>target</var>, a string <var>input</var>, an
+  optional boolean <var>allowDeclarativeShadowRoots</var> (default false), an optional
+  <span>parser scripting mode</span> <var>scriptingMode</var> (default <span
+  data-x="scripting-mode-inert">Inert</span>), an optional <span>SanitizerConfig</span> or null
+  <var>configuration</var> (default null), and an optional boolean <var>safe</var> (default false),
   is the following steps. They return a <code>DocumentFragment</code>.</p>
 
   <p class="note">Parts marked <dfn>fragment case</dfn> in algorithms in the <span>HTML
@@ -149756,14 +149755,15 @@ console.assert(container.firstChild instanceof SuperP);
    <var>document</var>'s <span data-x="concept-document-mode">mode</span> to "<code
    data-x="">limited-quirks</code>".</p></li>
 
-   <li><p>Create a new <span>HTML parser</span> whose <span>allow declarative shadow roots</span> is
-   <var>allowDeclarativeShadowRoots</var>, and associate it with <var>document</var>.</p></li>
+   <li><p>Create a new <span>HTML parser</span> whose <span>parser sanitizer configuration</span> is
+   <var>configuration</var>, <span>allow declarative shadow roots</span> is
+   <var>allowDeclarativeShadowRoots</var>, <span>scripting mode</span> is
+   <var>scriptingMode</var>, and <span>remove javascript navigation URLs</span>
+   is <var>safe</var>, and associate it with <var>document</var>.</p></li>
 
    <li><p>If <var>contextDocument</var>'s <span data-x="concept-n-script">scripting is
    disabled</span>, then set <var>scriptingMode</var> to <span
    data-x="scripting-mode-disabled">Disabled</span>.</p></li>
-
-   <li><p>Set the parser's <span>scripting mode</span> to <var>scriptingMode</var>.</p></li>
 
    <li>
     <p>Set the state of the <span>HTML parser</span>'s <span>tokenization</span> stage as
@@ -149815,11 +149815,16 @@ console.assert(container.firstChild instanceof SuperP);
    <li><p>Set up the <span>HTML parser</span>'s <span>stack of open elements</span> so that it
    contains just the single element <var>root</var>.</p></li>
 
-   <li><p>Let <var>fragment</var> be the result of <span data-x="create a document fragment">creating
-   a document fragment</span> given <var>target</var>'s <span>node
-   document</span>.</p></li>
+   <li>
+    <p>Let <var>fragment</var> be the result of <span data-x="create a document fragment">creating
+    a document fragment</span> given <var>document</var>.</p>
 
-   <li><p>Set the parser's <span>root insertion target</span> to <var>fragment</var>.</p></li>
+    <p class="note">The <code>DocumentFragment</code> is created as part of the inert document to
+    avoid creation time side effects before sanitization.</p>
+   </li>
+
+   <li><p>Set the parser's <span>insertion target redirection map</span>[<var>root</var>] to
+   <var>fragment</var>, right after its last child (if exists).</p></li>
 
    <li><p>If <var data-x="concept-frag-parse-context">context</var> is a <code>template</code>
    element, then push "<span data-x="insertion mode: in template">in template</span>" onto the
