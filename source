@@ -65980,6 +65980,10 @@ interface <dfn interface>HTMLMenuBarElement</dfn> : <span>HTMLElement</span> {
    left and right arrow keys.</p>
   </div>
 
+  <!-- TODO: Set this to true sometimes! -->
+  <p>Each <code>menubar</code> or <code>menulist</code> element has a <dfn>contains invalid menu
+  content</dfn> boolean, initially false.</p>
+
   <p>Depending on user agent decisions about matching platform behavior, <code>menuitem</code>
   elements may activate on <code data-x="event-mouseup">mouseup</code> even when the <code
   data-x="event-mousedown">mousedown</code> (and thus the <code data-x="event-click">click</code>)
@@ -66034,6 +66038,11 @@ interface <dfn interface>HTMLMenuBarElement</dfn> : <span>HTMLElement</span> {
   </ol>
   </div>
 
+  <!-- TODO: rectify this definition with "child of a submenu" tests used elsewhere -->
+  <p>The <dfn>furthest ancestor menu container</dfn> of an element is the <span>inclusive
+  ancestor</span> of that element that is a <code>menulist</code> or <code>menubar</code> and is
+  furthest from the element (that is, highest in the tree).</p>
+
   <h4>The <dfn element><code>menulist</code></dfn> element</h4>
 
   <dl class="element">
@@ -66070,12 +66079,16 @@ interface <dfn interface>HTMLMenuListElement</dfn> : <span>HTMLElement</span> {
   <span>popover state</span> is not <span data-x="popover-state-no-popover">No Popover</span> by
   default, even when the <code data-x="attr-popover">popover</code> attribute is not present.</p>
 
+  <!-- TODO: Is this a reasonable way to define a flag for two elements? -->
+  <p>Each <code>menulist</code> element has a <span>contains invalid menu content</span> boolean
+  (defined under the <code>menubar</code> element).</p>
+
   <p>Depending on user agent decisions about matching platform behavior, <code>menuitem</code>
   elements may activate on <code data-x="event-mouseup">mouseup</code> even when the <code
   data-x="event-mousedown">mousedown</code> (and thus the <code data-x="event-click">click</code>)
   event did not got to the <code>menuitem</code> (for example, because a drag gesture that begins
   on one <code>menuitem</code> and ends on another activates the <code>menuitem</code>).  If a user
-  agent has this behavior, then <code>menulist</code> elements whose parent is a
+  agent has this behavior, then <code>menulist</code> elements whose parent is not a
   <code>submenu</code> element must also implement <span>activation behavior</span> (given a <code
   data-x="event-click">click</code> event) that will <span>fire click on a menuitem if
   needed</span> given that event and the <code>menulist</code> element.</p>
@@ -66426,6 +66439,134 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
   </ol>
   </div>
 
+  <div algorithm>
+  <p>When a <code>menuitem</code> element's <span>furthest ancestor menu container</span>'s
+  <span>contains invalid menu content</span> flag is false, the <code>menuitem</code> element
+  <var>item</var> should handle a <code data-x="event-keydown">keydown</code> event <var>event</var>
+  as follows:</p>
+
+  <ol>
+   <li><p>If <code data-x="">event.getModifierState("Alt")</code>,
+   <code data-x="">event.getModifierState("AltGraph")</code>,
+   <code data-x="">event.getModifierState("Control")</code>,
+   <code data-x="">event.getModifierState("Fn")</code>,
+   <code data-x="">event.getModifierState("Meta")</code>, or
+   <code data-x="">event.getModifierState("Symbol")</code> is true, then return.</p></li>
+
+   <li><p>Let <var>isShift</var> be
+   <code data-x="">event.getModifierState("Shift")</code>.</p></li>
+
+   <li><p>Let <var>key</var> be <code data-x="">event.key</code>.</p></li>
+
+   <li><p>If <var>key</var> is not "Tab" and <var>isShift</var> is true, return.</p></li>
+
+   <li><p>Let <var>direction</var> be the <span>computed value</span> of the
+   <span>'direction'</span> property on <var>item</var>'s <span>furthest ancestor menu
+   container</span>.</p></li>
+
+   <li><p>Let <var>writingMode</var> be the <span>computed value</span> of the
+   <span>'writing-mode'</span> property on <var>item</var>'s <span>furthest ancestor menu
+   container</span>.</p></li>
+
+   <li><p>Let <var>physicalDirection</var> be the following:</p>
+
+    <dl class="switch">
+     <dt>If <var>key</var> is "ArrowRight"
+     <dd>right
+
+     <dt>If <var>key</var> is "ArrowUp"
+     <dd>top
+
+     <dt>If <var>key</var> is "ArrowDown"
+     <dd>bottom
+
+     <dt>If <var>key</var> is "ArrowLeft"
+     <dd>left
+
+     <dt>Otherwise
+     <dd>none
+    </dl>
+   </li>
+
+   <!-- TODO: Link to writing modes better. -->
+   <li><p>If <var>physicalDirection</var> is none, then let <var>logicalDirection</var> be none,
+   otherwise let <var>logicalDirection</var> be the one of "block-start", "block-end",
+   "inline-start", or "inline-end" that maps to <var>physicalDirection</var> given
+   <var>direction</var> and <var>writingMode</var> in the
+   <a href="https://drafts.csswg.org/css-writing-modes/#logical-to-physical">Abstract-to-Physical
+   Mappings</a>.</p></li>
+
+   <li><p>Let <var>menuContainer</var> be the <span>cached ancestor <code>menulist</code>
+   element</span> of <var>item</var> if it is not null, otherwise the <span>cached ancestor
+   <code>menubar</code> element</span> of <var>item</var>.</p></li>
+
+   <li><p>Let <var>inMenubar</var> be true if <var>menuContainer</var> is a <code>menubar</code>,
+   otherwise false.</p></li>
+
+   <li><p>Then:</p>
+    <dl class="switch">
+     <dt>If <var>logicalDirection</var> is "block-start" and <var>inMenubar</var> is false</dt>
+     <dd>Move focus to the previous <code>menuitem</code> in <var>menuContainer</var> whose
+     <span>cached ancestor <code>menulist</code> element</span> is <var>menuContainer</var>, cycling
+     to the end if there is no such previous item.</dd>
+
+     <dt>If <var>logicalDirection</var> is "block-end" and <var>inMenubar</var> is false</dt>
+     <dd>Move focus to the next <code>menuitem</code> in <var>menuContainer</var> whose <span>cached
+     ancestor <code>menulist</code> element</span> is <var>menuContainer</var>, cycling to the start
+     if there is no such next item.</dd>
+
+     <dt>If <var>logicalDirection</var> is "inline-start" and <var>inMenubar</var> is false</dt>
+     <dd>TODO</dd>
+
+     <dt>If <var>logicalDirection</var> is "inline-end" and <var>inMenubar</var> is false and
+     <var>item</var>'s <span data-x="menuitem-invoked-submenu">invoked submenu</span> is null</dt>
+     <dd>TODO</dd>
+
+     <dt>If <var>logicalDirection</var> is "inline-end" and <var>inMenubar</var> is false and
+     <var>item</var>'s <span data-x="menuitem-invoked-submenu">invoked submenu</span> is not
+     null</dt>
+     <dd>TODO</dd>
+
+     <dt>If <var>key</var> is "Home" and <var>inMenubar</var> is false</dt>
+     <dd>TODO</dd>
+
+     <dt>If <var>key</var> is "End" and <var>inMenubar</var> is false</dt>
+     <dd>TODO</dd>
+
+     <dt>If <var>key</var> is "PageUp" and <var>inMenubar</var> is false</dt>
+     <dd>TODO</dd>
+
+     <dt>If <var>key</var> is "PageDown" and <var>inMenubar</var> is false</dt>
+     <dd>TODO</dd>
+
+     <dt>If <var>logicalDirection</var> is "block-start" and <var>inMenubar</var> is true</dt>
+     <dd>TODO</dd>
+
+     <dt>If <var>logicalDirection</var> is "block-end" and <var>inMenubar</var> is true</dt>
+     <dd>TODO</dd>
+
+     <dt>If <var>logicalDirection</var> is "inline-start" and <var>inMenubar</var> is true</dt>
+     <dd>TODO</dd>
+
+     <dt>If <var>logicalDirection</var> is "inline-end" and <var>inMenubar</var> is true</dt>
+     <dd>TODO</dd>
+
+     <dt>If <var>key</var> is "Home" and <var>inMenubar</var> is true</dt>
+     <dd>TODO</dd>
+
+     <dt>If <var>key</var> is "End" and <var>inMenubar</var> is true</dt>
+     <dd>TODO</dd>
+
+     <dt>If <var>key</var> is "Tab"</dt>
+     <dd>TODO</dd>
+
+     <dt>Otherwise</dt>
+     <dd>Do nothing.</dd>
+    </dl>
+   </li>
+
+  </ol>
+  </div>
 
 
   <h3 split-filename="scripting">Scripting</h3>
