@@ -66024,26 +66024,82 @@ interface <dfn interface>HTMLMenuBarElement</dfn> : <span>HTMLElement</span> {
    contains exactly one item whose <span data-x="concept-event-path-invocation-target">invocation
    target</span> is <var>menuContainer</var>.</p></li>
 
-   <li><p>For each <var>item</var> in <var>event</var>'s
-   <span data-x="concept-event-path">path</span>:</p>
-   <ol>
-    <li><p>Let <var>target</var> be <var>item</var>'s <span
-    data-x="concept-event-path-invocation-target">invocation target</span>.</p></li>
+   <li>
+    <p>For each <var>item</var> in <var>event</var>'s <span
+    data-x="concept-event-path">path</span>:</p>
 
-    <li><p>If <var>target</var> is a <code>menuitem</code> element, return
-    <var>target</var>.</p></li>
+    <ol>
+     <li><p>Let <var>target</var> be <var>item</var>'s <span
+     data-x="concept-event-path-invocation-target">invocation target</span>.</p></li>
 
-    <li><p>If <var>target</var> is <var>menuContainer</var>, return null.</p></li>
-   </ol>
+     <li><p>If <var>target</var> is a <code>menuitem</code> element, return
+     <var>target</var>.</p></li>
+
+     <li><p>If <var>target</var> is <var>menuContainer</var>, return null.</p></li>
+    </ol>
    </li>
 
   </ol>
   </div>
 
-  <!-- TODO: rectify this definition with "child of a submenu" tests used elsewhere -->
-  <p>The <dfn>furthest ancestor menu container</dfn> of an element is the <span>inclusive
-  ancestor</span> of that element that is a <code>menulist</code> or <code>menubar</code> and is
-  furthest from the element (that is, highest in the tree).</p>
+  <div algorithm>
+  <p>To found the <dfn>outermost containing menulist</dfn> of a <code>menuitem</code> element
+  <var>item</var>, take the following steps:</p>
+  <ol>
+   <li><p>Let <var>list</var> be null.</p></li>
+
+   <li><p>Let <var>nextList</var> be <var>item</var>'s <span>cached ancestor <code>menulist</code>
+   element</span>.</p></li>
+
+   <li>
+    <p>While <var>nextList</var> is not null:</p>
+
+    <!-- TODO: Chromium code uses (I think) a loop over "topmost popover ancestor" here instead.
+    Should this? -->
+    <ol>
+     <li><p>Let <var>list</var> be <var>nextList</var>.</p></li>
+
+     <li><p>Let <var>nextItem</var> be <var>list</var>'s <span>popover trigger</span>.</p></li>
+
+     <li><p>If <var>nextItem</var> is not a <code>menuitem</code> element, then
+     <span>break</span>.</p></li>
+
+     <li><p>Let <var>nextList</var> be <var>nextItem</var>'s <span>cached ancestor
+     <code>menubar</code> element</span>.</p></li>
+    </ol>
+   </li>
+
+   <li><p>Return <var>list</var>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>To find the <dfn>outermost menu container</dfn> of a <code>menuitem</code> element
+  <var>item</var>, take the following steps:</p>
+
+  <ol>
+   <li><p>Let <var>container</var> be <var>item</var>'s <span>cached ancestor <code>menubar</code>
+   element</span>.</p></li>
+
+   <li><p>If <var>container</var> is not null, return <var>container</var>.</p></li>
+
+   <li><p>Let <var>outerList</var> be <var>item</var>'s <span>outermost containing
+   menulist</span>.</p></li>
+
+   <li><p>Let <var>barItem</var> be <var>outerList</var>'s <span>popover trigger</span>.</p></li>
+
+   <li><p>If <var>barItem</var> is not a <code>menuitem</code> element, then
+   return <var>outerList</var>.</p></li>
+
+   <li><p>Let <var>bar</var> be <var>barItem</var>'s <span>cached ancestor <code>menubar</code>
+   element</span>.</p></li>
+
+   <li><p>If <var>bar</var> is null, return <var>outerList</var>.</p></li>
+
+   <li><p>Return <var>bar</var>.</p></li>
+  </ol>
+  </div>
+
 
   <h4>The <dfn element><code>menulist</code></dfn> element</h4>
 
@@ -66345,6 +66401,20 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
+  <p>An element <var>container</var>'s <dfn>first focusable menuitem</dfn> is the first
+  <code>menuitem</code> descendant of <var>container</var> in <span>tree order</span> whose
+  <span>menu container</span> is <var>container</var> and that is not <code
+  data-x="attr-menuitem-disabled">disabled</code>.</p>
+  </div>
+
+  <div algorithm>
+  <p>An element <var>container</var>'s <dfn>last focusable menuitem</dfn> is the last
+  <code>menuitem</code> descendant of <var>container</var> in <span>tree order</span> whose
+  <span>menu container</span> is <var>container</var> and that is not <code
+  data-x="attr-menuitem-disabled">disabled</code>.</p>
+  </div>
+
+  <div algorithm>
   <p>A <code>menuitem</code> element <var>item</var>'s <dfn>next focusable menuitem</dfn> is the
   result of the following steps:</p>
 
@@ -66356,10 +66426,8 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
    <var>item</var>, whose <span>menu container</span> is <var>container</var>, and is not <code
    data-x="attr-menuitem-disabled">disabled</code>.</p></li>
 
-   <li><p>If <var>next</var> is null, let <var>next</var> be the first <code>menuitem</code>
-   descendant of <var>container</var> in <span>tree order</span> whose <span>menu container</span>
-   is <var>container</var> and that is not <code
-   data-x="attr-menuitem-disabled">disabled</code>.</p></li>
+   <li><p>If <var>next</var> is null, let <var>next</var> be
+   <var>container</var>'s <span>first focusable menuitem</span>.</p></li>
 
    <li><p>Return <var>next</var>.</p></li>
   </ol>
@@ -66378,10 +66446,8 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
    container</span> is <var>container</var>, and is not <code
    data-x="attr-menuitem-disabled">disabled</code>.</p></li>
 
-   <li><p>If <var>previous</var> is null, let <var>previous</var> be the last <code>menuitem</code>
-   descendant of <var>container</var> in <span>tree order</span> whose <span>menu container</span>
-   is <var>container</var> and that is not <code
-   data-x="attr-menuitem-disabled">disabled</code>.</p></li>
+   <li><p>If <var>previous</var> is null, let <var>previous</var> be <var>container</var>'s
+   <span>last focusable menuitem</span>.</p></li>
 
    <li><p>Return <var>previous</var>.</p></li>
   </ol>
@@ -66492,9 +66558,9 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
     </ol>
    </li>
 
-   <li><p class="XXX">TODO(domfarolino): Invoke steps to "close the
-   outermost containing menulist" when appropriate, before running the shared steps
-   below.</p></li>
+   <li><p class="XXX">TODO(domfarolino): Invoke steps to close the <span>outermost containing
+   menulist</span> when appropriate (sometimes we don't do this for checkable items?), before
+   running the shared steps below.</p></li>
 
    <li><p>Run the <span>shared command invoker activation steps</span> given <var>element</var> and
    <var>event</var>.</p></li>
@@ -66502,7 +66568,7 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
-  <p>When a <code>menuitem</code> element's <span>furthest ancestor menu container</span>'s
+  <p>When a <code>menuitem</code> element's <span>outermost menu container</span>'s
   <span>contains invalid menu content</span> flag is false, the <code>menuitem</code> element
   <var>item</var> should handle a <code data-x="event-keydown">keydown</code> event <var>event</var>
   as follows:</p>
@@ -66523,11 +66589,11 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
    <li><p>If <var>key</var> is not "Tab" and <var>isShift</var> is true, return.</p></li>
 
    <li><p>Let <var>direction</var> be the <span>computed value</span> of the
-   <span>'direction'</span> property on <var>item</var>'s <span>furthest ancestor menu
+   <span>'direction'</span> property on <var>item</var>'s <span>outermost menu
    container</span>.</p></li>
 
    <li><p>Let <var>writingMode</var> be the <span>computed value</span> of the
-   <span>'writing-mode'</span> property on <var>item</var>'s <span>furthest ancestor menu
+   <span>'writing-mode'</span> property on <var>item</var>'s <span>outermost menu
    container</span>.</p></li>
 
    <li><p>Let <var>physicalDirection</var> be the following:</p>
@@ -66566,10 +66632,12 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
    <li><p>Then:</p>
     <dl class="switch">
      <dt>If <var>logicalDirection</var> is "block-start" and <var>inMenubar</var> is false</dt>
-     <dd>Move focus to the <span>previous focusable menuitem</span> of <var>item</var>.</dd>
+     <dd>Run the <span>focusing steps</span> for the <span>previous focusable menuitem</span> of
+     <var>item</var>.</dd>
 
      <dt>If <var>logicalDirection</var> is "block-end" and <var>inMenubar</var> is false</dt>
-     <dd>Move focus to the <span>next focusable menuitem</span> of <var>item</var>.</dd>
+     <dd>Run the <span>focusing steps</span> for the <span>next focusable menuitem</span> of
+     <var>item</var>.</dd>
 
      <dt>If <var>logicalDirection</var> is "inline-start" and <var>inMenubar</var> is false</dt>
      <dd>
@@ -66599,24 +66667,57 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
 
        <li><p>If <var>nextFocus</var> is null, return.</p></li>
 
-       <li><p>TODO</p></li>
+       <li><p><span data-x="hide popover algorithm">Hide a popover</span> given
+       <var>menuContainer</var>, false, true, false, and <var>itemTrigger</var>.</p></li>
+
+       <li><p>Run the <span>focusing steps</span> for <var>nextFocus</var>.</p></li>
       </ol>
      </dd>
 
      <dt>If <var>logicalDirection</var> is "inline-end" and <var>inMenubar</var> is false and
      <var>item</var>'s <span data-x="menuitem-invoked-submenu">invoked submenu</span> is null</dt>
-     <dd>TODO</dd>
+     <dd>
+      <p>Execute the following steps:</p>
+
+      <ol>
+       <li><p>Let <var>outermostMenulist</var> be <var>item</var>'s <span>outermost containing
+       menulist</span>.</p></li>
+
+       <li><p>Let <var>itemTrigger</var> be <var>outermostMenulist</var>'s <span>popover
+       trigger</span>.</p></li>
+
+       <li><p>If <var>itemTrigger</var> is not a <code>menuitem</code>, return.</p></li>
+
+       <li><p>Let <var>nextFocus</var> be <var>itemTrigger</var>'s <span>next focusable
+       menuitem</span> if it is not equal to <var>itemTrigger</var>, otherwise null.</p></li>
+
+       <li><p>If <var>nextFocus</var> is null, return.</p></li>
+
+       <li><p><span data-x="hide popover algorithm">Hide a popover</span> given
+       <var>outermostMenulist</var>, false, true, false, and <var>itemTrigger</var>.</p></li>
+
+       <li><p>Run the <span>focusing steps</span> for <var>nextFocus</var>.</p></li>
+      </ol>
+     </dd>
 
      <dt>If <var>logicalDirection</var> is "inline-end" and <var>inMenubar</var> is false and
      <var>item</var>'s <span data-x="menuitem-invoked-submenu">invoked submenu</span> is not
      null</dt>
-     <dd>TODO</dd>
+     <dd>
+      <p>Execute the following steps:</p>
 
-     <dt>If <var>key</var> is "Home" and <var>inMenubar</var> is false</dt>
-     <dd>TODO</dd>
+      <ol>
+       <li><p>Let <var>submenu</var> be
+       <var>item</var>'s <span data-x="menuitem-invoked-submenu">invoked submenu</span>.</p></li>
 
-     <dt>If <var>key</var> is "End" and <var>inMenubar</var> is false</dt>
-     <dd>TODO</dd>
+       <li><p>If <var>submenu</var>'s <span>popover visibility state</span> is <span
+       data-x="popover-hidden-state">hidden</span>, then <span data-x="show popover">show a
+       popover</span> given <var>submenu</var>, false, and <var>item</var>.</p></li>
+
+       <li><p>Run the <span>focusing steps</span> for <var>submenu</var>'s <span>first focusable
+       menuitem</span>, if it is not null.</p></li>
+      </ol>
+     </dd>
 
      <dt>If <var>key</var> is "PageUp" and <var>inMenubar</var> is false</dt>
      <dd>TODO</dd>
@@ -66624,23 +66725,59 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
      <dt>If <var>key</var> is "PageDown" and <var>inMenubar</var> is false</dt>
      <dd>TODO</dd>
 
-     <dt>If <var>logicalDirection</var> is "block-start" and <var>inMenubar</var> is true</dt>
-     <dd>TODO</dd>
+     <dt>If <var>logicalDirection</var> is "block-start" and <var>inMenubar</var> is true and
+     <var>item</var>'s <span data-x="menuitem-invoked-submenu">invoked submenu</span> is not
+     null</dt>
+     <dd>
+      <p>Execute the following steps:</p>
 
-     <dt>If <var>logicalDirection</var> is "block-end" and <var>inMenubar</var> is true</dt>
-     <dd>TODO</dd>
+      <ol>
+       <li><p>Let <var>submenu</var> be
+       <var>item</var>'s <span data-x="menuitem-invoked-submenu">invoked submenu</span>.</p></li>
+
+       <li><p>If <var>submenu</var>'s <span>popover visibility state</span> is <span
+       data-x="popover-hidden-state">hidden</span>, then <span data-x="show popover">show a
+       popover</span> given <var>submenu</var>, false, and <var>item</var>.</p></li>
+
+       <li><p>Run the <span>focusing steps</span> for <var>submenu</var>'s <span>first focusable
+       menuitem</span>, if it is not null.</p></li>
+      </ol>
+     </dd>
+
+     <dt>If <var>logicalDirection</var> is "block-end" and <var>inMenubar</var> is true and
+     <var>item</var>'s <span data-x="menuitem-invoked-submenu">invoked submenu</span> is not
+     null</dt>
+     <dd>
+      <p>Execute the following steps:</p>
+
+      <ol>
+       <li><p>Let <var>submenu</var> be
+       <var>item</var>'s <span data-x="menuitem-invoked-submenu">invoked submenu</span>.</p></li>
+
+       <li><p>If <var>submenu</var>'s <span>popover visibility state</span> is <span
+       data-x="popover-hidden-state">hidden</span>, then <span data-x="show popover">show a
+       popover</span> given <var>submenu</var>, false, and <var>item</var>.</p></li>
+
+       <li><p>Run the <span>focusing steps</span> for <var>submenu</var>'s <span>last focusable
+       menuitem</span>, if it is not null.</p></li>
+      </ol>
+     </dd>
 
      <dt>If <var>logicalDirection</var> is "inline-start" and <var>inMenubar</var> is true</dt>
-     <dd>TODO</dd>
+     <dd>Run the <span>focusing steps</span> for the <span>previous focusable menuitem</span> of
+     <var>item</var>.</dd>
 
      <dt>If <var>logicalDirection</var> is "inline-end" and <var>inMenubar</var> is true</dt>
-     <dd>TODO</dd>
+     <dd>Run the <span>focusing steps</span> for the <span>next focusable menuitem</span> of
+     <var>item</var>.</dd>
 
-     <dt>If <var>key</var> is "Home" and <var>inMenubar</var> is true</dt>
-     <dd>TODO</dd>
+     <dt>If <var>key</var> is "Home"</dt>
+     <dd>Run the <span>focusing steps</span> for the <span>first focusable menuitem</span> of
+     <var>menuContainer</var>, if it is not null.</dd>
 
-     <dt>If <var>key</var> is "End" and <var>inMenubar</var> is true</dt>
-     <dd>TODO</dd>
+     <dt>If <var>key</var> is "End"</dt>
+     <dd>Run the <span>focusing steps</span> for the <span>first focusable menuitem</span> of
+     <var>menuContainer</var>, if it is not null.</dd>
 
      <dt>If <var>key</var> is "Tab"</dt>
      <dd>TODO</dd>
