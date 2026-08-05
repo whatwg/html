@@ -3387,6 +3387,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li>The <!--en-GB--><dfn id="activation-behaviour" data-x-href="https://dom.spec.whatwg.org/#eventtarget-activation-behavior">activation behavior</dfn> hook</li>
      <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#eventtarget-legacy-pre-activation-behavior">legacy-pre-activation behavior</dfn> hook</li>
      <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#eventtarget-legacy-canceled-activation-behavior">legacy-canceled-activation behavior</dfn> hook</li>
+     <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#eventtarget-clear-asynccontext-for-events">clear AsyncContext for events</dfn> algorithm</li>
      <li>The <dfn data-x="creating an event" data-x-href="https://dom.spec.whatwg.org/#concept-event-create">create an event</dfn> algorithm</li>
      <li>The <dfn data-x="concept-event-fire" data-x-href="https://dom.spec.whatwg.org/#concept-event-fire">fire an event</dfn> algorithm</li>
      <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#canceled-flag">canceled flag</dfn></li>
@@ -3469,6 +3470,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#is-a-global-custom-element-registry">is a global custom element registry</dfn></li>
      <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#get-text-content">get text content</dfn> and
                  <dfn data-x-href="https://dom.spec.whatwg.org/#set-text-content">set text content</dfn> algorithms</li>
+     <li>The <dfn data-x="PropagatesAsyncContextToEvents" data-x-href="https://dom.spec.whatwg.org/#extendedattrdef-propagatesasynccontexttoevents"><code>[PropagatesAsyncContextToEvents]</code></dfn> extended attribute</li>
     </ul>
 
     <p>The following features are defined in <cite>UI Events</cite>: <ref>UIEVENTS</ref></p>
@@ -134256,7 +134258,8 @@ source.addEventListener('remove', removeHandler, false);</code></pre>
 
   <h4>The <code>EventSource</code> interface</h4>
 
-  <pre><code class="idl">[Exposed=(Window,Worker)]
+  <pre><code class="idl">[Exposed=(Window,Worker),
+ PropagatesAsyncContextToEvents=("open", "error")]
 interface <dfn interface>EventSource</dfn> : <span>EventTarget</span> {
   <span data-x="dom-EventSource">constructor</span>(USVString url, optional <span>EventSourceInit</span> eventSourceInitDict = {});
 
@@ -134481,10 +134484,20 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
   <div algorithm>
   <p>The <dfn method for="EventSource"><code data-x="dom-EventSource-close">close()</code></dfn>
   method must abort any instances of the <span data-x="concept-fetch">fetch</span> algorithm started
-  for this <code>EventSource</code> object, and must set the <code
+  for this <code>EventSource</code> object, must set the <code
   data-x="dom-EventSource-readyState">readyState</code> attribute to <code
-  data-x="dom-EventSource-CLOSED">CLOSED</code>.</p> <!-- this also causes all the message events to
-  stop firing, even if they were queued before close() was called -->
+  data-x="dom-EventSource-CLOSED">CLOSED</code>, and must <span data-x="clear AsyncContext for
+  events">clear AsyncContext for events</span> with « "<code data-x="event-open">open</code>",
+  "<code data-x="event-error">error</code>" » given this <code>EventSource</code> object.</p>
+  <!-- this also causes all the message events to stop firing, even if they were queued before
+  close() was called -->
+
+  <p class="note">Clearing AsyncContext for events here is not observable: once the <code
+  data-x="dom-EventSource-readyState">readyState</code> attribute is <code
+  data-x="dom-EventSource-CLOSED">CLOSED</code>, every task queued by <span>announce the
+  connection</span>, <span>reestablish the connection</span> and <span>fail the connection</span>
+  returns without firing anything. It however allows implementations to free the resources captured
+  by the Async Context Mapping even if the <code>EventSource</code> object is kept alive.</p>
   </div>
 
   </div>
@@ -134514,9 +134527,19 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
   task</span> which, if the <code data-x="dom-EventSource-readyState">readyState</code> attribute is
   set to a value other than <code data-x="dom-EventSource-CLOSED">CLOSED</code>, sets the <code
   data-x="dom-EventSource-readyState">readyState</code> attribute to <code
-  data-x="dom-EventSource-OPEN">OPEN</code> and <span data-x="concept-event-fire">fires an
-  event</span> named <code data-x="event-open">open</code> at the <code>EventSource</code>
-  object.</p>
+  data-x="dom-EventSource-OPEN">OPEN</code>, <span data-x="concept-event-fire">fires an
+  event</span> named <code data-x="event-open">open</code> at the <code>EventSource</code> object,
+  and then <span data-x="clear AsyncContext for events">clears AsyncContext for events</span> with
+  « "<code data-x="event-open">open</code>", "<code data-x="event-error">error</code>" » given the
+  <code>EventSource</code> object.</p>
+
+  <p class="note">Both entries are dropped together, and only once the connection has either opened
+  or <span data-x="fail the connection">failed</span> permanently. So the <code>EventSource</code>
+  constructor's <span>Async Context Mapping</span> reaches the first <code
+  data-x="event-open">open</code> or <code data-x="event-error">error</code> event and no later one:
+  a connection that drops and reconnects does so because of external circumstances, not because of
+  anything the constructor did. It also means the mapping is not kept alive for the lifetime of the
+  <code>EventSource</code> object.</p>
   </div>
 
   <div algorithm>
@@ -134590,8 +134613,11 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
   task</span> which, if the <code data-x="dom-EventSource-readyState">readyState</code> attribute is
   set to a value other than <code data-x="dom-EventSource-CLOSED">CLOSED</code>, sets the <code
   data-x="dom-EventSource-readyState">readyState</code> attribute to <code
-  data-x="dom-EventSource-CLOSED">CLOSED</code> and <span data-x="concept-event-fire">fires an
-  event</span> named <code data-x="event-error">error</code> at the <code>EventSource</code> object.
+  data-x="dom-EventSource-CLOSED">CLOSED</code>, <span data-x="concept-event-fire">fires an
+  event</span> named <code data-x="event-error">error</code> at the <code>EventSource</code> object,
+  and then <span data-x="clear AsyncContext for events">clears AsyncContext for events</span> with
+  « "<code data-x="event-open">open</code>", "<code data-x="event-error">error</code>" » given the
+  <code>EventSource</code> object.
   <strong>Once the user agent has <span data-x="fail the connection">failed the connection</span>,
   it does <em>not</em> attempt to reconnect.</strong></p>
   </div>
@@ -135031,8 +135057,11 @@ data:&nbsp;test
   <code>EventSource</code> object (this happens when a <code>Document</code> object goes away
   permanently), the user agent must abort any instances of the <span
   data-x="concept-fetch">fetch</span> algorithm started for this <code>EventSource</code> object,
-  and must set the <code data-x="dom-EventSource-readyState">readyState</code> attribute to <code
-  data-x="dom-EventSource-CLOSED">CLOSED</code>.</p> <!-- same as calling close() -->
+  must set the <code data-x="dom-EventSource-readyState">readyState</code> attribute to <code
+  data-x="dom-EventSource-CLOSED">CLOSED</code>, and must <span data-x="clear AsyncContext for
+  events">clear AsyncContext for events</span> with « "<code data-x="event-open">open</code>",
+  "<code data-x="event-error">error</code>" » given the <code>EventSource</code> object.</p>
+  <!-- same as calling close() -->
   </div>
 
   <div algorithm>
