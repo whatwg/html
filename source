@@ -5377,10 +5377,19 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
   </ol>
   </div>
 
+  <p var-scope>This algorithm cannot be run <span>in parallel</span>, and <var>steps</var> must
+  complete synchronously.</p>
+
   <p>Specifications should not use the <span>AsyncContextSwap</span> abstract operation defined in
   <ref>JSASYNCCONTEXT</ref>, or otherwise set or mutate an agent record's [[AsyncContextMapping]]
   field. Instead they should <span data-x="Async Context Mapping run">run</span> an algorithm with
   an <span>Async Context Mapping</span>, which properly cleans up after itself.</p>
+
+  <p class="note" var-scope>
+  Modifying the <span>Async Context Mapping</span> only through this algorithm guarantees that its
+  state is reverted once the <var>steps</var> finish running. This is what guarantees that the
+  <span>event loop</span> begins each <span data-x="concept-task">task</span> with an empty mapping,
+  and events and callbacks run in the empty <span>Async Context Mapping</span> by default.</p>
 
   </div>
 
@@ -122789,7 +122798,15 @@ import "https://example.com/foo/../module2.mjs";</code></pre>
      <li><p>Set the <span>event loop</span>'s <span>currently running task</span> to
      <var>oldestTask</var>.</p></li>
 
-     <li><p>Perform <var>oldestTask</var>'s <span data-x="concept-task-steps">steps</span>.</p></li>
+     <li>
+      <p>Perform <var>oldestTask</var>'s <span data-x="concept-task-steps">steps</span>.</p>
+
+      <p class="note">These <span data-x="concept-task-steps">steps</span> begin with the
+      <span>surrounding agent</span>'s [[AsyncContextMapping]] field set to « », so events fired and
+      callbacks invoked from a <span data-x="concept-task">task</span> run in the empty <span>Async
+      Context Mapping</span> unless the <span data-x="concept-task">task</span> <span data-x="Async
+      Context Mapping run">runs</span> them with another one. <ref>JSASYNCCONTEXT</ref></p>
+     </li>
 
      <li><p>Set the <span>event loop</span>'s <span>currently running task</span> back to
      null.</p></li>
@@ -123277,6 +123294,12 @@ import "https://example.com/foo/../module2.mjs";</code></pre>
    <li>
     <p><span data-x="Async Context Mapping run">Run</span> the following steps with <span>Async
     Context Mapping</span> « »:</p>
+
+    <p class="note">This is necessary even though a <span data-x="concept-task">task</span>'s <span
+    data-x="concept-task-steps">steps</span> already begin with « », because <span>perform a
+    microtask checkpoint</span> is also reached from <span>clean up after running script</span>,
+    which can run while another <span>Async Context Mapping</span> is in effect, such as while <span
+    data-x="execute the script element">executing a <code>script</code> element</span>.</p>
 
     <ol>
      <li>
