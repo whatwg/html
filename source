@@ -66352,20 +66352,19 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
-  <p>A <code>menuitem</code> element <dfn data-x="menuitem-is-checkable">is checkable</dfn> if all
-  of the following are true:</p>
+  <p>A <code>menuitem</code> element's <dfn data-x="menuitem-checkable-state">checkable state</dfn>
+  is:</p>
 
-  <ul class="brief">
-   <li><p>its <span>cached ancestor <code>menulist</code> element</span> is non-null;</li>
+  <dl class="switch">
+   <dt>If its <span>cached ancestor <code>menulist</code> element</span> is null, its <span>cached
+   ancestor <code>fieldset</code> element</span> is non-null, or its <span
+   data-x="menuitem-invoked-submenu">invoked submenu</span> is not null</dt>
+   <dd><span data-x="attr-fieldset-checkable-state-none">None</span></dd>
 
-   <li><p>its <span>cached ancestor <code>fieldset</code> element</span> is non-null;</li>
-
-   <li><p>its <span>cached ancestor <code>fieldset</code> element</span>'s <span
-   data-x="attr-fieldset-checkable">checkable</span> attribute is not in the <span
-   data-x="attr-fieldset-checkable-state-none">None</span> state; and</p></li>
-
-   <li><p>its <span data-x="menuitem-invoked-submenu">invoked submenu</span> is null.</p></li>
-  </ul>
+   <dt>Otherwise</dt>
+   <dd>the state of its <span>cached ancestor <code>fieldset</code> element</span>'s <span
+   data-x="attr-fieldset-checkable">checkable</span> attribute</dd>
+  </dl>
   </div>
 
   <div algorithm>
@@ -66457,14 +66456,14 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
   <p>The <dfn attribute for="HTMLMenuItemElement"><code
   data-x="dom-menuitem-checked">checked</code></dfn> IDL attribute, on getting, must return
   <span>this</span>'s <span data-x="concept-menuitem-checkedness">checkedness</span>. On setting, it
-  must <span>check a <code>menuitem</code> element</span> given <span>this</span> and the new
-  value.</p>
+  must <span>check a <code>menuitem</code> element</span> given <span>this</span>, the new
+  value, and false.</p>
   </div>
 
   <div algorithm>
   <p>To <dfn>check a <code>menuitem</code> element</dfn> <var>element</var> with a boolean
-  <var>isChecked</var>, run these steps. They return either "<code data-x="">close-menulist</code>"
-  or "<code data-x="">stay-open</code>":</p>
+  <var>isChecked</var> and a boolean <var>fireEvents</var>, run these steps. They return either
+  "<code data-x="">close-menulist</code>" or "<code data-x="">stay-open</code>":</p>
 
   <p class="note">This algorithm has these return values because when a <code>menuitem</code> is
   activated, it needs to know whether checking an item needs to hide the <span>cached ancestor
@@ -66474,9 +66473,13 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
   that <span data-x="menuitem-invoked-submenu">invoke a submenu</span> — to let the user interact
   with the item without immediately dismissing it.</p>
 
+  <!-- TODO(dbaron): Should the <var>fireEvents</var> flag exist or should we fire events
+  for IDL setters too? -->
+
   <ol>
-   <li><p>If <var>element</var>'s <span data-x="menuitem-is-checkable">is checkable</span> is false,
-   then return "<code data-x="">stay-open</code>" if <var>element</var>'s <span
+   <li><p>If <var>element</var>'s <span data-x="menuitem-checkable-state">checkable state</span> is
+   <span data-x="attr-fieldset-checkable-state-none">None</span>, then return "<code
+   data-x="">stay-open</code>" if <var>element</var>'s <span
    data-x="menuitem-invoked-submenu">invoked submenu</span> is not null, and "<code
    data-x="">close-menulist</code>" otherwise.</p></li>
 
@@ -66489,12 +66492,21 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
    <li><p>Set <var>element</var>'s <span data-x="concept-menuitem-dirty-checkedness">dirty
    checkedness</span> to true.</p></li>
 
+   <li><p>If <var>fireEvents</var> is true, <span data-x="concept-event-fire">fire an event</span>
+   named <code data-x="event-checked">checked</code> at <var>element</var>.</p></li>
+
+   <!-- TODO(dbaron): This should fire "checked" events too! -->
+   <!-- TODO(dbaron): This and the reset algorithm should allow other elements between the
+   menuitems and the fieldset. -->
    <li><p>If <var>element</var>'s <span data-x="concept-menuitem-checkedness">checkedness</span> is
-   true and <var>element</var>'s <span>cached ancestor <code>fieldset</code> element</span>'s <span
-   data-x="attr-fieldset-checkable">checkable</span> attribute is in the <span
-   data-x="attr-fieldset-checkable-state-single">Single</span> state, then <span>reset
+   true and <var>element</var>'s <span data-x="menuitem-checkable-state">checkable state</span> is
+   <span data-x="attr-fieldset-checkable-state-single">Single</span>, then <span>reset
    <code>menuitem</code> checkedness</span> given <span>this</span>'s <span>parent</span> and
-   <span>this</span>, and return "<code data-x="">close-menulist</code>".</p></li>
+   <span>this</span>.</p></li>
+
+   <li><p>If <var>element</var>'s <span data-x="menuitem-checkable-state">checkable state</span> is
+   <span data-x="attr-fieldset-checkable-state-single">Single</span>, then return "<code
+   data-x="">close-menulist</code>".</p></li>
 
    <li><p>Return "<code data-x="">stay-open</code>".</p></li>
   </ol>
@@ -66521,22 +66533,14 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
     behavior</span> can be triggered in other ways.</p>
    </li>
 
+   <li><p>Set <var>newChecked</var> to false if <var>element</var>'s <span
+   data-x="concept-menuitem-checkedness">checkedness</span> is true; otherwise true.</p></li>
+
    <li>
-    <p>If <var>element</var>'s <span data-x="menuitem-is-checkable">is checkable</span> is true:</p>
+    <p>Let <var>closeBehavior</var> be the result of <span>check a <code>menuitem</code>
+    element</span> given <var>element</var>, <var>newChecked</var>, and true.</p>
 
-    <ol>
-     <li><p>Set <var>newChecked</var> to false if <var>element</var>'s <span
-     data-x="concept-menuitem-checkedness">checkedness</span> is true; otherwise true.</p></li>
-
-     <li><p>Set <var>element</var>'s <span data-x="concept-menuitem-checkedness">checkedness</span> to
-     <var>newChecked</var>.</p></li>
-
-     <li><p>Set <var>element</var>'s <span data-x="concept-menuitem-dirty-checkedness">dirty
-     checkedness</span> to true.</p></li>
-
-     <li><p><span data-x="concept-event-fire">Fire an event</span> named <code
-     data-x="event-checked">checked</code> at <var>element</var>.</p></li>
-    </ol>
+    <p class="note">If <var>element</var> is not checkable, this ignores <var>newChecked</var>.</p>
    </li>
 
    <li>
@@ -66558,9 +66562,9 @@ interface <dfn interface>HTMLMenuItemElement</dfn> : <span>HTMLElement</span> {
     </ol>
    </li>
 
-   <li><p class="XXX">TODO(domfarolino): Invoke steps to close the <span>outermost containing
-   menulist</span> when appropriate (sometimes we don't do this for checkable items?), before
-   running the shared steps below.</p></li>
+   <li><p>If <var>closeBehavior</var> is "close-menulist" then run the <span>hide popover
+   algorithm</span> given <var>element</var>'s <span>outermost containing menulist</span>, true,
+   true, false, and <var>element</var>.</p></li>
 
    <li><p>Run the <span>shared command invoker activation steps</span> given <var>element</var> and
    <var>event</var>.</p></li>
@@ -156441,7 +156445,7 @@ INSERT INTERFACES HERE
      <td> <dfn event for="HTMLElement"><code data-x="event-checked" id="event-menuitem-checked">checked</code></dfn>
      <td> <code>Event</code>
      <td> <code>menuitem</code> elements
-     <td> Fired at <span data-x="menuitem-is-checkable">checkable</span> <code>menuitem</code> elements when their <span data-x="concept-menuitem-checkedness">checkedness</span> changes
+     <td> Fired at checkable <code>menuitem</code> elements when their <span data-x="concept-menuitem-checkedness">checkedness</span> changes
 
     <tr> <!-- click -->
      <td> <code data-x="event-click">click</code>
