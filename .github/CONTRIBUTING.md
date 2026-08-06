@@ -1,6 +1,6 @@
 # HTML Standard contributor guidelines
 
-These are the guidelines for contributing to the HTML Standard. First see the [WHATWG contributor guidelines](https://github.com/whatwg/meta/blob/main/CONTRIBUTING.md).
+These are the guidelines for contributing to the HTML Standard. First see the [WHATWG Contributor Guidelines](https://github.com/whatwg/meta/blob/main/CONTRIBUTING.md).
 
 The HTML Standard is quite complex and people notice minor and larger issues with it all the time. We'd love your help fixing these. Pull requests for typographical and grammar errors are also most welcome.
 
