@@ -165,7 +165,7 @@ Here are some categories of algorithms (roughly from commonest to rarest):
 
 * Generally, if you have a term in a `<dfn>` element, followed by a description of how to 'implement' that term, that's probably an algorithm. Likewise if the term is in a `<span>` element; the `<dfn>` might be elsewhere in the spec, or even in a different spec.
 
-* Most Web IDL interface members (attributes and operations) have associated behavior. Any text that defines such behavior is an algorithm, even it just says that an IDL attribute reflects a content attribute, or that a method does nothing.
+* Most Web IDL interface members (attributes and operations) have associated behavior. Any text that defines such behavior is an algorithm, even if it just says that an IDL attribute reflects a content attribute, or that a method does nothing.
 
 * Text of roughly the form
 
@@ -223,7 +223,7 @@ Most of the time, any `<var>` element that you introduce will be within a `<div 
 - Even when a context has only single-use `<var>`s, it can be easier (if there's enough of them) to mark the context `var-scope` rather than mark each `<var>` as `ignore`.
 - But if a context has only one `<var>`, or two with different variable-names, probably use `ignore`.
 
-But there's an additional situation in which to use `ignore`. In addition to looking for unscoped `<var>`s, the build process will examine the `<var>`s within each algorithm. Typically, a given variable-name will appear at least twice in an algorithm: once when it's declared/defined, and one or more times when it's used. So it's supicious if a variable-name appears only *once* within an algorithm, and the build process will raise a warning about it. If you have a `<var>` that should be ignored by this check, mark it with `ignore`.
+But there's an additional situation in which to use `ignore`. In addition to looking for unscoped `<var>`s, the build process will examine the `<var>`s within each algorithm. Typically, a given variable-name will appear at least twice in an algorithm: once when it's declared/defined, and one or more times when it's used. So it's suspicious if a variable-name appears only *once* within an algorithm, and the build process will raise a warning about it. If you have a `<var>` that should be ignored by this check, mark it with `ignore`.
 
 ### Common mistakes around prose style
 
