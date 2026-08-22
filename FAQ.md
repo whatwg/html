@@ -32,7 +32,7 @@ For more information on this, see the WHATWG FAQ entry [What does "Living Standa
 
 Browsers do not implement HTML+, HTML2, HTML3.2, HTML4, HTML4.01, etc, as separate versions. They all just have a single implementation that covers all these versions at once. That is what the HTML Standard defines: how to write a browser (or other implementation) that handles _all previous versions of HTML_, as well as all the latest features.
 
-One of the main goals of the HTML Standard and the WHATWG effort as a whole is to make it possible for archeologists hundreds of years from now to write a browser and view HTML content, regardless of when it was written. Making sure that we handle all documents is one of our most important goals. Not having versions does not preclude this; indeed it makes it significantly easier.
+One of the main goals of the HTML Standard and the WHATWG effort as a whole is to make it possible for archaeologists hundreds of years from now to write a browser and view HTML content, regardless of when it was written. Making sure that we handle all documents is one of our most important goals. Not having versions does not preclude this; indeed it makes it significantly easier.
 
 ### How are developers to determine when certain parts of their pages will become invalid?
 
@@ -84,7 +84,7 @@ Since then, we've realized that much like the [waterfall model](https://en.wikip
 
 Sort of. Often some record of the rationale for a particular design choice can be found within discussions in the GitHub issue tracker, commit logs, or the mailing-list archive or [Chat archives](https://whatwg.org/chat#logs). Sometimes, there is an explanation in the specification, but doing that everywhere would make the specification huge.
 
-For a few cases that someone did take the time document, the information can be found at the following locations:
+For a few cases that someone did take the time to document, the information can be found at the following locations:
 
 * [Rationale](https://wiki.whatwg.org/wiki/Rationale) — a page that documents some reasons behind decisions in the spec, originally written and maintained by Variable. If anyone wants to help him out, try to find someone via [Chat](https://whatwg.org/chat); we're always looking for more contributors and this is a good place to start.
 * [Why no namespaces](https://wiki.whatwg.org/wiki/Why_no_namespaces)
