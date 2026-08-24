@@ -144607,12 +144607,17 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <h5>Creating and inserting nodes</h5>
 
+  <p>An <dfn>insertion location</dfn> is a <span>tuple</span> consisting of a <dfn
+  data-x="insertion-location-parent">parent</dfn> (a <code>Node</code>), and a <dfn
+  data-x="insertion-location-ref-child">reference child</dfn> (a <code>Node</code> or null).</p>
+
   <p>While the parser is processing a token, it can enable or disable <dfn data-x="foster
   parent">foster parenting</dfn>. This affects the following algorithm.</p>
 
   <div algorithm>
   <p>The <dfn>appropriate place for inserting a node</dfn>, optionally using a particular
-  <i>override target</i>, is the position in a node returned by running the following steps:</p>
+  <i>override target</i>, is the <span>insertion location</span> returned by running the following
+  steps:</p>
 
   <ol>
    <li>
@@ -144639,35 +144644,36 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
       <ol>
        <li><p>Let <var>last template</var> be the last <code>template</code> element in the
-       <span>stack of open elements</span>, if any.</p>
+       <span>stack of open elements</span>, if any.</p></li>
 
        <li><p>Let <var>last table</var> be the last <code>table</code> element in the
-       <span>stack of open elements</span>, if any.</p>
+       <span>stack of open elements</span>, if any.</p></li>
 
        <li><p>If there is a <var>last template</var> and either there is no <var>last table</var>, or there is one, but <var>last template</var> is lower
        (more recently added) than <var>last table</var> in the <span>stack of open
-       elements</span>, then let <var>adjusted insertion location</var> be inside <var>last template</var>'s <span>template contents</span>, after its last child (if any),
-       and abort these steps.</p></li>
+       elements</span>, then let <var>adjusted insertion location</var> be (<var>last
+       template</var>'s <span>template contents</span>, null), and abort these steps.</p></li>
 
        <li><p>If there is no <var>last table</var>, <!-- there's also implicitly no last
        template, since we didn't hit the previous step --> then let <var>adjusted insertion
-       location</var> be inside the first element in the <span>stack of open elements</span> (the
-       <code>html</code> element), after its last child (if any), and abort these steps.
-       (<span>fragment case</span>)</p>
+       location</var> be (the first element in the <span>stack of open elements</span> (the
+       <code>html</code> element), null), and abort these steps.
+       (<span>fragment case</span>)</p></li>
 
        <!-- if we get here, we know there's a last table, and if there's a last template, it's older
        than the last table. -->
 
-       <li><p>If <var>last table</var> has a parent node, then let <var>adjusted insertion location</var> be inside <var>last table</var>'s parent
-       node, immediately before <var>last table</var>, and abort these steps.</p></li>
+       <li><p>If <var>last table</var> has a parent node, then let
+       <var>adjusted insertion location</var> be (<var>last table</var>'s <span>parent</span>,
+       <var>last table</var>), and abort these steps.</p></li>
 
        <!-- if we get here, we know there's a last table, but it has no parent, and if there's a
        last template, it's older than the last table. -->
 
        <li><p>Let <var>previous element</var> be the element immediately above <var>last table</var> in the <span>stack of open elements</span>.</p></li>
 
-       <li><p>Let <var>adjusted insertion location</var> be inside <var>previous
-       element</var>, after its last child (if any).</p></li>
+       <li><p>Let <var>adjusted insertion location</var> be (<var>previous element</var>,
+       null).</p></li>
       </ol>
 
       <p class="note">These steps are involved in part because it's possible for elements, the
@@ -144679,46 +144685,45 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
      <dt>Otherwise</dt>
 
      <dd>
-      <p>Let <var>adjusted insertion location</var> be inside <var>target</var>,
-      after its last child (if any).</p>
+      <p>Let <var>adjusted insertion location</var> be (<var>target</var>, null).</p>
      </dd>
     </dl>
    </li>
 
+   <li><p>Let (<var>targetParent</var>, <var>referenceChild</var>) be
+   <var>adjusted insertion location</var>.</p></li>
+
    <li>
-    <p>If <var>adjusted insertion location</var> is inside a <code>template</code> element:</p>
+    <p>If <var>targetParent</var> is a <code>template</code> element:</p>
 
     <ol>
-     <li><p>Let <var>template</var> be that element.</p></li>
-
-     <li><p>Let <var>target</var> be <var>template</var>'s <span>insertion target</span>.</p></li>
+     <li><p>Let <var>target</var> be <var>targetParent</var>'s <span>insertion target</span>.</p></li>
 
      <li>
       <p>If <var>target</var> is not null:</p>
 
       <ol>
        <li>
-        <p>If <var>template</var>'s <span>insertion end marker</span> is not null and its
+        <p>If <var>targetParent</var>'s <span>insertion end marker</span> is not null and its
         <span>parent</span> is <var>target</var>, then set <var>adjusted insertion location</var> to
-        inside <var>target</var>, before <var>template</var>'s <span>insertion end
-        marker</span>.</p>
+        (<var>target</var>, <var>targetParent</var>'s <span>insertion end marker</span>).</p>
 
         <p class="note">If the end marker has been removed or moved to another node, nodes are
         instead appended to <var>target</var> in the following step.</p>
        </li>
 
-       <li><p>Otherwise, set <var>adjusted insertion location</var> to inside <var>target</var>,
-       after its last child (if any).</p></li>
+       <li><p>Otherwise, set <var>adjusted insertion location</var> to (<var>target</var>,
+       null).</p></li>
       </ol>
      </li>
 
-     <li><p>Otherwise, set <var>adjusted insertion location</var> to inside <var>template</var>'s
-     <span>template contents</span>, after its last child (if any).</p></li>
+     <li><p>Otherwise, set <var>adjusted insertion location</var> to (<var>targetParent</var>'s
+     <span>template contents</span>, null).</p></li>
     </ol>
    </li>
 
    <li>
-    <p>Return the <var>adjusted insertion location</var>.</p>
+    <p>Return <var>adjusted insertion location</var>.</p>
    </li>
   </ol>
   </div>
@@ -144848,22 +144853,22 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   </div>
 
   <div algorithm>
-  <p>To compute the <dfn>adjusted insertion location</dfn> with an optional insertion location
-  <var>insertionLocation</var> (default null):</p>
+  <p>To compute the <dfn>adjusted insertion location</dfn> with an optional <span>insertion
+  location</span> <var>insertionLocation</var> (default null):</p>
 
   <ol>
    <li><p>Let <var>overrideTarget</var> be null if <var>insertionLocation</var> is null;
-   otherwise the node in which <var>insertionLocation</var> finds itself.</p></li>
+   otherwise <var>insertionLocation</var>[0].</p></li>
 
    <li><p>Let the <var>adjustedInsertionLocation</var> be the <span>appropriate place for inserting
    a node</span> given <var>overrideTarget</var>.</p></li>
 
-   <li><p>If the node in which the <var>adjustedInsertionLocation</var> finds itself is the first
-   element in the <span>stack of open elements</span> and the parser's <span>root insertion
-   target</span> is non-null, then set the <var>adjustedInsertionLocation</var> to the parser's
-   <span>root insertion target</span>, after its last child (if any).</p></li>
+   <li><p>If <var>adjustedInsertionLocation</var>[0] is the first element in the <span>stack of open
+   elements</span> and the parser's <span>root insertion target</span> is non-null, then set the
+   <var>adjustedInsertionLocation</var> to (the parser's <span>root insertion target</span>,
+   null).</p></li>
 
-   <li><p>Return the <var>adjustedInsertionLocation</var>.</p></li>
+   <li><p>Return <var>adjustedInsertionLocation</var>.</p></li>
   </ol>
   </div>
 
@@ -144871,15 +144876,15 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <div algorithm>
   <p>To <dfn>insert an element at the adjusted insertion location</dfn> with an element
-  <var>element</var> and an optional insertion location <var>insertionLocation</var> (default
-  null):</p>
+  <var>element</var> and an optional <span>insertion location</span> <var>insertionLocation</var>
+  (default null):</p>
 
   <ol>
    <li><p>Set <var>insertionLocation</var> to the <span>adjusted insertion location</span> given
    <var>insertionLocation</var>.</p></li>
 
-   <li><p>Let <var>target</var> be the node in which <var>insertionLocation</var> finds
-   itself.</p></li>
+   <li><p>Let (<var>targetParent</var>, <var>referenceChild</var>) be
+   <var>insertionLocation</var>.</p></li>
 
    <li>
     <p>If any of the following are true:</p>
@@ -144888,22 +144893,26 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
      <li><var>element</var>'s <span>parent</span> is non-null;</li>
 
      <li><var>element</var> is a <span>host-including inclusive ancestor</span> of
-     <var>target</var>; or</li>
+     <var>targetParent</var>; or</li>
 
-     <li><var>target</var> is a <code>Document</code> node that already has an element child,</li>
+     <li><var>targetParent</var> is a <code>Document</code> node that already has an element
+     child,</li>
     </ul>
 
     <p>then return.</p>
    </li>
 
    <li><p><span>Assert</span>: <span>ensure pre-insert validity</span> given <var>element</var>,
-   <var>target</var>, null, and « » does not throw.</p></li>
+   <var>targetParent</var>, <var>referenceChild</var>, and « » does not throw.</p></li>
 
    <li><p>If the parser was not created as part of the <span>HTML fragment parsing
    algorithm</span>, then push a new <span>element queue</span> onto <var>element</var>'s
    <span>relevant agent</span>'s <span>custom element reactions stack</span>.</p></li>
 
-   <li><p>Insert <var>element</var> at <var>insertionLocation</var>.</p></li>
+   <li><p>If <var>referenceChild</var> is null, then <span data-x="concept-node-append">append</span>
+   <var>element</var> to <var>targetParent</var>; otherwise <span
+   data-x="concept-node-insert">insert</span> <var>element</var> into <var>targetParent</var> before
+   <var>referenceChild</var>.</p></li>
 
    <li><p>If the parser was not created as part of the <span>HTML fragment parsing
    algorithm</span>, then pop the <span>element queue</span> from <var>element</var>'s
@@ -144928,10 +144937,11 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
    <li><p>Let <var>element</var> be the result of <span data-x="create an element for the
    token">creating an element for the token</span> given <var>token</var>, <var>namespace</var>,
-   and the node in which the <var>adjustedInsertionLocation</var> finds itself.</p></li>
+   and <var>adjustedInsertionLocation</var>[0].</p></li>
 
    <li><p>If <var>onlyAddToElementStack</var> is false, then run <span>insert an element at the
-   adjusted insertion location</span> with <var>element</var>.</p></li>
+   adjusted insertion location</span> with <var>element</var> and
+   <var>adjustedInsertionLocation</var>.</p></li>
 
    <li><p>Push <var>element</var> onto the <span>stack of open elements</span> so that it is the new
    <span>current node</span>.</p></li>
@@ -145062,24 +145072,30 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    <li><p>Let <var>data</var> be the characters passed to the algorithm, or, if no characters were
    explicitly specified, the character of the character token being processed.</p></li>
 
-   <li><p>Let <var>insertionLocation</var> be the <span>adjusted insertion location</span>.</p></li>
+   <li><p>Let (<var>targetParent</var>, <var>referenceChild</var>) be the <span>adjusted insertion
+   location</span>.</p></li>
 
    <li>
-    <p>If <var>insertionLocation</var> is in a <code>Document</code> node, then return.</p>
+    <p>If <var>targetParent</var> is a <code>Document</code> node, then return.</p>
 
     <p class="note">The DOM will not let <code>Document</code> nodes have <code>Text</code> node
     children, so they are dropped on the floor.</p>
    </li>
 
+   <li><p>Let <var>previousSibling</var> be <var>referenceChild</var>'s <span>previous sibling</span> if
+   <var>referenceChild</var> is non-null; otherwise <var>targetParent</var>'s <span>last
+   child</span>.</p></li>
+
    <li>
-    <p>If there is a <code>Text</code> node immediately before <var>insertionLocation</var>, then
-    append <var>data</var> to that <code>Text</code> node's <span
-    data-x="concept-cd-data">data</span>.</p>
+    <p>If <var>previousSibling</var> is a <code>Text</code> node, then append <var>data</var> to
+    <var>previousSibling</var>'s <span data-x="concept-cd-data">data</span>.</p>
 
     <p>Otherwise, let <var>text</var> be the result of <span data-x="create a text node">creating a
-    text node</span> given the <span>node document</span> of the node in which
-    <var>insertionLocation</var> finds itself and <var>data</var>, and insert <var>text</var> at
-    <var>insertionLocation</var>.</p>
+    text node</span> given <var>targetParent</var>'s <span>node document</span> and <var>data</var>,
+    and, if <var>referenceChild</var> is null, <span data-x="concept-node-append">append</span>
+    <var>text</var> to <var>targetParent</var>; otherwise <span
+    data-x="concept-node-insert">insert</span> <var>text</var> into <var>targetParent</var> before
+    <var>referenceChild</var>.</p>
    </li>
   </ol>
   </div>
@@ -145130,27 +145146,30 @@ document.body.appendChild(text);
 
   <div algorithm>
   <p>When the steps below require the user agent to <dfn>insert a comment</dfn> while processing a
-  comment token, with an optional insertion location <var>insertionLocation</var> (default null),
-  the user agent must run the following steps:</p>
+  comment token, with an optional <span>insertion location</span> <var>insertionLocation</var>
+  (default null), the user agent must run the following steps:</p>
 
   <ol>
    <li><p>Let <var>data</var> be the data given in the comment token being
    processed.</p></li>
 
-   <li><p>Set <var>insertionLocation</var> to the <span>adjusted insertion location</span> given
-   <var>insertionLocation</var>.</p></li>
+   <li><p>Let (<var>targetParent</var>, <var>referenceChild</var>) be the <span>adjusted insertion
+   location</span> given <var>insertionLocation</var>.</p></li>
 
    <li><p>Let <var>comment</var> be the result of <span data-x="create a comment node">creating a
-   comment node</span> given the <span>node document</span> of the node in which the
-   <var>insertionLocation</var> finds itself and <var>data</var>.</p>
+   comment node</span> given <var>targetParent</var>'s <span>node document</span> and
+   <var>data</var>.</p></li>
 
-   <li><p>Insert <var>comment</var> at <var>insertionLocation</var>.</p></li>
+   <li><p>If <var>referenceChild</var> is null, then <span data-x="concept-node-append">append</span>
+   <var>comment</var> to <var>targetParent</var>; otherwise <span
+   data-x="concept-node-insert">insert</span> <var>comment</var> into <var>targetParent</var> before
+   <var>referenceChild</var>.</p></li>
   </ol>
   </div>
 
   <div algorithm>
   <p>When the steps below require the user agent to <dfn>insert a processing instruction</dfn> while
-  processing a processing instruction token, with an optional insertion location
+  processing a processing instruction token, with an optional <span>insertion location</span>
   <var>insertionLocation</var> (default null), the user agent must run the following steps:</p>
 
   <ol>
@@ -145160,15 +145179,17 @@ document.body.appendChild(text);
    <li><p>Let <var>data</var> be the data given in the processing instruction token being
    processed.</p></li>
 
-   <li><p>Set <var>insertionLocation</var> to the <span>adjusted insertion location</span> given
-   <var>insertionLocation</var>.</p></li>
+   <li><p>Let (<var>targetParent</var>, <var>referenceChild</var>) be the <span>adjusted insertion
+   location</span> given <var>insertionLocation</var>.</p></li>
 
    <li><p>Let <var>pi</var> be the result of <span data-x="create a processing instruction
-   node">creating a processing instruction node</span> given the <span>node document</span> of the
-   node in which the <var>insertionLocation</var> finds itself, <var>target</var>, and
-   <var>data</var>.</p>
+   node">creating a processing instruction node</span> given <var>targetParent</var>'s <span>node
+   document</span>, <var>target</var>, and <var>data</var>.</p></li>
 
-   <li><p>Insert <var>pi</var> at <var>insertionLocation</var>.</p></li>
+   <li><p>If <var>referenceChild</var> is null, then <span data-x="concept-node-append">append</span>
+   <var>pi</var> to <var>targetParent</var>; otherwise <span
+   data-x="concept-node-insert">insert</span> <var>pi</var> into <var>targetParent</var> before
+   <var>referenceChild</var>.</p></li>
   </ol>
   </div>
 
@@ -145672,8 +145693,8 @@ document.body.appendChild(text);
      scripts inserted via <code data-x="dom-document-write">document.write()</code> under slow
      network conditions, or when the page has already taken a long time to load.)</p></li>
 
-     <li><p>Insert the newly created element at the <span>adjusted insertion location</span> given
-     <var>adjustedInsertionLocation</var>.</p></li>
+     <li><p><span>Insert an element at the adjusted insertion location</span> with the
+     newly created element and <var>adjustedInsertionLocation</var>.</p></li>
 
      <li><p>Push the element onto the <span>stack of open elements</span> so that it is the new
      <span>current node</span>.</p></li>
@@ -147349,18 +147370,10 @@ document.body.appendChild(text);
       </ol>
      </li>
 
-     <li><p>Let <var>insertionLocation</var> be <var>commonAncestor</var>, after its last child, if
-     any.</p></li>
-
      <li><p>Let <var>adjustedInsertionLocation</var> be the <span>adjusted insertion location</span>
-     given <var>insertionLocation</var>.</p></li>
+     given (<var>commonAncestor</var>, null).</p></li>
 
-     <li><p>Let <var>target</var> be the node in which <var>adjustedInsertionLocation</var> finds
-     itself.</p></li>
-
-     <li><p>Let <var>refNode</var> be the node <var>adjustedInsertionLocation</var> is immediately
-     before, or null if <var>adjustedInsertionLocation</var> is after <var>target</var>'s last
-     child.</p></li>
+     <li><p>Let (<var>target</var>, <var>refNode</var>) be <var>adjustedInsertionLocation</var>.</p></li>
 
      <li><p>If <var>lastNode</var>'s <span>parent</span> is non-null, then <span
      data-x="concept-node-remove">remove</span> <var>lastNode</var>.</p></li>
@@ -147391,7 +147404,10 @@ document.body.appendChild(text);
        <li><p><span>Assert</span>: <span>ensure pre-insert validity</span> given
        <var>lastNode</var>, <var>target</var>, <var>refNode</var>, and « » does not throw.</p></li>
 
-       <li><p>Insert <var>lastNode</var> at <var>adjustedInsertionLocation</var>.</p></li>
+       <li><p>If <var>refNode</var> is null, then <span data-x="concept-node-append">append</span>
+       <var>lastNode</var> to <var>target</var>; otherwise <span
+       data-x="concept-node-insert">insert</span> <var>lastNode</var> into <var>target</var> before
+       <var>refNode</var>.</p></li>
       </ol>
      </li>
 
@@ -147401,7 +147417,13 @@ document.body.appendChild(text);
      <li><p>Take all of the child nodes of <var>furthestBlock</var> and append them to the
      element created in the last step.</p></li>
 
-     <li><p>Append that new element to <var>furthestBlock</var>.</p></li>
+     <li><p>Let (<var>furthestBlockTarget</var>, <var>furthestBlockRefNode</var>) be the
+     <span>adjusted insertion location</span> given (<var>furthestBlock</var>, null).</p></li>
+
+     <li><p>If <var>furthestBlockRefNode</var> is null, then <span
+     data-x="concept-node-append">append</span> the element created in the previous steps to
+     <var>furthestBlockTarget</var>; otherwise <span data-x="concept-node-insert">insert</span> the
+     element into <var>furthestBlockTarget</var> before <var>furthestBlockRefNode</var>.</p></li>
 
      <li><p>Remove <var>formattingElement</var> from the <span>list of active formatting
      elements</span>, and insert the new element into the <span>list of active formatting
