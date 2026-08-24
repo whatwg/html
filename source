@@ -38087,10 +38087,20 @@ interface <dfn interface>HTMLTrackElement</dfn> : <span>HTMLElement</span> {
 
   <p>The element has an associated <dfn>track URL</dfn> (a string), initially the empty string.</p>
 
+  <p>The element has an associated <dfn>track processing Async Context Mapping</dfn> (an
+  <span>Async Context Mapping</span>), initially « ». It is used by <span>start the
+  <code>track</code> processing model</span> to fire the <code
+  data-x="event-track-load">load</code> and <code data-x="event-track-error">error</code>
+  events.</p>
+
   <div algorithm>
   <p>When the element's <code data-x="attr-track-src">src</code> attribute is set, run these steps:
 
   <ol>
+   <li><p>If an occurrence of <span>start the <code>track</code> processing model</span> is running
+   for the element's <span>text track</span> and the element, then set the element's <span>track
+   processing Async Context Mapping</span> to <span>AsyncContextSnapshot</span>().</p></li>
+
    <li><p>Let <var>trackURL</var> be failure.</p></li>
 
    <li><p>Let <var>value</var> be the element's <code data-x="attr-track-src">src</code> attribute
@@ -42989,16 +42999,26 @@ interface <dfn interface>VideoTrack</dfn> {
   algorithm). The steps in that section are marked with &#x231B;.</p>
 
   <ol>
-   <li><p>If another occurrence of this algorithm is already running for this <span>text
-   track</span> and its <code>track</code> element, return, letting that other algorithm
-   take care of this element.</p></li>
-
    <li><p>If the <span>text track</span>'s <span>text track mode</span> is not set to one of <span
    data-x="text track hidden">hidden</span> or <span data-x="text track showing">showing</span>,
    then return.</p></li>
 
    <li><p>If the <span>text track</span>'s <code>track</code> element does not have a <span>media
    element</span> as a parent, return.</p></li>
+
+   <li><p>Set the <code>track</code> element's <span>track processing Async Context Mapping</span>
+   to <span>AsyncContextSnapshot</span>().</p></li>
+
+   <li>
+    <p>If another occurrence of this algorithm is already running for this <span>text
+    track</span> and its <code>track</code> element, return, letting that other algorithm
+    take care of this element.</p>
+
+    <p class="note">The previous step ran even though these steps return here, so the mapping is in
+    place for the already-running occurrence's next <span data-x="concept-fetch">fetch</span>, and
+    for its <code data-x="event-track-error">error</code> event if it aborts. A fetch already in
+    flight keeps the mapping it started with.</p>
+   </li>
 
    <li><p>Run the remainder of these steps <span>in parallel</span>, allowing whatever caused these steps to
    run to continue.</p></li>
@@ -43017,6 +43037,9 @@ interface <dfn interface>VideoTrack</dfn> {
    let <var>corsAttributeState</var> be the state of the parent <span>media element</span>'s <code
    data-x="attr-media-crossorigin">crossorigin</code> content attribute. Otherwise, let
    <var>corsAttributeState</var> be <span data-x="attr-crossorigin-none">No CORS</span>.</p></li>
+
+   <li><p>&#x231B; Let <var>acMapping</var> be the <code>track</code> element's <span>track
+   processing Async Context Mapping</span>.</p></li>
 
    <li><p>End the <span>synchronous section</span>, continuing the remaining steps
    <span>in parallel</span>.</p></li>
@@ -43069,7 +43092,8 @@ interface <dfn interface>VideoTrack</dfn> {
     on the <span>DOM manipulation task source</span> given the <span>media element</span> to first
     change the <span>text track readiness state</span> to <span data-x="text track failed to
     load">failed to load</span> and then <span data-x="concept-event-fire">fire an event</span>
-    named <code data-x="event-track-error">error</code> at the <code>track</code> element.</p>
+    named <code data-x="event-track-error">error</code> at the <code>track</code> element with
+    <var>acMapping</var>.</p>
     <!-- can't be the media element one, since there might not be a media element by this point -->
 
     <p>If fetching does not fail, but the <!--computed--> type of the resource is not a supported
@@ -43080,14 +43104,16 @@ interface <dfn interface>VideoTrack</dfn> {
     in which the aforementioned problem is found must change the <span>text track readiness
     state</span> to <span data-x="text track failed to load">failed to load</span> and <span
     data-x="concept-event-fire">fire an event</span> named <code
-    data-x="event-track-error">error</code> at the <code>track</code> element.</p>
+    data-x="event-track-error">error</code> at the <code>track</code> element with
+    <var>acMapping</var>.</p>
 
     <p>If fetching does not fail, and the file was successfully processed, then the final <span
     data-x="concept-task">task</span> that is <span data-x="queue an element task">queued</span> by
     the <span>networking task source</span>, after it has finished parsing the data, must change the
     <span>text track readiness state</span> to <span data-x="text track loaded">loaded</span>, and
     <span data-x="concept-event-fire">fire an event</span> named <code
-    data-x="event-track-load">load</code> at the <code>track</code> element.</p>
+    data-x="event-track-load">load</code> at the <code>track</code> element with
+    <var>acMapping</var>.</p>
 
     <p>If, while fetching is ongoing, either:</p>
 
@@ -43107,8 +43133,14 @@ interface <dfn interface>VideoTrack</dfn> {
     source</span> given the <code>track</code> element that first changes the <span>text track
     readiness state</span> to <span data-x="text track failed to load">failed to load</span> and
     then <span data-x="concept-event-fire">fires an event</span> named <code
-    data-x="event-track-error">error</code> at the <code>track</code> element. <!-- can't be the
-    media element one, since there might not be a media element by this point --></p>
+    data-x="event-track-error">error</code> at the <code>track</code> element with its <span>track
+    processing Async Context Mapping</span>. <!-- can't be the media element one, since there might
+    not be a media element by this point --></p>
+
+    <p class="note">This is the one event here that does not use <var>acMapping</var>: the abort is
+    caused by the change that has just written the element's <span>track processing Async Context
+    Mapping</span>, so that change owns the event, while a <span data-x="concept-fetch">fetch</span>
+    that runs to completion keeps the mapping it started with.</p>
    </li>
 
    <li><p>Wait until the <span>text track readiness state</span> is no longer set to <span
