@@ -2956,6 +2956,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
          <dfn data-x="es-constructing-callback-functions" data-x-href="https://webidl.spec.whatwg.org/#construct-a-callback-function">constructing</dfn> callback functions</li>
      <li><dfn data-x-href="https://webidl.spec.whatwg.org/#dfn-overload-resolution-algorithm">overload resolution algorithm</dfn></li>
      <li><dfn data-x="idl-exposed" data-x-href="https://webidl.spec.whatwg.org/#dfn-exposed">exposed</dfn></li>
+     <li><dfn data-x-href="https://webidl.spec.whatwg.org/#dfn-global-name">global names</dfn> of an interface</li>
      <li><dfn data-x-href="https://webidl.spec.whatwg.org/#a-promise-resolved-with">a promise resolved with</dfn></li>
      <li><dfn data-x-href="https://webidl.spec.whatwg.org/#a-promise-rejected-with">a promise rejected with</dfn></li>
      <li><dfn data-x-href="https://webidl.spec.whatwg.org/#wait-for-all">wait for all</dfn></li>
@@ -3138,7 +3139,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li>The <dfn data-x="js-HostLoadImportedModule" data-x-href="https://tc39.es/ecma262/#sec-HostLoadImportedModule">HostLoadImportedModule</dfn> abstract operation</li>
      <li>The <dfn data-x="js-HostMakeJobCallback" data-x-href="https://tc39.es/ecma262/#sec-hostmakejobcallback">HostMakeJobCallback</dfn> abstract operation</li>
      <li>The <dfn data-x="js-HostPromiseRejectionTracker" data-x-href="https://tc39.es/ecma262/#sec-host-promise-rejection-tracker">HostPromiseRejectionTracker</dfn> abstract operation</li>
-     <li>The <dfn data-x="js-InitializeHostDefinedRealm" data-x-href="https://tc39.es/ecma262/#sec-initializehostdefinedrealm">InitializeHostDefinedRealm</dfn> abstract operation</li>
+     <li>The <dfn data-x="js-MakeRealm" data-x-href="https://tc39.es/ecma262/#sec-makerealm">MakeRealm</dfn> abstract operation</li>
      <li>The <dfn data-x-href="https://tc39.es/ecma262/#sec-isarraybufferviewoutofbounds">IsArrayBufferViewOutOfBounds</dfn> abstract operation</li>
      <li>The <dfn data-x-href="https://tc39.es/ecma262/#sec-isaccessordescriptor">IsAccessorDescriptor</dfn> abstract operation</li>
      <li>The <dfn data-x-href="https://tc39.es/ecma262/#sec-iscallable">IsCallable</dfn> abstract operation</li>
@@ -96541,14 +96542,14 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
     is not "<code data-x="">blob</code>":</p>
 
     <ol>
-     <li><p><span>Assert</span>: <var>workerGlobalScope</var>'s <span>owner set</span>'s <span
-     data-x="list size">size</span> is 1.</p></li>
+     <li><p><span>Assert</span>: <var>workerGlobalScope</var>'s <span>relevant settings
+     object</span>'s <span>owner set</span>'s <span data-x="list size">size</span> is 1.</p></li>
 
      <li><p>Set <var>workerGlobalScope</var>'s <span
      data-x="concept-WorkerGlobalScope-policy-container">policy container</span> to a <span
-     data-x="clone a policy container">clone</span> of <var>workerGlobalScope</var>'s <span>owner
-     set</span>[0]'s <span>relevant settings object</span>'s <span
-     data-x="concept-settings-object-policy-container">policy container</span>.</p></li>
+     data-x="clone a policy container">clone</span> of <var>workerGlobalScope</var>'s <span>relevant
+     settings object</span>'s <span>owner set</span>[0]'s <span>relevant settings object</span>'s
+     <span data-x="concept-settings-object-policy-container">policy container</span>.</p></li>
     </ol>
    </li>
 
@@ -98055,17 +98056,19 @@ interface <dfn interface>BarProp</dfn> {
 
   <div algorithm>
   <p>To <dfn>set up a window environment settings object</dfn>, given a <span>URL</span>
-  <var>creationURL</var>, a <span>JavaScript execution context</span> <var>execution context</var>,
+  <var>creationURL</var>, a <span>JavaScript execution context</span> <var>executionContext</var>,
   null or an <span>environment</span> <var>reservedEnvironment</var>, a <span>URL</span>
-  <var>topLevelCreationURL</var>, and an <span>origin</span> <var>topLevelOrigin</var>, run these
-  steps:</p>
+  <var>topLevelCreationURL</var>, and an <span>origin</span> <var>topLevelOrigin</var>:</p>
 
   <ol>
-   <li><p>Let <var>realm</var> be the value of <var>execution context</var>'s Realm
-   component.</p></li>
+   <li>
+    <p>Let <var>realm</var> be <var>executionContext</var>'s Realm component.</p>
 
-   <li><p>Let <var>window</var> be <var>realm</var>'s <span data-x="concept-realm-global">global
-   object</span>.</p></li>
+    <p class="note">This algorithm is invoked before <var>realm</var>'s <span
+    data-x="concept-realm-global">global object</span> is allocated. The closures defined below read
+    the global object lazily when they are invoked, by which time the realm has been fully
+    wired.</p>
+   </li>
 
    <li>
     <p>Let <var>settings object</var> be a new <span>environment settings object</span> whose
@@ -98073,33 +98076,30 @@ interface <dfn interface>BarProp</dfn> {
 
     <dl>
      <dt>The <span>realm execution context</span></dt>
-     <dd>
-      <p>Return <var>execution context</var>.</p>
-     </dd>
+     <dd><p>Return <var>executionContext</var>.</p></dd>
 
      <dt>The <span data-x="concept-settings-object-module-map">module map</span></dt>
-     <dd>
-      <p>Return the <span data-x="concept-document-module-map">module map</span> of
-      <var>window</var>'s <span data-x="concept-document-window">associated
-      <code>Document</code></span>.</p>
-     </dd>
+     <dd><p>Return <var>realm</var>'s <span data-x="concept-realm-global">global object</span>'s
+     <span data-x="concept-document-window">associated <code>Document</code></span>'s <span
+     data-x="concept-document-module-map">module map</span>.</p></dd>
 
      <dt>The <span>API base URL</span></dt>
-     <dd>
-      <p>Return the current <span data-x="document base URL">base URL</span> of <var>window</var>'s
-      <span data-x="concept-document-window">associated <code>Document</code></span>.</p>
-     </dd>
+     <dd><p>Return <var>realm</var>'s <span data-x="concept-realm-global">global object</span>'s
+     <span data-x="concept-document-window">associated <code>Document</code></span>'s <span
+     data-x="document base URL">base URL</span>.</p></dd>
 
      <dt>The <span data-x="concept-settings-object-origin">origin</span></dt>
-     <dd>
-      <p>Return the <span data-x="concept-document-origin">origin</span> of <var>window</var>'s
-      <span data-x="concept-document-window">associated <code>Document</code></span>.</p>
-     </dd>
+     <dd><p>Return <var>realm</var>'s <span data-x="concept-realm-global">global object</span>'s
+     <span data-x="concept-document-window">associated <code>Document</code></span>'s <span
+     data-x="concept-document-origin">origin</span>.</p></dd>
 
      <dt>The <span data-x="concept-settings-object-has-cross-site-ancestor">has cross-site
      ancestor</span></dt>
      <dd>
       <ol>
+       <li><p>Let <var>window</var> be <var>realm</var>'s <span
+       data-x="concept-realm-global">global object</span>.</p></li>
+
        <li><p>If <var>window</var>'s <span>navigable</span>'s <span
        data-x="nav-parent">parent</span> is null, then return false.</p></li>
 
@@ -98121,11 +98121,9 @@ interface <dfn interface>BarProp</dfn> {
      </dd>
 
      <dt>The <span data-x="concept-settings-object-policy-container">policy container</span></dt>
-     <dd>
-      <p>Return the <span data-x="concept-document-policy-container">policy container</span> of
-      <var>window</var>'s <span data-x="concept-document-window">associated
-      <code>Document</code></span>.</p>
-     </dd>
+     <dd><p>Return the <span data-x="concept-document-policy-container">policy container</span> of
+     <var>realm</var>'s <span data-x="concept-realm-global">global object</span>'s <span
+     data-x="concept-document-window">associated <code>Document</code></span>.</p></dd>
 
      <dt>The <span data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin
      isolated capability</span></dt>
@@ -98133,21 +98131,23 @@ interface <dfn interface>BarProp</dfn> {
       <p>Return true if both of the following hold, and false otherwise:</p>
       <ul>
        <li><p><var>realm</var>'s <span>agent cluster</span>'s <span
-       data-x="agent-cluster-cross-origin-isolation">cross-origin-isolation mode</span> is "<code
+       data-x="agent-cluster-cross-origin-isolation">cross-origin isolation mode</span> is "<code
        data-x="cross-origin-isolation-concrete">concrete</code>", and</p></li>
 
-       <li><p><var>window</var>'s <span data-x="concept-document-window">associated
-       <code>Document</code></span> is <span>allowed to use</span> the "<code
+       <li><p><var>realm</var>'s <span data-x="concept-realm-global">global object</span>'s <span
+       data-x="concept-document-window">associated <code>Document</code></span> is
+       <span>allowed to use</span> the "<code
        data-x="cross-origin-isolated-feature">cross-origin-isolated</code>" feature.</p></li>
       </ul>
      </dd>
 
      <dt>The <span data-x="concept-settings-object-time-origin">time origin</span></dt>
-     <dd>
-      <p>Return <var>window</var>'s <span data-x="concept-document-window">associated
-      <code>Document</code></span>'s <span>load timing info</span>'s <span>navigation start
-      time</span>.</p>
-     </dd>
+     <dd><p>Return <var>realm</var>'s <span data-x="concept-realm-global">global object</span>'s
+     <span data-x="concept-document-window">associated <code>Document</code></span>'s <span>load
+     timing info</span>'s <span>navigation start time</span>.</p></dd>
+
+     <dt>The <span data-x="concept-settings-object-global-names">global names</span></dt>
+     <dd><p>Return <code>Window</code>'s <span>global names</span>.</p></dd>
     </dl>
    </li>
 
@@ -104641,7 +104641,7 @@ interface <dfn interface>NotRestoredReasons</dfn> {
 
    <dt>"<dfn data-x="blocking-sharedworker" export><code>sharedworker</code></dfn>"</dt>
    <dd>This <code>Document</code> was in the <span>owner set</span> of a
-   <code>SharedWorkerGlobalScope</code>.
+   <code>SharedWorkerGlobalScope</code>'s <span>relevant settings object</span>.
 
    <p class="note">User agents that support the <a href="#note-bfcache">back/forward cache</a> for
    documents using shared workers can use more specific reasons such as <code
@@ -104653,14 +104653,15 @@ interface <dfn interface>NotRestoredReasons</dfn> {
    <dt>"<dfn data-x="blocking-sharedworker-message"
    export><code>sharedworker-message</code></dfn>"</dt>
    <dd>While the page was stored in <a href="#note-bfcache">back/forward cache</a>, a message was
-   received from a <code>SharedWorkerGlobalScope</code> whose <span>owner set</span> <span
-   data-x="list contains">contains</span> this <code>Document</code>.</dd>
+   received from a <code>SharedWorkerGlobalScope</code> whose <span>relevant settings
+   object</span>'s <span>owner set</span> <span data-x="list contains">contains</span> this
+   <code>Document</code>.</dd>
 
    <dt>"<dfn data-x="blocking-sharedworker-with-no-active-client"
    export><code>sharedworker-with-no-active-client</code></dfn>"</dt>
    <dd>This <code>Document</code> was in the <span>owner set</span> of a
-   <code>SharedWorkerGlobalScope</code> that is not <span data-x="active needed worker">actively
-   needed</span>.</dd>
+   <code>SharedWorkerGlobalScope</code>'s <span>relevant settings object</span> that is not
+   <span data-x="active needed worker">actively needed</span>.</dd>
 
    <dt>"<dfn data-x="blocking-smartcard" export><code>smartcardconnection</code></dfn>"</dt>
    <dd>The <code>Document</code> had an active <code>SmartCardConnection</code> while <span
@@ -106310,18 +106311,6 @@ interface <dfn interface>NotRestoredReasons</dfn> {
    data-x="obtain-similar-origin-window-agent">obtaining a similar-origin window agent</span> given
    <var>origin</var>, <var>group</var>, and false.</p></li>
 
-   <li>
-    <p>Let <var>realm execution context</var> be the result of <span>creating a new realm</span>
-    given <var>agent</var> and the following customizations:</p>
-
-    <ul>
-     <li><p>For the global object, create a new <code>Window</code> object.</p></li>
-
-     <li><p>For the global <b>this</b> binding, use <var>browsingContext</var>'s
-     <code>WindowProxy</code> object.</li>
-    </ul>
-   </li>
-
    <li><p>Let <var>topLevelCreationURL</var> be <code>about:blank</code> if <var>embedder</var> is
    null; otherwise <var>embedder</var>'s <span>relevant settings object</span>'s <span>top-level
    creation URL</span>.</p></li>
@@ -106330,9 +106319,25 @@ interface <dfn interface>NotRestoredReasons</dfn> {
    otherwise <var>embedder</var>'s <span>relevant settings object</span>'s <span>top-level
    origin</span>.</p></li>
 
-   <li><p><span>Set up a window environment settings object</span> with <code>about:blank</code>,
-   <var>realm execution context</var>, null, <var>topLevelCreationURL</var>, and
-   <var>topLevelOrigin</var>.</p></li>
+   <li>
+    <p>Let <var>customizations</var> be the following <span>abstract closure</span> given a
+    <span>JavaScript execution context</span> <var>executionContext</var>:</p>
+
+    <ol>
+     <li><p><span>Set up a window environment settings object</span> with
+     <code>about:blank</code>, <var>executionContext</var>, null,
+     <var>topLevelCreationURL</var>, and <var>topLevelOrigin</var>.</p></li>
+
+     <li><p>Let <var>window</var> be a new <code>Window</code> object created in
+     <var>executionContext</var>'s Realm component.</p></li>
+
+     <li><p>Return « <var>window</var>, <var>browsingContext</var>'s <code>WindowProxy</code>
+     object ».</p></li>
+    </ol>
+   </li>
+
+   <li><p>Let <var>executionContext</var> be the result of <span>creating a new realm</span>
+   given <var>agent</var> and <var>customizations</var>.</p></li>
 
    <li><p>Let <var>loadTimingInfo</var> be a new <span>document load timing info</span> with
    its <span>navigation start time</span> set to the result of calling <span>coarsen time</span>
@@ -113205,21 +113210,6 @@ location.href = '#foo';</code></pre>
      <var>browsingContext</var>'s <span data-x="tlbc group">group</span>, and
      <var>requestsOAC</var>.</p></li>
 
-     <li>
-      <p>Let <var>realmExecutionContext</var> be the result of <span>creating a new realm</span>
-      given <var>agent</var> and the following customizations:</p>
-
-      <ul>
-       <li><p>For the global object, create a new <code>Window</code> object.</p></li>
-
-       <li><p>For the global <b>this</b> binding, use <var>browsingContext</var>'s
-       <code>WindowProxy</code> object.</p></li>
-      </ul>
-     </li>
-
-     <li><p>Set <var>window</var> to the <span data-x="concept-realm-global">global
-     object</span> of <var>realmExecutionContext</var>'s Realm component.</p></li>
-
      <li><p>Let <var>topLevelCreationURL</var> be <var>creationURL</var>.</p></li>
 
      <li><p>Let <var>topLevelOrigin</var> be <var>navigationParams</var>'s <span
@@ -113240,10 +113230,29 @@ location.href = '#foo';</code></pre>
       </ol>
      </li>
 
-     <li><p><span>Set up a window environment settings object</span> with <var>creationURL</var>,
-     <var>realmExecutionContext</var>, <var>navigationParams</var>'s <span
-     data-x="navigation-params-reserved-environment">reserved environment</span>,
-     <var>topLevelCreationURL</var>, and <var>topLevelOrigin</var>.</p></li>
+     <li>
+      <p>Let <var>customizations</var> be the following <span>abstract closure</span> given a
+      <span>JavaScript execution context</span> <var>executionContext</var>:</p>
+
+      <ol>
+       <li><p><span>Set up a window environment settings object</span> with <var>creationURL</var>,
+       <var>executionContext</var>, <var>navigationParams</var>'s <span
+       data-x="navigation-params-reserved-environment">reserved environment</span>,
+       <var>topLevelCreationURL</var>, and <var>topLevelOrigin</var>.</p></li>
+
+       <li><p>Let <var>newWindow</var> be a new <code>Window</code> object created in
+       <var>executionContext</var>'s Realm component.</p></li>
+
+       <li><p>Return « <var>newWindow</var>, <var>browsingContext</var>'s <code>WindowProxy</code>
+       object ».</p></li>
+      </ol>
+     </li>
+
+     <li><p>Let <var>executionContext</var> be the result of <span>creating a new
+     realm</span> given <var>agent</var> and <var>customizations</var>.</p></li>
+
+     <li><p>Set <var>window</var> to the <span data-x="concept-realm-global">global
+     object</span> of <var>executionContext</var>'s Realm component.</p></li>
     </ol>
 
     <p class="note">This is the usual case, where the new <code>Document</code> we're about to
@@ -114271,9 +114280,9 @@ new PaymentRequest(&hellip;); // Allowed to use
    data-x="she-document-state">document state</span>'s <span
    data-x="document-state-document">document</span> to null.</p></li>
 
-   <li><p><span data-x="list remove">Remove</span> <var>document</var> from the
-   <span>owner set</span> of each <code>WorkerGlobalScope</code> object whose set <span
-   data-x="list contains">contains</span> <var>document</var>.</p></li>
+   <li><p><span data-x="list remove">Remove</span> <var>document</var> from the <span>owner
+   set</span> of each <code>WorkerGlobalScope</code> object's <span>relevant settings object</span>
+   whose set <span data-x="list contains">contains</span> <var>document</var>.</p></li>
 
    <li><p><span data-x="list iterate">For each</span> <var>workletGlobalScope</var> in
    <var>document</var>'s <span data-x="concept-Document-worklet-global-scopes">worklet global
@@ -117306,6 +117315,15 @@ new PaymentRequest(&hellip;); // Allowed to use
    for="environment settings object">time origin</dfn></dt>
 
    <dd>A number used as the baseline for performance-related timestamps. <ref>HRT</ref></dd>
+
+   <dt>A <dfn data-x="concept-settings-object-global-names" export
+   for="environment settings object">global names</dfn></dt>
+   <dd><p>A <span>set</span> of identifiers (strings), corresponding to the <span>global
+   names</span> of the <span data-x="concept-settings-object-global">global object</span>'s
+   interface. Used by Web IDL to determine which constructs are <span
+   data-x="idl-exposed">exposed</span> in the <span data-x="environment settings object's
+   realm">realm</span>, including during the realm's <span data-x="creating a new
+   realm">creation</span>.</p></dd>
   </dl>
 
   <div algorithm>
@@ -117410,26 +117428,30 @@ new PaymentRequest(&hellip;); // Allowed to use
 
   <div algorithm>
   <p>To <dfn data-x="creating a new realm" export id="creating-a-new-javascript-realm">create a new
-  realm</dfn> in an <span>agent</span> <var>agent</var>, optionally with instructions to create a
-  global object or a global <b>this</b> binding (or both), the following steps are taken:</p>
+  realm</dfn> in an <span>agent</span> <var>agent</var>, given an <span>abstract closure</span>
+  <var>customizations</var> taking a <span>JavaScript execution context</span> and returning a
+  <span>list</span> containing an object (the global object) and an object or null (the global
+  <b>this</b> binding):</p>
 
   <ol>
-   <li><p>Perform <span data-x="js-InitializeHostDefinedRealm">InitializeHostDefinedRealm</span>()
-   with the provided customizations for creating the global object and the global <b>this</b>
-   binding.</p></li>
-
    <li>
-    <p>Let <var>realm execution context</var> be the <span>running JavaScript execution
-    context</span>.</p>
+    <p>Let <var>executionContext</var> be <span
+    data-x="js-MakeRealm">MakeRealm</span>(<var>customizations</var>).</p>
 
-    <p class="note">This is the <span>JavaScript execution context</span> created in the previous
-    step.</p>
+    <p class="note"><var>customizations</var> runs at the point during realm initialization when the
+    realm record exists (with its intrinsics), but its [[GlobalObject]] is not yet set. The closure
+    is expected to set up the realm's <span>environment settings object</span> (writing the realm's
+    [[HostDefined]] field) and then construct the global object and global <b>this</b> binding,
+    returning them. Doing the <span>environment settings object</span> setup before global
+    allocation is necessary so that Web IDL's <span data-x="idl-exposed">is exposed</span> check
+    can be answered during global allocation: the exposure check reads the <span>environment
+    settings object</span>'s <span data-x="concept-settings-object-global-names">global
+    names</span>, <span>secure context</span> status, and <span
+    data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin isolated
+    capability</span>, none of which require the global object to exist yet.</p>
    </li>
 
-   <li><p>Remove <var>realm execution context</var> from the <span>JavaScript execution context
-   stack</span>.</p></li>
-
-   <li><p>Let <var>realm</var> be <var>realm execution context</var>'s Realm component.</p></li>
+   <li><p>Let <var>realm</var> be <var>executionContext</var>'s Realm component.</p></li>
 
    <li>
     <p>If <var>agent</var>'s <span>agent cluster</span>'s <span
@@ -117452,7 +117474,7 @@ new PaymentRequest(&hellip;); // Allowed to use
     }).buffer.constructor</code>.</p>
    </li>
 
-   <li><p>Return <var>realm execution context</var>.</p></li>
+   <li><p>Return <var>executionContext</var>.</p></li>
   </ol>
   </div>
 
@@ -118037,16 +118059,17 @@ document.querySelector("button").addEventListener("click", bound);
     <p>If <var>environment</var> is an <span>environment settings object</span>:</p>
 
     <ol>
-     <li><p>Let <var>global</var> be <var>environment</var>'s <span
-     data-x="concept-settings-object-global">global object</span>.</p></li>
+     <li><p>Let <var>globalNames</var> be <var>environment</var>'s <span
+     data-x="concept-settings-object-global-names">global names</span>.</p></li>
 
      <li>
-      <p>If <var>global</var> is a <code>WorkerGlobalScope</code>:
+      <p>If <var>globalNames</var> <span data-x="list contains">contains</span>
+      "<code data-x="">Worker</code>":
 
       <ol>
        <li>
-        <p>If <var>global</var>'s <span>owner set</span>[0]'s <span>relevant settings object</span>
-        is a <span>secure context</span>, then return true.</p>
+        <p>If <var>environment</var>'s <span>owner set</span>[0]'s <span>relevant settings
+        object</span> is a <span>secure context</span>, then return true.</p>
 
         <p class="note">We only need to check the 0th item since they will necessarily all be
         consistent.</p>
@@ -118057,7 +118080,8 @@ document.querySelector("button").addEventListener("click", bound);
      </li>
 
      <li>
-      <p>If <var>global</var> is a <code>WorkletGlobalScope</code>, then return true.</p>
+      <p>If <var>globalNames</var> <span data-x="list contains">contains</span>
+      "<code data-x="">Worklet</code>", then return true.</p>
 
       <p class="note">Worklets can only be created in secure contexts.</p>
      </li>
@@ -132347,11 +132371,11 @@ interface mixin <dfn interface>AnimationFrameProvider</dfn> {
   <ul>
    <li><p><var>provider</var> is a <code>Window</code>.</p></li>
 
-   <li><p><var>provider</var>'s <span>owner set</span> <span data-x="list contains">contains</span>
-   a <code>Document</code> object.</p></li>
+   <li><p><var>provider</var>'s <span>relevant settings object</span>'s <span>owner set</span> <span
+   data-x="list contains">contains</span> a <code>Document</code> object.</p></li>
 
    <li><p>Any of the <code>DedicatedWorkerGlobalScope</code> objects in <var>provider</var>'s
-   <span>owner set</span> are <span
+   <span>relevant settings object</span>'s <span>owner set</span> are <span
    data-x="concept-AnimationFrameProvider-supported">supported</span>.</p></li>
   </ul>
   </div>
@@ -135139,13 +135163,15 @@ interface <dfn interface>WorkerGlobalScope</dfn> : <span>EventTarget</span> {
 
   <div w-nodev>
 
-  <p id="the-worker's-documents">A <code>WorkerGlobalScope</code> object has an associated <dfn
-  id="concept-WorkerGlobalScope-owner-set" export for="WorkerGlobalScope">owner set</dfn> (a
-  <span>set</span> of <code>Document</code> and <code>WorkerGlobalScope</code> objects). It is
-  initially empty and populated when the worker is created or obtained.</p>
+  <p id="the-worker's-documents">A worker <span>environment settings object</span> has an
+  associated <dfn id="concept-settings-object-owner-set" export
+  for="environment settings object">owner set</dfn> (a <span>set</span> of <code>Document</code>
+  and <code>WorkerGlobalScope</code> items). It is set when the worker
+  <span>environment settings object</span> is <span data-x="set up a worker environment settings
+  object">set up</span>.</p>
 
-  <p class="note">It is a <span>set</span>, instead of a single owner, to accommodate
-  <code>SharedWorkerGlobalScope</code> objects.</p>
+  <p class="note">It is a <span>set</span>, instead of a single owner, to accommodate shared
+  workers (<code>SharedWorkerGlobalScope</code>).</p>
 
   <p>A <code>WorkerGlobalScope</code> object has an associated <dfn export for="WorkerGlobalScope"
   data-x="concept-WorkerGlobalScope-type">type</dfn> ("<code data-x="">classic</code>" or "<code
@@ -135178,10 +135204,6 @@ interface <dfn interface>WorkerGlobalScope</dfn> : <span>EventTarget</span> {
   <p>A <code>WorkerGlobalScope</code> object has an associated <dfn export for="WorkerGlobalScope"
   data-x="concept-WorkerGlobalScope-module-map">module map</dfn>.  It is a <span>module map</span>,
   initially empty.</p>
-
-  <p>A <code>WorkerGlobalScope</code> object has an associated <dfn export for="WorkerGlobalScope"
-  data-x="concept-WorkerGlobalScope-cross-origin-isolated-capability">cross-origin isolated
-  capability</dfn> boolean. It is initially false.</p>
 
   </div>
 
@@ -135491,13 +135513,13 @@ interface <dfn interface>SharedWorkerGlobalScope</dfn> : <span>WorkerGlobalScope
    data-x="concept-SharedWorkerGlobalScope-extended-lifetime">extended lifetime</span> is false,
    then return false.</p></li>
 
-   <li><p>If <var>global</var>'s <span>owner set</span> <span data-x="list is empty">is
-   empty</span>, but has been empty for less than the user agent's <span>extended lifetime shared
-   worker timeout</span>, then return true.</p></li>
+   <li><p>If <var>global</var>'s <span>relevant settings object</span>'s <span>owner set</span>
+   <span data-x="list is empty">is empty</span>, but has been empty for less than the user agent's
+   <span>extended lifetime shared worker timeout</span>, then return true.</p></li>
 
    <li>
     <p><span data-x="list iterate">For each</span> <var>owner</var> of <var>global</var>'s
-    <span>owner set</span>:</p>
+    <span>relevant settings object</span>'s <span>owner set</span>:</p>
 
     <ol>
      <li>
@@ -135512,7 +135534,7 @@ interface <dfn interface>SharedWorkerGlobalScope</dfn> : <span>WorkerGlobalScope
 
    <li>
     <p><span data-x="list iterate">For each</span> <var>owner</var> of <var>global</var>'s
-    <span>owner set</span>:</p>
+    <span>relevant settings object</span>'s <span>owner set</span>:</p>
 
     <ol>
      <li><p>If <var>owner</var> is a <code>Document</code> and the amount of time that
@@ -135538,7 +135560,7 @@ interface <dfn interface>SharedWorkerGlobalScope</dfn> : <span>WorkerGlobalScope
 
    <li>
     <p><span data-x="list iterate">For each</span> <var>owner</var> of <var>global</var>'s
-    <span>owner set</span>:</p>
+    <span>relevant settings object</span>'s <span>owner set</span>:</p>
 
     <ol>
      <li><p>If <var>owner</var> is a <code>Document</code>, and <var>owner</var> is <span>fully
@@ -135582,8 +135604,8 @@ interface <dfn interface>SharedWorkerGlobalScope</dfn> : <span>WorkerGlobalScope
   worker">permissible</dfn> if the following algorithm returns true:</p>
 
   <ol>
-   <li><p>If <var>global</var>'s <span>owner set</span> is not <span data-x="list is
-   empty">empty</span>, then return true.</p></li>
+   <li><p>If <var>global</var>'s <span>relevant settings object</span>'s <span>owner set</span> is
+   not <span data-x="list is empty">empty</span>, then return true.</p></li>
 
    <li><p>If <var>global</var> is <span data-x="in extended lifetime worker">in extended
    lifetime</span>, then return true.</p></li>
@@ -135594,9 +135616,9 @@ interface <dfn interface>SharedWorkerGlobalScope</dfn> : <span>WorkerGlobalScope
     <ul>
      <li><p><var>global</var> is a <code>SharedWorkerGlobalScope</code>;</p></li>
 
-     <li><p><var>global</var>'s <span>owner set</span> has been <span data-x="list is
-     empty">empty</span> for no more than the user agent's <span>between-loads shared worker
-     timeout</span>; and</p>
+     <li><p><var>global</var>'s <span>relevant settings object</span>'s <span>owner set</span> has
+     been <span data-x="list is empty">empty</span> for no more than the user agent's
+     <span>between-loads shared worker timeout</span>; and</p>
 
      <li><p>the user agent has a <span>navigable</span> whose <span data-x="nav-document">active
      document</span> is not <span>completely loaded</span>,</p></li>
@@ -135717,35 +135739,42 @@ interface <dfn interface>SharedWorkerGlobalScope</dfn> : <span>WorkerGlobalScope
    agent">obtaining a dedicated/shared worker agent</span> given <var>outside settings</var> and
    <var>is shared</var>. Run the rest of these steps in that agent.</p></li>
 
-   <li>
-    <p>Let <var>realm execution context</var> be the result of <span>creating a new realm</span>
-    given <var>agent</var> and the following customizations:</p>
+   <li><p>Let <var>globalScopeType</var> be <code>SharedWorkerGlobalScope</code> if <var>is
+   shared</var> is true; otherwise <code>DedicatedWorkerGlobalScope</code>.</p></li>
 
-    <ul>
-     <li><p>For the global object, if <var>is shared</var> is true, create a new
-     <code>SharedWorkerGlobalScope</code> object. Otherwise, create a new
-     <code>DedicatedWorkerGlobalScope</code> object.</p></li>
-    </ul>
+   <li><p>Let <var>ownerSet</var> be « <var>owner</var> ».</p></li>
+
+   <li>
+    <p>Let <var>customizations</var> be the following <span>abstract closure</span> given a
+    <span>JavaScript execution context</span> <var>executionContext</var>:</p>
+
+    <ol>
+     <li><p>Let <var>inside settings</var> be the result of <span data-x="set up a worker
+     environment settings object">setting up a worker environment settings object</span> with
+     <var>executionContext</var>, <var>globalScopeType</var>, <var>url</var>, <var>outside
+     settings</var>, <var>ownerSet</var>, and <var>unsafeWorkerCreationTime</var>.</p></li>
+
+     <li><p>Let <var>workerScope</var> be a new object of type <var>globalScopeType</var>
+     created in <var>executionContext</var>'s Realm component.</p></li>
+
+     <li><p>Return « <var>workerScope</var>, null ».</p></li>
+    </ol>
    </li>
+
+   <li><p>Let <var>executionContext</var> be the result of <span>creating a new realm</span>
+   given <var>agent</var> and <var>customizations</var>.</p></li>
 
    <li>
     <p>Let <var>worker global scope</var> be the <span data-x="concept-realm-global">global
-    object</span> of <var>realm execution context</var>'s Realm component.
+    object</span> of <var>executionContext</var>'s Realm component.
 
     <p class="note">This is the <code>DedicatedWorkerGlobalScope</code> or
     <code>SharedWorkerGlobalScope</code> object created in the previous step.</p>
    </li>
 
-   <li><p><span>Set up a worker environment settings object</span> with <var>realm execution
-   context</var>, <var>outside settings</var>, and <var>unsafeWorkerCreationTime</var>, and let
-   <var>inside settings</var> be the result.</p></li>
-
    <li><p>Set <var>worker global scope</var>'s <span
    data-x="concept-WorkerGlobalScope-name">name</span> to <var>options</var>["<code
    data-x="dom-WorkerOptions-name">name</code>"].</p></li>
-
-   <li><p><span data-x="set append">Append</span> <var>owner</var> to <var>worker global
-   scope</var>'s <span>owner set</span>.</p></li>
 
    <li>
     <p>If <var>is shared</var> is true:</p>
@@ -135849,34 +135878,6 @@ interface <dfn interface>SharedWorkerGlobalScope</dfn> : <span>WorkerGlobalScope
        global object's embedder policy</span> with <var>worker global scope</var>, <var>outside
        settings</var>, and <var>response</var> is false, then set <var>response</var> to a
        <span>network error</span>.</p></li>
-
-       <li><p>Set <var>worker global scope</var>'s <span
-       data-x="concept-WorkerGlobalScope-cross-origin-isolated-capability">cross-origin isolated
-       capability</span> to true if <var>agent</var>'s <span>agent cluster</span>'s <span
-       data-x="agent-cluster-cross-origin-isolation">cross-origin isolation mode</span> is "<code
-       data-x="cross-origin-isolation-concrete">concrete</code>".</p></li>
-
-       <li><p>If <var>is shared</var> is false and <var>owner</var>'s <span
-       data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin isolated
-       capability</span> is false, then set <var>worker global scope</var>'s <span
-       data-x="concept-WorkerGlobalScope-cross-origin-isolated-capability">cross-origin isolated
-       capability</span> to false.</p></li>
-
-       <li>
-        <p>If <var>is shared</var> is false and <var>response</var>'s
-        <span data-x="concept-response-url">url</span>'s <span
-        data-x="concept-url-scheme">scheme</span> is "<code data-x="">data</code>", then set
-        <var>worker global scope</var>'s <span
-        data-x="concept-WorkerGlobalScope-cross-origin-isolated-capability">cross-origin isolated
-        capability</span> to false.</p>
-
-        <p class="note">This is a conservative default for now, while we figure out how workers in
-        general, and <code data-x="data protocol">data:</code> URL workers in particular (which are
-        cross-origin from their owner), will be treated in the context of permissions policies. See
-        <a
-        href="https://github.com/w3c/webappsec-permissions-policy/issues/207">w3c/webappsec-permissions-policy
-        issue #207</a> for more details.</p>
-       </li>
 
        <li><p>Run <var>processCustomFetchResponse</var> with <var>response</var> and
        <var>bodyBytes</var>.</p></li>
@@ -135997,7 +135998,8 @@ interface <dfn interface>SharedWorkerGlobalScope</dfn> : <span>WorkerGlobalScope
      </li>
 
      <li id="step-empty-worker-global-scope-owner-set"><p><span data-x="list empty">Empty</span>
-     <var>worker global scope</var>'s <span>owner set</span>.</p></li>
+     <var>worker global scope</var>'s <span>relevant settings object</span>'s <span>owner
+     set</span>.</p></li>
     </ol>
    </li>
   </ol>
@@ -136075,19 +136077,26 @@ interface <dfn interface>SharedWorkerGlobalScope</dfn> : <span>WorkerGlobalScope
 
   <div algorithm>
   <p>To <dfn>set up a worker environment settings object</dfn>, given a <span>JavaScript execution
-  context</span> <var>execution context</var>, an <span>environment settings object</span>
-  <var>outside settings</var>, and a number <var>unsafeWorkerCreationTime</var>:</p>
+  context</span> <var>executionContext</var>, an interface <var>globalScopeType</var>, a
+  <span>URL</span> <var>workerURL</var>, an <span>environment settings object</span> <var>outside
+  settings</var>, a <span>set</span> <var>ownerSet</var> of <code>Document</code> and
+  <code>WorkerGlobalScope</code> items, and a number <var>unsafeWorkerCreationTime</var>:</p>
 
   <ol>
-   <li><p>Let <var>realm</var> be the value of <var>execution context</var>'s Realm
-   component.</p></li>
+   <li>
+    <p>Let <var>realm</var> be <var>executionContext</var>'s Realm component.</p>
 
-   <li><p>Let <var>worker global scope</var> be <var>realm</var>'s <span
-   data-x="concept-realm-global">global object</span>.</p></li>
+    <p class="note">This algorithm is invoked before <var>realm</var>'s <span
+    data-x="concept-realm-global">global object</span> is allocated. The closures defined below read
+    the global object lazily when they are invoked, by which time the realm has been fully
+    wired.</p>
+   </li>
+
+   <li><p>Let <var>globalNames</var> be <var>globalScopeType</var>'s <span>global
+   names</span>.</p></li>
 
    <li><p>Let <var>origin</var> be a unique <span
-   data-x="concept-origin-opaque">opaque origin</span> if <var>worker global scope</var>'s
-   <span data-x="concept-WorkerGlobalScope-url">url</span>'s <span
+   data-x="concept-origin-opaque">opaque origin</span> if <var>workerURL</var>'s <span
    data-x="concept-url-scheme">scheme</span> is "<code data-x="">data</code>"; otherwise
    <var>outside settings</var>'s <span
    data-x="concept-settings-object-origin">origin</span>.</p></li>
@@ -136098,20 +136107,18 @@ interface <dfn interface>SharedWorkerGlobalScope</dfn> : <span>WorkerGlobalScope
 
     <dl>
      <dt>The <span>realm execution context</span></dt>
-     <dd>
-      <p>Return <var>execution context</var>.
-     </dd>
+     <dd><p>Return <var>executionContext</var>.</p></dd>
 
      <dt>The <span data-x="concept-settings-object-module-map">module map</span></dt>
      <dd>
-      <p>Return <var>worker global scope</var>'s <span
-      data-x="concept-WorkerGlobalScope-module-map">module map</span>.</p>
+      <p>Return <var>realm</var>'s <span data-x="concept-realm-global">global object</span>'s
+      <span data-x="concept-WorkerGlobalScope-module-map">module map</span>.</p>
      </dd>
 
      <dt>The <span>API base URL</span></dt>
      <dd>
-      <p>Return <var>worker global scope</var>'s <span
-      data-x="concept-WorkerGlobalScope-url">url</span>.</p>
+      <p>Return <var>realm</var>'s <span data-x="concept-realm-global">global object</span>'s
+      <span data-x="concept-WorkerGlobalScope-url">url</span>.</p>
      </dd>
 
      <dt>The <span data-x="concept-settings-object-origin">origin</span></dt>
@@ -136125,8 +136132,7 @@ interface <dfn interface>SharedWorkerGlobalScope</dfn> : <span>WorkerGlobalScope
        data-x="concept-settings-object-has-cross-site-ancestor">has cross-site ancestor</span> is
        true, then return true.</p></li>
 
-       <li><p>If <var>worker global scope</var>'s <span
-       data-x="concept-WorkerGlobalScope-url">url</span>'s <span
+       <li><p>If <var>workerURL</var>'s <span
        data-x="concept-url-scheme">scheme</span> is "<code data-x="">data</code>", then return
        true.</p></li>
 
@@ -136135,35 +136141,67 @@ interface <dfn interface>SharedWorkerGlobalScope</dfn> : <span>WorkerGlobalScope
      </dd>
 
      <dt>The <span data-x="concept-settings-object-policy-container">policy container</span></dt>
-     <dd>
-      <p>Return <var>worker global scope</var>'s <span
-      data-x="concept-WorkerGlobalScope-policy-container">policy container</span>.</p>
-     </dd>
+     <dd><p>Return <var>realm</var>'s <span data-x="concept-realm-global">global object</span>'s
+     <span data-x="concept-WorkerGlobalScope-policy-container">policy container</span>.</p></dd>
 
      <dt>The <span data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin
      isolated capability</span></dt>
-     <dd><p>Return <var>worker global scope</var>'s <span
-     data-x="concept-WorkerGlobalScope-cross-origin-isolated-capability">cross-origin isolated
-     capability</span>.</p></dd>
+     <dd>
+      <ol>
+       <li><p>If <var>realm</var>'s <span>agent cluster</span>'s <span
+       data-x="agent-cluster-cross-origin-isolation">cross-origin isolation mode</span> is not
+       "<code data-x="cross-origin-isolation-concrete">concrete</code>", then return
+       false.</p></li>
+
+       <li>
+        <p>If <var>globalNames</var> <span data-x="list contains">contains</span>
+        "<code data-x="">DedicatedWorker</code>":</p>
+
+        <ol>
+         <li><p>If <var>outside settings</var>'s <span
+         data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin isolated
+         capability</span> is false, then return false.</p></li>
+
+         <li><p>If <var>workerURL</var>'s <span data-x="concept-url-scheme">scheme</span> is
+         "<code data-x="">data</code>", then return false.</p></li>
+        </ol>
+       </li>
+
+       <li><p>Return true.</p></li>
+      </ol>
+
+      <p class="note">The data-URL downgrade preserves the existing conservative default for
+      <code data-x="data protocol">data:</code> URL workers. See <a
+      href="https://github.com/w3c/webappsec-permissions-policy/issues/207">w3c/webappsec-permissions-policy
+      issue #207</a>. Using the request URL here (rather than the post-fetch response URL) is safe
+      because <span data-x="concept-fetch">fetch</span> errors on redirects to <code data-x="data
+      protocol">data:</code> URLs.</p>
+     </dd>
 
      <dt>The <span data-x="concept-settings-object-time-origin">time origin</span></dt>
      <dd><p>Return the result of <span data-x="coarsen time">coarsening</span>
-     <var>unsafeWorkerCreationTime</var> with <var>worker global scope</var>'s <span
-     data-x="concept-WorkerGlobalScope-cross-origin-isolated-capability">cross-origin isolated
+     <var>unsafeWorkerCreationTime</var> with <var>settings object</var>'s <span
+     data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin isolated
      capability</span>.</p></dd>
+
+     <dt>The <span data-x="concept-settings-object-global-names">global names</span></dt>
+     <dd><p>Return <var>globalNames</var>.</p></dd>
     </dl>
    </li>
 
    <li><p>Set <var>settings object</var>'s <span data-x="concept-environment-id">id</span> to a new
    unique opaque string, <span data-x="concept-environment-creation-url">creation URL</span> to
-   <var>worker global scope</var>'s <span>url</span>, <span>top-level creation URL</span> to null,
+   <var>workerURL</var>, <span>top-level creation URL</span> to null,
    <span data-x="concept-environment-target-browsing-context">target browsing context</span> to
    null, and <span data-x="concept-environment-active-service-worker">active service worker</span>
    to null.</p></li>
 
-   <li><p>If <var>worker global scope</var> is a <code>DedicatedWorkerGlobalScope</code> object,
-   then set <var>settings object</var>'s <span>top-level origin</span> to <var>outside
-   settings</var>'s <span>top-level origin</span>.</p></li>
+   <li><p>Set <var>settings object</var>'s <span>owner set</span> to <var>ownerSet</var>.</p></li>
+
+   <li><p>If <var>globalNames</var> <span data-x="list contains">contains</span>
+   "<code data-x="">DedicatedWorker</code>", then set <var>settings object</var>'s
+   <span>top-level origin</span> to <var>outside settings</var>'s
+   <span>top-level origin</span>.</p></li>
 
    <li>
     <p>Otherwise, set <var>settings object</var>'s <span>top-level origin</span> to an
@@ -136601,7 +136639,8 @@ dictionary <dfn dictionary>SharedWorkerOptions</dfn> : <span>WorkerOptions</span
        <var>insidePort</var>.</p></li>
 
        <li><p><span data-x="set append">Append</span> the <span>relevant owner to add</span> given
-       <var>outsideSettings</var> to <var>workerGlobalScope</var>'s <span>owner set</span>.</p></li>
+       <var>outsideSettings</var> to <var>workerGlobalScope</var>'s <span>relevant settings
+       object</span>'s <span>owner set</span>.</p></li>
       </ol>
      </li>
 
@@ -137312,22 +137351,31 @@ interface <dfn interface>WorkletGlobalScope</dfn> {};</code></pre>
    worklet agent</span> given <var>outsideSettings</var>. Run the rest of these steps in that
    agent.</p></li>
 
-   <li>
-    <p>Let <var>realmExecutionContext</var> be the result of <span>creating a new realm</span> given
-    <var>agent</var> and the following customizations:</p>
+   <li><p>Let <var>workletGlobalScopeType</var> be <var>worklet</var>'s <span>worklet global
+   scope type</span>.</p></li>
 
-    <ul>
-     <li><p>For the global object, create a new object of the type given by <var>worklet</var>'s
-     <span>worklet global scope type</span>.</p></li>
-    </ul>
+   <li>
+    <p>Let <var>customizations</var> be the following <span>abstract closure</span> given a
+    <span>JavaScript execution context</span> <var>executionContext</var>:</p>
+
+    <ol>
+     <li><p>Let <var>insideSettings</var> be the result of <span data-x="set up a worklet
+     environment settings object">setting up a worklet environment settings object</span>
+     given <var>executionContext</var>, <var>workletGlobalScopeType</var>, and
+     <var>outsideSettings</var>.</p></li>
+
+     <li><p>Let <var>workletScope</var> be a new object of type <var>workletGlobalScopeType</var>
+     created in <var>executionContext</var>'s Realm component.</p></li>
+
+     <li><p>Return « <var>workletScope</var>, null ».</p></li>
+    </ol>
    </li>
 
-   <li><p>Let <var>workletGlobalScope</var> be the <span data-x="concept-realm-global">global
-   object</span> of <var>realmExecutionContext</var>'s Realm component.</p></li>
+   <li><p>Let <var>executionContext</var> be the result of <span>creating a new realm</span>
+   given <var>agent</var> and <var>customizations</var>.</p></li>
 
-   <li><p>Let <var>insideSettings</var> be the result of <span data-x="set up a worklet environment
-   settings object">setting up a worklet environment settings object</span> given
-   <var>realmExecutionContext</var> and <var>outsideSettings</var>.</p></li>
+   <li><p>Let <var>workletGlobalScope</var> be the <span data-x="concept-realm-global">global
+   object</span> of <var>executionContext</var>'s Realm component.</p></li>
 
    <li><p>Let <var>pendingAddedModules</var> be a <span data-x="list clone">clone</span> of
    <var>worklet</var>'s <span data-x="concept-Worklet-added-modules-list">added modules
@@ -137428,10 +137476,20 @@ interface <dfn interface>WorkletGlobalScope</dfn> {};</code></pre>
 
   <div algorithm>
   <p>To <dfn>set up a worklet environment settings object</dfn>, given a <span>JavaScript
-  execution context</span> <var>executionContext</var> and an <span>environment settings
-  object</span> <var>outsideSettings</var>:</p>
+  execution context</span> <var>executionContext</var>, an interface
+  <var>workletGlobalScopeType</var>, and an <span>environment settings object</span>
+  <var>outsideSettings</var>:</p>
 
   <ol>
+   <li>
+    <p>Let <var>realm</var> be <var>executionContext</var>'s Realm component.</p>
+
+    <p class="note">This algorithm is invoked before <var>realm</var>'s <span
+    data-x="concept-realm-global">global object</span> is allocated. The closures defined below read
+    the global object lazily when they are invoked, by which time the realm has been fully
+    wired.</p>
+   </li>
+
    <li><p>Let <var>origin</var> be a unique <span data-x="concept-origin-opaque">opaque
    origin</span>.</p></li>
 
@@ -137442,11 +137500,8 @@ interface <dfn interface>WorkletGlobalScope</dfn> {};</code></pre>
    container">clone</span> of <var>outsideSettings</var>'s <span
    data-x="concept-settings-object-policy-container">policy container</span>.</p></li>
 
-   <li><p>Let <var>realm</var> be the value of <var>executionContext</var>'s Realm
-   component.</p></li>
-
-   <li><p>Let <var>workletGlobalScope</var> be <var>realm</var>'s <span
-   data-x="concept-realm-global">global object</span>.</p></li>
+   <li><p>Let <var>globalNames</var> be <var>workletGlobalScopeType</var>'s <span>global
+   names</span>.</p></li>
 
    <li>
     <p>Let <var>settingsObject</var> be a new <span>environment settings object</span> whose
@@ -137454,14 +137509,12 @@ interface <dfn interface>WorkletGlobalScope</dfn> {};</code></pre>
 
     <dl>
      <dt>The <span>realm execution context</span></dt>
-     <dd>
-      <p>Return <var>executionContext</var>.</p>
-     </dd>
+     <dd><p>Return <var>executionContext</var>.</p></dd>
 
      <dt>The <span data-x="concept-settings-object-module-map">module map</span></dt>
      <dd>
-      <p>Return <var>workletGlobalScope</var>'s <span
-      data-x="concept-WorkletGlobalScope-module-map">module map</span>.</p>
+      <p>Return <var>realm</var>'s <span data-x="concept-realm-global">global object</span>'s
+      <span data-x="concept-WorkletGlobalScope-module-map">module map</span>.</p>
      </dd>
 
      <dt>The <span>API base URL</span></dt>
@@ -137498,6 +137551,9 @@ interface <dfn interface>WorkletGlobalScope</dfn> {};</code></pre>
      <dd><p><span>Assert</span>: this algorithm is never called, because the <span
      data-x="concept-settings-object-time-origin">time origin</span> is not available in a worklet
      context.</p></dd>
+
+     <dt>The <span data-x="concept-settings-object-global-names">global names</span></dt>
+     <dd><p>Return <var>globalNames</var>.</p></dd>
     </dl>
    </li>
 
