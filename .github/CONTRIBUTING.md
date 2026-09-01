@@ -59,6 +59,7 @@ The following are kept on a single line, however long it gets:
 
 - `<dt>` elements
 - `<img>` elements
+- `<iframe>` elements
 - `<ul class="domTree">` trees
 - The cross-specification `<dfn>` elements in the [Dependencies](https://html.spec.whatwg.org/multipage/infrastructure.html#dependencies) section, one term per line
 - The `<dd>` elements in the [References](https://html.spec.whatwg.org/multipage/references.html#references) section, one bibliography entry per line
