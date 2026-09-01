@@ -53,7 +53,7 @@ Due to the long legacy of the existing text, these guidelines are not always app
 
 #### Line wrapping length
 
-Use a column width of 100 characters and add newlines where whitespace is used. (Emacs, set `fill-column` to `100`; in Vim, set `textwidth` to `100`; and in Sublime, set `wrap_width` to `100`. Alternatively, wrap the paragraph(s) with your changes with https://domenic.github.io/rewrapper/ or https://github.com/domfarolino/specfmt/. Make sure that `column length to rewrap` is set to 100.)
+Use a column width of 100 characters and add newlines where whitespace is used. (Emacs, set `fill-column` to `100`; in Vim, set `textwidth` to `100`; and in Sublime, set `wrap_width` to `100`. Alternatively, wrap the paragraph(s) with your changes with [The Great Rewrapper](https://domenic.github.io/rewrapper/) or with [specfmt](https://github.com/domfarolino/specfmt/).)
 
 The following are kept on a single line, however long it gets:
 
