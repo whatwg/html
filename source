@@ -128704,7 +128704,8 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
      <li><p><span>Assert</span>: <var>sanitizerSpec</var> is "<code
      data-x="dom-SanitizerPresets-default">default</code>".</p></li>
 
-     <li><p>Return the <span>built-in safe default configuration</span>.</p></li>
+     <li><p>Set <var>sanitizerSpec</var> to the <span>built-in safe default
+     configuration</span>.</p></li>
     </ol>
    </li>
 
@@ -128724,7 +128725,8 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
     </ol>
    </li>
 
-   <li><p>Let <var>config</var> be a copy of <var>sanitizerSpec</var>'s
+   <li><p>Let <var>config</var> be a copy of <var>sanitizerSpec</var> if <var>sanitizerSpec</var> is
+   a <span>SanitizerConfig</span>; otherwise a copy of <var>sanitizerSpec</var>'s
    <span>configuration</span>.</p></li>
 
    <li><p>If <var>safe</var> is true, then <span>remove unsafe</span> from
@@ -128766,13 +128768,15 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
   <ol>
    <li><p>If <var>configuration</var>["<code
    data-x="dom-SanitizerConfig-processingInstructions">processingInstructions</code>"] <span
-   data-x="map exists">exists</span> and <span data-x="list contains">contains</span>
-   <var>piTarget</var>, then return true.</p></li>
+   data-x="map exists">exists</span>, then return whether <var>configuration</var>["<code
+   data-x="dom-SanitizerConfig-processingInstructions">processingInstructions</code>"] <span
+   data-x="list contains">contains</span> <var>piTarget</var>.</p></li>
 
    <li><p>If <var>configuration</var>["<code
    data-x="dom-SanitizerConfig-removeProcessingInstructions">removeProcessingInstructions</code>"]
-   <span data-x="map exists">exists</span> and <span data-x="list contains">contains</span>
-   <var>piTarget</var>, then return false.</p></li>
+   <span data-x="map exists">exists</span> and <var>configuration</var>["<code
+   data-x="dom-SanitizerConfig-removeProcessingInstructions">removeProcessingInstructions</code>"]
+   <span data-x="list contains">contains</span> <var>piTarget</var>, then return false.</p></li>
 
    <li><p>Return true.</p></li>
   </ol>
@@ -129979,6 +129983,9 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
     <tr>
      <td><code data-x="">math</code>
      <td><span data-x="MathML namespace">MathML</span>
+    <tr>
+     <td><code data-x="">template</code>
+     <td><span data-x="HTML namespace">HTML</span>
   </table>
   </div>
 
@@ -142418,6 +142425,7 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   <h5>Other parsing state flags</h5>
 
   <p>An <code>Element</code>-or-null <dfn>fragment context element</dfn>, initially null.</p>
+
   <p>A boolean <dfn>allow declarative shadow roots</dfn> (initially false).</p>
 
   <p>The <dfn>scripting mode</dfn>, which is a <span>parser scripting mode</span>. It is initially
@@ -142459,6 +142467,11 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <p>The <dfn>insertion target redirection map</dfn> (an <span>ordered map</span>, initially
   empty).</p>
+
+  <p class="note">When elements are removed or replaced with their children as part of
+  sanitization during parsing, adjacent text inserted before and after the removed element will
+  coalesce into a single <code>Text</code> node, as opposed to post-parsing sanitization where the
+  text nodes would remain split.</p>
 
   <h4><dfn>Tokenization</dfn></h4>
 
@@ -145465,12 +145478,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   location</span> <var>insertionLocation</var> (default null):</p>
 
   <ol>
-   <li><p>Let <var>overrideTarget</var> be null if <var>insertionLocation</var> is null;
-   otherwise <var>insertionLocation</var>'s <span
-   data-x="insertion-location-target-parent">target parent</span>.</p></li>
-
-   <li><p>Let <var>adjustedInsertionLocation</var> be the <span>appropriate place for inserting a
-   node</span> given <var>overrideTarget</var>.</p></li>
+   <li><p>Let <var>adjustedInsertionLocation</var> be <var>insertionLocation</var> if
+   <var>insertionLocation</var> is non-null; otherwise the <span>appropriate place for inserting a
+   node</span>.</p></li>
 
    <li><p>Let (<var>targetParent</var>, <var>refChild</var>) be
    <var>adjustedInsertionLocation</var>.</p></li>
@@ -145508,15 +145518,12 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <div algorithm>
   <p>To <dfn>insert an element at the adjusted insertion location</dfn> with an element
-  <var>element</var> and an optional <span>insertion location</span> <var>overrideLocation</var>
-  (default null):</p>
+  <var>element</var>, an optional <span>insertion location</span> <var>overrideLocation</var>
+  (default null), and an optional boolean <var>alreadySanitized</var> (default false):</p>
 
   <ol>
-   <li><p>Let <var>insertionLocation</var> be <var>overrideLocation</var>, if it is non-null;
-   otherwise the <span>adjusted insertion location</span>.</p></li>
-
-   <li><p>Let (<var>targetParent</var>, <var>referenceChild</var>) be
-   <var>insertionLocation</var>.</p></li>
+   <li><p>Let (<var>targetParent</var>, <var>referenceChild</var>) be the <span>adjusted insertion
+   location</span> given <var>overrideLocation</var>.</p></li>
 
    <li>
     <p>If any of the following are true:</p>
@@ -145535,7 +145542,8 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    </li>
 
    <li>
-    <p>If the parser's <span>parser sanitizer configuration</span> is not null:</p>
+    <p>If <var>alreadySanitized</var> is false and the parser's <span>parser sanitizer
+    configuration</span> is not null:</p>
 
     <ol>
      <li><p>Let <var>action</var> be the result of <span data-x="sanitize">sanitizing</span>
@@ -145548,7 +145556,7 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
        <dt>"<span data-x="sanitizer-action-replace-with-children">Replace
        with children</span>"</dt>
        <dd>Set the parser's <span>insertion target redirection map</span>[<var>element</var>] to
-       <var>insertionLocation</var>, and abort these steps.</dd>
+       (<var>targetParent</var>, <var>referenceChild</var>), and abort these steps.</dd>
 
        <dt>"<span data-x="sanitizer-action-remove">Remove</span>"</dt>
        <dd>Abort these steps.</dd>
@@ -145564,6 +145572,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    <span>element queue</span> onto <var>element</var>'s <span>relevant agent</span>'s <span>custom
    element reactions stack</span>.</p></li>
 
+   <li><p><span>Assert</span>: <span>ensure pre-insert validity</span> given <var>element</var>,
+   <var>targetParent</var>, <var>referenceChild</var>, and « » does not throw.</p></li>
+
    <li><p><span data-x="concept-node-insert">Insert</span> <var>element</var> into
    <var>targetParent</var> before <var>referenceChild</var>.</p></li>
 
@@ -145578,22 +145589,17 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
        Not sure what we could call them instead, though... -->
 
   <div algorithm>
-  <p>To <dfn>insert a foreign element</dfn>, given a token <var>token</var>, a string
-  <var>namespace</var>, and a boolean <var>onlyAddToElementStack</var>:</p>
+  <p>To <dfn>insert a foreign element</dfn> for a token <var>token</var>, in a given
+  <var>namespace</var>, and with an optional flag <var>onlyAddToElementStack</var> (default
+  false):</p>
 
   <ol>
-   <li><p>Let <var>adjustedInsertionLocation</var> be the <span>appropriate place for inserting a
+   <li><p>Let <var>element</var> be the result of <span>create an element for the token</span> with
+   the given <var>token</var>, <var>namespace</var>, and the <span>adjusted current
    node</span>.</p></li>
 
-   <!-- this insertion stuff should be cleaned up: https://github.com/whatwg/html/issues/1706 -->
-
-   <li><p>Let <var>element</var> be the result of <span data-x="create an element for the
-   token">creating an element for the token</span> given <var>token</var>, <var>namespace</var>,
-   and <var>adjustedInsertionLocation</var>'s <span
-   data-x="insertion-location-target-parent">target parent</span>.</p></li>
-
-   <li><p>If <var>onlyAddToElementStack</var> is false, then run <span>insert an element at the
-   adjusted insertion location</span> with <var>element</var>.</p></li>
+   <li><p>If <var>onlyAddToElementStack</var> is false, then <span>insert an element at the adjusted
+   insertion location</span> with <var>element</var>.</p></li>
 
    <li><p>Push <var>element</var> onto the <span>stack of open elements</span> so that it is the new
    <span>current node</span>.</p></li>
@@ -145605,35 +145611,6 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   <div algorithm>
   <p>To <dfn>insert an HTML element</dfn> given a token <var>token</var>: <span>insert a foreign
   element</span> given <var>token</var>, the <span>HTML namespace</span>, and false.</p>
-  </div>
-
-  <div algorithm>
-  <p>To <dfn>insert the root HTML element</dfn> given an <span>HTMLElement</span>
-  <var>element</var>:</p>
-
-  <ol>
-   <li>
-    <p>If the parser's <span>parser sanitizer configuration</span> is not null:</p>
-
-    <ol>
-     <li><p>Let <var>action</var> be the result of <span data-x="sanitize">sanitizing</span>
-     <var>element</var> given the parser's <span>parser sanitizer configuration</span>.</p></li>
-
-     <li><p>If <var>action</var> is "<span data-x="sanitizer-action-remove">Remove</span>",
-     then return.</p></li>
-
-     <li>
-      <p><span>Assert</span>: <var>action</var> is "<span
-      data-x="sanitizer-action-keep">Keep</span>".</p>
-
-      <p class="note">The <code>html</code> element is <span
-      data-x="built-in non-replaceable elements list">non-replaceable</span>.</p>
-     </li>
-    </ol>
-   </li>
-
-   <li><p>Insert <var>element</var> as the last child of the <code>Document</code> object.</p></li>
-  </ol>
   </div>
 
   <hr>
@@ -145829,16 +145806,15 @@ document.body.appendChild(text);
   (default null), the user agent must run the following steps:</p>
 
   <ol>
-   <li><p>If the parser's <span>parser sanitizer configuration</span> is non-null and does not
-   <span data-x="sanitizer config allows comments">allow comments</span>, then abort these
-   steps.</p></li>
+   <li><p>If the parser's <span>parser sanitizer configuration</span> is non-null and the parser's
+   <span>parser sanitizer configuration</span> does not <span data-x="sanitizer config allows
+   comments">allow comments</span>, then abort these steps.</p></li>
 
    <li><p>Let <var>data</var> be the data given in the comment token being
    processed.</p></li>
 
    <li><p>Let (<var>targetParent</var>, <var>referenceChild</var>) be the <span>adjusted insertion
    location</span> given <var>insertionLocation</var>.</p></li>
-
 
    <li><p>Let <var>comment</var> be the result of <span data-x="create a comment node">creating a
    comment node</span> given <var>targetParent</var>'s <span>node document</span> and
@@ -146143,9 +146119,9 @@ document.body.appendChild(text);
    <dt>Anything else</dt>
    <dd>
     <p>Create an <code>html</code> element whose <span>node document</span> is the
-    <code>Document</code> object. <span data-x="insert the root HTML element">Insert</span> it into
-    the <code>Document</code> object. Put this element in the
-    <span>stack of open elements</span>.</p>
+    <code>Document</code> object. <span>Insert an element at the adjusted insertion
+    location</span> with that element and (the <code>Document</code>, null). Put this
+    element in the <span>stack of open elements</span>.</p>
 
     <p>Switch the <span>insertion mode</span> to "<span data-x="insertion mode: before head">before
     head</span>", then reprocess the token.</p>
@@ -146340,12 +146316,12 @@ document.body.appendChild(text);
     <p>Run these steps:</p>
 
     <ol>
-     <li><p>Let <var>adjustedInsertionLocation</var> be the <span>appropriate place for
-     inserting a node</span>.</p></li>
+     <li><p>Let <var>adjustedInsertionLocation</var> be the <span>adjusted insertion
+     location</span>.</p></li>
 
      <li><p><span>Create an element for the token</span> in the <span>HTML namespace</span>, with
-     the intended parent being the node in which the <var>adjustedInsertionLocation</var> finds
-     itself.</p></li>
+     the intended parent being <var>adjustedInsertionLocation</var>'s <span
+     data-x="insertion-location-target-parent">target parent</span>.</p></li>
 
      <li>
       <p>If the <span>scripting mode</span> is not <span
@@ -146438,8 +146414,8 @@ document.body.appendChild(text);
      <span>stack of template insertion modes</span> so that it is the new <span>current template
      insertion mode</span>.</p></li>
 
-     <li><p>Let <var>adjustedInsertionLocation</var> be the <span>appropriate place for
-     inserting a node</span>.</p></li>
+     <li><p>Let <var>adjustedInsertionLocation</var> be the <span>adjusted insertion
+     location</span>.</p></li>
 
      <li><p>Let <var>template</var> be the result of <span>insert a foreign element</span> for
      <var>templateStartTag</var>, with the <span>HTML namespace</span> and true.</p></li>
@@ -146477,7 +146453,8 @@ document.body.appendChild(text);
            <li><p>If the parser's <span>allow declarative shadow roots</span> is false, or
            the <span>adjusted current node</span> is the topmost element in the <span>stack of open
            elements</span>, then <span>insert an element at the adjusted insertion location</span>
-           with <var>template</var> and <var>adjustedInsertionLocation</var>, and return.</p></li>
+           with <var>template</var>, <var>adjustedInsertionLocation</var>, and true, and
+           return.</p></li>
 
            <li><p>Let <var>declarativeShadowHostElement</var> be the <span>adjusted current
            node</span>.</p></li>
@@ -146506,7 +146483,7 @@ document.body.appendChild(text);
 
            <li><p>If <var>declarativeShadowHostElement</var> is a <span>shadow host</span>, then
            <span>insert an element at the adjusted insertion location</span> with
-           <var>template</var> and <var>adjustedInsertionLocation</var>.</p></li>
+           <var>template</var>, <var>adjustedInsertionLocation</var>, and true.</p></li>
 
            <li>
             <p>Otherwise:</p>
@@ -146528,7 +146505,7 @@ document.body.appendChild(text);
 
               <ol>
                <li><p><span>Insert an element at the adjusted insertion location</span> with
-               <var>template</var> and <var>adjustedInsertionLocation</var>.</p></li>
+               <var>template</var>, <var>adjustedInsertionLocation</var>, and true.</p></li>
 
                <li><p>The user agent may report an error to the developer console.</p></li>
 
@@ -146563,7 +146540,7 @@ document.body.appendChild(text);
 
           <ol>
            <li>
-            <p>Let <var>scope</var> be the <span>adjusted insertion location</span>'s <span
+            <p>Let <var>scope</var> be <var>adjustedInsertionLocation</var>'s <span
             data-x="insertion-location-target-parent">target parent</span>.</p>
 
             <p class="note">In the <span>fragment case</span>, <var>scope</var> can be the
@@ -146572,9 +146549,9 @@ document.body.appendChild(text);
             <p class="note">Using the <span>adjusted insertion location</span> supports patching
             inside plain <code>template</code> elements or those using <code
             data-x="attr-template-shadowrootmode">shadowrootmode</code>. Nested patching is not
-            supported, since in this case the <code>template</code> element'
-            <span>template contents</span> will have no children and
-            <span>prepare content patching</span> will fail.</p>
+            supported, since in this case the <code>template</code> element's <span>template
+            contents</span> will have no children and <span>prepare content patching</span> will
+            fail.</p>
            </li>
 
            <li>
@@ -146589,14 +146566,14 @@ document.body.appendChild(text);
            patching">preparing content patching</span> given <var>scope</var> and
            <var>template</var>.</p></li>
 
-           <li><p>If <var>success</var> is false, then <span>insert an element at the adjusted
-           insertion location</span> with <var>template</var> and
-           <var>adjustedInsertionLocation</var>.</p></li>
+           <li><p>If <var>success</var> is false, then <span>insert an element at the
+           adjusted insertion location</span> with <var>template</var>,
+           <var>adjustedInsertionLocation</var>, and true.</p></li>
           </ol>
          </li>
 
          <li><p>Otherwise, <span>insert an element at the adjusted insertion location</span> with
-         <var>template</var> and <var>adjustedInsertionLocation</var>.</p></li>
+         <var>template</var>, <var>adjustedInsertionLocation</var>, and true.</p></li>
         </ol>
        </dd>
       </dl>
@@ -146932,11 +146909,9 @@ document.body.appendChild(text);
     on the top element of the <span>stack of open elements</span>. If it is not, add the attribute
     and its corresponding value to that element.</p>
 
-    <p>If the parser's <span>parser sanitizer configuration</span> is not null, then
-    <span>assert</span> that the result of <span data-x="sanitize">sanitizing</span> the top element
-        of the <span>stack of open elements</span> given the
-    parser's <span>parser sanitizer configuration</span> is "<span
-    data-x="sanitizer-action-keep">Keep</span>".</p>
+    <p>If the parser's <span>parser sanitizer configuration</span> is not null, then <span
+    data-x="sanitize">sanitize</span> the top element of the <span>stack of open elements</span>
+    given the parser's <span>parser sanitizer configuration</span>.</p>
    </dd>
 
    <dt>A start tag whose tag name is one of: "base", "basefont", "bgsound", "link", "meta",
@@ -146961,13 +146936,10 @@ document.body.appendChild(text);
     second element) on the <span>stack of open elements</span>, and if it is not, add the attribute
     and its corresponding value to that element.</p>
 
-    <p>If the parser's <span>parser sanitizer configuration</span> is not null, then
-    <span>assert</span> that the result of <span data-x="sanitize">sanitizing</span> the
-    <code>body</code>
-        element (the second element) on the
-    <span>stack of open elements</span> given the parser's
-    <span>parser sanitizer configuration</span> is "<span
-    data-x="sanitizer-action-keep">Keep</span>".</p>
+    <p>If the parser's <span>parser sanitizer configuration</span> is not null, then <span
+    data-x="sanitize">sanitize</span> the <code>body</code> element (the second element) on the
+    <span>stack of open elements</span> given the parser's <span>parser sanitizer
+    configuration</span>.</p>
    </dd>
 
    <dt>A start tag whose tag name is "frameset"</dt>
@@ -148163,11 +148135,6 @@ document.body.appendChild(text);
      <var>formattingElement</var> was created, in the <span>HTML namespace</span>, with
      <var>furthestBlock</var> as the intended parent.</p></li>
 
-     <li><p>Take all of the child nodes of <var>furthestBlock</var> and append them to the
-     element created in the last step.</p></li>
-
-     <li><p>Append that new element to <var>furthestBlock</var>.</p></li>
-
      <li><p>Remove <var>formattingElement</var> from the <span>list of active formatting
      elements</span>, and insert the new element into the <span>list of active formatting
      elements</span> at the position of the aforementioned bookmark.</p></li>
@@ -148190,8 +148157,7 @@ document.body.appendChild(text);
        <dt>"<span data-x="sanitizer-action-replace-with-children">Replace
        with children</span>"</dt>
        <dd>Set the parser's <span>insertion target redirection map</span>[<var>newElement</var>] to
-       the <span>adjusted insertion location</span> given a location inside
-       <var>furthestBlock</var>, after its last child, if any.</dd>
+       the <span>adjusted insertion location</span> given (<var>furthestBlock</var>, null).</dd>
 
        <dt>"<span data-x="sanitizer-action-remove">Remove</span>"</dt>
        <dd>Do nothing.</dd>
@@ -148199,11 +148165,11 @@ document.body.appendChild(text);
        <dt>"<span data-x="sanitizer-action-keep">Keep</span>"</dt>
        <dd>
         <ol>
-         <li><p>Remove all of the child nodes of <var>furthestBlock</var> and <span
+         <li><p>Take all of the child nodes of <var>furthestBlock</var> and <span
          data-x="concept-node-append">append</span> them to <var>newElement</var>.</p></li>
 
          <li><p>Insert <var>newElement</var> at the <span>adjusted insertion location</span> given
-         a location inside <var>furthestBlock</var>, after its last child, if any.</p></li>
+         (<var>furthestBlock</var>, null).</p></li>
         </ol>
        </dd>
       </dl>
@@ -150927,22 +150893,6 @@ console.assert(container.firstChild instanceof SuperP);
    <li><p><span>Assert</span>: <var data-x="concept-frag-parse-context">context</var> is
    non-null.</p></li>
 
-   <li>
-    <p>If all of the following are true:</p>
-
-    <ul>
-     <li><p><var>safe</var> is true;</p></li>
-
-     <li><p><var>context</var>'s <span data-x="concept-element-local-name">local name</span> is
-     "<code>script</code>"; and</p></li>
-
-     <li><p><var>context</var>'s <span data-x="concept-element-namespace">namespace</span> is
-     the <span>HTML namespace</span> or the <span>SVG namespace</span>,</p></li>
-    </ul>
-
-    <p>then return null.</p>
-   </li>
-
    <li><p>Let <var>document</var> be a <code>Document</code> node whose <span
    data-x="concept-document-type">type</span> is "<code data-x="">html</code>".</p></li>
 
@@ -151027,7 +150977,7 @@ console.assert(container.firstChild instanceof SuperP);
    </li>
 
    <li><p>Set the parser's <span>insertion target redirection map</span>[<var>root</var>] to
-   <var>fragment</var>, right after its last child (if it exists).</p></li>
+   (<var>fragment</var>, null).</p></li>
 
    <li><p>If <var data-x="concept-frag-parse-context">context</var> is a <code>template</code>
    element, then push "<span data-x="insertion mode: in template">in template</span>" onto the
