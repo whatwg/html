@@ -5009,6 +5009,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li><dfn data-x="tt-getcompliantinput" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-input">get trusted type compliant input</dfn></li>
      <li><dfn data-x="tt-trustedparseroptions-sanitizer-config" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#trustedparseroptions-sanitizer-config">TrustedParserOptions sanitizer config</dfn></li>
      <li><dfn data-x="tt-trustedparseroptions-runscripts" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#trustedparseroptions-runscripts">TrustedParserOptions runScripts</dfn></li>
+     <li><dfn data-x="tt-shouldsinktypemismatchviolationbeblocked" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#should-sink-type-mismatch-violation-be-blocked-by-content-security-policy">should sink type mismatch violation be blocked by content security policy?</dfn></li>
     </ul>
    </dd>
 
@@ -126196,7 +126197,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    options">getting a sanitizer instance from options</span> given <var>compliantOptions</var> and
    false.</p></li>
 
-   <li><p>If <var>sanitizer</var> is not null, then <span data-x="sanitize">sanitize</span>
+   <li><p>If <var>sanitizer</var> is not null, then <span data-x="sanitize">Sanitize</span>
    <var>document</var> with <var>sanitizer</var> and false.</p></li>
 
    <li><p>Return <var>document</var>.</p></li>
@@ -126328,8 +126329,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
 
    <dt><dfn export data-x="fragment-parser-mode-normal">Normal</dfn></dt>
    <dd><p><span data-x="sanitizer-category-unsafe">Unsafe</span> elements and attributes are
-   removed, while <span data-x="allow declarative shadow roots">declarative shadow roots</span> are
-   allowed. The <span>HTML parser</span> is used regardless of the type of document.</p></dd>
+   removed, while the <span data-x="allow declarative shadow roots">allow declarative shadow
+   roots</span> flag is true. The <span>HTML parser</span> is used regardless of the type of
+   document.</p></dd>
   </dl>
 
   <div algorithm>
@@ -126397,7 +126399,20 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
 
     <ol>
      <li>
-      <p>If <var>sanitizer</var> is non-null, then throw a <code>TypeError</code>.</p>
+      <p>If <var>sanitizer</var> is non-null, then:</p>
+
+      <ol>
+       <li><p>Let <var>global</var> be <var>target</var>'s <span>relevant global
+       object</span>.</p></li>
+
+       <li><p>Let <var>disposition</var> be the result of executing <span
+       data-x="tt-shouldsinktypemismatchviolationbeblocked">should sink type mismatch violation be
+       blocked by content security policy?</span> passing <var>global</var>, "<code
+       data-x="">Sanitizer</code>", "<code data-x="">script</code>", and the empty string.</p></li>
+
+       <li><p>If <var>disposition</var> is "<code data-x="">Blocked</code>", then throw a
+       <code>TypeError</code>.</p></li>
+      </ol>
 
       <p class="note">Sanitization is only supported on HTML documents.</p>
      </li>
@@ -126609,11 +126624,14 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <p>Throws a <span>"<code>NoModificationAllowedError</code>"</span> <code>DOMException</code>
     if the given position isn't possible (e.g. inserting elements after the root element of a
     <code>Document</code>).</p>
+
+    <p>Throws a <code>TypeError</code> if a sanitizer is provided in an XML document.</p>
    </dd>
   </dl>
 
-  <p class="warning">This method performs no sanitization to remove potentially-dangerous elements
-  and attributes like <code>script</code> or <span>event handler content attributes</span>.</p>
+  <p class="warning">By default, this method performs no sanitization to remove
+  potentially-dangerous elements and attributes like <code>script</code> or <span>event handler
+  content attributes</span>.</p>
 
   <div w-nodev>
 
@@ -126730,11 +126748,14 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <p>Returns a <code>DocumentFragment</code> created from the markup string <var>string</var> using
     <var>range</var>'s <span data-x="concept-range-start-node">start node</span> as the context in
     which <var>fragment</var> is parsed.</p>
+
+    <p>Throws a <code>TypeError</code> if a sanitizer is provided in an XML document.</p>
    </dd>
   </dl>
 
-  <p class="warning">This method performs no sanitization to remove potentially-dangerous elements
-  and attributes like <code>script</code> or <span>event handler content attributes</span>.</p>
+  <p class="warning">By default, this method performs no sanitization to remove
+  potentially-dangerous elements and attributes like <code>script</code> or <span>event handler
+  content attributes</span>.</p>
 
   <pre><code class="idl">partial interface <span id="Range-partial">Range</span> {
   [<span>CEReactions</span>, NewObject] <code>DocumentFragment</code> <span data-x="dom-Range-createContextualFragment">createContextualFragment</span>((<span data-x="tt-trustedhtml">TrustedHTML</span> or DOMString) string);
@@ -126752,9 +126773,10 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <p>Let (<var>compliantString</var>, <var>compliantOptions</var>) be the result of invoking the
     <span data-x="tt-getcompliantinput">get trusted type compliant input</span> algorithm with
     <span>this</span>'s <span>relevant global object</span>, <var>string</var>, a new
-    <code>SetHTMLUnsafeOptions</code> whose <code
-    data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> is true, and "<code
-    data-x="">Range createContextualFragment</code>".</p>
+    <code>SetHTMLUnsafeOptions</code> dictionary whose <code
+    data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> member is set to true and whose
+    other members are set to their default values, and "<code data-x="">Range
+    createContextualFragment</code>".</p>
 
     <p class="note">A Trusted Types default policy can alter <var>compliantOptions</var>, for
     example by setting <code data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> to false
