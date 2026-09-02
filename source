@@ -2323,7 +2323,8 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
              <dfn data-x="map get the keys" data-x-href="https://infra.spec.whatwg.org/#map-getting-the-keys">getting the keys</dfn>,
              <dfn data-x="map get the values" data-x-href="https://infra.spec.whatwg.org/#map-getting-the-values">getting the values</dfn>,
              <dfn data-x="map sort descending" data-x-href="https://infra.spec.whatwg.org/#map-sort-in-descending-order">sorting in descending order</dfn>,
-             <dfn data-x="map size" data-x-href="https://infra.spec.whatwg.org/#map-size">size</dfn>, and
+             <dfn data-x="map size" data-x-href="https://infra.spec.whatwg.org/#map-size">size</dfn>,
+             <dfn data-x="map clone" data-x-href="https://infra.spec.whatwg.org/#map-clone">clone</dfn>, and
              <dfn data-x="map iterate" data-x-href="https://infra.spec.whatwg.org/#map-iterate">iterate</dfn></li>
      <li>The <dfn data-x-href="https://infra.spec.whatwg.org/#list">list</dfn> data structure and the associated definitions for
              <dfn data-x="list append" data-x-href="https://infra.spec.whatwg.org/#list-append">append</dfn>,
@@ -5009,7 +5010,6 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li><dfn data-x="tt-getcompliantinput" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-input">get trusted type compliant input</dfn></li>
      <li><dfn data-x="tt-trustedparseroptions-sanitizer-config" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#trustedparseroptions-sanitizer-config">TrustedParserOptions sanitizer config</dfn></li>
      <li><dfn data-x="tt-trustedparseroptions-runscripts" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#trustedparseroptions-runscripts">TrustedParserOptions runScripts</dfn></li>
-     <li><dfn data-x="tt-shouldsinktypemismatchviolationbeblocked" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#should-sink-type-mismatch-violation-be-blocked-by-content-security-policy">should sink type mismatch violation be blocked by content security policy?</dfn></li>
     </ul>
    </dd>
 
@@ -126197,7 +126197,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    options">getting a sanitizer instance from options</span> given <var>compliantOptions</var> and
    false.</p></li>
 
-   <li><p>If <var>sanitizer</var> is not null, then <span data-x="sanitize">Sanitize</span>
+   <li><p>If <var>sanitizer</var> is not null, then <span data-x="sanitize">sanitize</span>
    <var>document</var> with <var>sanitizer</var> and false.</p></li>
 
    <li><p>Return <var>document</var>.</p></li>
@@ -126271,7 +126271,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <p>In the case of an XML document, throws a <span>"<code>SyntaxError</code>"</span>
     <code>DOMException</code> if the given string is not well-formed.</p>
 
-    <p>Throws a <code>TypeError</code> if a sanitizer is provided in an XML document.</p>
+    <p>Throws a <code>TypeError</code> if the node document is an XML document and a Trusted Types
+    default policy supplied a sanitizer (unless Content Security Policy is report-only).</p>
 
     <p class="note">Setting <code data-x="dom-Element-innerHTML">innerHTML</code> on a
     <code>template</code> element will replace all the nodes in its <span>template contents</span>
@@ -126315,19 +126316,19 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   <p>A <dfn export>fragment parser mode</dfn> is one of the following:</p>
 
   <dl>
-   <dt><dfn export data-x="fragment-parser-mode-legacy">Legacy</dfn></dt>
+   <dt><dfn export for="fragment parser mode" data-x="fragment-parser-mode-legacy">Legacy</dfn></dt>
    <dd><p><span data-x="sanitizer-category-unsafe">Unsafe</span> elements and attributes are
    allowed, while the <span data-x="allow declarative shadow roots">allow declarative shadow
    roots</span> flag is false. Fragments inserted into <span>XML documents</span> are parsed using
    the <span>XML parser</span>.</p></dd>
 
-   <dt><dfn export data-x="fragment-parser-mode-unsafe">Unsafe</dfn></dt>
+   <dt><dfn export for="fragment parser mode" data-x="fragment-parser-mode-unsafe">Unsafe</dfn></dt>
    <dd><p><span data-x="sanitizer-category-unsafe">Unsafe</span> elements and attributes are
    allowed, alongside declarative shadow roots (the <span data-x="allow declarative shadow
    roots">allow declarative shadow roots</span> flag is true). The <span>HTML parser</span> is used
    regardless of the type of document.</p></dd>
 
-   <dt><dfn export data-x="fragment-parser-mode-normal">Normal</dfn></dt>
+   <dt><dfn export for="fragment parser mode" data-x="fragment-parser-mode-normal">Normal</dfn></dt>
    <dd><p><span data-x="sanitizer-category-unsafe">Unsafe</span> elements and attributes are
    removed, while the <span data-x="allow declarative shadow roots">allow declarative shadow
    roots</span> flag is true. The <span>HTML parser</span> is used regardless of the type of
@@ -126392,35 +126393,10 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    options">getting a sanitizer instance from options</span> given <var>options</var> and
    <var>safe</var>.</p></li>
 
-   <li>
-    <p>If <var>mode</var> is <span data-x="fragment-parser-mode-legacy">Legacy</span> and
-    <var>target</var>'s <span>node document</span> is an <span data-x="XML documents">XML
-    document</span>, then:</p>
-
-    <ol>
-     <li>
-      <p>If <var>sanitizer</var> is non-null, then:</p>
-
-      <ol>
-       <li><p>Let <var>global</var> be <var>target</var>'s <span>relevant global
-       object</span>.</p></li>
-
-       <li><p>Let <var>disposition</var> be the result of executing <span
-       data-x="tt-shouldsinktypemismatchviolationbeblocked">should sink type mismatch violation be
-       blocked by content security policy?</span> passing <var>global</var>, "<code
-       data-x="">Sanitizer</code>", "<code data-x="">script</code>", and the empty string.</p></li>
-
-       <li><p>If <var>disposition</var> is "<code data-x="">Blocked</code>", then throw a
-       <code>TypeError</code>.</p></li>
-      </ol>
-
-      <p class="note">Sanitization is only supported on HTML documents.</p>
-     </li>
-
-     <li><p>Return the result of invoking the <span>XML fragment parsing algorithm</span> given
-     <var>target</var> and <var>markup</var>.</p></li>
-    </ol>
-   </li>
+   <li><p>If <var>mode</var> is <span data-x="fragment-parser-mode-legacy">Legacy</span> and
+   <var>target</var>'s <span>node document</span> is an <span data-x="XML documents">XML
+   document</span>, then return the result of invoking the <span>XML fragment parsing
+   algorithm</span> given <var>target</var> and <var>markup</var>.</p></li>
 
    <li><p>Let <var>scriptingMode</var> be <span data-x="scripting-mode-inert">Inert</span>.</p></li>
 
@@ -126454,7 +126430,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <var>target</var>.</p>
    </li>
 
-   <li><p>If <var>sanitizer</var> is not null, then <span data-x="sanitize">Sanitize</span>
+   <li><p>If <var>sanitizer</var> is not null, then <span data-x="sanitize">sanitize</span>
    <var>fragment</var> with <var>sanitizer</var> and <var>safe</var>.</p></li>
 
    <li><p>Return <var>fragment</var>.</p></li>
@@ -126474,14 +126450,16 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   </div>
 
   <div algorithm>
-  <p>The <code data-x="dom-Element-innerHTML">innerHTML</code> setter steps are:</p>
+  <p><code>Element</code>'s <code data-x="dom-Element-innerHTML">innerHTML</code> setter steps
+  are:</p>
 
   <ol>
    <li><p>Let (<var>compliantString</var>, <var>compliantOptions</var>) be the result of invoking
    the <span data-x="tt-getcompliantinput">get trusted type compliant input</span> algorithm with
    <span>this</span>'s <span>relevant global object</span>, the given value, a new
-   <code>SetHTMLUnsafeOptions</code> dictionary, and "<code data-x="">Element
-   innerHTML</code>".</p></li>
+   <code>SetHTMLUnsafeOptions</code> dictionary, "<code data-x="">Element innerHTML</code>", and
+   <span>this</span>'s <span>node document</span> is an <span data-x="XML documents">XML
+   document</span>.</p></li>
 
    <li><p>Let <var>target</var> be <span>this</span>'s <span>template contents</span> if
    <span>this</span> is a <code>template</code> element; otherwise <span>this</span>.</p></li>
@@ -126493,7 +126471,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   </div>
 
   <div algorithm>
-  <p>The <code data-x="dom-ShadowRoot-innerHTML">innerHTML</code> setter steps are:</p>
+  <p><code>ShadowRoot</code>'s <code data-x="dom-ShadowRoot-innerHTML">innerHTML</code> setter steps
+  are:</p>
 
   <ol>
    <li><p>Let (<var>compliantString</var>, <var>compliantOptions</var>) be the result of invoking
@@ -126535,7 +126514,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <p>Throws a <span>"<code>NoModificationAllowedError</code>"</span> <code>DOMException</code> if
     the parent of the element is a <span><code>Document</code></span>.</p>
 
-    <p>Throws a <code>TypeError</code> if a sanitizer is provided in an XML document.</p>
+    <p>Throws a <code>TypeError</code> if the node document is an XML document and a Trusted Types
+    default policy supplied a sanitizer (unless Content Security Policy is report-only).</p>
    </dd>
   </dl>
 
@@ -126557,14 +126537,16 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   </div>
 
   <div algorithm>
-  <p>The <code data-x="dom-Element-outerHTML">outerHTML</code> setter steps are:</p>
+  <p><code>Element</code>'s <code data-x="dom-Element-outerHTML">outerHTML</code> setter steps
+  are:</p>
 
   <ol>
    <li><p>Let (<var>compliantString</var>, <var>compliantOptions</var>) be the result of invoking
    the <span data-x="tt-getcompliantinput">get trusted type compliant input</span> algorithm with
    <span>this</span>'s <span>relevant global object</span>, the given value, a new
-   <code>SetHTMLUnsafeOptions</code> dictionary, and "<code data-x="">Element
-   outerHTML</code>".</p></li>
+   <code>SetHTMLUnsafeOptions</code> dictionary, "<code data-x="">Element outerHTML</code>", and
+   <span>this</span>'s <span>node document</span> is an <span data-x="XML documents">XML
+   document</span>.</p></li>
 
    <li><p>Let <var>parent</var> be <span>this</span>'s <span>parent</span>.</p></li>
 
@@ -126625,7 +126607,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     if the given position isn't possible (e.g. inserting elements after the root element of a
     <code>Document</code>).</p>
 
-    <p>Throws a <code>TypeError</code> if a sanitizer is provided in an XML document.</p>
+    <p>Throws a <code>TypeError</code> if the node document is an XML document and a Trusted Types
+    default policy supplied a sanitizer (unless Content Security Policy is report-only).</p>
    </dd>
   </dl>
 
@@ -126644,8 +126627,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <li><p>Let (<var>compliantString</var>, <var>compliantOptions</var>) be the result of invoking
    the <span data-x="tt-getcompliantinput">get trusted type compliant input</span> algorithm with
    <span>this</span>'s <span>relevant global object</span>, <var>string</var>, a new
-   <code>SetHTMLUnsafeOptions</code> dictionary, and "<code data-x="">Element
-   insertAdjacentHTML</code>".</p></li>
+   <code>SetHTMLUnsafeOptions</code> dictionary, "<code data-x="">Element
+   insertAdjacentHTML</code>", and <span>this</span>'s <span>node document</span> is an <span
+   data-x="XML documents">XML document</span>.</p></li>
 
    <li><p>Let <var>context</var> be null.</p></li>
 
@@ -126749,7 +126733,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <var>range</var>'s <span data-x="concept-range-start-node">start node</span> as the context in
     which <var>fragment</var> is parsed.</p>
 
-    <p>Throws a <code>TypeError</code> if a sanitizer is provided in an XML document.</p>
+    <p>Throws a <code>TypeError</code> if the node document is an XML document and a Trusted Types
+    default policy supplied a sanitizer (unless Content Security Policy is report-only).</p>
    </dd>
   </dl>
 
@@ -126769,22 +126754,23 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   method steps are:</p>
 
   <ol>
+   <li><p>Let <var>node</var> be <span>this</span>'s <span data-x="concept-range-start-node">start
+   node</span>.</p></li>
+
    <li>
     <p>Let (<var>compliantString</var>, <var>compliantOptions</var>) be the result of invoking the
     <span data-x="tt-getcompliantinput">get trusted type compliant input</span> algorithm with
     <span>this</span>'s <span>relevant global object</span>, <var>string</var>, a new
     <code>SetHTMLUnsafeOptions</code> dictionary whose <code
     data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> member is set to true and whose
-    other members are set to their default values, and "<code data-x="">Range
-    createContextualFragment</code>".</p>
+    other members are set to their default values, "<code data-x="">Range
+    createContextualFragment</code>", and <var>node</var>'s <span>node document</span> is an <span
+    data-x="XML documents">XML document</span>.</p>
 
     <p class="note">A Trusted Types default policy can alter <var>compliantOptions</var>, for
     example by setting <code data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> to false
     to prevent scripts from executing when inserting the returned fragment.</p>
    </li>
-
-   <li><p>Let <var>node</var> be <span>this</span>'s <span data-x="concept-range-start-node">start
-   node</span>.</p></li>
 
    <li><p>Let <var>element</var> be null.</p></li>
 
@@ -127000,6 +126986,9 @@ interface <dfn interface>Sanitizer</dfn> {
   boolean <var>permissiveDefaults</var>:</p>
 
   <ol>
+   <li><p>Set <var>configuration</var> to a <span data-x="map clone">clone</span> of
+   <var>configuration</var>.</p></li>
+
    <li><p><span>Canonicalize the configuration</span> <var>configuration</var> with
    <var>permissiveDefaults</var>.</p></li>
 
