@@ -74687,21 +74687,15 @@ try {
    <li><p>Let <var>canvasTransform</var> be the result of <span>get element transform</span> with
    <var>snapshot</var> and <var>T<sub>draw</sub></var>.</p></li>
 
-   <li><p>Let <var>global</var> be <var>context</var>'s <span>relevant global
-   object</span>.</p></li>
+   <li><p>Let <var>targetElement</var> be <var>snapshot</var>'s <span
+   data-x="concept-element-image-snapshot-originating-element">originating element</span>.</p></li>
 
    <li>
-    <p>If <var>global</var> is a <code>Window</code> object:</p>
+    <p>If <var>canvas</var> is an <code>OffscreenCanvas</code> object:</p>
 
     <ol>
-     <li><p>Let <var>targetElement</var> be <var>snapshot</var>'s <span
-     data-x="concept-element-image-snapshot-originating-element">originating element</span>.</p></li>
-
-     <li><p>Set <var>targetElement</var>'s <span data-x="concept-element-canvas-transform">canvas
-     transform</span> to <var>canvasTransform</var>.</p></li>
-
-     <li><p><span>Update the list of drawn elements</span> for <var>originatingCanvas</var> with
-     <var>targetElement</var>.</p></li>
+     <li><p><span>Queue an element geometry update</span> for <var>canvas</var> with
+     <var>targetElement</var> and <var>canvasTransform</var>.</p></li>
     </ol>
    </li>
 
@@ -74709,7 +74703,14 @@ try {
     <p>Otherwise:</p>
 
     <ol>
-     <li><p><!-- TODO --></p></li>
+     <li><p><span>Assert</span>: <var>canvas</var> is an <code>HTMLCanvasElement</code>
+     object.</p></li>
+
+     <li><p>Set <var>targetElement</var>'s <span data-x="concept-element-canvas-transform">canvas
+     transform</span> to <var>canvasTransform</var>.</p></li>
+
+     <li><p><span>Update the list of drawn elements</span> for <var>canvas</var> with
+     <var>targetElement</var>.</p></li>
     </ol>
    </li>
   </ol>
@@ -76377,6 +76378,29 @@ interface <dfn interface>OffscreenCanvas</dfn> : <span>EventTarget</span> {
   data-x="offscreencanvas-context-detached">detached</dfn> by algorithms defined in this
   specification.</p>
 
+  <p>An <code>OffscreenCanvas</code> object has an associated <dfn
+  data-x="concept-offscreencanvas-pending-geometry-updates">pending geometry updates</dfn> (a
+  <span>list</span> of <span data-x="concept-geometry-update">geometry updates</span>, initially
+  empty) and an associated <dfn
+  data-x="concept-offscreencanvas-geometry-update-microtask-queued">geometry update microtask
+  queued</dfn> (a boolean, initially false).</p>
+
+  <p>A <dfn data-x="concept-geometry-update">geometry update</dfn> is a struct with the following
+  items:</p>
+
+  <ul>
+   <li><p><dfn data-x="concept-geometry-update-target-element">target element</dfn>, a weak
+   reference to an <code>Element</code></p></li>
+
+   <li><p><dfn data-x="concept-geometry-update-canvas-transform">canvas transform</dfn>, a
+   <code>DOMMatrix</code> or null</p></li>
+
+   <li><p><dfn data-x="concept-geometry-update-preserve-hit-test-order">preserve hit-test
+   order</dfn>, a boolean</p></li>
+
+   <li><p><dfn data-x="concept-geometry-update-clear">clear</dfn>, a boolean</p></li>
+  </ul>
+
   <div algorithm>
   <p>The <dfn constructor for="OffscreenCanvas"><code data-x="dom-OffscreenCanvas">new OffscreenCanvas(<var>width</var>,
   <var>height</var>)</code></dfn> constructor steps are:</p>
@@ -76820,10 +76844,25 @@ interface <dfn interface>OffscreenCanvas</dfn> : <span>EventTarget</span> {
    data-x="concept-element-image-originating-canvas">originating <code>canvas</code> element</span>
    is not <var>originatingCanvas</var>, then throw a <code>TypeError</code>.</p></li>
 
-   <li><p>If <var>element</var>'s <span>[[Detached]]</span> internal slot's value is true, then
-   throw an <span>"<code>InvalidStateError</code>"</span> <code>DOMException</code>.</p></li>
+   <li><p>Let <var>targetElement</var> be <var>snapshot</var>'s <span
+   data-x="concept-element-image-snapshot-originating-element">originating element</span>.</p></li>
 
-   <!-- TODO: actually do the thing -->
+   <li><p>Let <var>canvasTransform</var> be null.</p></li>
+
+   <li><p>If <var>options</var>["<code
+   data-x="dom-UpdateElementGeometryOptions-canvasTransform">canvasTransform</code>"] <span
+   data-x="map exists">exists</span>, then set <var>canvasTransform</var> to the result of <span
+   data-x="create a DOMMatrix from a dictionary">creating a <code>DOMMatrix</code> from the
+   dictionary</span> <var>options</var>["<code
+   data-x="dom-UpdateElementGeometryOptions-canvasTransform">canvasTransform</code>"].</p></li>
+
+   <li><p>Let <var>preserveHitTestOrder</var> be <var>options</var>["<code
+   data-x="dom-UpdateElementGeometryOptions-preserveHitTestOrder">preserveHitTestOrder</code>"].</p>
+   </li>
+
+   <li><p><span>Queue an element geometry update</span> for <span>this</span> with
+   <var>targetElement</var>, <var>canvasTransform</var>, and
+   <var>preserveHitTestOrder</var>.</p></li>
   </ol>
   </div>
 
@@ -76845,10 +76884,133 @@ interface <dfn interface>OffscreenCanvas</dfn> : <span>EventTarget</span> {
    data-x="concept-element-image-originating-canvas">originating <code>canvas</code> element</span>
    is not <var>originatingCanvas</var>, then throw a <code>TypeError</code>.</p></li>
 
-   <li><p>If <var>element</var>'s <span>[[Detached]]</span> internal slot's value is true, then
-   throw an <span>"<code>InvalidStateError</code>"</span> <code>DOMException</code>.</p></li>
+   <li><p>Let <var>targetElement</var> be <var>snapshot</var>'s <span
+   data-x="concept-element-image-snapshot-originating-element">originating element</span>.</p></li>
 
-   <!-- TODO: actually do the thing -->
+   <li><p><span>Queue an element geometry update</span> for <span>this</span> with
+   <var>targetElement</var>, with <var>clear</var> set to true.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>queue an element geometry update</dfn> for an <code>OffscreenCanvas</code>
+  <var>offscreenCanvas</var> with an <code>Element</code> <var>element</var>, an optional
+  <code>DOMMatrix</code> or null <var>canvasTransform</var> (default null), an optional boolean
+  <var>preserveHitTestOrder</var> (default false), and an optional boolean <var>clear</var> (default
+  false):</p>
+
+  <ol>
+   <li><p>Let <var>update</var> be a new <span data-x="concept-geometry-update">geometry
+   update</span> with <span data-x="concept-geometry-update-target-element">target element</span>
+   set to a weak reference to <var>element</var>, <span
+   data-x="concept-geometry-update-canvas-transform">canvas transform</span> set to
+   <var>canvasTransform</var>, <span
+   data-x="concept-geometry-update-preserve-hit-test-order">preserve hit-test order</span> set to
+   <var>preserveHitTestOrder</var>, and <span data-x="concept-geometry-update-clear">clear</span>
+   set to <var>clear</var>.</p></li>
+
+   <li><p><span data-x="list append">Append</span> <var>update</var> to <var>offscreenCanvas</var>'s
+   <span data-x="concept-offscreencanvas-pending-geometry-updates">pending geometry
+   updates</span>.</p></li>
+
+   <li>
+    <p>If <var>offscreenCanvas</var>'s <span
+    data-x="concept-offscreencanvas-pending-geometry-updates">pending geometry updates</span>'s
+    <span data-x="list size">size</span> is 1, then <span>queue a microtask</span> to run the
+    following steps:</p>
+
+    <ol>
+     <li><p>Let <var>updates</var> be a <span data-x="list clone">clone</span> of
+     <var>offscreenCanvas</var>'s <span
+     data-x="concept-offscreencanvas-pending-geometry-updates">pending geometry
+     updates</span>.</p></li>
+
+     <li><p><span data-x="list empty">Empty</span> <var>offscreenCanvas</var>'s <span
+     data-x="concept-offscreencanvas-pending-geometry-updates">pending geometry
+     updates</span>.</p></li>
+
+     <li><p>Let <var>originatingCanvas</var> be <var>offscreenCanvas</var>'s <span
+     data-x="offscreencanvas-placeholder">placeholder <code>canvas</code> element</span>.</p></li>
+
+     <li><p>If <var>originatingCanvas</var> is null, then return.</p></li>
+
+     <li><p>Let <var>global</var> be <var>offscreenCanvas</var>'s <span>relevant global
+     object</span>.</p></li>
+
+     <li>
+      <p>If <var>global</var> is a <code>Window</code> object, then <span>apply element geometry
+      updates</span> given <var>originatingCanvas</var> and <var>updates</var>.</p>
+     </li>
+
+     <li>
+      <p>Otherwise, <span>queue an element task</span> on the <span>DOM manipulation task
+      source</span> given <var>originatingCanvas</var> to <span>apply element geometry
+      updates</span> given <var>originatingCanvas</var> and <var>updates</var>.</p>
+     </li>
+    </ol>
+   </li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>apply element geometry updates</dfn> given a <code>canvas</code> element
+  <var>canvas</var> and a <span>list</span> of <span data-x="concept-geometry-update">geometry
+  updates</span> <var>updates</var>:</p>
+
+  <ol>
+   <li><p>Let <var>updatedElements</var> be an empty <span>list</span>.</p></li>
+
+   <li>
+    <p>For each <var>update</var> of <var>updates</var>:</p>
+
+    <ol>
+     <li><p>Let <var>targetElement</var> be <var>update</var>'s <span
+     data-x="concept-geometry-update-target-element">target element</span>.</p></li>
+
+     <li><p>If <var>targetElement</var> is null, or if <var>targetElement</var>'s nearest
+     <code>canvas</code> ancestor in the <span>flat tree</span> is not <var>canvas</var>, then
+     <span>continue</span>.</p></li>
+
+     <li>
+      <p>If <var>update</var>'s <span data-x="concept-geometry-update-clear">clear</span> is true:</p>
+
+      <ol>
+       <li><p><span data-x="list remove">Remove</span> <var>targetElement</var> from
+       <var>canvas</var>'s <span data-x="concept-canvas-list-of-drawn-elements">list of drawn
+       elements</span>.</p></li>
+
+       <li><p>Set <var>targetElement</var>'s <span data-x="concept-element-canvas-transform">canvas
+       transform</span> to the identity matrix.</p></li>
+      </ol>
+     </li>
+
+     <li>
+      <p>Otherwise:</p>
+
+      <ol>
+       <li><p>If <var>update</var>'s <span data-x="concept-geometry-update-canvas-transform">canvas
+       transform</span> is not null, then set <var>targetElement</var>'s <span
+       data-x="concept-element-canvas-transform">canvas transform</span> to <var>update</var>'s
+       <span data-x="concept-geometry-update-canvas-transform">canvas transform</span>.</p></li>
+
+       <li><p>If <var>update</var>'s <span
+       data-x="concept-geometry-update-preserve-hit-test-order">preserve hit-test order</span> is
+       false, then <span>update the list of drawn elements</span> for <var>canvas</var> with
+       <var>targetElement</var>.</p></li>
+      </ol>
+     </li>
+
+     <li><p>If <var>updatedElements</var> does not <span data-x="list contains">contain</span>
+     <var>targetElement</var>, then <span data-x="list append">append</span> <var>targetElement</var>
+     to <var>updatedElements</var>.</p></li>
+    </ol>
+   </li>
+
+   <li><p><span data-x="concept-event-fire">Fire an event</span> named <code
+   data-x="event-elementgeometryupdate">elementgeometryupdate</code> at <var>canvas</var>, using
+   <code>ElementGeometryUpdateEvent</code>, with the <code
+   data-x="dom-ElementGeometryUpdateEvent-elements">elements</code> attribute initialized to the
+   result of <span>creating a frozen array</span> given <var>updatedElements</var>.</p></li>
   </ol>
   </div>
 
