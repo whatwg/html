@@ -79183,13 +79183,14 @@ customElements.define("x-foo", class extends HTMLElement {
 
   <p>All <span>HTML elements</span> may have the <code
   data-x="attr-scopedcustomelementregistry">scopedcustomelementregistry</code> content attribute
-  set. It is a <span>boolean attribute</span>. When the <span>HTML parser</span> runs <span>create an
-  element for the token</span> for an <span data-x="HTML elements">HTML element</span> with the
-  attribute, it sets that element's <span data-x="element-custom-element-registry">custom element
-  registry</span> to null and its <span
+  set. It is a <span>boolean attribute</span>. When an <span data-x="HTML elements">HTML
+  element</span> with the attribute is created by an <span>HTML parser</span> or <span>XML
+  parser</span>, its <span data-x="element-custom-element-registry">custom element registry</span>
+  is set to null and its <span
   data-x="element-keep-custom-element-registry-null">keep custom element registry null</span> to
-  true. Descendant elements created by the parser inherit the null custom element registry. A
-  scoped <code>CustomElementRegistry</code> can subsequently be associated with the subtree using
+  true as part of <span data-x="create an element for the token">creating an element for a
+  token</span>. Descendant elements created by the parser inherit the null custom element registry.
+  A scoped <code>CustomElementRegistry</code> can subsequently be associated with the subtree using
   <code data-x="dom-CustomElementRegistry-initialize">initialize()</code>.</p>
 
   <p>Adding, removing, or changing the <code
@@ -126153,21 +126154,50 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   <div w-nodev>
 
   <div algorithm>
+  <p>To <dfn>get a custom element registry for serializing a node's children</dfn>, given a
+  <code>Node</code> <var>node</var>:</p>
+
+  <ol>
+   <li><p>If <var>node</var> is a <code>template</code> element, then set <var>node</var> to
+   <var>node</var>'s <span>template contents</span>.</p></li>
+
+   <li><p>Return the result of <span data-x="look up a custom element registry">looking up a custom
+   element registry</span> given <var>node</var>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
   <p><code>Element</code>'s <dfn method for="Element"><code
-  data-x="dom-Element-getHTML">getHTML(<var>options</var>)</code></dfn> method steps
-  are to return the result of <span>HTML fragment serialization algorithm</span> with
-  <span>this</span>, <var>options</var>["<code
-  data-x="dom-GetHTMLOptions-serializableShadowRoots">serializableShadowRoots</code>"],
-  and <var>options</var>["<code data-x="dom-GetHTMLOptions-shadowRoots">shadowRoots</code>"].</p>
+  data-x="dom-Element-getHTML">getHTML(<var>options</var>)</code></dfn> method steps are:</p>
+
+  <ol>
+   <li><p>Let <var>registry</var> be the result of <span
+   data-x="get a custom element registry for serializing a node's children">getting a custom
+   element registry for serializing a node's children</span> given <span>this</span>.</p></li>
+
+   <li><p>Return the result of the <span>HTML fragment serialization algorithm</span> with
+   <span>this</span>, <var>options</var>["<code
+   data-x="dom-GetHTMLOptions-serializableShadowRoots">serializableShadowRoots</code>"],
+   <var>options</var>["<code data-x="dom-GetHTMLOptions-shadowRoots">shadowRoots</code>"], and
+   <var>registry</var>.</p></li>
+  </ol>
   </div>
 
   <div algorithm>
   <p><code>ShadowRoot</code>'s <dfn method for="ShadowRoot"><code
-  data-x="dom-ShadowRoot-getHTML">getHTML(<var>options</var>)</code></dfn> method steps
-  are to return the result of <span>HTML fragment serialization algorithm</span> with
-  <span>this</span>, <var>options</var>["<code
-  data-x="dom-GetHTMLOptions-serializableShadowRoots">serializableShadowRoots</code>"],
-  and <var>options</var>["<code data-x="dom-GetHTMLOptions-shadowRoots">shadowRoots</code>"].</p>
+  data-x="dom-ShadowRoot-getHTML">getHTML(<var>options</var>)</code></dfn> method steps are:</p>
+
+  <ol>
+   <li><p>Let <var>registry</var> be the result of <span
+   data-x="get a custom element registry for serializing a node's children">getting a custom
+   element registry for serializing a node's children</span> given <span>this</span>.</p></li>
+
+   <li><p>Return the result of the <span>HTML fragment serialization algorithm</span> with
+   <span>this</span>, <var>options</var>["<code
+   data-x="dom-GetHTMLOptions-serializableShadowRoots">serializableShadowRoots</code>"],
+   <var>options</var>["<code data-x="dom-GetHTMLOptions-shadowRoots">shadowRoots</code>"], and
+   <var>registry</var>.</p></li>
+  </ol>
   </div>
 
   </div>
@@ -126213,15 +126243,26 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
 
   <div algorithm>
   <p>The <dfn export>fragment serializing algorithm steps</dfn>, given an <code>Element</code>,
-  <code>Document</code>, or <code>DocumentFragment</code> <var>node</var> and a boolean <var>require
-  well-formed</var>, are:</p>
+  <code>Document</code>, or <code>DocumentFragment</code> <var>node</var>, a boolean <var>require
+  well-formed</var>, and an optional null or a <code>CustomElementRegistry</code> object
+  <var>registry</var>, are:</p>
 
   <ol>
     <li><p>Let <var>context document</var> be <var>node</var>'s <span>node document</span>.</p></li>
 
-    <li><p>If <var>context document</var> is an <span data-x="HTML documents">HTML document</span>,
-    return the result of <span>HTML fragment serialization algorithm</span> with <var>node</var>,
-    false, and « ».</p></li>
+    <li>
+     <p>If <var>context document</var> is an <span data-x="HTML documents">HTML document</span>:</p>
+
+     <ol>
+      <li><p>If <var>registry</var> was not given, then set <var>registry</var> to the result of
+      <span data-x="get a custom element registry for serializing a node's children">getting a
+      custom element registry for serializing a node's children</span> given
+      <var>node</var>.</p></li>
+
+      <li><p>Return the result of the <span>HTML fragment serialization algorithm</span> with
+      <var>node</var>, false, « », and <var>registry</var>.</p></li>
+     </ol>
+    </li>
 
     <li><p>Return the <span data-x="xml-serialization">XML serialization</span> of <var>node</var>
     given <var>require well-formed</var>.</p></li>
@@ -126250,14 +126291,30 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
 
   <div algorithm>
   <p><code>Element</code>'s <dfn attribute for="Element"><code
-  data-x="dom-Element-innerHTML">innerHTML</code></dfn> getter steps are to return the result of
-  running <span>fragment serializing algorithm steps</span> with <span>this</span> and true.</p>
+  data-x="dom-Element-innerHTML">innerHTML</code></dfn> getter steps are:</p>
+
+  <ol>
+   <li><p>Let <var>registry</var> be the result of <span
+   data-x="get a custom element registry for serializing a node's children">getting a custom
+   element registry for serializing a node's children</span> given <span>this</span>.</p></li>
+
+   <li><p>Return the result of running <span>fragment serializing algorithm steps</span> with
+   <span>this</span>, true, and <var>registry</var>.</p></li>
+  </ol>
   </div>
 
   <div algorithm>
   <p><code>ShadowRoot</code>'s <dfn attribute for="ShadowRoot"><code
-  data-x="dom-ShadowRoot-innerHTML">innerHTML</code></dfn> getter steps are to return the result of
-  running <span>fragment serializing algorithm steps</span> with <span>this</span> and true.</p>
+  data-x="dom-ShadowRoot-innerHTML">innerHTML</code></dfn> getter steps are:</p>
+
+  <ol>
+   <li><p>Let <var>registry</var> be the result of <span
+   data-x="get a custom element registry for serializing a node's children">getting a custom
+   element registry for serializing a node's children</span> given <span>this</span>.</p></li>
+
+   <li><p>Return the result of running <span>fragment serializing algorithm steps</span> with
+   <span>this</span>, true, and <var>registry</var>.</p></li>
+  </ol>
   </div>
 
   <div algorithm>
@@ -126353,17 +126410,16 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <li><p>Let <var>registryNode</var> be <span>this</span>'s <span>parent</span>, if it is non-null;
    otherwise <span>this</span>'s <span>node document</span>.</p></li>
 
-   <li><p>Let <var>registry</var> be the result of
-   <span data-x="look up a custom element registry">looking up a custom element registry</span>
-   given <var>registryNode</var>.</p></li>
+   <li><p>Let <var>registry</var> be the result of <span
+   data-x="look up a custom element registry">looking up a custom element registry</span> given
+   <var>registryNode</var>.</p></li>
 
    <li><p>Let <var>element</var> be a fictional <code>Element</code> whose only child is
-   <span>this</span>, whose <span>node document</span> is <span>this</span>'s <span>node
-   document</span>, and whose <span data-x="element-custom-element-registry">custom element
-   registry</span> is <var>registry</var>.</p></li>
+   <span>this</span> and whose <span>node document</span> is <span>this</span>'s <span>node
+   document</span>.</p></li>
 
    <li><p>Return the result of running <span>fragment serializing algorithm steps</span> with
-   <var>element</var> and true.</p></li>
+   <var>element</var>, true, and <var>registry</var>.</p></li>
   </ol>
   </div>
 
@@ -149750,8 +149806,9 @@ document.body.appendChild(text);
   <p>The following steps form the <!--en-GB--><dfn id="html-fragment-serialisation-algorithm"
   export>HTML fragment serialization algorithm</dfn>. The algorithm takes as input a DOM
   <code>Element</code>, <code>Document</code>, or <code>DocumentFragment</code> referred to as
-  <var>the node</var>, a boolean <var>serializableShadowRoots</var>, and a
-  <code data-x="">sequence&lt;ShadowRoot></code> <var>shadowRoots</var>, and returns a string.</p>
+  <var>the node</var>, a boolean <var>serializableShadowRoots</var>, a <code
+  data-x="">sequence&lt;ShadowRoot></code> <var>shadowRoots</var>, and an optional null or a
+  <code>CustomElementRegistry</code> object <var>registry</var>, and returns a string.</p>
 
   <p class="note">This algorithm serializes the <em>children</em> of the node being serialized, not
   the node itself.</p>
@@ -149764,6 +149821,10 @@ document.body.appendChild(text);
 
    <li><p>If <var>the node</var> is a <code>template</code> element, then let <var>the node</var> instead be the <code>template</code> element's <span>template
    contents</span> (a <code>DocumentFragment</code> node).</p></li>
+
+   <li><p>If <var>registry</var> was not given, then set <var>registry</var> to the result of <span
+   data-x="get a custom element registry for serializing a node's children">getting a custom
+   element registry for serializing a node's children</span> given <var>the node</var>.</p></li>
 
    <li>
     <p>If <var>current node</var> is a <span>shadow host</span>:</p>
@@ -149832,9 +149893,13 @@ document.body.appendChild(text);
 
        <li><p>Append U+003E (&gt;).</p></li>
 
-       <li><p>Append the value of running the <span>HTML fragment serialization algorithm</span> with
-       <var>shadow</var>, <var>serializableShadowRoots</var>, and <var>shadowRoots</var> (thus recursing
-       into this algorithm for that element).</p></li>
+       <li><p>Let <var>shadowChildRegistry</var> be the result of <span
+       data-x="get a custom element registry for serializing a node's children">getting a custom
+       element registry for serializing a node's children</span> given <var>shadow</var>.</p></li>
+
+       <li><p>Append the value of running the <span>HTML fragment serialization algorithm</span>
+       with <var>shadow</var>, <var>serializableShadowRoots</var>, <var>shadowRoots</var>, and
+       <var>shadowChildRegistry</var> (thus recursing into this algorithm for that element).</p></li>
 
        <li><p>Append "<code data-x="">&lt;/template&gt;</code>".</p></li>
       </ol>
@@ -149883,17 +149948,13 @@ document.body.appendChild(text);
          data-x="attr-scopedcustomelementregistry">scopedcustomelementregistry</code> attribute in
          no namespace in its attribute list, then return false.</p></li>
 
-         <li><p>Let <var>inheritedRegistry</var> be the result of
-         <span data-x="look up a custom element registry">looking up a custom element
-         registry</span> given <var>current node</var>'s <span>parent</span>.</p></li>
-
-         <li><p>Let <var>currentRegistry</var> be <var>current node</var>'s
+         <li><p>Let <var>elementRegistry</var> be <var>current node</var>'s
          <span data-x="element-custom-element-registry">custom element registry</span>.</p></li>
 
-         <li><p>If <var>currentRegistry</var> is <var>inheritedRegistry</var>, then return
+         <li><p>If <var>elementRegistry</var> is <var>registry</var>, then return
          false.</p></li>
 
-         <li><p>If <var>currentRegistry</var> <span>is a global custom element registry</span>, then
+         <li><p>If <var>elementRegistry</var> <span>is a global custom element registry</span>, then
          return false.</p></li>
 
          <li><p>Return true.</p></li>
@@ -149952,10 +150013,15 @@ document.body.appendChild(text);
         <p>If <var>current node</var> <span>serializes as void</span>, then <span>continue</span> on to the next
         child node at this point.</p>
 
+        <p>Let <var>elementChildRegistry</var> be the result of <span
+        data-x="get a custom element registry for serializing a node's children">getting a custom
+        element registry for serializing a node's children</span> given
+        <var>current node</var>.</p>
+
         <p>Append the value of running the <span>HTML fragment serialization algorithm</span> with
-        <var>current node</var>, <var>serializableShadowRoots</var>, and <var>shadowRoots</var> (thus
-        recursing into this algorithm for that node), followed by "<code data-x="">&lt;/</code>",
-        <var>tagname</var>, and U+003E (&gt;).</p>
+        <var>current node</var>, <var>serializableShadowRoots</var>, <var>shadowRoots</var>, and
+        <var>elementChildRegistry</var> (thus recursing into this algorithm for that node), followed
+        by "<code data-x="">&lt;/</code>", <var>tagname</var>, and U+003E (&gt;).</p>
        </dd>
 
        <dt>If <var>current node</var> is a <code>Text</code> node</dt>
@@ -150149,16 +150215,20 @@ console.assert(container.firstChild instanceof SuperP);
     registry boundary reparses with a null custom element registry, which can then be initialized
     with a scoped registry.</p></li>
 
-    <li><p>An unflagged null registry boundary reparses with its <span
-    data-x="element-keep-custom-element-registry-null">keep custom element registry null</span> set
-    to true, so its behavior during later adoption can differ.</p></li>
+    <li><p>If an element's custom element registry is null and its <span
+    data-x="element-keep-custom-element-registry-null">keep custom element registry null</span> is
+    false, serializing and reparsing the element can set its <span
+    data-x="element-keep-custom-element-registry-null">keep custom element registry null</span> to
+    true. Its behavior during later adoption can therefore differ.</p></li>
 
     <li><p>A global registry boundary inside a null or scoped registry subtree cannot be represented
     by this attribute and is not serialized. On reparsing, that element instead inherits its
     surrounding registry.</p></li>
 
     <li><p>Redundant attributes are not generated within a subtree that uses the same registry, so
-    the keep-null state of individual descendants is not necessarily preserved.</p></li>
+    whether individual descendants have their <span
+    data-x="element-keep-custom-element-registry-null">keep custom element registry null</span> set
+    to true is not necessarily preserved.</p></li>
 
     <li><p>A registry boundary on an element outside the <span>HTML namespace</span> is not
     serialized, because the <code
