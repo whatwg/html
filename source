@@ -126678,6 +126678,7 @@ interface <dfn interface>Sanitizer</dfn> {
   boolean <span data-x="dom-Sanitizer-removeAttribute">removeAttribute</span>(<span>SanitizerAttribute</span> attribute);
   boolean <span data-x="dom-Sanitizer-setComments">setComments</span>(boolean allow);
   boolean <span data-x="dom-Sanitizer-setDataAttributes">setDataAttributes</span>(boolean allow);
+  boolean <span data-x="dom-Sanitizer-setJavascriptURLs">setJavascriptURLs</span>(boolean allow);
 
   // Remove markup that executes script.
   boolean <span data-x="dom-Sanitizer-removeUnsafe">removeUnsafe</span>();
@@ -126716,6 +126717,10 @@ interface <dfn interface>Sanitizer</dfn> {
    <dt><code data-x=""><var>sanitizer</var>.<span data-x="dom-Sanitizer-setDataAttributes">setDataAttributes</span>(<var>allow</var>)</code></dt>
    <dd><p>Sets whether the sanitizer preserves custom data attributes (e.g., <code
    data-x="attr-data-*">data-*</code>).</p></dd>
+
+   <dt><code data-x=""><var>sanitizer</var>.<span data-x="dom-Sanitizer-setJavascriptURLs">setJavascriptURLs</span>(<var>allow</var>)</code></dt>
+   <dd><p>Sets whether the sanitizer preserves attributes containing <code data-x="javascript
+   protocol">javascript:</code> URLs.</p></dd>
 
    <dt><code data-x=""><var>sanitizer</var>.<span data-x="dom-Sanitizer-removeUnsafe">removeUnsafe</span>()</code></dt>
    <dd><p>Modifies the configuration to automatically remove elements and attributes that are
@@ -126874,6 +126879,10 @@ interface <dfn interface>Sanitizer</dfn> {
    data-x="dom-SanitizerConfig-attributes">attributes</code>"] <span data-x="map
    exists">exists</span> and <var>configuration</var>["<code
    data-x="dom-SanitizerConfig-dataAttributes">dataAttributes</code>"] does not <span data-x="map
+   exists">exist</span>, then set it to <var>allowCommentsPIsAndDataAttributes</var>.</p></li>
+
+   <li><p>If <var>configuration</var>["<code
+   data-x="dom-SanitizerConfig-javascriptURLs">javascriptURLs</code>"] does not <span data-x="map
    exists">exist</span>, then set it to <var>allowCommentsPIsAndDataAttributes</var>.</p></li>
   </ol>
   </div>
@@ -127519,6 +127528,28 @@ interface <dfn interface>Sanitizer</dfn> {
 
   <div algorithm>
   <p>The <dfn method for="Sanitizer"><code
+  data-x="dom-Sanitizer-setJavascriptURLs">setJavascriptURLs(<var>allow</var>)</code></dfn> method
+  steps are:</p>
+
+  <ol>
+   <li><p>Let <var>configuration</var> be <span>this</span>'s <span>configuration</span>.</p></li>
+
+   <li><p><span>Assert</span>: <var>configuration</var> is <span
+   data-x="dom-SanitizerConfig-valid">valid</span>.</p></li>
+
+   <li><p>If <var>configuration</var>["<code
+   data-x="dom-SanitizerConfig-javascriptURLs">javascriptURLs</code>"] <span data-x="map
+   exists">exists</span> and is equal to <var>allow</var>, then return false.</p></li>
+
+   <li><p>Set <var>configuration</var>["<code
+   data-x="dom-SanitizerConfig-javascriptURLs">javascriptURLs</code>"] to <var>allow</var>.</p></li>
+
+   <li><p>Return true.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn method for="Sanitizer"><code
   data-x="dom-Sanitizer-allowProcessingInstruction">allowProcessingInstruction(<var>pi</var>)</code></dfn>
   method steps are:</p>
 
@@ -127676,6 +127707,7 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
 
   boolean <dfn dict-member for="SanitizerConfig" data-x="dom-SanitizerConfig-comments">comments</dfn>;
   boolean <dfn dict-member for="SanitizerConfig" data-x="dom-SanitizerConfig-dataAttributes">dataAttributes</dfn>;
+  boolean <dfn dict-member for="SanitizerConfig" data-x="dom-SanitizerConfig-javascriptURLs">javascriptURLs</dfn>;
 };</code></pre>
 
   <p><code>SanitizerElementNamespace</code>, <code>SanitizerAttributeNamespace</code>,
@@ -128033,11 +128065,11 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
     <ol>
      <li><p>Let <var>sanitizer</var> be a new <code>Sanitizer</code> object.</p></li>
 
-     <li><p>Let <var>allowCommentsAndDataAttributes</var> be true if <var>safe</var> is false; false
-     otherwise.</p></li>
+     <li><p>Let <var>allowCommentsPIsAndDataAttributes</var> be true if <var>safe</var> is false;
+     false otherwise.</p></li>
 
      <li><p><span data-x="configure a sanitizer">Configure</span> <var>sanitizer</var> given
-     <var>sanitizerSpec</var> and <var>allowCommentsAndDataAttributes</var>.</p></li>
+     <var>sanitizerSpec</var> and <var>allowCommentsPIsAndDataAttributes</var>.</p></li>
 
      <li><p>Set <var>sanitizerSpec</var> to <var>sanitizer</var>.</p></li>
     </ol>
@@ -128061,15 +128093,14 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
    <li><p>If <var>safe</var> is true, then <span>remove unsafe</span> from
    <var>configuration</var>.</p></li>
 
-   <li><p>Run the <span>inner sanitize steps</span> given <var>node</var>, <var>configuration</var>,
-   and <var>safe</var>.</p></li>
+   <li><p>Run the <span>inner sanitize steps</span> given <var>node</var> and
+   <var>configuration</var>.</p></li>
   </ol>
   </div>
 
   <div algorithm>
-  <p>To perform the <dfn>inner sanitize steps</dfn> given a <code>Node</code> <var>node</var>, a
-  <span>SanitizerConfig</span> <var>configuration</var>, and a boolean
-  <var>handleJavascriptNavigationUrls</var>:</p>
+  <p>To perform the <dfn>inner sanitize steps</dfn> given a <code>Node</code> <var>node</var> and a
+  <span>SanitizerConfig</span> <var>configuration</var>:</p>
 
   <ol>
    <li>
@@ -128146,8 +128177,8 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
         <ol>
          <li><p><span>Assert</span>: <var>node</var> is not a <code>Document</code>.</p></li>
 
-         <li><p>Run the <span>inner sanitize steps</span> given <var>child</var>,
-         <var>configuration</var>, and <var>handleJavascriptNavigationUrls</var>.</p></li>
+         <li><p>Run the <span>inner sanitize steps</span> given <var>child</var> and
+         <var>configuration</var>.</p></li>
 
          <li><p>Let <var>fragment</var> be the result of <span data-x="create a document
          fragment">creating a document fragment</span> given <var>node</var>'s
@@ -128197,12 +128228,11 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
        <var>elementName</var>["<code
        data-x="dom-SanitizerElementNamespace-namespace">namespace</code>"] is the <span>HTML
        namespace</span>, then run the <span>inner sanitize steps</span> given <var>child</var>'s
-       <span>template contents</span>, <var>configuration</var>, and
-       <var>handleJavascriptNavigationUrls</var>.</p></li>
+       <span>template contents</span> and <var>configuration</var>.</p></li>
 
        <li><p>If <var>child</var> is a <span>shadow host</span>, then run the <span>inner sanitize
-       steps</span> given <var>child</var>'s <span>shadow root</span>, <var>configuration</var>, and
-       <var>handleJavascriptNavigationUrls</var>.</p></li>
+       steps</span> given <var>child</var>'s <span>shadow root</span> and
+       <var>configuration</var>.</p></li>
 
        <li><p>Let <var>elementWithLocalAttributes</var> be «[ ]».</p></li>
 
@@ -128272,7 +128302,8 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
          </li>
 
          <li>
-          <p>If <var>handleJavascriptNavigationUrls</var> is true:</p>
+          <p>If <var>configuration</var>["<code
+          data-x="dom-SanitizerConfig-javascriptURLs">javascriptURLs</code>"] is not true:</p>
 
           <ol>
            <li><p>If the pair (<var>elementName</var>, <var>attrName</var>) matches an entry in the
@@ -128281,11 +128312,11 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
            data-x="concept-element-attributes-remove">remove</span> <var>attribute</var>.</p></li>
 
            <li><p>If <var>child</var>'s <span data-x="concept-element-namespace">namespace</span> is
-           the <span>MathML Namespace</span>, <var>attribute</var>'s <span
+           the <span>MathML namespace</span>, <var>attribute</var>'s <span
            data-x="concept-attribute-local-name">local name</span> is "<code data-x="">href</code>",
            <var>attribute</var>'s <span data-x="concept-attribute-namespace">namespace</span> is
            null or the <span>XLink namespace</span>, and <var>attribute</var> <span>contains a
-           javascript: URL</span>, then <span
+           <code>javascript:</code> URL</span>, then <span
            data-x="concept-element-attributes-remove">remove</span> <var>attribute</var>.</p></li>
 
            <li><p>If the <span>built-in animating URL attributes list</span> <span data-x="list
@@ -128298,8 +128329,8 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
         </ol>
        </li>
 
-       <li><p>Run the <span>inner sanitize steps</span> given <var>child</var>,
-       <var>configuration</var>, and <var>handleJavascriptNavigationUrls</var>.</p></li>
+       <li><p>Run the <span>inner sanitize steps</span> given <var>child</var> and
+       <var>configuration</var>.</p></li>
       </ol>
      </li>
     </ol>
@@ -128533,6 +128564,18 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
      <li><p>If <span data-x="remove an attribute from sanitizer config">removing</span>
      <var>attribute</var> from <var>configuration</var> is true, then set <var>result</var> to
      true.</p></li>
+    </ol>
+   </li>
+
+   <li>
+    <p>If <var>configuration</var>["<code
+    data-x="dom-SanitizerConfig-javascriptURLs">javascriptURLs</code>"] is true:</p>
+
+    <ol>
+     <li><p>Set <var>result</var> to true.</p></li>
+
+     <li><p>Set <var>configuration</var>["<code
+     data-x="dom-SanitizerConfig-javascriptURLs">javascriptURLs</code>"] to false.</p></li>
     </ol>
    </li>
 
@@ -129008,6 +129051,9 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
    <dd>false</dd>
 
    <dt><code data-x="dom-SanitizerConfig-dataAttributes">dataAttributes</code></dt>
+   <dd>false</dd>
+
+   <dt><code data-x="dom-SanitizerConfig-javascriptURLs">javascriptURLs</code></dt>
    <dd>false</dd>
 
    <dt><code data-x="dom-SanitizerConfig-elements">elements</code></dt>
