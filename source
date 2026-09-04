@@ -2710,8 +2710,8 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
        <li><dfn data-x="concept-response-body-info" data-x-href="https://fetch.spec.whatwg.org/#concept-response-body-info">body info</dfn></li>
        <li><dfn data-x="concept-internal-response" data-x-href="https://fetch.spec.whatwg.org/#concept-internal-response">internal response</dfn></li>
        <li><dfn data-x="concept-response-location-url" data-x-href="https://fetch.spec.whatwg.org/#concept-response-location-url">location URL</dfn></li>
-       <li><dfn data-x="concept-response-timing-info" data-x-href="https://fetch.spec.whatwg.org/#concept-response-timing-info">timing info</dfn></li>
        <li><dfn data-x="concept-response-service-worker-timing-info" data-x-href="https://fetch.spec.whatwg.org/#response-service-worker-timing-info">service worker timing info</dfn></li>
+       <li><dfn data-x="concept-response-cache-state" data-x-href="https://fetch.spec.whatwg.org/#concept-response-cache-state">cache state</dfn></li>
        <li><dfn data-x="concept-response-redirect-taint" data-x-href="https://fetch.spec.whatwg.org/#response-redirect-taint">redirect taint</dfn></li>
        <li><dfn data-x="concept-response-timing-allow-passed" data-x-href="https://fetch.spec.whatwg.org/#concept-response-timing-allow-passed">timing allow passed</dfn></li>
        <li>
@@ -113209,6 +113209,9 @@ location.href = '#foo';</code></pre>
   data-x="dom-DOMImplementation-createHTMLDocument">document.implementation.createHTMLDocument()</code>.</p>
 
   <ol>
+   <li><p>Let <var>unsafeNavigationStartTime</var> be the <span>unsafe shared current
+   time</span>.</p></li>
+
    <li>
     <p>Let <var>browsingContext</var> be the result of <span
     data-x="obtain-browsing-context-navigation">obtaining a browsing context to use for a
@@ -113260,6 +113263,20 @@ location.href = '#foo';</code></pre>
    is non-null, then set <var>creationURL</var> to <var>navigationParams</var>'s <span
    data-x="navigation-params-request">request</span>'s <span
    data-x="concept-request-current-url">current URL</span>.</p></li>
+
+   <li><p>Let <var>fetchTimingInfo</var> be null.</p></li>
+
+   <li><p>If <var>navigationParams</var>'s <span data-x="navigation-params-fetch-controller">fetch
+   controller</span> is not null, then set <var>fetchTimingInfo</var> to the result of <span
+   data-x="extract full timing info">extracting the full timing info</span> from
+   <var>navigationParams</var>'s <span data-x="navigation-params-fetch-controller">fetch
+   controller</span>.</p></li>
+
+   <li><p>Let <var>loadTimingInfo</var> be a new <span>document load timing info</span>.</p></li>
+
+   <li><p>If <var>fetchTimingInfo</var> is not null, then set <var>loadTimingInfo</var>'s
+   <span>navigation start time</span> to <var>fetchTimingInfo</var>'s <span
+   data-x="fetch-timing-info-start-time">start time</span>.</p></li>
 
    <li><p>Let <var>window</var> be null.</p></li>
 
@@ -113320,10 +113337,13 @@ location.href = '#foo';</code></pre>
      data-x="navigation-params-origin">origin</span>.</p></li>
 
      <li>
-      <p>If <var>navigable</var>'s <span data-x="nav-container">container</span> is not null:</p>
+      <p>If <var>navigationParams</var>'s <span
+      data-x="navigation-params-navigable">navigable</span>'s <span
+      data-x="nav-container">container</span> is not null:</p>
 
       <ol>
-       <li><p>Let <var>parentEnvironment</var> be <var>navigable</var>'s <span
+       <li><p>Let <var>parentEnvironment</var> be <var>navigationParams</var>'s <span
+       data-x="navigation-params-navigable">navigable</span>'s <span
        data-x="nav-container">container</span>'s <span>relevant settings object</span>.</p></li>
 
        <li><p>Set <var>topLevelCreationURL</var> to <var>parentEnvironment</var>'s <span>top-level
@@ -113343,12 +113363,6 @@ location.href = '#foo';</code></pre>
     <p class="note">This is the usual case, where the new <code>Document</code> we're about to
     create gets a new <code>Window</code> to go along with it.</p>
    </li>
-
-   <li><p>Let <var>loadTimingInfo</var> be a new <span>document load timing info</span> with its
-   <span>navigation start time</span> set to <var>navigationParams</var>'s <span
-   data-x="navigation-params-response">response</span>'s <span
-   data-x="concept-response-timing-info">timing info</span>'s <span
-   data-x="fetch-timing-info-start-time">start time</span>.</p></li>
 
    <li>
     <p>Let <var>document</var> be a new <code>Document</code>, with</p>
@@ -113414,6 +113428,21 @@ location.href = '#foo';</code></pre>
    <li><p>Set <var>window</var>'s <span data-x="concept-document-window">associated
    <code>Document</code></span> to <var>document</var>.</p></li>
 
+   <li>
+    <p>If <var>fetchTimingInfo</var> is null, then set <var>loadTimingInfo</var>'s <span>navigation
+    start time</span> to the result of <span data-x="coarsen time">coarsening</span>
+    <var>unsafeNavigationStartTime</var> given <var>window</var>'s <span>relevant settings
+    object</span>'s <span
+    data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin isolated
+    capability</span>.</p>
+
+    <p class="note">Because <var>document</var> is not yet <span>fully active</span> at this point,
+    <var>window</var>'s <span>relevant settings object</span>'s <span
+    data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin isolated
+    capability</span> is always false here, matching the behavior for initial
+    <code>about:blank</code> documents.</p>
+   </li>
+
    <li><p>Set <var>document</var>'s <span
    data-x="concept-document-internal-ancestor-origin-objects-list">internal ancestor origin objects
    list</span> to the result of running the <span>internal ancestor origin objects list creation
@@ -113452,14 +113481,9 @@ location.href = '#foo';</code></pre>
    </li>
 
    <li>
-    <p>If <var>navigationParams</var>'s <span data-x="navigation-params-fetch-controller">fetch
-    controller</span> is not null:</p>
+    <p>If <var>fetchTimingInfo</var> is not null:</p>
 
     <ol>
-     <li><p>Let <var>fullTimingInfo</var> be the result of <span data-x="extract full timing
-     info">extracting the full timing info</span> from <var>navigationParams</var>'s <span
-     data-x="navigation-params-fetch-controller">fetch controller</span>.</p></li>
-
      <li><p>Let <var>redirectCount</var> be 0.</p></li>
 
      <li>
@@ -113488,21 +113512,36 @@ location.href = '#foo';</code></pre>
      </li>
 
      <li><p><span>Create the navigation timing entry</span> for <var>document</var>, given
-     <var>fullTimingInfo</var>, <var>redirectCount</var>, <var>navigationTimingType</var>,
-     <var>navigationParams</var>'s <span data-x="navigation-params-response">response</span>'s
-     <span data-x="concept-response-service-worker-timing-info">service worker timing info</span>,
-     and <var>navigationParams</var>'s <span data-x="navigation-params-response">response</span>'s
-     <span data-x="concept-response-body-info">body info</span>.</p></li>
+     <var>fetchTimingInfo</var>, <var>redirectCount</var>, <var>navigationParams</var>'s <span
+     data-x="navigation-params-nav-timing-type">navigation timing type</span>,
+     <var>navigationParams</var>'s <span data-x="navigation-params-response">response</span>'s <span
+     data-x="concept-response-service-worker-timing-info">service worker timing info</span>,
+     <var>navigationParams</var>'s <span data-x="navigation-params-response">response</span>'s <span
+     data-x="concept-response-cache-state">cache state</span>, 0, and <var>navigationParams</var>'s
+     <span data-x="navigation-params-response">response</span>'s <span
+     data-x="concept-response-body-info">body info</span>.</p></li>
     </ol>
    </li>
 
-   <li><p><span>Create the navigation timing entry</span> for <var>document</var>, with
-   <var>navigationParams</var>'s <span data-x="navigation-params-response">response</span>'s <span
-   data-x="concept-response-timing-info">timing info</span>, <var>redirectCount</var>,
-   <var>navigationParams</var>'s <span data-x="navigation-params-nav-timing-type">navigation timing
-   type</span>, and <var>navigationParams</var>'s <span
-   data-x="navigation-params-response">response</span>'s <span
-   data-x="concept-response-service-worker-timing-info">service worker timing info</span>.</p></li>
+   <li>
+    <p>Otherwise:</p>
+
+    <ol>
+     <li><p>Let <var>fallbackTimingInfo</var> be a new <span data-x="fetch-timing-info">fetch timing
+     info</span> whose <span data-x="fetch-timing-info-start-time">start time</span> is
+     <var>loadTimingInfo</var>'s <span>navigation start time</span>.</p></li>
+
+     <li><p><span>Create the navigation timing entry</span> for <var>document</var>, given
+     <var>fallbackTimingInfo</var>, 0, <var>navigationParams</var>'s <span
+     data-x="navigation-params-nav-timing-type">navigation timing type</span>,
+     <var>navigationParams</var>'s <span data-x="navigation-params-response">response</span>'s <span
+     data-x="concept-response-service-worker-timing-info">service worker timing info</span>,
+     <var>navigationParams</var>'s <span data-x="navigation-params-response">response</span>'s <span
+     data-x="concept-response-cache-state">cache state</span>, 0, and <var>navigationParams</var>'s
+     <span data-x="navigation-params-response">response</span>'s <span
+     data-x="concept-response-body-info">body info</span>.</p></li>
+    </ol>
+   </li>
 
    <li>
     <p>If <var>navigationParams</var>'s <span data-x="navigation-params-response">response</span>
