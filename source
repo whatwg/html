@@ -3449,6 +3449,8 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#valid-attribute-local-name">valid attribute local name</dfn></li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#valid-element-local-name">valid element local name</dfn></li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#is-a-global-custom-element-registry">is a global custom element registry</dfn></li>
+     <li><dfn data-x-href="https://dom.spec.whatwg.org/#get-text-content">get text content</dfn></li>
+     <li><dfn data-x-href="https://dom.spec.whatwg.org/#set-text-content">set text content</dfn></li>
     </ul>
 
     <p>The following features are defined in <cite>UI Events</cite>: <ref>UIEVENTS</ref></p>
@@ -5005,6 +5007,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li><dfn data-x="tt-trustedscript-data" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#trustedscript-data"><code>data</code></dfn></li>
      <li><dfn data-x="tt-trustedscripturl" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#trustedscripturl"><code>TrustedScriptURL</code></dfn></li>
      <li><dfn data-x="tt-getcompliantstring" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string">get trusted type compliant string</dfn></li>
+     <li><dfn data-x="tt-update-script-trustedness" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#update-script-trustedness-algorithm">update script trustedness</dfn></li>
     </ul>
    </dd>
 
@@ -67307,7 +67310,7 @@ interface <dfn interface>HTMLScriptElement</dfn> : <span>HTMLElement</span> {
   [<span>HTMLConstructor</span>] constructor();
 
   [<span>CEReactions</span>, <span data-x="xattr-Reflect">Reflect</span>] attribute DOMString <dfn attribute for="HTMLScriptElement" data-x="dom-script-type">type</dfn>;
-  [<span>CEReactions</span>, <span data-x="xattr-ReflectURL">ReflectURL</span>] attribute USVString <dfn attribute for="HTMLScriptElement" data-x="dom-script-src">src</dfn>;
+  [<span>CEReactions</span>] attribute (TrustedScriptURL or USVString) <span data-x="dom-script-src">src</span>;
   [<span>CEReactions</span>, <span data-x="xattr-Reflect">Reflect</span>] attribute boolean <dfn attribute for="HTMLScriptElement" data-x="dom-script-noModule">noModule</dfn>;
   [<span>CEReactions</span>] attribute boolean <span data-x="dom-script-async">async</span>;
   [<span>CEReactions</span>, <span data-x="xattr-Reflect">Reflect</span>] attribute boolean <dfn attribute for="HTMLScriptElement" data-x="dom-script-defer">defer</dfn>;
@@ -67317,7 +67320,9 @@ interface <dfn interface>HTMLScriptElement</dfn> : <span>HTMLElement</span> {
   [<span>CEReactions</span>, <span data-x="xattr-Reflect">Reflect</span>] attribute DOMString <dfn attribute for="HTMLScriptElement" data-x="dom-script-integrity">integrity</dfn>;
   [<span>CEReactions</span>] attribute DOMString <span data-x="dom-script-fetchPriority">fetchPriority</span>;
 
-  [<span>CEReactions</span>] attribute DOMString <span data-x="dom-script-text">text</span>;
+  [<span>CEReactions</span>] attribute (TrustedScript or [LegacyNullToEmptyString] DOMString) <span data-x="dom-script-innerText">innerText</span>;
+  [<span>CEReactions</span>] attribute (TrustedScript or DOMString)? <span data-x="dom-script-textContent">textContent</span>;
+  [<span>CEReactions</span>] attribute (TrustedScript or DOMString) <span data-x="dom-script-text">text</span>;
 
   static boolean <span data-x="dom-script-supports">supports</span>(DOMString type);
 
@@ -67326,6 +67331,10 @@ interface <dfn interface>HTMLScriptElement</dfn> : <span>HTMLElement</span> {
    </dd>
    <dd w-dev>Uses <code>HTMLScriptElement</code>.</dd>
   </dl>
+
+  <p class="XXX">The <code>script</code> element processing by <cite>Trusted Types</cite> is still
+  largely defined in that specification, and has some missing steps that are expected of
+  implementations. See <a href="https://github.com/w3c/trusted-types/issues/507">issue #507</a>.</p>
 
   <p>The <code>script</code> element allows authors to include dynamic script, instructions to the
   user agent, and data blocks in their documents. The element does not <span
@@ -67692,8 +67701,108 @@ interface <dfn interface>HTMLScriptElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
-  <p>The <code data-x="dom-script-text">text</code> setter steps are to <span>string replace
-  all</span> with the given value within <span>this</span>.</p>
+  <p>The <code data-x="dom-script-text">text</code> setter steps are:</p>
+
+  <ol>
+   <li><p>Let <var>compliantScript</var> be the result of invoking the <span
+   data-x="tt-getcompliantstring">get trusted type compliant string</span> algorithm with <code
+   data-x="tt-trustedscript">TrustedScript</code>, <span>this</span>'s <span>relevant global
+   object</span>, the given value, "<code data-x="">HTMLScriptElement text</code>", and "<code
+   data-x="">script</code>".</p></li>
+
+   <li><p><span data-x="tt-update-script-trustedness">Update script trustedness</span> for
+   <span>this</span> with <var>compliantScript</var>.</p></li>
+
+   <li><p><span>String replace all</span> with <var>compliantScript</var> within
+   <span>this</span>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn attribute for="HTMLScriptElement"><code
+  data-x="dom-script-innerText">innerText</code></dfn> getter steps are to return the result of
+  running <span>get the text steps</span> with <span>this</span>.</p>
+  </div>
+
+  <div algorithm>
+  <p>The <code data-x="dom-script-innerText">innerText</code> setter steps are:</p>
+
+  <ol>
+   <li><p>Let <var>compliantScript</var> be the result of invoking the <span
+   data-x="tt-getcompliantstring">get trusted type compliant string</span> algorithm with <code
+   data-x="tt-trustedscript">TrustedScript</code>, <span>this</span>'s <span>relevant global
+   object</span>, the given value, "<code data-x="">HTMLScriptElement innerText</code>", and "<code
+   data-x="">script</code>".</p></li>
+
+   <li><p><span data-x="tt-update-script-trustedness">Update script trustedness</span> for
+   <span>this</span> with <var>compliantScript</var>.</p></li>
+
+   <li><p>Run <span>set the inner text steps</span> with <span>this</span> and
+   <var>compliantScript</var>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn attribute for="HTMLScriptElement"><code
+  data-x="dom-script-textContent">textContent</code></dfn> getter steps are to return the result of
+  running <span>get text content</span> with <span>this</span>.</p>
+  </div>
+
+  <div algorithm>
+  <p>The <code data-x="dom-script-textContent">textContent</code> setter steps are:</p>
+
+  <ol>
+   <li><p>Let <var>compliantScript</var> be the result of invoking the <span
+   data-x="tt-getcompliantstring">get trusted type compliant string</span> algorithm with <code
+   data-x="tt-trustedscript">TrustedScript</code>, <span>this</span>'s <span>relevant global
+   object</span>, the given value, "<code data-x="">HTMLScriptElement textContent</code>", and
+   "<code data-x="">script</code>".</p></li>
+
+   <li><p><span data-x="tt-update-script-trustedness">Update script trustedness</span> for
+   <span>this</span> with <var>compliantScript</var>.</p></li>
+
+   <li><p>Run <span>set text content</span> with <span>this</span> and
+   <var>compliantScript</var>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn attribute for="HTMLScriptElement"><code data-x="dom-script-src">src</code></dfn>
+  getter steps are:</p>
+
+  <ol>
+   <li><p>Let <var>element</var> be the result of running <span>this</span>'s <span>get the
+   element</span>.</p></li>
+
+   <li><p>Let <var>contentAttributeValue</var> be the result of running <span>this</span>'s
+   <span>get the content attribute</span>.</p></li>
+
+   <li><p>If <var>contentAttributeValue</var> is null, then return the empty string.</p></li>
+
+   <li><p>Let <var>urlString</var> be the result of be the result of
+   <span>encoding-parsing-and-serializing a URL</span> given <var>contentAttributeValue</var>,
+   relative to <var>element</var>'s <span>node document</span>.</p></li>
+
+   <li><p>If <var>urlString</var> is not failure, then return <var>urlString</var>.</p></li>
+
+   <li><p>Return <var>contentAttributeValue</var>, <span data-x="convert">converted to a scalar
+   value string</span>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <code data-x="dom-script-src">src</code> setter steps are:</p>
+
+  <ol>
+   <li><p>Let <var>compliantScriptURL</var> be the result of invoking the <span
+   data-x="tt-getcompliantstring">get trusted type compliant string</span> algorithm with <code
+   data-x="tt-trustedscripturl">TrustedScriptURL</code>, <span>this</span>'s <span>relevant global
+   object</span>, the given value, "<code data-x="">HTMLScriptElement src</code>", and "<code
+   data-x="">script</code>".</p></li>
+
+   <li><p>Set <span>this</span>'s <code data-x="attr-script-src">src</code> content attribute to
+   <var>compliantScriptURL</var>.</p></li>
+  </ol>
   </div>
 
   <div algorithm>
