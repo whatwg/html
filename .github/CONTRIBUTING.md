@@ -53,7 +53,24 @@ Due to the long legacy of the existing text, these guidelines are not always app
 
 #### Line wrapping length
 
-Use a column width of 100 characters and add newlines where whitespace is used. (Emacs, set `fill-column` to `100`; in Vim, set `textwidth` to `100`; and in Sublime, set `wrap_width` to `100`. Alternatively, wrap the paragraph(s) with your changes with https://domenic.github.io/rewrapper/. Make sure that `column length to rewrap` is set to 100.)
+Use a column width of 100 characters and add newlines where whitespace is used. (Emacs, set `fill-column` to `100`; in Vim, set `textwidth` to `100`; and in Sublime, set `wrap_width` to `100`. Alternatively, wrap the paragraph(s) with your changes with [The Great Rewrapper](https://domenic.github.io/rewrapper/) or with [specfmt](https://github.com/domfarolino/specfmt/).)
+
+The following are kept on a single line, however long it gets:
+
+- `<dt>` elements
+- `<img>` elements
+- `<iframe>` elements
+- `<ul class="domTree">` trees
+- The cross-specification `<dfn>` elements in the [Dependencies](https://html.spec.whatwg.org/multipage/infrastructure.html#dependencies) section, one term per line
+- The `<dd>` elements in the [References](https://html.spec.whatwg.org/multipage/references.html#references) section, one bibliography entry per line
+
+And the contents of the following are not rewrapped, as they are laid out by hand or are whitespace-sensitive:
+
+- `<pre>` blocks
+- `<table>`, `<svg>`, `<script>`, and `<style>` blocks
+- Comments (`<!-- ... -->`)
+
+Finally, a line may exceed 100 characters when there is nowhere left to break it: a long URL, a long `data-x` value, or a run of markup with no whitespace in it.
 
 #### Wrapping opportunities
 
