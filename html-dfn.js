@@ -188,7 +188,6 @@ function restoreOrClosePanelOnNav(event) {
   }
 }
 
-document.body.classList.add('dfnEnabled');
 document.addEventListener('click', handleClick);
 if (isMultipage) {
   document.addEventListener('DOMContentLoaded', restoreOrClosePanelOnNav);
