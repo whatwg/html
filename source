@@ -85426,8 +85426,8 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
   <h4 id="user-activation-data-model">Data model</h4>
 
   <div var-scope>
-  <p>For the purpose of tracking user activation, each <code>Window</code> <var>W</var> has two
-  relevant values:</p>
+  <p>For the purpose of tracking user activation, each <code>Window</code> <var>W</var> has the
+  following relevant values:</p>
 
   <ul>
    <li><p>A <dfn>last activation timestamp</dfn>, which is either a
@@ -85435,8 +85435,9 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
    activated), or negative infinity (indicating that the activation has been <span data-x="consume
    user activation">consumed</span>). Initially positive infinity.</p></li>
 
-   <li><p>A <dfn>last history-action activation timestamp</dfn>, which is either a
-   <code>DOMHighResTimeStamp</code> or positive infinity, initially positive infinity.</p></li>
+   <li><p>A <dfn>has history-action activation</dfn> boolean, initially false.</p></li>
+
+   <li><p>A <dfn>has sticky activation</dfn> boolean, initially false.</p></li>
   </ul>
   </div>
 
@@ -85455,14 +85456,15 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
    <dt><dfn export>Sticky activation</dfn></dt>
    <dd>
     <div algorithm>
-    <p>When the <span>current high resolution time</span> given <var>W</var> is greater than or
-    equal to the <span>last activation timestamp</span> in <var>W</var>, <var>W</var> is said to
-    have <span>sticky activation</span>.</p>
+    <p>When <var>W</var>'s <span>has sticky activation</span> is true, <var>W</var> is said to have
+    <span>sticky activation</span>.</p>
     </div>
 
     <p>This is <var>W</var>'s historical activation state, indicating whether the user has ever
     interacted in <var>W</var>. It starts false, then changes to true (and never changes back to
-    false) when <var>W</var> gets the very first <span>activation notification</span>.</p>
+    false) when <var>W</var> gets the very first <span>activation notification</span>. It is also
+    carried over between windows for same-origin navigations and traversals (including <a
+    href="#note-user-activation-bfcache-carry-over">during reactivation from bfcache</a>).</p>
    </dd>
 
    <dt><dfn export>Transient activation</dfn></dt>
@@ -85490,9 +85492,8 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
    <dt><dfn>History-action activation</dfn></dt>
    <dd>
     <div algorithm>
-    <p>When the <span>last history-action activation timestamp</span> of <var>W</var> is not equal
-    to the <span>last activation timestamp</span> of <var>W</var>, then <var>W</var> is said to have
-    <span>history-action activation</span>.</p>
+    <p>When <var>W</var>'s <span>has history-action activation</span> is true, then <var>W</var> is
+    said to have <span>history-action activation</span>.</p>
     </div>
 
     <p>This is a special variant of user activation, used to allow access to certain session history
@@ -85507,16 +85508,15 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
   </dl>
   </div>
 
-  <p class="note">The <span>last activation timestamp</span> and <span>last history-action
-  activation timestamp</span> are retained even after the <code>Document</code> changes its
-  <span>fully active</span> status (e.g., after navigating away from a <code>Document</code>, or
-  navigating to a cached <code>Document</code>). This means <span>sticky activation</span> state
-  spans multiple navigations as long as the same <code>Document</code> gets reused. For the
-  transient activation state, the original <span data-x="activation-expiry">expiry</span> time
-  remains unchanged (i.e., the state still expires within the <span>transient activation
-  duration</span> limit from the original <span>activation triggering input event</span>). It is
-  important to consider this when deciding whether to base certain things off <span>sticky
-  activation</span> or <span>transient activation</span>.</p>
+  <p class="note">The underlying values are retained even after the <code>Document</code> changes
+  its <span>fully active</span> status (e.g., after navigating away from a <code>Document</code>, or
+  navigating to a cached <code>Document</code>). This means <span>sticky activation</span> and
+  <span>history-action activation</span> span multiple navigations as long as the same
+  <code>Document</code> gets reused. For the transient activation state, the original <span
+  data-x="activation-expiry">expiry</span> time remains unchanged (i.e., the state still expires
+  within the <span>transient activation duration</span> limit from the original <span>activation
+  triggering input event</span>). It is important to consider this when deciding what type of
+  activation to base certain things on.</p>
 
   <h4 id="user-activation-processing-model">Processing model</h4>
 
@@ -85544,11 +85544,15 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
    <var>document</var>'s <span data-x="concept-document-origin">origin</span>.</p></li>
 
    <li>
-    <p><span data-x="list iterate">For each</span> <var>window</var> in <var>windows</var>:</p>
+    <p><span data-x="list iterate">For each</span> <var>window</var> of <var>windows</var>:</p>
 
     <ol>
      <li><p>Set <var>window</var>'s <span>last activation timestamp</span> to the <span>current
      high resolution time</span>.</p></li>
+
+     <li><p>Set <var>window</var>'s <span>has history-action activation</span> to true.</p></li>
+
+     <li><p>Set <var>window</var>'s <span>has sticky activation</span> to true.</p></li>
 
      <li><p><span>Notify the close watcher manager about user activation</span> given
      <var>window</var>.</p></li>
@@ -85597,7 +85601,7 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
    the <span data-x="nav-window">active window</span> of each item in
    <var>navigables</var>.</p></li>
 
-   <li><p><span data-x="list iterate">For each</span> <var>window</var> in <var>windows</var>, if
+   <li><p><span data-x="list iterate">For each</span> <var>window</var> of <var>windows</var>, if
    <var>window</var>'s <span>last activation timestamp</span> is not positive infinity, then set
    <var>window</var>'s <span>last activation timestamp</span> to negative infinity.</p></li>
   </ol>
@@ -85622,9 +85626,8 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
    the <span data-x="nav-window">active window</span> of each item in
    <var>navigables</var>.</p></li>
 
-   <li><p><span data-x="list iterate">For each</span> <var>window</var> in <var>windows</var>, set
-   <var>window</var>'s <span>last history-action activation timestamp</span> to <var>window</var>'s
-   <span>last activation timestamp</span>.</p></li>
+   <li><p><span data-x="list iterate">For each</span> <var>window</var> of <var>windows</var>, set
+   <var>window</var>'s <span>has history-action activation</span> to false.</p></li>
   </ol>
   </div>
 
@@ -111818,6 +111821,15 @@ location.href = '#foo';</code></pre>
      entries for the navigation API</span> given <var>navigable</var> and
      <var>targetStep</var>.</p></li>
 
+     <li><p>Let <var>stickyActivationToCarryOver</var> be false.</p></li>
+
+     <li><p>If <var>displayedDocument</var>'s <span>relevant global object</span> has <span>sticky
+     activation</span>, and <var>displayedDocument</var>'s <span
+     data-x="concept-document-origin">origin</span> is <span>same origin</span> with
+     <var>targetEntry</var>'s <span data-x="she-document">document</span>'s <span
+     data-x="concept-document-origin">origin</span>, then set <var>stickyActivationToCarryOver</var>
+     to true.</p></li>
+
      <li>
       <p>If <var>changingNavigableContinuation</var>'s <span
       data-x="changing-nav-continuation-update-only">update-only</span> is true, or
@@ -111870,7 +111882,8 @@ location.href = '#foo';</code></pre>
        <var>changingNavigableContinuation</var>'s <span
        data-x="changing-nav-continuation-update-only">update-only</span>,
        <var>scriptHistoryLength</var>, <var>scriptHistoryIndex</var>, <var>navigationType</var>,
-       <var>entriesForNavigationAPI</var>, and <var>previousEntry</var>.</p></li>
+       <var>entriesForNavigationAPI</var>, <var>previousEntry</var>, and
+       <var>stickyActivationToCarryOver</var>.</p></li>
 
        <li><p>If <var>targetEntry</var>'s <span data-x="she-document">document</span> is equal to
        <var>displayedDocument</var>, then perform <var>updateDocument</var>.</p></li>
@@ -112423,8 +112436,9 @@ location.href = '#foo';</code></pre>
   <var>doNotReactivate</var>, integers <var>scriptHistoryLength</var> and
   <var>scriptHistoryIndex</var>, <code>NavigationType</code>-or-null <var>navigationType</var>, an
   optional <span>list</span> of <span data-x="session history entry">session history entries</span>
-  <var>entriesForNavigationAPI</var>, and an optional <span>session history entry</span>
-  <var>previousEntryForActivation</var>:</p>
+  <var>entriesForNavigationAPI</var>, an optional <span>session history entry</span>
+  <var>previousEntryForActivation</var>, and an optional boolean
+  <var>stickyActivationToCarryOver</var> (default false):</p>
 
   <ol>
    <li><p>Let <var>documentIsNew</var> be true if <var>document</var>'s <span>latest entry</span>
@@ -112600,7 +112614,8 @@ location.href = '#foo';</code></pre>
      <li><p><span>Assert</span>: <var>entriesForNavigationAPI</var> is given.</p></li>
 
      <li><p><span data-x="reactivate a document">Reactivate</span> <var>document</var> given
-     <var>entry</var> and <var>entriesForNavigationAPI</var>.</p>
+     <var>entry</var>, <var>entriesForNavigationAPI</var>, and
+     <var>stickyActivationToCarryOver</var>.</p>
     </ol>
 
     <p class="note"><var>documentsEntryChanged</var> can be false for one of two reasons: either we
@@ -112651,8 +112666,9 @@ location.href = '#foo';</code></pre>
   <div algorithm>
   <p>To <dfn data-x="reactivate a document" export for="Document">reactivate</dfn> a
   <code>Document</code> <var>document</var> given a <span>session history entry</span>
-  <var>reactivatedEntry</var> and a <span>list</span> of <span data-x="session history
-  entry">session history entries</span> <var>entriesForNavigationAPI</var>:</p>
+  <var>reactivatedEntry</var>, a <span>list</span> of <span data-x="session history entry">session
+  history entries</span> <var>entriesForNavigationAPI</var>, and a boolean
+  <var>stickyActivationToCarryOver</var>:</p>
 
   <p class="note">This algorithm updates <var>document</var> after it has come out of <a
   href="#note-bfcache">bfcache</a>, i.e., after it has been made <span>fully active</span>
@@ -112661,6 +112677,16 @@ location.href = '#foo';</code></pre>
   of events that happen in effect of the change is clear.</p>
 
   <ol>
+   <li>
+    <p>If <var>stickyActivationToCarryOver</var> is true, then set <var>document</var>'s
+    <span>relevant global object</span>'s <span>has sticky activation</span> to true.</p>
+
+    <p class="note" id="note-user-activation-bfcache-carry-over">This means we are performing a
+    same-origin traverse from a document with sticky activation, in which case, we want to carry
+    over sticky activation if present, even if this bfcached <code>Document</code> did not
+    originally have it.</p>
+   </li>
+
    <li id="history-autocomplete"><p><span data-x="list iterate">For each</span>
    <var>formControl</var> of form controls in <var>document</var> with an <span>autofill field
    name</span> of "<code data-x="attr-fe-autocomplete-off">off</code>", invoke the <span
@@ -113338,6 +113364,14 @@ location.href = '#foo';</code></pre>
      <var>realmExecutionContext</var>, <var>navigationParams</var>'s <span
      data-x="navigation-params-reserved-environment">reserved environment</span>,
      <var>topLevelCreationURL</var>, and <var>topLevelOrigin</var>.</p></li>
+
+     <li><p>If <var>browsingContext</var>'s <span>active window</span> has <span>sticky
+     activation</span>, <var>browsingContext</var>'s <span>active document</span>'s <span
+     data-x="concept-document-origin">origin</span> is <span>same origin</span> with
+     <var>navigationParams</var>'s <span data-x="navigation-params-origin">origin</span>, and
+     <var>navigationParams</var>'s <span data-x="navigation-params-response">response</span>'s <span
+     data-x="concept-response-has-cross-origin-redirects">has cross-origin redirects</span> is
+     false, then set <var>window</var>'s <span>has sticky activation</span> to true.</p></li>
     </ol>
 
     <p class="note">This is the usual case, where the new <code>Document</code> we're about to
