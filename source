@@ -31565,8 +31565,11 @@ interface <dfn interface>HTMLImageElement</dfn> : <span>HTMLElement</span> {
    <dt><code data-x=""><var>image</var>.<span subdfn data-x="dom-img-height">height</span> [ = <var>value</var> ]</code></dt>
 
    <dd>
-    <p>These attributes return the actual rendered dimensions of the image, or 0 if the dimensions
-    are not known.</p>
+    <p>These attributes return the rendered dimensions of the image. When the image is not being
+    rendered, they return the <code data-x="attr-dim-width">width</code> and <code
+    data-x="attr-dim-height">height</code> content attributes' values, defaulting to <code
+    data-x="dom-img-naturalWidth">naturalWidth</code> and <code
+    data-x="dom-img-naturalHeight">naturalHeight</code>.</p>
 
     <p>They can be set, to change the corresponding content attributes.</p>
    </dd>
@@ -31616,15 +31619,14 @@ interface <dfn interface>HTMLImageElement</dfn> : <span>HTMLElement</span> {
   <var>image</var>:</p>
 
   <ol>
-   <li><p>If <var>image</var> is <span>being rendered</span>, then return its rendered width and
-   height, in <span data-x="'px'">CSS pixels</span>. <ref>CSS</ref></p></li>
+   <li><p>Let <var>naturalDimensions</var> be null.</p></li>
 
-   <li><p>If <var>image</var> is <i data-x="img-available">available</i> and has
-   <span>density-corrected natural width and height</span>, then return its
-   <span>density-corrected natural width and height</span>, in <span data-x="'px'">CSS
-   pixels</span>.</p></li>
+   <li><p>If <var>image</var> is <i data-x="img-available">available</i>, then set
+   <var>naturalDimensions</var> to <var>image</var>'s <span>density-corrected natural width and
+   height</span>.</p></li>
 
-   <li><p>Return a width of 0 and a height of 0.</p></li>
+   <li><p>Return the result of <span data-x="determine-dimensions">determining the
+   dimensions</span> of <var>image</var> given <var>naturalDimensions</var>.</p></li>
   </ol>
   </div>
 
@@ -45353,7 +45355,53 @@ interface <dfn interface>HTMLAreaElement</dfn> : <span>HTMLElement</span> {
 
   <p class="note">The corresponding IDL attributes for <code data-x="dom-img-height">img</code> and
   <code data-x="dom-input-height">input</code> elements are defined in those respective elements'
-  sections, as they are slightly more specific to those elements' other behaviors.</p>
+  sections, as they are slightly more specific to those elements' other behaviors. Both are defined
+  in terms of the algorithm below.</p>
+
+  <div algorithm>
+  <p>To <dfn data-x="determine-dimensions">determine the dimensions</dfn> of an <code>img</code> or
+  <code>input</code> element <var>element</var> given a struct consisting of a width and a height,
+  or null, <var>naturalDimensions</var>:</p>
+
+  <ol>
+   <li><p>If <var>element</var> is <span>being rendered</span>, then return the width and height of
+   <var>element</var>'s <span>content box</span>, in <span data-x="'px'">CSS pixels</span>.
+   <ref>CSS</ref></p></li>
+
+   <li><p>Let <var>width</var> and <var>height</var> be 0.</p></li>
+
+   <li><p>If <var>naturalDimensions</var> is not null, then set <var>width</var> to
+   <var>naturalDimensions</var>'s width and <var>height</var> to <var>naturalDimensions</var>'s
+   height.</p></li>
+
+   <li>
+    <p>If <var>element</var> has a <code data-x="attr-dim-width">width</code> attribute:</p>
+
+    <ol>
+     <li><p>Let <var>attributeWidth</var> be the result of <span data-x="rules for parsing
+     non-negative integers">parsing that attribute's value</span>.</p></li>
+
+     <li><p>If <var>attributeWidth</var> is not an error, then set <var>width</var> to
+     <var>attributeWidth</var>.</p></li>
+    </ol>
+   </li>
+
+   <li>
+    <p>If <var>element</var> has a <code data-x="attr-dim-height">height</code> attribute:</p>
+
+    <ol>
+     <li><p>Let <var>attributeHeight</var> be the result of <span data-x="rules for parsing
+     non-negative integers">parsing that attribute's value</span>.</p></li>
+
+     <li><p>If <var>attributeHeight</var> is not an error, then set <var>height</var> to
+     <var>attributeHeight</var>.</p></li>
+    </ol>
+   </li>
+
+   <li><p>Return a width of <var>width</var> and a height of <var>height</var>, in <span
+   data-x="'px'">CSS pixels</span>.</p></li>
+  </ol>
+  </div>
 
   </div>
 
@@ -51367,17 +51415,31 @@ interface <dfn interface>HTMLInputElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
-  <p>The IDL attributes <dfn attribute for="HTMLInputElement"><code
-  data-x="dom-input-width">width</code></dfn> and <dfn attribute for="HTMLInputElement"><code
-  data-x="dom-input-height">height</code></dfn> must return the rendered width and height of the
-  image, in <span data-x="'px'">CSS pixels</span>, if an image is <span>being rendered</span>; or
-  else the <span data-x="natural dimensions">natural width and height</span> of the image, in
-  <span data-x="'px'">CSS pixels</span>, if an image is <i
-  data-x="input-img-available">available</i> but not <span>being rendered</span>; or else 0,
-  if no image is <i data-x="input-img-available">available</i>. When the <code>input</code>
-  element's <code data-x="attr-input-type">type</code> attribute is not in the <span
-  data-x="attr-input-type-image">Image Button</span> state, then no image is <i
-  data-x="input-img-available">available</i>. <ref>CSS</ref></p>
+  <p>The <dfn attribute for="HTMLInputElement"><code data-x="dom-input-width">width</code></dfn> and
+  <dfn attribute for="HTMLInputElement"><code data-x="dom-input-height">height</code></dfn> getter
+  steps are to return the respective component of the result of determining the <span
+  data-x="input-img-dimensions">dimensions</span> of <span>this</span>.</p>
+  </div>
+
+  <div algorithm>
+  <p>To determine the <dfn data-x="input-img-dimensions">dimensions</dfn> of an <code>input</code>
+  element <var>input</var>:</p>
+
+  <ol>
+   <li><p>If <var>input</var>'s <code data-x="attr-input-type">type</code> attribute is not in the
+   <span data-x="attr-input-type-image">Image Button</span> state, then return a width of 0 and a
+   height of 0. (In that case no image is <i data-x="input-img-available">available</i>.)</p></li>
+
+   <li><p>Let <var>naturalDimensions</var> be null.</p></li>
+
+   <li><p>If an image is <i data-x="input-img-available">available</i>, then set
+   <var>naturalDimensions</var> to the result of applying the <span>default sizing algorithm</span>
+   with that image's <span data-x="natural dimensions">natural width, natural height, and natural
+   aspect ratio</span>, if any, using a <span>default object size</span> of 300 by 150.</p></li>
+
+   <li><p>Return the result of <span data-x="determine-dimensions">determining the
+   dimensions</span> of <var>input</var> given <var>naturalDimensions</var>.</p></li>
+  </ol>
   </div>
 
   <p>The <code data-x="dom-cva-willValidate">willValidate</code>, <code
@@ -54706,8 +54768,10 @@ ldh-str       = &lt; as defined in <a href="https://www.rfc-editor.org/rfc/rfc10
    <dt><code data-x=""><var>image</var>.<span subdfn data-x="dom-input-height">height</span> [ = <var>value</var> ]</code></dt>
 
    <dd>
-    <p>These attributes return the actual rendered dimensions of the image, or 0 if the dimensions
-    are not known.</p>
+    <p>These attributes return the rendered dimensions of the image. When the image is not being
+    rendered, they return the <code data-x="attr-dim-width">width</code> and <code
+    data-x="attr-dim-height">height</code> content attributes' values, defaulting to the image's
+    <span>natural dimensions</span>, if any; otherwise 0.</p>
 
     <p>They can be set, to change the corresponding content attributes.</p>
    </dd>
