@@ -4014,6 +4014,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
       <li><dfn data-x-href="https://drafts.csswg.org/css-sizing/#fit-content-inline-size">fit-content inline size</dfn></li>
       <li><dfn data-x-href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">'aspect-ratio'</dfn> property</li>
       <li><dfn data-x-href="https://drafts.csswg.org/css-sizing/#intrinsic-size">intrinsic size</dfn></li>
+      <li><dfn data-x-href="https://drafts.csswg.org/css-sizing-4/#responsive-iframes">responsively-sized iframes</dfn></li>
     </ul>
 
     <p>The following features are defined in <cite>CSS Lists and Counters</cite>.
@@ -4486,6 +4487,8 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li>The <dfn data-x="csp-EnsureCSPDoesNotBlockStringCompilation" data-x-href="https://w3c.github.io/webappsec-csp/#can-compile-strings">EnsureCSPDoesNotBlockStringCompilation</dfn> abstract operation</li>
      <li>The <dfn data-x-href="https://w3c.github.io/webappsec-csp/#allow-base-for-document">Is base allowed for Document?</dfn> algorithm</li>
      <li>The <dfn data-x-href="https://w3c.github.io/webappsec-csp/#frame-ancestors"><code data-x="">frame-ancestors</code> directive</dfn></li>
+     <li>The <dfn data-x-href="https://w3c.github.io/webappsec-csp/#grammardef-ancestor-source-list">ancestor-source-list</dfn> syntax</li>
+     <li>The <dfn data-x-href="https://w3c.github.io/webappsec-csp/#match-url-to-source-list">Does url match source list in origin with redirect count?</dfn> algorithm</li>
      <li>The <dfn data-x-href="https://w3c.github.io/webappsec-csp/#sandbox"><code data-x="">sandbox</code> directive</dfn></li>
      <li>The <dfn data-x-href="https://w3c.github.io/webappsec-csp/#contains-a-header-delivered-content-security-policy">contains a header-delivered Content Security Policy</dfn> property.</li>
      <li>The <dfn data-x="parse-response-csp" data-x-href="https://w3c.github.io/webappsec-csp/#parse-response-csp">Parse a response's Content Security Policies</dfn> algorithm.</li>
@@ -11733,6 +11736,16 @@ partial interface <dfn id="document" data-lt="">Document</dfn> {
   the <span>ongoing navigation</span>. This eventually gets set back to null, after <cite>WebDriver
   BiDi</cite> considers the loading process to be finished. <ref>BIDI</ref></p>
 
+  <p>Each <code>Document</code> has a
+  <dfn export for="Document" data-x="concept-document-responsive-embedded-sizing-flag">responsive
+  embedded sizing flag</dfn>, which is a boolean or null, initially null.</p>
+
+  <p class="note">This is set to true by <code>meta</code> elements whose
+  <code data-x="attr-meta-name">name</code> attribute is
+  <code data-x="meta-responsive-embedded-sizing">responsive-embedded-sizing</code>,
+  set to false when <span data-x="reveal">revealing</span> the <code>Document</code>,
+  and used by <span>responsively-sized iframes</span>.</p>
+
   <p>Each <code>Document</code> has an <dfn data-x="concept-document-about-base-url">about base
   URL</dfn>, which is a <span>URL</span> or null, initially null.</p>
 
@@ -18050,6 +18063,88 @@ interface <dfn interface>HTMLMetaElement</dfn> : <span>HTMLElement</span> {
     model for <code data-x="meta-referrer">referrer</code> is not responsive to element removals,
     and does not use <span>tree order</span>. Only the most-recently-inserted or
     most-recently-modified <code>meta</code> element in this state has an effect.</p>
+
+    </div>
+   </dd>
+
+   <dt><dfn attr-value for="meta/name"><code
+   data-x="meta-responsive-embedded-sizing">responsive-embedded-sizing</code></dfn></dt>
+
+   <dd>
+    <p>The <code data-x="meta-responsive-embedded-sizing">responsive-embedded-sizing</code>
+    metadata name allows a document to opt in to <span>responsively-sized iframes</span> when
+    embedded by allowed ancestor origins. <ref>CSSSIZING</ref></p>
+
+    <p>The value must be the string "<code data-x="">allow-origins=</code>" followed by an
+    <span>ancestor-source-list</span>. <ref>CSP</ref></p>
+
+    <div class="example">
+     <p>The following declaration allows the document to be responsively sized when embedded in an
+     <code>iframe</code> by a page from the <code data-x="">https://example.com</code> origin:</p>
+
+     <pre><code class="html">&lt;meta name="responsive-embedded-sizing"
+      content="allow-origins=https://example.com"></code></pre>
+    </div>
+
+    <div w-nodev>
+
+    <div algorithm>
+    <p>If any <code>meta</code> element <var>element</var> is <span data-x="node is inserted into a
+    document">inserted into the document</span>, or has its <code
+    data-x="attr-meta-name">name</code> or <code data-x="attr-meta-content">content</code>
+    attributes changed, user agents must run the following algorithm:</p>
+
+    <ol>
+     <li><p>Let <var>document</var> be <var>element</var>'s <span>node document</span>.</p></li>
+
+     <li>
+      <p>If any of the following are true:</p>
+
+      <ul>
+       <li><p><var>element</var> is not <span>in a document tree</span>;</p></li>
+
+       <li><p><var>document</var>'s <span data-x="doc-container-document">container document</span>
+       is null;</p></li>
+
+       <li><p><var>document</var>'s
+       <span data-x="concept-document-responsive-embedded-sizing-flag">responsive embedded sizing
+       flag</span> is not null;</p></li>
+
+       <li><p><var>element</var> does not have a <code data-x="attr-meta-name">name</code>
+       attribute whose value is an <span>ASCII case-insensitive</span> match for <code
+       data-x="meta-responsive-embedded-sizing">responsive-embedded-sizing</code>; or</p></li>
+
+       <li><p><var>element</var> does not have a <code data-x="attr-meta-content">content</code>
+       attribute,</p></li>
+      </ul>
+
+      <p>then return.</p>
+     </li>
+
+     <li><p>Let <var>value</var> be the value of <var>element</var>'s <code
+     data-x="attr-meta-content">content</code> attribute.</p></li>
+
+     <li><p>If <var>value</var> does not <span data-x="starts with">start with</span> "<code
+     data-x="">allow-origins=</code>", then return.</p></li>
+
+     <li><p>Let <var>tokens</var> be the substring of <var>value</var> that follows the
+     "<code data-x="">allow-origins=</code>" prefix, <span data-x="split a string on ASCII
+     whitespace">split on ASCII whitespace</span>.</p></li>
+
+     <li><p>Let <var>sourceList</var> be the result of <span data-x="set create">creating a
+     set</span> from <var>tokens</var>.</p></li>
+
+     <li><p>If running <span>Does url match source list in origin with redirect count?</span> on
+     <var>document</var>'s <span data-x="doc-container-document">container document</span>'s
+     <span data-x="concept-document-url">URL</span>, <var>sourceList</var>,
+     <var>document</var>'s <span data-x="concept-document-origin">origin</span>, and 0 returns
+     "<code data-x="">Does Not Match</code>", then return.</p></li>
+
+     <li><p>Set <var>document</var>'s <span
+     data-x="concept-document-responsive-embedded-sizing-flag">responsive embedded sizing
+     flag</span> to true.</p></li>
+    </ol>
+    </div>
 
     </div>
    </dd>
@@ -112904,6 +112999,10 @@ location.href = '#foo';</code></pre>
    <li><p>If <var>document</var>'s <span>has been revealed</span> is true, then return.</p></li>
 
    <li><p>Set <var>document</var>'s <span>has been revealed</span> to true.</p></li>
+
+   <li><p>If <var>document</var>'s <span
+   data-x="concept-document-responsive-embedded-sizing-flag">responsive embedded sizing flag</span>
+   is null, then set it to false.</p></li>
 
    <li><p>Let <var>transition</var> be the result of
    <span>resolving inbound cross-document view-transition</span> for <var>document</var>.</p></li>
