@@ -93997,7 +93997,9 @@ dictionary <dfn dictionary>DragEventInit</dfn> : <span>MouseEventInit</span> {
    been used.</p>
 
    <p>Because of these security pitfalls, this feature is in the process of being removed from the
-   web platform. (This is a long process that takes many years.)</p>
+   web platform. It is no longer available by default, because by default documents are placed in an
+   <span>origin</span>-<span data-x="agent cluster key">keyed</span> <span>agent cluster</span>,
+   which disables the <code data-x="dom-document-domain">document.domain</code> setter.</p>
 
    <p>Instead, use <code data-x="dom-window-postMessage">postMessage()</code> or
    <code>MessageChannel</code> objects to communicate across origins in a safe manner.</p>
@@ -94303,29 +94305,30 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
    </dd>
   </dl>
 
-  <p>A <code>Document</code> delivered over a <span>secure context</span> can request that it be
-  placed in an <span>origin</span>-<span data-x="agent cluster key">keyed</span> <span>agent
-  cluster</span>, by using the `<dfn http-header><code>Origin-Agent-Cluster</code></dfn>` HTTP
-  response header. This header is a <span data-x="http-structured-header">structured header</span>
+  <p>By default, a <code>Document</code> is placed in an <span>origin</span>-<span data-x="agent
+  cluster key">keyed</span> <span>agent cluster</span>. The <dfn
+  http-header><code>Origin-Agent-Cluster</code></dfn>` HTTP response header can be used to instead
+  request placement in a <span>site</span>-<span data-x="agent cluster key">keyed</span> <span>agent
+  cluster</span>. This header is a <span data-x="http-structured-header">structured header</span>
   whose value must be a <span data-x="http-structured-header-boolean">boolean</span>.
   <ref>STRUCTURED-FIELDS</ref></p>
 
   <p><span w-nodev>Per the processing model in the <span data-x="create-the-document-object">create
   and initialize a new <code>Document</code> object</span>, values</span><span w-dev>Values</span>
   that are not the <span data-x="http-structured-header-boolean">structured header boolean</span>
-  true value (i.e., `<code data-x="">?1</code>`) will be ignored.</p>
+  false value (i.e., `<code data-x="">?0</code>`) will be ignored.</p>
 
   <p>The consequences of using this header are that <span w-nodev>the resulting
-  <code>Document</code>'s <span>agent cluster key</span> is its <span
-  data-x="concept-document-origin">origin</span>, instead of the <span data-x="obtain a
-  site">corresponding site</span>. In terms of observable effects, this means that
-  </span>attempting to <a href="#relaxing-the-same-origin-restriction">relax the same-origin
-  restriction</a> using <code data-x="dom-document-domain">document.domain</code> will instead do
-  nothing, and it will not be possible to send <code>WebAssembly.Module</code> objects to
-  cross-origin <code>Document</code>s (even if they are <span>same site</span>). Behind the scenes,
-  this isolation can allow user agents to allocate implementation-specific resources corresponding
-  to <span data-x="agent cluster">agent clusters</span>, such as processes or threads, more
-  efficiently.</p>
+  <code>Document</code>'s <span>agent cluster key</span> is its <span data-x="obtain a
+  site">site</span>, instead of the <span data-x="concept-document-origin">origin</span>. In terms
+  of observable effects, this means that</span> <a
+  href="#relaxing-the-same-origin-restriction">relaxing the same-origin restriction</a> using <code
+  data-x="dom-document-domain">document.domain</code> will work, while in the default case it will
+  do nothing. Likewise, it will be possible to send <code>WebAssembly.Module</code> objects to
+  cross-origin <code>Document</code>s (if they are <span>same site</span>). Behind the scenes, this
+  can prevent user agents from allocating implementation-specific resources corresponding to <span
+  data-x="agent cluster">agent clusters</span>, such as processes or threads, in an efficient
+  way.</p>
 
   <p>Note that within a <span>browsing context group</span>, the
   `<code>Origin-Agent-Cluster</code>` header can never cause same-origin <code>Document</code>
@@ -94352,13 +94355,7 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
 
   <p class="note">Similarly, <code>Document</code>s whose <span>agent cluster</span>'s <span
   data-x="agent-cluster-cross-origin-isolation">cross-origin isolation mode</span> is not "<code
-  data-x="cross-origin-isolation-none">none</code>" are automatically origin-keyed. The
-  `<code>Origin-Agent-Cluster</code>` header might be useful as an additional hint to
-  implementations about resource allocation, since the `<code>Cross-Origin-Opener-Policy</code>`
-  and `<code>Cross-Origin-Embedder-Policy</code>` headers used to achieve cross-origin isolation
-  are more about ensuring that everything in the same address space opts in to being there. But
-  adding it would have no additional observable effects on author code.</p>
-
+  data-x="cross-origin-isolation-none">none</code>" are automatically origin-keyed.
 
   <h4>Cross-origin opener policies</h4>
 
@@ -113285,9 +113282,9 @@ location.href = '#foo';</code></pre>
      <var>navigationParams</var>'s <span data-x="navigation-params-response">response</span>'s
      <span data-x="concept-response-header-list">header list</span>.</p></li>
 
-     <li><p>Let <var>requestsOAC</var> be true if <var>oacHeader</var> is not
-     null and <var>oacHeader</var>[0] is the <span
-     data-x="http-structured-header-boolean">boolean</span> true; otherwise false.</p></li>
+     <li><p>Let <var>requestsOAC</var> be false if <var>oacHeader</var> is not null and
+     <var>oacHeader</var>[0] is the <span data-x="http-structured-header-boolean">boolean</span>
+     false; otherwise true.</p></li>
 
      <li><p>If <var>navigationParams</var>'s <span
      data-x="navigation-params-reserved-environment">reserved environment</span> is a
@@ -116953,7 +116950,8 @@ new PaymentRequest(&hellip;); // Allowed to use
 
     <p>If the encompassing <span>agent cluster</span>'s <span>is origin-keyed</span> is true, then
     all the <code>Window</code> objects will be <span>same origin</span>, can reach each other
-    directly, and <code data-x="dom-document-domain">document.domain</code> will no-op.</p>
+    directly, and <code data-x="dom-document-domain">document.domain</code> will no-op. This is the
+    default case.</p>
 
     <p class="note">Two <code>Window</code> objects that are <span>same origin</span> can be in
     different <span data-x="similar-origin window agent">similar-origin window agents</span>, for
@@ -117058,9 +117056,9 @@ new PaymentRequest(&hellip;); // Allowed to use
   of <span data-x="similar-origin window agent">similar-origin window agents</span>.</p>
 
   <p>An <dfn>agent cluster key</dfn> is a <span>site</span> or <span
-  data-x="concept-origin-tuple">tuple origin</span>. Without web developer action to achieve <a
-  href="#origin-keyed-agent-clusters">origin-keyed agent clusters</a>, it will be a
-  <span>site</span>.</p>
+  data-x="concept-origin-tuple">tuple origin</span>. By default these will be <a
+  href="#origin-keyed-agent-clusters">origin-keyed agent clusters</a>, but with developer action
+  they can also be <span>site</span>-<span data-x="agent cluster key">keyed</span>.</p>
 
   <p class="note">An equivalent formulation is that an <span>agent cluster key</span> can be a
   <span>scheme-and-host</span> or an <span>origin</span>.</p>
