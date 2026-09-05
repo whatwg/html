@@ -40112,9 +40112,8 @@ interface <dfn interface>MediaError</dfn> {
   data-x="dom-media-readyState">readyState</code> is <code
   data-x="dom-media-HAVE_NOTHING">HAVE_NOTHING</code>, then it must set the <span>media
   element</span>'s <span>default playback start position</span> to the new value; otherwise, it must
-  set the <span>official playback position</span> to the new value and then <span
-  data-x="dom-media-seek">seek</span> to the new value. The new value must be interpreted as being
-  in seconds.</p>
+  <span data-x="dom-media-seek">seek</span> to the new value. The new value must be interpreted as
+  being in seconds.</p>
   </div>
 
   <p>If the <span>media resource</span> is a streaming resource, then the user agent might be unable
@@ -40648,8 +40647,9 @@ interface <dfn interface>MediaError</dfn> {
 
      <li><p>The <span>direction of playback</span> is forwards, and</p></li>
 
-     <li><p>The <span>media element</span> does not have a <code
-     data-x="attr-media-loop">loop</code> attribute specified.</p></li>
+     <li><p>The <span>media element</span> did not have a <code
+     data-x="attr-media-loop">loop</code> attribute specified the last time that playback
+     <a href="#reaches-the-end">reached the end of the media resource</a>.</p></li>
     </ul>
 
     <p>Or:</p>
@@ -40726,13 +40726,20 @@ interface <dfn interface>MediaError</dfn> {
   agent must follow these steps:</p>
 
   <ol>
-   <li><p>If the <span>media element</span> has a <code data-x="attr-media-loop">loop</code>
-   attribute specified, then <span data-x="dom-media-seek">seek</span> to the <span>earliest
-   possible position</span> of the <span>media resource</span> and return.</p></li>
-   <!-- v2/v3: We should fire a 'looping' event here to explain why this immediately fires a
-   'playing' event, otherwise the 'playing' event that fires from the readyState going from
-   HAVE_CURRENT_DATA back to HAVE_FUTURE_DATA will seem inexplicable (since the normally matching
-   'ended' given below event doesn't fire in the loop case). -->
+   <li>
+    <p>If the <span>media element</span> has a <code data-x="attr-media-loop">loop</code>
+    attribute specified, then:</p>
+
+    <ol>
+     <li><p>If <span data-x="dom-media-paused">paused</span> is false, <span data-x="dom-media-seek">
+     seek</span> to the <span>earliest possible position</span> of the <span>media resource</span>
+     and return.</p></li>
+     <!-- v2/v3: We should fire a 'looping' event here to explain why this immediately fires a
+     'playing' event, otherwise the 'playing' event that fires from the readyState going from
+     HAVE_CURRENT_DATA back to HAVE_FUTURE_DATA will seem inexplicable (since the normally matching
+     'ended' given below event doesn't fire in the loop case). -->
+    </ol>
+   </li>
 
    <li><p>As defined above, the <code data-x="dom-media-ended">ended</code> IDL attribute starts
    returning true once the <span>event loop</span> returns to <a href="#step1">step 1</a>.</p></li>
@@ -40992,7 +40999,10 @@ interface <dfn interface>MediaError</dfn> {
       data-x="dom-media-readyState">readyState</code> attribute has the value <code
       data-x="dom-media-HAVE_FUTURE_DATA">HAVE_FUTURE_DATA</code> or <code
       data-x="dom-media-HAVE_ENOUGH_DATA">HAVE_ENOUGH_DATA</code>: <span>notify about playing</span>
-      for the element.</p>
+      for the element, and if playback was paused and loop was specified the last time playback <a
+      href="#reaches-the-end">reached the end</a> (i.e. when the <span>official playback
+      position</span> is still the <span>duration</span> at this step), seek to the <span>earliest
+      possible position</span>.</p>
      </li>
     </ol>
    </li>
@@ -41062,8 +41072,8 @@ interface <dfn interface>MediaError</dfn> {
       </ol>
      </li>
 
-     <li><p>Set the <span>official playback position</span> to the <span>current playback
-     position</span>.</p></li>
+     <li><p>If the <code data-x="dom-media-seeking">seeking</code> IDL attribute is false, set the
+     <span>official playback position</span> to the <span>current playback position</span>.</p></li>
     </ol>
    </li>
   </ol>
@@ -41421,11 +41431,6 @@ interface <dfn interface>MediaError</dfn> {
 
    <li><p>Set the <code data-x="dom-media-seeking">seeking</code> IDL attribute to true.</p></li>
 
-   <li><p>If the seek was in response to a DOM method call or setting of an IDL attribute, then
-   continue the script. The remainder of these steps must be run <span>in parallel</span>. With the exception
-   of the steps marked with &#x231B;, they could be aborted at any time by another instance of this
-   algorithm being invoked.</p></li>
-
    <li><p>If the <var>new playback position</var> is later than the end of the <span>media
    resource</span>, then let it be the end of the <span>media resource</span> instead.</p></li>
 
@@ -41441,6 +41446,14 @@ interface <dfn interface>MediaError</dfn> {
    the <span>current playback position</span>. If there are no ranges given in the <code
    data-x="dom-media-seekable">seekable</code> attribute, then set the <code
    data-x="dom-media-seeking">seeking</code> IDL attribute to false and return.</p></li>
+
+   <li><p>Set the <span>official playback position</span> to the <var>new playback
+   position</var>.</p></li>
+
+   <li><p>If the seek was in response to a DOM method call or setting of an IDL attribute, then
+   continue the script. The remainder of these steps must be run <span>in parallel</span>. With the exception
+   of the steps marked with &#x231B;, they could be aborted at any time by another instance of this
+   algorithm being invoked.</p></li>
 
    <li>
     <p>If the <i>approximate-for-speed</i> flag is set, adjust the <var>new playback
