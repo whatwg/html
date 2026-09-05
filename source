@@ -3137,7 +3137,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li>The <dfn data-x="js-HostLoadImportedModule" data-x-href="https://tc39.es/ecma262/#sec-HostLoadImportedModule">HostLoadImportedModule</dfn> abstract operation</li>
      <li>The <dfn data-x="js-HostMakeJobCallback" data-x-href="https://tc39.es/ecma262/#sec-hostmakejobcallback">HostMakeJobCallback</dfn> abstract operation</li>
      <li>The <dfn data-x="js-HostPromiseRejectionTracker" data-x-href="https://tc39.es/ecma262/#sec-host-promise-rejection-tracker">HostPromiseRejectionTracker</dfn> abstract operation</li>
-     <li>The <dfn data-x="js-InitializeHostDefinedRealm" data-x-href="https://tc39.es/ecma262/#sec-initializehostdefinedrealm">InitializeHostDefinedRealm</dfn> abstract operation</li>
+     <li>The <dfn data-x="js-MakeRealm" data-x-href="https://tc39.es/ecma262/#sec-makerealm">MakeRealm</dfn> abstract operation</li>
      <li>The <dfn data-x-href="https://tc39.es/ecma262/#sec-isarraybufferviewoutofbounds">IsArrayBufferViewOutOfBounds</dfn> abstract operation</li>
      <li>The <dfn data-x-href="https://tc39.es/ecma262/#sec-isaccessordescriptor">IsAccessorDescriptor</dfn> abstract operation</li>
      <li>The <dfn data-x-href="https://tc39.es/ecma262/#sec-iscallable">IsCallable</dfn> abstract operation</li>
@@ -106405,16 +106405,20 @@ interface <dfn interface>NotRestoredReasons</dfn> {
    <var>origin</var>, <var>group</var>, and false.</p></li>
 
    <li>
-    <p>Let <var>realm execution context</var> be the result of <span>creating a new realm</span>
-    given <var>agent</var> and the following customizations:</p>
+    <p>Let <var>customizations</var> be the following algorithm given a realm <var>realm</var>:</p>
 
-    <ul>
-     <li><p>For the global object, create a new <code>Window</code> object.</p></li>
+    <ol>
+     <li>Let <var>global</var> be a new <code>Window</code> object.</li>
 
-     <li><p>For the global <b>this</b> binding, use <var>browsingContext</var>'s
-     <code>WindowProxy</code> object.</li>
-    </ul>
+     <li>Let <var>globalThisBinding</var> be <var>browsingContext</var>'s <code>WindowProxy</code>
+     object.</li>
+
+     <li>Return « <var>global</var>, <var>globalThisBinding</var> ».</li>
+    </ol>
    </li>
+
+   <li><p>Let <var>realm execution context</var> be the result of <span>creating a new realm</span>
+   given <var>agent</var> and <var>customizations</var>.</p></li>
 
    <li><p>Let <var>topLevelCreationURL</var> be <code>about:blank</code> if <var>embedder</var> is
    null; otherwise <var>embedder</var>'s <span>relevant settings object</span>'s <span>top-level
@@ -113300,16 +113304,20 @@ location.href = '#foo';</code></pre>
      <var>requestsOAC</var>.</p></li>
 
      <li>
-      <p>Let <var>realmExecutionContext</var> be the result of <span>creating a new realm</span>
-      given <var>agent</var> and the following customizations:</p>
+      <p>Let <var>customizations</var> be the following algorithm given a realm <var>realm</var>:</p>
 
-      <ul>
-       <li><p>For the global object, create a new <code>Window</code> object.</p></li>
+      <ol>
+       <li>Let <var>global</var> be a new <code>Window</code> object.</li>
 
-       <li><p>For the global <b>this</b> binding, use <var>browsingContext</var>'s
-       <code>WindowProxy</code> object.</p></li>
-      </ul>
+       <li>Let <var>globalThisBinding</var> be <var>browsingContext</var>'s <code>WindowProxy</code>
+       object.</li>
+
+       <li>Return « <var>global</var>, <var>globalThisBinding</var> ».</li>
+      </ol>
      </li>
+
+     <li><p>Let <var>realmExecutionContext</var> be the result of <span>creating a new realm</span>
+     given <var>agent</var> and <var>customizations</var>.</p></li>
 
      <li><p>Set <var>window</var> to the <span data-x="concept-realm-global">global
      object</span> of <var>realmExecutionContext</var>'s Realm component.</p></li>
@@ -117506,24 +117514,12 @@ new PaymentRequest(&hellip;); // Allowed to use
 
   <div algorithm>
   <p>To <dfn data-x="creating a new realm" export id="creating-a-new-javascript-realm">create a new
-  realm</dfn> in an <span>agent</span> <var>agent</var>, optionally with instructions to create a
-  global object or a global <b>this</b> binding (or both), the following steps are taken:</p>
+  realm</dfn> in an <span>agent</span> <var>agent</var>, with a customizations algorithm
+  <var>customizations</var>:</p>
 
   <ol>
-   <li><p>Perform <span data-x="js-InitializeHostDefinedRealm">InitializeHostDefinedRealm</span>()
-   with the provided customizations for creating the global object and the global <b>this</b>
-   binding.</p></li>
-
-   <li>
-    <p>Let <var>realm execution context</var> be the <span>running JavaScript execution
-    context</span>.</p>
-
-    <p class="note">This is the <span>JavaScript execution context</span> created in the previous
-    step.</p>
-   </li>
-
-   <li><p>Remove <var>realm execution context</var> from the <span>JavaScript execution context
-   stack</span>.</p></li>
+   <li><p>Let <var>realm execution context</var> be <span
+   data-x="js-MakeRealm">MakeRealm</span>(<var>customizations</var>).</p></li>
 
    <li><p>Let <var>realm</var> be <var>realm execution context</var>'s Realm component.</p></li>
 
@@ -135870,15 +135866,17 @@ interface <dfn interface>SharedWorkerGlobalScope</dfn> : <span>WorkerGlobalScope
    <var>is shared</var>. Run the rest of these steps in that agent.</p></li>
 
    <li>
-    <p>Let <var>realm execution context</var> be the result of <span>creating a new realm</span>
-    given <var>agent</var> and the following customizations:</p>
+    <p>Let <var>customizations</var> be the following algorithm given a realm <var>realm</var>:</p>
 
-    <ul>
-     <li><p>For the global object, if <var>is shared</var> is true, create a new
-     <code>SharedWorkerGlobalScope</code> object. Otherwise, create a new
-     <code>DedicatedWorkerGlobalScope</code> object.</p></li>
-    </ul>
+    <ol>
+     <li>Let <var>global</var> be a new <code>SharedWorkerGlobalScope</code> object if <var>is shared</var> is true; otherwise a new <code>DedicatedWorkerGlobalScope</code> object.</li>
+
+     <li>Return « <var>global</var>, undefined ».</li>
+    </ol>
    </li>
+
+   <li><p>Let <var>realm execution context</var> be the result of <span>creating a new realm</span>
+   given <var>agent</var> and <var>customizations</var>.</p></li>
 
    <li>
     <p>Let <var>worker global scope</var> be the <span data-x="concept-realm-global">global
@@ -137467,14 +137465,18 @@ interface <dfn interface>WorkletGlobalScope</dfn> {};</code></pre>
    agent.</p></li>
 
    <li>
-    <p>Let <var>realmExecutionContext</var> be the result of <span>creating a new realm</span> given
-    <var>agent</var> and the following customizations:</p>
+    <p>Let <var>customizations</var> be the following algorithm given a realm <var>realm</var>:</p>
 
-    <ul>
-     <li><p>For the global object, create a new object of the type given by <var>worklet</var>'s
-     <span>worklet global scope type</span>.</p></li>
-    </ul>
+    <ol>
+     <li>Let <var>global</var> be a new object of the type given by <var>worklet</var>'s
+     <span>worklet global scope type</span>.</li>
+
+     <li>Return « <var>global</var>, undefined ».</li>
+    </ol>
    </li>
+
+   <li><p>Let <var>realmExecutionContext</var> be the result of <span>creating a new realm</span>
+   given <var>agent</var> and <var>customizations</var>.</p></li>
 
    <li><p>Let <var>workletGlobalScope</var> be the <span data-x="concept-realm-global">global
    object</span> of <var>realmExecutionContext</var>'s Realm component.</p></li>
