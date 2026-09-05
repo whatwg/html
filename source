@@ -112687,6 +112687,19 @@ location.href = '#foo';</code></pre>
     </ol>
    </li>
 
+   <li><p>For each <code>EventSource</code> object <var>eventSource</var> whose
+   <span>relevant global object</span>'s <span
+   data-x="concept-document-window">associated <code>Document</code></span> is
+   <var>document</var>, if <var>eventSource</var>'s <span
+   data-x="concept-event-stream-reconnect-after-bfcache">reconnect after back/forward cache
+   restoration</span> flag is true, then set it to false and <span>reestablish the
+   connection</span> for <var>eventSource</var>.</p>
+
+   <p class="note">This step ensures that any <code>EventSource</code> whose fetch was aborted
+   while the document was in the <a href="#note-bfcache">back/forward cache</a> will attempt to
+   reconnect now that the document has been restored and is <span>fully active</span>
+   again.</p></li>
+
    <li><p><span>Update the navigation API entries for reactivation</span> given
    <var>document</var>'s <span>relevant global object</span>'s <span
    data-x="window-navigation-api">navigation API</span>, <var>entriesForNavigationAPI</var>, and
@@ -114307,6 +114320,36 @@ new PaymentRequest(&hellip;); // Allowed to use
      <li><p><span data-x="map clear">Clear</span> <var>window</var>'s
      <span>map of active timers</span>.</p></li>
     </ol>
+   </li>
+
+   <li>
+    <p>Otherwise, for each <code>EventSource</code> object <var>eventSource</var> whose
+    <span>relevant global object</span> is equal to <var>window</var>, if there are any instances
+    of the <span data-x="concept-fetch">fetch</span> algorithm started for
+    <var>eventSource</var>:</p>
+
+    <ol>
+     <li><p>Abort any instances of the <span data-x="concept-fetch">fetch</span> algorithm started
+     for <var>eventSource</var>.</p></li>
+
+     <li><p>Set <var>eventSource</var>'s <code
+     data-x="dom-EventSource-readyState">readyState</code> attribute to <code
+     data-x="dom-EventSource-CONNECTING">CONNECTING</code>.</p></li>
+
+     <li><p>Set <var>eventSource</var>'s <span
+     data-x="concept-event-stream-reconnect-after-bfcache">reconnect after back/forward cache
+     restoration</span> flag to true.</p></li>
+    </ol>
+
+    <p class="note">This allows user agents to interrupt an ongoing <code>EventSource</code>
+    fetch when a <code>Document</code> is being stored in the <a href="#note-bfcache">back/forward
+    cache</a>, without <span data-x="fail the connection">failing the connection</span> or <span
+    data-x="concept-EventSource-forcibly-close">forcibly closing</span> the
+    <code>EventSource</code>. Events that would have arrived while the document is in the
+    back/forward cache are not queued for later delivery. When the document is later
+    <span data-x="reactivate a document">reactivated</span>, any affected <code>EventSource</code>
+    will attempt to reconnect via its normal <span>reestablish the connection</span>
+    algorithm.</p>
    </li>
   </ol>
   </div>
@@ -132885,6 +132928,9 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
 
    <li><p>A <dfn data-x="concept-event-stream-last-event-id">last event ID string</dfn>. This must
    initially be the empty string.</p></li>
+
+   <li><p>A <dfn data-x="concept-event-stream-reconnect-after-bfcache">reconnect after
+   back/forward cache restoration</dfn> flag, which must initially be false.</p></li>
   </ul>
 
   <p>Apart from <span data-x="concept-EventSource-url">url</span> these are not currently exposed on
@@ -133189,6 +133235,18 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
   <p>The <span>task source</span> for any <span data-x="concept-task">tasks</span> that are <span
   data-x="queue a task">queued</span> by <code>EventSource</code> objects is the <dfn>remote event
   task source</dfn>.</p>
+
+  <div class="note">
+  <p>When a <code>Document</code> becomes non-<span>fully active</span> because it is stored in
+  the <a href="#note-bfcache">back/forward cache</a>, its <code>EventSource</code> connections
+  stop delivering events. The user agent can abort an ongoing instance of the <span
+  data-x="concept-fetch">fetch</span> algorithm for an <code>EventSource</code> at that point;
+  doing so does not make the document unsalvageable. Events that would have arrived while the
+  document is in the back/forward cache are not queued for later delivery. When the document is
+  <span data-x="reactivate a document">reactivated</span>, any affected <code>EventSource</code>
+  can reconnect via the normal <span>reestablish the connection</span> algorithm (sending a
+  `<code>Last-Event-ID</code>` header if applicable).</p>
+  </div>
 
   </div>
 
@@ -133617,7 +133675,8 @@ data:&nbsp;test
   <div algorithm>
   <p>If a user agent is to <dfn data-x="concept-EventSource-forcibly-close">forcibly close</dfn> an
   <code>EventSource</code> object (this happens when a <code>Document</code> object goes away
-  permanently), the user agent must abort any instances of the <span
+  permanently, and not when a <code>Document</code> enters the <a href="#note-bfcache">back/forward
+  cache</a>), the user agent must abort any instances of the <span
   data-x="concept-fetch">fetch</span> algorithm started for this <code>EventSource</code> object,
   and must set the <code data-x="dom-EventSource-readyState">readyState</code> attribute to <code
   data-x="dom-EventSource-CLOSED">CLOSED</code>.</p> <!-- same as calling close() -->
