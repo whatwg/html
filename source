@@ -27271,13 +27271,17 @@ document.body.appendChild(wbr);</code></pre>
 
    <li><p>If <var>urlRecord</var> is failure, then return.</p></li>
 
+   <li><p>Let <var>hasImmediateNavigationForWebDriver</var> be true if <var>urlRecord</var> does not <span
+   data-x="matches about:blank">match <code>about:blank</code></span>; otherwise false.</p></li>
+
    <li><p>Let <var>noopener</var> be the result of <span data-x="get an element's noopener">getting
    an element's noopener</span> with <var>subject</var>, <var>urlRecord</var>, and
    <var>targetAttributeValue</var>.</p></li>
 
    <li><p>Let <var>targetNavigable</var> be the first return value of applying <span>the rules for
    choosing a navigable</span> given <var>targetAttributeValue</var>, <var>subject</var>'s
-   <span>node navigable</span>, and <var>noopener</var>.</p></li>
+   <span>node navigable</span>, <var>noopener</var>, and
+   <var>hasImmediateNavigationForWebDriver</var>.</p></li>
 
    <li><p>If <var>targetNavigable</var> is null, then return.</p></li>
 
@@ -35464,7 +35468,38 @@ interface <dfn interface>HTMLIFrameElement</dfn> : <span>HTMLElement</span> {
    directive</span> given the attribute's value and <var>insertedNode</var>'s
    <span><code>iframe</code> sandboxing flag set</span>.</p></li>
 
-   <li><p><span>Create a new child navigable</span> for <var>insertedNode</var>.</p></li>
+   <li><p>Let <var>hasImmediateNavigationForWebDriver</var> be true.</p></li>
+
+   <li>
+    <p>If <var>insertedNode</var> does not have a <code
+    data-x="attr-iframe-srcdoc">srcdoc</code> attribute, then:</p>
+
+    <ol>
+     <li><p>Let <var>url</var> be the result of <span>getting the URL for an <code>iframe</code> or
+     <code>frame</code></span> given <var>insertedNode</var>.</p></li>
+
+     <li><p>If <var>url</var> is null or <var>url</var> <span>matches
+     <code>about:blank</code></span>, then set <var>hasImmediateNavigationForWebDriver</var> to false.</p></li>
+    </ol>
+   </li>
+
+   <li>
+    <p>If all of the following are true:</p>
+
+    <ul class="brief">
+     <li><p><var>hasImmediateNavigationForWebDriver</var> is true;</p></li>
+
+     <li><p>the <span>will lazy load element steps</span> given <var>insertedNode</var> return true;
+     and</p></li>
+
+     <li><p><var>insertedNode</var> does not <span>intersect the viewport</span>,</p></li>
+    </ul>
+
+    <p>then set <var>hasImmediateNavigationForWebDriver</var> to false.</p>
+   </li>
+
+   <li><p><span>Create a new child navigable</span> given <var>insertedNode</var> and
+   <var>hasImmediateNavigationForWebDriver</var>.</p></li>
 
    <li><p><span>Process the <code>iframe</code> attributes</span> for <var>insertedNode</var>, with
    <i data-x="process-iframe-initial-insertion">initialInsertion</i> set to true.</p></li>
@@ -35598,9 +35633,8 @@ interface <dfn interface>HTMLIFrameElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
-  <p id="otherwise-steps-for-iframe-or-frame-elements">The <dfn>shared attribute processing steps
-  for <code>iframe</code> and <code>frame</code> elements</dfn>, given an element
-  <var>element</var> and a boolean <var>initialInsertion</var>, are:</p>
+  <p>To <dfn data-x="getting the URL for an iframe or frame">get the URL for an
+  <code>iframe</code> or <code>frame</code></dfn> given an element <var>element</var>:</p>
 
   <ol>
    <li><p>Let <var>url</var> be the <span>URL record</span> <code>about:blank</code>.</p></li>
@@ -35625,6 +35659,21 @@ interface <dfn interface>HTMLIFrameElement</dfn> : <span>HTMLElement</span> {
    fragments">exclude fragments</i> set to true, then return null.</p></li>
    <!-- https://www.hixie.ch/tests/adhoc/html/frames/iframes/ 008.html and 009.html -->
    <!-- https://software.hixie.ch/utilities/js/live-dom-viewer/?saved=1969 -->
+
+   <li><p>Return <var>url</var>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p id="otherwise-steps-for-iframe-or-frame-elements">The <dfn>shared attribute processing steps
+  for <code>iframe</code> and <code>frame</code> elements</dfn>, given an element
+  <var>element</var> and a boolean <var>initialInsertion</var>, are:</p>
+
+  <ol>
+   <li><p>Let <var>url</var> be the result of <span>getting the URL for an <code>iframe</code> or
+   <code>frame</code></span> given <var>element</var>.</p></li>
+
+   <li><p>If <var>url</var> is null, then return null.</p></li>
 
    <li>
     <p>If <var>url</var> <span>matches <code>about:blank</code></span> and
@@ -36410,7 +36459,7 @@ interface <dfn interface>HTMLEmbedElement</dfn> : <span>HTMLElement</span> {
          <dd>
           <ol>
            <li><p>If <var>element</var>'s <span>content navigable</span> is null, then
-           <span>create a new child navigable</span> for <var>element</var>.</p></li>
+           <span>create a new child navigable</span> given <var>element</var> and true.</p></li>
            <!-- https://software.hixie.ch/utilities/js/live-dom-viewer/?saved=2291 - dynamic changes
                 to 'name' don't do anything -->
 
@@ -36906,14 +36955,18 @@ interface <dfn interface>HTMLObjectElement</dfn> : <span>HTMLElement</span> {
        does not start with "<code data-x="">image/</code>"</dt>
 
        <dd>
-        <p>If the <code>object</code> element's <span>content navigable</span> is null, then
-        <span>create a new child navigable</span> for the element.</p>
-
         <p>Let <var>response</var> be the <span data-x="concept-response">response</span> from
         <span data-x="concept-fetch">fetch</span>.</p>
 
-        <p>If <var>response</var>'s <span data-x="concept-response-url">URL</span> does not <span
-        data-x="matches about:blank">match <code>about:blank</code></span>, then
+        <p>Let <var>hasImmediateNavigationForWebDriver</var> be true if <var>response</var>'s <span
+        data-x="concept-response-url">URL</span> does not <span data-x="matches about:blank">match
+        <code>about:blank</code></span>; otherwise false.</p>
+
+        <p>If the <code>object</code> element's <span>content navigable</span> is null, then
+        <span>create a new child navigable</span> given the element and
+        <var>hasImmediateNavigationForWebDriver</var>.</p>
+
+        <p>If <var>hasImmediateNavigationForWebDriver</var> is true, then
         <span>navigate</span><!-- DONAV object --> the element's <span>content navigable</span> to
         <var>response</var>'s <span data-x="concept-response-url">URL</span> using the element's
         <span>node document</span>, with <i data-x="navigation-hh">historyHandling</i> set to
@@ -64566,6 +64619,9 @@ fur
 
    <li><p>If <var>parsed action</var> is failure, then return.</p></li>
 
+   <li><p>Let <var>hasImmediateNavigationForWebDriver</var> be true if <var>parsed action</var> does not <span
+   data-x="matches about:blank">match <code>about:blank</code></span>; otherwise false.</p></li>
+
    <li><p>Let <var>scheme</var> be the <span data-x="concept-url-scheme">scheme</span> of
    <var>parsed action</var>.</p></li>
 
@@ -64589,7 +64645,7 @@ fur
 
    <li><p>Let <var>targetNavigable</var> be the first return value of applying <span>the rules for
    choosing a navigable</span> given <var>target</var>, <var>form</var>'s <span>node
-   navigable</span>, and <var>noopener</var>.</p></li>
+   navigable</span>, <var>noopener</var>, and <var>hasImmediateNavigationForWebDriver</var>.</p></li>
 
    <li><p>If <var>targetNavigable</var> is null, then return.</p></li>
 
@@ -97269,10 +97325,15 @@ dictionary <dfn dictionary>WindowPostMessageOptions</dfn> : <span>StructuredSeri
    <li><p>If <var>noreferrer</var> is true, then set <var>noopener</var> to true and set
    <var>referrerPolicy</var> to "<code data-x="">no-referrer</code>".</p></li>
 
+   <li><p>Let <var>hasImmediateNavigationForWebDriver</var> be true if <var>urlRecord</var> is non-null and does
+   not <span data-x="matches about:blank">match <code>about:blank</code></span>; otherwise
+   false.</p></li>
+
    <li>
     <p>Let <var>targetNavigable</var> and <var>windowType</var> be the result of applying <span>the
     rules for choosing a navigable</span> given <var>target</var>, <var>sourceDocument</var>'s
-    <span>node navigable</span>, and <var>noopener</var>.</p>
+    <span>node navigable</span>, <var>noopener</var>, and
+    <var>hasImmediateNavigationForWebDriver</var>.</p>
 
     <p class="example">If there is a user agent that supports control-clicking a link to open it in
     a new tab, and the user control-clicks on an element whose <code
@@ -105250,8 +105311,8 @@ interface <dfn interface>NotRestoredReasons</dfn> {
   <div algorithm>
   <p>To <dfn data-x="creating a new top-level traversable">create a new top-level traversable</dfn>
   given a <span>browsing context</span>-or-null <var>opener</var>, a string
-  <var>targetName</var>, and an optional <span>navigable</span>
-  <var>openerNavigableForWebDriver</var>:</p>
+  <var>targetName</var>, a boolean <var>hasImmediateNavigationForWebDriver</var>, and an optional
+  <span>navigable</span> <var>openerNavigableForWebDriver</var>:</p>
 
   <ol>
    <li><p>Let <var>document</var> be null.</p></li>
@@ -105306,8 +105367,8 @@ interface <dfn interface>NotRestoredReasons</dfn> {
    <li><p><span data-x="list append">Append</span> <var>traversable</var> to the user agent's
    <span>top-level traversable set</span>.</p></li>
 
-   <li><p>Invoke <span>WebDriver BiDi navigable created</span> with <var>traversable</var>
-   and <var>openerNavigableForWebDriver</var>.</p></li>
+   <li><p>Invoke <span>WebDriver BiDi navigable created</span> with <var>traversable</var>,
+   <var>hasImmediateNavigationForWebDriver</var>, and <var>openerNavigableForWebDriver</var>.</p></li>
 
    <li><p>Return <var>traversable</var>.</p></li>
   </ol>
@@ -105319,8 +105380,12 @@ interface <dfn interface>NotRestoredReasons</dfn> {
   <var>initialNavigationPostResource</var> (default null):</p>
 
   <ol>
+   <li><p>Let <var>hasImmediateNavigationForWebDriver</var> be true if <var>initialNavigationURL</var> does not
+   <span data-x="matches about:blank">match <code>about:blank</code></span>; otherwise false.</p></li>
+
    <li><p>Let <var>traversable</var> be the result of <span>creating a new top-level
-   traversable</span> given null and the empty string.</p></li>
+   traversable</span> given null, the empty string, and
+   <var>hasImmediateNavigationForWebDriver</var>.</p></li>
 
    <li>
     <p><span>Navigate</span> <var>traversable</var> to <var>initialNavigationURL</var> using
@@ -105434,7 +105499,7 @@ interface <dfn interface>NotRestoredReasons</dfn> {
 
   <div algorithm>
   <p id="creating-a-new-nested-browsing-context">To <dfn>create a new child navigable</dfn>, given
-  an element <var>element</var>:</p>
+  an element <var>element</var> and a boolean <var>hasImmediateNavigationForWebDriver</var>:</p>
 
   <ol>
    <li><p>Let <var>parentNavigable</var> be <var>element</var>'s <span>node
@@ -105521,7 +105586,8 @@ interface <dfn interface>NotRestoredReasons</dfn> {
     </ol>
    </li>
 
-   <li><p>Invoke <span>WebDriver BiDi navigable created</span> with <var>traversable</var>.</p></li>
+   <li><p>Invoke <span>WebDriver BiDi navigable created</span> with <var>navigable</var> and
+   <var>hasImmediateNavigationForWebDriver</var>.</p></li>
   </ol>
   </div>
 
@@ -106127,7 +106193,8 @@ interface <dfn interface>NotRestoredReasons</dfn> {
   <div algorithm>
   <p id="the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name"><dfn>The rules
   for choosing a navigable</dfn>, given a string <var>name</var>, a <span>navigable</span>
-  <var>currentNavigable</var>, and a boolean <var>noopener</var> are as follows:</p>
+  <var>currentNavigable</var>, a boolean <var>noopener</var>, and a boolean
+  <var>hasImmediateNavigationForWebDriver</var> are as follows:</p>
 
   <ol>
    <li><p>Let <var>chosen</var> be null.</p></li>
@@ -106212,7 +106279,8 @@ interface <dfn interface>NotRestoredReasons</dfn> {
 
        <li id="noopener"><p>If <var>noopener</var> is true, then set <var>chosen</var> to the
        result of <span>creating a new top-level traversable</span> given null,
-       <var>targetName</var>, and <var>currentNavigable</var>.</p></li>
+       <var>targetName</var>, <var>hasImmediateNavigationForWebDriver</var>, and
+       <var>currentNavigable</var>.</p></li>
 
        <li>
         <p>Otherwise:</p>
@@ -106220,7 +106288,8 @@ interface <dfn interface>NotRestoredReasons</dfn> {
         <ol>
          <li><p>Set <var>chosen</var> to the result of <span>creating a new top-level
          traversable</span> given <var>currentNavigable</var>'s <span data-x="nav-bc">active
-         browsing context</span>, <var>targetName</var>, and <var>currentNavigable</var>.</p></li>
+         browsing context</span>, <var>targetName</var>, <var>hasImmediateNavigationForWebDriver</var>, and
+         <var>currentNavigable</var>.</p></li>
 
          <li><p>If <var>sandboxingFlagSet</var>'s <span>sandboxed navigation browsing context
          flag</span> is set, then set <var>chosen</var>'s <span data-x="nav-bc">active browsing
@@ -155222,7 +155291,14 @@ interface <dfn interface>HTMLFrameSetElement</dfn> : <span>HTMLElement</span> {
    <li><p>If <var>insertedNode</var>'s <span>root</span>'s <span
    data-x="concept-document-bc">browsing context</span> is null, then return.</p></li>
 
-   <li><p><span>Create a new child navigable</span> for <var>insertedNode</var>.</p></li>
+   <li><p>Let <var>url</var> be the result of <span>getting the URL for an <code>iframe</code> or
+   <code>frame</code></span> given <var>insertedNode</var>.</p></li>
+
+   <li><p>Let <var>hasImmediateNavigationForWebDriver</var> be true if <var>url</var> is non-null and does not
+   <span data-x="matches about:blank">match <code>about:blank</code></span>; otherwise false.</p></li>
+
+   <li><p><span>Create a new child navigable</span> given <var>insertedNode</var> and
+   <var>hasImmediateNavigationForWebDriver</var>.</p></li>
 
    <li><p><span>Process the <code>frame</code> attributes</span> for <var>insertedNode</var>, with
    <i data-x="process-frame-initial-insertion">initialInsertion</i> set to true.</p></li>
