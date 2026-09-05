@@ -3144,6 +3144,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li>The <dfn data-x-href="https://tc39.es/ecma262/#sec-isconstructor">IsConstructor</dfn> abstract operation</li>
      <li>The <dfn data-x-href="https://tc39.es/ecma262/#sec-isdatadescriptor">IsDataDescriptor</dfn> abstract operation</li>
      <li>The <dfn data-x-href="https://tc39.es/ecma262/#sec-isdetachedbuffer">IsDetachedBuffer</dfn> abstract operation</li>
+     <li>The <dfn data-x-href="https://tc39.es/ecma262/#sec-isimmutablebuffer">IsImmutableBuffer</dfn> abstract operation</li>
      <li>The <dfn data-x-href="https://tc39.es/ecma262/#sec-issharedarraybuffer">IsSharedArrayBuffer</dfn> abstract operation</li>
      <li>The <dfn data-x="js-NewObjectEnvironment" data-x-href="https://tc39.es/ecma262/#sec-newobjectenvironment">NewObjectEnvironment</dfn> abstract operation</li>
      <li>The <dfn data-x-href="https://tc39.es/ecma262/#sec-normalcompletion">NormalCompletion</dfn> abstract operation</li>
@@ -10541,6 +10542,23 @@ interface <dfn interface>DOMStringList</dfn> {
      </li>
 
      <li>
+      <p>Otherwise, if <span>IsImmutableBuffer</span>(<var>value</var>) is true, then:</p>
+
+      <ol>
+       <li>
+        <p>Set <var>serialized</var> to { [[Type]]: "ImmutableArrayBuffer", [[ArrayBufferData]]:
+        <var>value</var>.[[ArrayBufferData]], [[ArrayBufferByteLength]]:
+        <var>value</var>.[[ArrayBufferByteLength]] }.</p>
+
+        <p class="note">To support deserialization by independent processes at arbitrary points in
+        the future, the <em>contents</em> of <var>value</var>.[[ArrayBufferData]] need to be
+        preserved when <var>forStorage</var> is true. But otherwise, a pointer <em>referencing</em>
+        <var>value</var>.[[ArrayBufferData]] is expected to suffice.</p>
+       </li>
+      </ol>
+     </li>
+
+     <li>
       <p>Otherwise:</p>
 
       <ol>
@@ -10587,7 +10605,8 @@ interface <dfn interface>DOMStringList</dfn> {
      <var>memory</var>).</p></li>
 
      <li><p><span>Assert</span>: <var>bufferSerialized</var>.[[Type]] is "ArrayBuffer",
-     "ResizableArrayBuffer", "SharedArrayBuffer", or "GrowableSharedArrayBuffer".</p></li>
+     "ImmutableArrayBuffer", "ResizableArrayBuffer", "SharedArrayBuffer", or
+     "GrowableSharedArrayBuffer".</p></li>
 
      <li><p>If <var>value</var> has a [[DataView]] internal slot, then set <var>serialized</var> to
      { [[Type]]: "ArrayBufferView", [[Constructor]]: "DataView", [[ArrayBufferSerialized]]:
@@ -10987,6 +11006,20 @@ o.myself = o;</code></pre>
    </li>
 
    <li>
+    <p>Otherwise, if <var>serialized</var>.[[Type]] is "ImmutableArrayBuffer", then:</p>
+
+    <ol>
+     <li><p>Set <var>value</var> to a new ArrayBuffer object in <var>targetRealm</var> whose
+     [[ArrayBufferData]] internal slot value is <var>serialized</var>.[[ArrayBufferData]], whose
+     [[ArrayBufferByteLength]] internal slot value is
+     <var>serialized</var>.[[ArrayBufferByteLength]], and whose [[ArrayBufferIsImmutable]] internal
+     slot value is undefined.</p></li>
+
+     <li><p><span>Assert</span>: <span>IsImmutableBuffer</span>(<var>value</var>) is true.</p></li>
+    </ol>
+   </li>
+
+   <li>
     <p>Otherwise, if <var>serialized</var>.[[Type]] is "ArrayBuffer", then set <var>value</var> to a
     new ArrayBuffer object in <var>targetRealm</var> whose [[ArrayBufferData]] internal slot value
     is <var>serialized</var>.[[ArrayBufferData]], and whose [[ArrayBufferByteLength]] internal slot
@@ -11266,8 +11299,9 @@ o.myself = o;</code></pre>
      <span>[[Detached]]</span> internal slot, then throw a
      <span>"<code>DataCloneError</code>"</span> <code>DOMException</code>.</p></li>
 
-     <li><p>If <var>transferable</var> has an [[ArrayBufferData]] internal slot and
-     <span>IsSharedArrayBuffer</span>(<var>transferable</var>) is true, then throw a
+     <li><p>If <var>transferable</var> has an [[ArrayBufferData]] internal slot and either
+     <span>IsSharedArrayBuffer</span>(<var>transferable</var>) is true or
+     <span>IsImmutableBuffer</span>(<var>transferable</var>) is true, then throw a
      <span>"<code>DataCloneError</code>"</span> <code>DOMException</code>.</p></li>
 
      <li><p>If <var>memory</var>[<var>transferable</var>] <span data-x="map exists">exists</span>,
