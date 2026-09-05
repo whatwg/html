@@ -3280,6 +3280,16 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#interface-shadowroot"><code>ShadowRoot</code></dfn> interface</li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#interface-text"><code>Text</code></dfn> interface</li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#interface-range"><code>Range</code></dfn> interface</li>
+     <li><dfn data-x-href="https://dom.spec.whatwg.org/#interface-opaquerange"><code>OpaqueRange</code></dfn>
+     interface, and its
+     <dfn data-x-href="https://dom.spec.whatwg.org/#opaque-range-start-container">start container</dfn>,
+     <dfn data-x-href="https://dom.spec.whatwg.org/#opaque-range-start">start offset</dfn>,
+     <dfn data-x-href="https://dom.spec.whatwg.org/#opaque-range-end-container">end container</dfn>,
+     <dfn data-x-href="https://dom.spec.whatwg.org/#opaque-range-end">end offset</dfn>,
+     <dfn data-x="dom-OpaqueRange-associated-element" data-x-href="https://dom.spec.whatwg.org/#opaquerange-associated-element">associated element</dfn>,
+     and <dfn data-x="dom-OpaqueRange-disconnect" data-x-href="https://dom.spec.whatwg.org/#dom-opaquerange-disconnect"><code>disconnect()</code></dfn> method</li>
+     <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#supports-opaque-range">supports opaque ranges</dfn> concept</li>
+     <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#opaque-range-disconnect-steps">opaque range disconnect steps</dfn> hook</li>
 
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#concept-node-document">node document</dfn> concept</li>
      <li><dfn data-x="concept-document-type" data-x-href="https://dom.spec.whatwg.org/#concept-document-type">document type</dfn> concept</li>
@@ -49751,6 +49761,7 @@ interface <dfn interface>HTMLInputElement</dfn> : <span>HTMLElement</span> {
   undefined <span data-x="dom-textarea/input-setRangeText">setRangeText</span>(DOMString replacement);
   undefined <span data-x="dom-textarea/input-setRangeText">setRangeText</span>(DOMString replacement, unsigned long start, unsigned long end, optional <span>SelectionMode</span> selectionMode = "preserve");
   undefined <span data-x="dom-textarea/input-setSelectionRange">setSelectionRange</span>(unsigned long start, unsigned long end, optional DOMString direction);
+  [NewObject] <code>OpaqueRange</code> <span data-x="dom-textarea/input-createValueRange">createValueRange</span>(unsigned long start, unsigned long end);
 
   undefined <span data-x="dom-input-showPicker">showPicker</span>();
 
@@ -49933,7 +49944,8 @@ interface <dfn interface>HTMLInputElement</dfn> : <span>HTMLElement</span> {
    <code data-x="dom-textarea/input-selectionEnd">selectionEnd</code>, and
    <code data-x="dom-textarea/input-selectionDirection">selectionDirection</code>, IDL attributes, the
    <code data-x="dom-textarea/input-setRangeText">setRangeText()</code> and
-   <code data-x="dom-textarea/input-setSelectionRange">setSelectionRange()</code> methods, the
+   <code data-x="dom-textarea/input-setSelectionRange">setSelectionRange()</code>, and
+   <code data-x="dom-textarea/input-createValueRange">createValueRange()</code> methods, the
    <code data-x="dom-input-stepUp">stepUp()</code> and
    <code data-x="dom-input-stepDown">stepDown()</code> methods, and the
    <code data-x="event-input">input</code> and
@@ -50971,6 +50983,30 @@ interface <dfn interface>HTMLInputElement</dfn> : <span>HTMLElement</span> {
 <!-- <td class="no"> &middot;      Button -->
 
     <tr>
+     <th> <code data-x="dom-textarea/input-createValueRange">createValueRange()</code>
+     <td class="no"> &middot; <!-- Hidden -->
+     <td class="yes"> Yes     <!-- Text -->
+<!-- <td class="yes"> Yes          Search -->
+     <td class="yes"> Yes     <!-- Telephone, URL -->
+     <td class="no"> &middot; <!-- Email -->
+     <td class="yes"> Yes     <!-- Password -->
+     <td class="no"> &middot; <!-- Date -->
+<!-- <td class="no"> &middot;      Month -->
+<!-- <td class="no"> &middot;      Week -->
+<!-- <td class="no"> &middot;      Time -->
+     <td class="no"> &middot; <!-- Local Date and Time -->
+     <td class="no"> &middot; <!-- Number -->
+     <td class="no"> &middot; <!-- Range -->
+     <td class="no"> &middot; <!-- Color -->
+     <td class="no"> &middot; <!-- Checkbox -->
+<!-- <td class="no"> &middot;      Radio Button -->
+     <td class="no"> &middot; <!-- File Upload -->
+     <td class="no"> &middot; <!-- Submit Button -->
+     <td class="no"> &middot; <!-- Image Button -->
+     <td class="no"> &middot; <!-- Reset Button -->
+<!-- <td class="no"> &middot;      Button -->
+
+    <tr>
      <th> <code data-x="dom-input-stepDown">stepDown()</code>
      <td class="no"> &middot; <!-- Hidden -->
      <td class="no"> &middot; <!-- Text -->
@@ -51112,6 +51148,11 @@ interface <dfn interface>HTMLInputElement</dfn> : <span>HTMLElement</span> {
   to the value of the <code data-x="attr-input-value">value</code> content attribute, if there is
   one, or the empty string otherwise, and then run the current <span>value sanitization
   algorithm</span>, if one is defined.</span></p>
+
+  <p>If the element <span>supports opaque ranges</span> and this operation changes its <span
+  data-x="concept-fe-value">value</span>, then run the <span>opaque range full replacement
+  steps</span> with the element, the old value's <span>length</span>, and the new value's
+  <span>length</span>.</p>
   </div>
 
   <div w-nodev>
@@ -51157,7 +51198,10 @@ interface <dfn interface>HTMLInputElement</dfn> : <span>HTMLElement</span> {
   attribute and false if it does not, empty the list of <span
   data-x="concept-input-type-file-selected">selected files</span>, and then invoke the <span>value
   sanitization algorithm</span>, if the <code data-x="attr-input-type">type</code> attribute's
-  current state defines one.</p>
+  current state defines one. If the element <span>supports opaque ranges</span> and its <span
+  data-x="concept-fe-value">value</span> changed, then run the <span>opaque range full replacement
+  steps</span> with the element, the old value's <span>length</span>, and the new value's
+  <span>length</span>.</p>
   </div>
 
   <p>Each <code>input</code> element can be <span data-x="concept-fe-mutable">mutable</span>. Except where
@@ -51214,6 +51258,13 @@ interface <dfn interface>HTMLInputElement</dfn> : <span>HTMLElement</span> {
   data-x="concept-input-checked-dirty-flag">dirty checkedness flag</span>, and <span
   data-x="concept-input-indeterminate">indeterminateness</span> from <var>node</var> to
   <var>copy</var>.</p>
+  </div>
+
+  <div algorithm>
+  <p>The <code>input</code> <span>HTML element removing steps</span>, given
+  <var>removedNode</var> and <var>oldParent</var>, are: if <var>removedNode</var> <span>supports
+  opaque ranges</span>, then <span>disconnect all associated OpaqueRanges</span> from
+  <var>removedNode</var>.</p>
   </div>
 
   <div algorithm>
@@ -51369,6 +51420,9 @@ interface <dfn interface>HTMLInputElement</dfn> : <span>HTMLElement</span> {
    element's <span data-x="concept-textarea/input-cursor">text entry cursor position</span> to the
    beginning of the text control, and <span data-x="set the selection direction">set its selection
    direction</span> to "<code data-x="">none</code>".</p></li>
+
+   <li><p>If <var>previouslySelectable</var> is true and <var>nowSelectable</var> is false, then
+   <span>disconnect all associated OpaqueRanges</span> from this element.</p></li>
   </ol>
   </div>
 
@@ -56116,6 +56170,12 @@ You cannot submit this form when the field is incorrect.</samp></pre>
      <li><p>Invoke the <span>value sanitization algorithm</span>, if the element's <code
      data-x="attr-input-type">type</code> attribute's current state defines one.</p></li>
 
+     <li><p>If the element's <span data-x="concept-fe-value">value</span> is different
+     from <var>oldValue</var>, and the element <span>supports opaque ranges</span>, then run
+     the <span>opaque range full replacement steps</span> with the element,
+     <var>oldValue</var>'s <span>length</span>, and the current <span
+     data-x="concept-fe-value">value</span>'s <span>length</span>.</p></li>
+
      <li><p>If the element's <span data-x="concept-fe-value">value</span> (after applying the
      <span>value sanitization algorithm</span>) is different from <var>oldValue</var>, and the
      element has a <span data-x="concept-textarea/input-cursor">text entry cursor position</span>,
@@ -56595,13 +56655,22 @@ You cannot submit this form when the field is incorrect.</samp></pre>
   <p>For <code>input</code> elements without a defined <span>input activation behavior</span>, but
   to which these events <span data-x="concept-input-apply">apply</span>, any time the user causes
   the element's <span data-x="concept-fe-value">value</span> to change without an explicit commit
-  action, the user agent must <span>queue an element task</span> on the <span>user interaction task
-  source</span> given the <code>input</code> element to <span data-x="concept-event-fire">fire an
-  event</span> named <code data-x="event-input">input</code> at the <code>input</code> element, with
-  the <code data-x="dom-Event-bubbles">bubbles</code> and <code
-  data-x="dom-Event-composed">composed</code> attributes initialized to true. The corresponding
-  <code data-x="event-change">change</code> event, if any, will be fired when the control <a
-  href="#unfocus-causes-change-event">loses focus</a>.</p>
+  action, the user agent must run the following steps:</p>
+
+  <ol>
+   <li><p>If the element <span>supports opaque ranges</span>, then run the <span>opaque range
+   replacement steps</span> with the element, the edit's code unit offset, the number of code units
+   removed, and the number of code units inserted.</p></li>
+
+   <li><p><span>Queue an element task</span> on the <span>user interaction task source</span> given
+   the <code>input</code> element to <span data-x="concept-event-fire">fire an event</span> named
+   <code data-x="event-input">input</code> at the <code>input</code> element, with the <code
+   data-x="dom-Event-bubbles">bubbles</code> and <code data-x="dom-Event-composed">composed</code>
+   attributes initialized to true.</p></li>
+  </ol>
+
+  <p>The corresponding <code data-x="event-change">change</code> event, if any, will be fired when
+  the control <a href="#unfocus-causes-change-event">loses focus</a>.</p>
   </div>
 
   <p class="example">Examples of a user changing the element's <span
@@ -58875,6 +58944,7 @@ interface <dfn interface>HTMLTextAreaElement</dfn> : <span>HTMLElement</span> {
   undefined <span data-x="dom-textarea/input-setRangeText">setRangeText</span>(DOMString replacement);
   undefined <span data-x="dom-textarea/input-setRangeText">setRangeText</span>(DOMString replacement, unsigned long start, unsigned long end, optional <span>SelectionMode</span> selectionMode = "preserve");
   undefined <span data-x="dom-textarea/input-setSelectionRange">setSelectionRange</span>(unsigned long start, unsigned long end, optional DOMString direction);
+  [NewObject] <code>OpaqueRange</code> <span data-x="dom-textarea/input-createValueRange">createValueRange</span>(unsigned long start, unsigned long end);
 };</code></pre>
    </dd>
    <dd w-dev>Uses <code>HTMLTextAreaElement</code>.</dd>
@@ -58936,15 +59006,23 @@ interface <dfn interface>HTMLTextAreaElement</dfn> : <span>HTMLElement</span> {
   data-x="concept-textarea-raw-value">raw value</span> should be editable by the user: the user
   agent should allow the user to edit, insert, and remove text, and to insert and remove line breaks
   in the form of U+000A LINE FEED (LF) characters. Any time the user causes the element's <span
-  data-x="concept-textarea-raw-value">raw value</span> to change, the user agent must <span>queue an
-  element task</span> on the <span>user interaction task source</span> given the
-  <code>textarea</code> element to <span data-x="concept-event-fire">fire an event</span> named
-  <code data-x="event-input">input</code> at the <code>textarea</code> element, with the <code
-  data-x="dom-Event-bubbles">bubbles</code> and <code data-x="dom-Event-composed">composed</code>
-  attributes initialized to true. User agents may wait for a suitable break in the user's
-  interaction before queuing the task; for example, a user agent could wait for the user to have not
-  hit a key for 100ms, so as to only fire the event when the user pauses, instead of continuously
-  for each keystroke.</p>
+  data-x="concept-textarea-raw-value">raw value</span> to change, the user agent must run the
+  following steps:</p>
+
+  <ol>
+   <li><p>Run the <span>opaque range replacement steps</span> with the element, the edit's code
+   unit offset, the number of code units removed, and the number of code units inserted.</p></li>
+
+   <li><p><span>Queue an element task</span> on the <span>user interaction task source</span> given
+   the <code>textarea</code> element to <span data-x="concept-event-fire">fire an event</span>
+   named <code data-x="event-input">input</code> at the <code>textarea</code> element, with the
+   <code data-x="dom-Event-bubbles">bubbles</code> and <code
+   data-x="dom-Event-composed">composed</code> attributes initialized to true.</p></li>
+  </ol>
+
+  <p>User agents may wait for a suitable break in the user's interaction before queuing the task;
+  for example, a user agent could wait for the user to have not hit a key for 100ms, so as to only
+  fire the event when the user pauses, instead of continuously for each keystroke.</p>
   </div>
   <!-- same text is present in the <input> section -->
 
@@ -58962,10 +59040,20 @@ interface <dfn interface>HTMLTextAreaElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
+  <p>The <code>textarea</code> <span>HTML element removing steps</span>, given
+  <var>removedNode</var> and <var>oldParent</var>, are to <span>disconnect all associated
+  OpaqueRanges</span> from <var>removedNode</var>.</p>
+  </div>
+
+  <div algorithm>
   <p>The <span>children changed steps</span> for <code>textarea</code> elements must, if the
   element's <span data-x="concept-fe-dirty">dirty value flag</span> is false, set the element's
   <span data-x="concept-textarea-raw-value">raw value</span> to its <span>child text
-  content</span>.</p>
+  content</span>. If this changes the element's <span
+  data-x="concept-textarea-raw-value">raw value</span>, then run the <span>opaque range full
+  replacement steps</span> with the element, the length of the previous <span
+  data-x="concept-fe-api-value">API value</span>, and the length of the new <span
+  data-x="concept-fe-api-value">API value</span>.</p>
   </div>
 
   <div algorithm>
@@ -58973,7 +59061,10 @@ interface <dfn interface>HTMLTextAreaElement</dfn> : <span>HTMLElement</span> {
   elements is to set the <span>user validity</span> to false, the <span
   data-x="concept-fe-dirty">dirty value flag</span> back to false, and the <span
   data-x="concept-textarea-raw-value">raw value</span> to its <span>child text
-  content</span>.</p>
+  content</span>. If this changes the element's <span data-x="concept-fe-api-value">API
+  value</span>, then run the <span>opaque range full replacement steps</span> with the element, the
+  length of the previous <span data-x="concept-fe-api-value">API value</span>, and the length of
+  the new <span data-x="concept-fe-api-value">API value</span>.</p>
   </div>
 
   <div algorithm>
@@ -59246,8 +59337,12 @@ interface <dfn interface>HTMLTextAreaElement</dfn> : <span>HTMLElement</span> {
    <li><p>Set this element's <span data-x="concept-textarea-raw-value">raw value</span> to the new
    value.</p></li>
 
-   <li><p>Set this element's <span data-x="concept-fe-dirty">dirty value flag</span> to
-   true.</p></li>
+   <li><p>Set this element's <span data-x="concept-fe-dirty">dirty value flag</span> to true.</p></li>
+
+   <li><p>If this changes the element's <span data-x="concept-fe-api-value">API value</span>,
+   then run the <span>opaque range full replacement steps</span> with this element, the
+   <span>length</span> of <var>oldAPIValue</var>, and the <span>length</span> of the element's new
+   <span data-x="concept-fe-api-value">API value</span>.</p></li>
 
    <li><p>If the new <span data-x="concept-fe-api-value">API value</span> is different from
    <var>oldAPIValue</var>, then move the <span data-x="concept-textarea/input-cursor">text entry
@@ -63196,6 +63291,24 @@ MIT Room 32-G524
 
     </dl>
    </dd>
+
+   <dt><code data-x=""><var>range</var> = <var>element</var>.<span subdfn data-x="dom-textarea/input-createValueRange">createValueRange</span>(<var>start</var>, <var>end</var>)</code></dt>
+
+   <dd>
+    <p>Returns an <code>OpaqueRange</code> object representing the portion of the element's <span
+    data-x="concept-textarea/input-relevant-value">relevant value</span> from <var>start</var> to
+    <var>end</var>.</p>
+
+    <p>Throws a <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if the
+    element does not <span data-x="supports opaque ranges">support opaque ranges</span>.</p>
+
+    <p>Throws an <span>"<code>IndexSizeError</code>"</span> <code>DOMException</code> if
+    <var>start</var> or <var>end</var> is greater than the length of the <span
+    data-x="concept-textarea/input-relevant-value">relevant value</span>.</p>
+
+    <p>If <var>start</var> is greater than <var>end</var>, the range is collapsed to
+    <var>start</var>.</p>
+   </dd>
   </dl>
 
   <div w-nodev>
@@ -63568,6 +63681,12 @@ MIT Room 32-G524
 
    <li><p>Let <var>new end</var> be the sum of <var>start</var> and <var>new length</var>.</p></li>
 
+   <li><p>Let <var>deleted count</var> be max(0, <var>end</var> minus <var>start</var>).</p></li>
+
+   <li><p>If this element <span>supports opaque ranges</span>, then run the <span>opaque range
+   replacement steps</span> with this element, <var>start</var>, <var>deleted count</var>, and
+   <var>new length</var>.</p></li>
+
    <li>
     <p>Run the appropriate set of substeps from the following list:</p>
 
@@ -63629,6 +63748,108 @@ MIT Room 32-G524
 
    <li><p><span>Set the selection range</span> with <var>selection start</var> and <var>selection
    end</var>.</p></li>
+  </ol>
+  </div>
+
+  <p>A <code>textarea</code> element, or an <code>input</code> element whose <code
+  data-x="attr-input-type">type</code> attribute is in the <span
+  data-x="attr-input-type-text">Text</span>, <span data-x="attr-input-type-search">Search</span>,
+  <span data-x="attr-input-type-tel">Telephone</span>, <span
+  data-x="attr-input-type-url">URL</span>, or <span
+  data-x="attr-input-type-password">Password</span> state, <span>supports opaque ranges</span>.</p>
+
+  <p>Each element that <span>supports opaque ranges</span> has a <dfn>set of associated
+  OpaqueRanges</dfn>, which is a <span>set</span> of <code>OpaqueRange</code> objects, initially
+  empty.</p>
+
+  <p>For an element that <span>supports opaque ranges</span>, the <dfn>opaque range internal
+  container</dfn> is the internal node representing the element's <span
+  data-x="concept-textarea/input-relevant-value">relevant value</span> text.</p>
+
+  <div algorithm>
+  <p>The <dfn>opaque range full replacement steps</dfn>, given an element
+  <var>element</var>, an integer <var>oldLength</var>, and an integer <var>newLength</var>, are to
+  run the <span>opaque range replacement steps</span> with <var>element</var>, 0,
+  <var>oldLength</var>, and <var>newLength</var>.</p>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn>opaque range replacement steps</dfn>, given an element <var>element</var>,
+  a non-negative integer <var>offset</var>, a non-negative integer <var>count</var>, and a
+  non-negative integer <var>insertedLength</var>, are:</p>
+
+  <ol>
+   <li><p>For each <code>OpaqueRange</code> in <var>element</var>'s <span>set of associated
+   OpaqueRanges</span> whose <span>start offset</span> is greater than <var>offset</var> but less
+   than or equal to <var>offset</var> plus <var>count</var>, set its <span>start offset</span> to
+   <var>offset</var>.</p></li>
+
+   <li><p>For each <code>OpaqueRange</code> in <var>element</var>'s <span>set of associated
+   OpaqueRanges</span> whose <span>end offset</span> is greater than <var>offset</var> but less
+   than or equal to <var>offset</var> plus <var>count</var>, set its <span>end offset</span> to
+   <var>offset</var>.</p></li>
+
+   <li><p>For each <code>OpaqueRange</code> in <var>element</var>'s <span>set of associated
+   OpaqueRanges</span> whose <span>start offset</span> is greater than <var>offset</var> plus
+   <var>count</var>, increase its <span>start offset</span> by <var>insertedLength</var> and
+   decrease it by <var>count</var>.</p></li>
+
+   <li><p>For each <code>OpaqueRange</code> in <var>element</var>'s <span>set of associated
+   OpaqueRanges</span> whose <span>end offset</span> is greater than <var>offset</var> plus
+   <var>count</var>, increase its <span>end offset</span> by <var>insertedLength</var> and
+   decrease it by <var>count</var>.</p></li>
+  </ol>
+
+  <p class="note">These updates operate on UTF-16 code unit indices.</p>
+  </div>
+
+  <div algorithm>
+  <p>The <span>opaque range disconnect steps</span>, given an element <var>element</var> and an
+  <code>OpaqueRange</code> <var>range</var>, are to <span data-x="list remove">remove</span>
+  <var>range</var> from <var>element</var>'s <span>set of associated OpaqueRanges</span>.</p>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>disconnect all associated OpaqueRanges</dfn> from an element <var>element</var> that
+  <span>supports opaque ranges</span>, run the <code
+  data-x="dom-OpaqueRange-disconnect">disconnect()</code> method steps on all items in
+  <var>element</var>'s <span>set of associated OpaqueRanges</span>.</p>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn method for="HTMLInputElement,HTMLTextAreaElement"><code
+  data-x="dom-textarea/input-createValueRange">createValueRange(<var>start</var>,
+  <var>end</var>)</code></dfn> method, when invoked, must run the following steps:</p>
+
+  <ol>
+   <li><p>If this element is an <code>input</code> element, and <code
+   data-x="dom-textarea/input-createValueRange">createValueRange()</code> <span data-x="do not
+   apply">does not apply</span> to this element, then throw a
+   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code>.</p></li>
+
+   <li><p>Let <var>length</var> be the <span>length</span> of this element's <span
+   data-x="concept-textarea/input-relevant-value">relevant value</span>.</p></li>
+
+   <li><p>If <var>start</var> is greater than <var>length</var>, then throw an
+   <span>"<code>IndexSizeError</code>"</span> <code>DOMException</code>.</p></li>
+
+   <li><p>If <var>end</var> is greater than <var>length</var>, then throw an
+   <span>"<code>IndexSizeError</code>"</span> <code>DOMException</code>.</p></li>
+
+   <li><p>If <var>start</var> is greater than <var>end</var>, then set <var>end</var> to
+   <var>start</var>.</p></li>
+
+   <li><p>Let <var>range</var> be a new <code>OpaqueRange</code> with <span>start container</span>
+   and <span>end container</span> set to this element's <span>opaque range internal container</span>,
+   <span>start offset</span> <var>start</var>, and <span>end offset</span> <var>end</var>.</p></li>
+
+   <li><p>Set <var>range</var>'s <span data-x="dom-OpaqueRange-associated-element">associated
+   element</span> to this element.</p></li>
+
+   <li><p><span data-x="set append">Append</span> <var>range</var> to this element's <span>set of
+   associated OpaqueRanges</span>.</p></li>
+
+   <li><p>Return <var>range</var>.</p></li>
   </ol>
   </div>
 
