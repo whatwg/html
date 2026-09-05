@@ -2808,6 +2808,21 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
     </ul>
    </dd>
 
+   <dt>Streams</dt>
+
+   <dd>
+    <p>The following terms are defined in <cite>Streams</cite>: <ref>STREAMS</ref></p>
+
+    <ul class="brief">
+     <li><dfn data-x-href="https://streams.spec.whatwg.org/#readablestream"><code>ReadableStream</code></dfn></li>
+     <li><dfn data-x-href="https://streams.spec.whatwg.org/#readablestreamdefaultreader"><code>ReadableStreamDefaultReader</code></dfn></li>
+     <li><dfn data-x-href="https://streams.spec.whatwg.org/#acquire-readable-stream-reader">AcquireReadableStreamDefaultReader</dfn></li>
+     <li><dfn data-x-href="https://streams.spec.whatwg.org/#readable-stream-cancel">ReadableStreamCancel</dfn></li>
+     <li><dfn data-x-href="https://streams.spec.whatwg.org/#transformstream"><code>TransformStream</code></dfn></li>
+    </ul>
+   </dd>
+
+
    <dt>The No-Vary-Search HTTP Response Header Field</dt>
 
    <dd>
@@ -2987,6 +3002,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li><dfn data-x="idl-long" data-x-href="https://webidl.spec.whatwg.org/#idl-long"><code>long</code></dfn></li>
      <li><dfn data-x="idl-object" data-x-href="https://webidl.spec.whatwg.org/#idl-object"><code>object</code></dfn></li>
      <li><dfn data-x="idl-Promise" data-x-href="https://webidl.spec.whatwg.org/#idl-promise"><code>Promise</code></dfn></li>
+     <li><dfn data-x="idl-Uint8Array" data-x-href="https://webidl.spec.whatwg.org/#idl-Uint8Array"><code>Uint8Array</code></dfn></li>
      <li><dfn data-x="idl-Uint8ClampedArray" data-x-href="https://webidl.spec.whatwg.org/#idl-Uint8ClampedArray"><code>Uint8ClampedArray</code></dfn></li>
      <li><dfn data-x="idl-unrestricted-double" data-x-href="https://webidl.spec.whatwg.org/#idl-unrestricted-double"><code>unrestricted double</code></dfn></li>
      <li><dfn data-x="idl-unsigned-long" data-x-href="https://webidl.spec.whatwg.org/#idl-unsigned-long"><code>unsigned long</code></dfn></li>
@@ -7646,6 +7662,11 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
   <p>This specification defines the URL <dfn><code>about:html-kind</code></dfn> as a reserved,
   though unresolvable, <code data-x="about protocol">about:</code> URL, that is used as an
   identifier for kinds of media tracks. <ref>ABOUT</ref></p>
+
+  <p>This specification defines the URL <dfn><code>about:event-stream</code></dfn> as a reserved,
+  though unresolvable, <code data-x="about protocol">about:</code> URL, that is used as the <span
+  data-x="concept-EventSource-url">URL</span> of <code>EventSource</code> objects created via <code
+  data-x="dom-EventSource-fromReadableStream">fromReadableStream()</code>. <ref>ABOUT</ref></p>
 
   <p>This specification defines the URL <dfn><code>about:srcdoc</code></dfn> as a reserved, though
   unresolvable, <code data-x="about protocol">about:</code> URL, that is used as the <span
@@ -132848,8 +132869,12 @@ source.addEventListener('remove', removeHandler, false);</code></pre>
 interface <dfn interface>EventSource</dfn> : <span>EventTarget</span> {
   <span data-x="dom-EventSource">constructor</span>(USVString url, optional <span>EventSourceInit</span> eventSourceInitDict = {});
 
+  static <span>EventSource</span> <span data-x="dom-EventSource-fromReadableStream">fromReadableStream</span>(<span>ReadableStream</span> stream);
+
   readonly attribute USVString <span data-x="dom-EventSource-url">url</span>;
   readonly attribute boolean <span data-x="dom-EventSource-withCredentials">withCredentials</span>;
+  readonly attribute DOMString <span data-x="dom-EventSource-lastEventId">lastEventId</span>;
+  readonly attribute unsigned long long <span data-x="dom-EventSource-reconnectionTime">reconnectionTime</span>;
 
   // ready state
   const unsigned short <span data-x="dom-EventSource-CONNECTING">CONNECTING</span> = 0;
@@ -132862,6 +132887,7 @@ interface <dfn interface>EventSource</dfn> : <span>EventTarget</span> {
   attribute <span>EventHandler</span> <span data-x="handler-EventSource-onmessage">onmessage</span>;
   attribute <span>EventHandler</span> <span data-x="handler-EventSource-onerror">onerror</span>;
   undefined <span data-x="dom-EventSource-close">close</span>();
+  undefined <span data-x="dom-EventSource-reset">reset</span>();
 };
 
 dictionary <dfn dictionary>EventSourceInit</dfn> {
@@ -132885,10 +132911,15 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
 
    <li><p>A <dfn data-x="concept-event-stream-last-event-id">last event ID string</dfn>. This must
    initially be the empty string.</p></li>
+
+   <li><p>A <dfn data-x="concept-EventSource-stream-reader">stream reader</dfn> (a
+   <code>ReadableStreamDefaultReader</code> or null), initially null.</p></li>
   </ul>
 
-  <p>Apart from <span data-x="concept-EventSource-url">url</span> these are not currently exposed on
-  the <code>EventSource</code> object.</p>
+  <p>Apart from <span data-x="concept-EventSource-url">url</span>, <span
+  data-x="concept-event-stream-last-event-id">last event ID string</span>, and <span
+  data-x="concept-event-stream-reconnection-time">reconnection time</span>, these are not currently
+  exposed on the <code>EventSource</code> object.</p>
 
   </div>
 
@@ -132907,26 +132938,56 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
     connection requests to <var>url</var> to "<code data-x="">include</code>".</p>
    </dd>
 
+   <dt><code data-x=""><var>source</var> = <span
+   data-x="dom-EventSource-fromReadableStream">EventSource</span>.<span subdfn
+   data-x="dom-EventSource-fromReadableStream">fromReadableStream</span>(<var>stream</var>)</code></dt>
+
+   <dd>
+    <p>Creates a new <code>EventSource</code> that reads from the given
+    <code>ReadableStream</code>. The <var>stream</var> cannot be locked.
+    The <code>EventSource</code> will parse the stream as a <code>text/event-stream</code>
+    format event stream.</p>
+
+    <p>No network connection is managed and no reconnection is attempted when the
+    stream closes or errors.</p>
+   </dd>
+
    <dt><code data-x=""><var>source</var>.<span subdfn data-x="dom-EventSource-close">close</span>()</code></dt>
 
    <dd>
     <p>Aborts any instances of the <span data-x="concept-fetch">fetch</span> algorithm started for
     this <code>EventSource</code> object, and sets the <code
     data-x="dom-EventSource-readyState">readyState</code> attribute to <code
-    data-x="dom-EventSource-CLOSED">CLOSED</code>.</p>
+    data-x="dom-EventSource-CLOSED">CLOSED</code>. If the source was created from a
+    <code>ReadableStream</code>, the stream is also canceled.</p>
+   </dd>
+
+   <dt><code data-x=""><var>source</var>.<span subdfn data-x="dom-EventSource-reset">reset</span>()</code></dt>
+
+   <dd>
+    <p>Discards any partially received event data in the parser's internal buffers. This is useful
+    when using <code data-x="dom-EventSource-fromReadableStream">fromReadableStream()</code> with a
+    <code>TransformStream</code> to implement reconnection, as a broken connection <!--non-normative-->may leave an
+    incomplete event in the buffer. Calling this between reconnections ensures the parser starts
+    from a clean state.</p>
+
+    <p>Has no effect on <code>EventSource</code> objects that were not created via <code
+    data-x="dom-EventSource-fromReadableStream">fromReadableStream()</code>.</p>
    </dd>
 
    <dt><code data-x=""><var>source</var>.<span subdfn data-x="dom-EventSource-url">url</span></code></dt>
 
    <dd><p>Returns the <span data-x="concept-EventSource-url">URL providing the event
-   stream</span>.</p></dd>
+   stream</span>. Returns "<code>about:event-stream</code>" when the source was created from a
+   <code>ReadableStream</code>.</p></dd>
 
    <dt><code data-x=""><var>source</var>.<span subdfn data-x="dom-EventSource-withCredentials">withCredentials</span></code></dt>
 
    <dd>
     <p>Returns true if the <span data-x="concept-request-credentials-mode">credentials mode</span>
     for connection requests to the <span data-x="concept-EventSource-url">URL providing the event
-    stream</span> is set to "<code data-x="">include</code>", and false otherwise.</p>
+    stream</span> is set to "<code data-x="">include</code>", and false otherwise. Always returns
+    false when the source was created from a <code>ReadableStream</code>.</p>
    </dd>
 
    <dt><code data-x=""><var>source</var>.<span subdfn data-x="dom-EventSource-readyState">readyState</span></code></dt>
@@ -132934,6 +132995,21 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
    <dd>
     <p>Returns the state of this <code>EventSource</code> object's connection. It can have the
     values described below.</p>
+   </dd>
+
+   <dt><code data-x=""><var>source</var>.<span subdfn data-x="dom-EventSource-lastEventId">lastEventId</span></code></dt>
+
+   <dd>
+    <p>Returns the last event ID string that was set by the server via the <code
+    data-x="">id</code> field, or the empty string if none have been received.</p>
+   </dd>
+
+   <dt><code data-x=""><var>source</var>.<span subdfn data-x="dom-EventSource-reconnectionTime">reconnectionTime</span></code></dt>
+
+   <dd>
+    <p>Returns the reconnection time in milliseconds. This is initially an
+    implementation-defined value, and can be updated by the server via the <code
+    data-x="">retry</code> field.</p>
    </dd>
   </dl>
 
@@ -133024,6 +133100,37 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
   <hr>
 
   <div algorithm>
+  <p>The static <dfn method for="EventSource"><code
+  data-x="dom-EventSource-fromReadableStream">fromReadableStream(<var>stream</var>)</code></dfn>
+  method, when invoked, must run these steps:</p>
+
+  <ol>
+   <li><p>Let <var>reader</var> be ? <span>AcquireReadableStreamDefaultReader</span>(<var>stream</var>).</p></li>
+
+   <li><p>Let <var>ev</var> be a new <code>EventSource</code> object.</p></li>
+
+   <li><p>Set <var>ev</var>'s <span data-x="concept-EventSource-url">url</span> to the <span>URL
+   record</span> <code>about:event-stream</code>.</p></li>
+
+   <li><p>Set <var>ev</var>'s <span data-x="concept-EventSource-stream-reader">stream reader</span>
+   to <var>reader</var>.</p></li>
+
+   <li><p><span>Announce the connection</span>.</p></li>
+
+   <li>
+    <p><span>In parallel</span>, <a href="#event-stream-interpretation">interpret</a>
+    <var>reader</var> line by line.</p>
+
+    <p>When the stream signals done or an error: <span>fail the connection</span>.</p>
+   </li>
+
+   <li><p>Return <var>ev</var>.</p></li>
+  </ol>
+  </div>
+
+  <hr>
+
+  <div algorithm>
   <p>The <dfn attribute for="EventSource"><code data-x="dom-EventSource-url">url</code></dfn>
   attribute's getter must return the <span data-x="concept-url-serializer">serialization</span> of
   this <code>EventSource</code> object's <span data-x="concept-EventSource-url">url</span>.</p>
@@ -133034,6 +133141,20 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
   data-x="dom-EventSource-withCredentials">withCredentials</code></dfn> attribute must return the
   value to which it was last initialized. When the object is created, it must be initialized to
   false.</p>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn attribute for="EventSource"><code
+  data-x="dom-EventSource-lastEventId">lastEventId</code></dfn> attribute's getter must return this
+  <code>EventSource</code> object's <span data-x="concept-event-stream-last-event-id">last event ID
+  string</span>.</p>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn attribute for="EventSource"><code
+  data-x="dom-EventSource-reconnectionTime">reconnectionTime</code></dfn> attribute's getter must
+  return this <code>EventSource</code> object's <span
+  data-x="concept-event-stream-reconnection-time">reconnection time</span>.</p>
   </div>
 
   <p>The <dfn attribute for="EventSource"><code
@@ -133068,11 +133189,40 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
 
   <div algorithm>
   <p>The <dfn method for="EventSource"><code data-x="dom-EventSource-close">close()</code></dfn>
-  method must abort any instances of the <span data-x="concept-fetch">fetch</span> algorithm started
-  for this <code>EventSource</code> object, and must set the <code
-  data-x="dom-EventSource-readyState">readyState</code> attribute to <code
-  data-x="dom-EventSource-CLOSED">CLOSED</code>.</p> <!-- this also causes all the message events to
-  stop firing, even if they were queued before close() was called -->
+  method must run the following steps:</p>
+
+  <ol>
+   <li><p>Abort any instances of the <span data-x="concept-fetch">fetch</span> algorithm started
+   for this <code>EventSource</code> object.</p></li>
+
+   <li><p>Let <var>reader</var> be this <code>EventSource</code> object's <span
+   data-x="concept-EventSource-stream-reader">stream reader</span>.</p></li>
+
+   <li><p>If <var>reader</var> is not null, then
+   ! <span>ReadableStreamCancel</span>(<var>reader</var>.[[stream]], undefined).</p></li>
+
+   <li><p>Set the <code data-x="dom-EventSource-readyState">readyState</code> attribute to <code
+   data-x="dom-EventSource-CLOSED">CLOSED</code>.</p></li>
+  </ol>
+  <!-- this also causes all the message events to stop firing, even if they were queued before
+  close() was called -->
+  </div>
+
+  <div algorithm>
+  <p>The <dfn method for="EventSource"><code data-x="dom-EventSource-reset">reset()</code></dfn>
+  method must run the following steps:</p>
+
+  <ol>
+   <li><p>If this <code>EventSource</code> object's <span
+   data-x="concept-EventSource-stream-reader">stream reader</span> is null, then return.</p></li>
+
+   <li><p>Act as if the end of the file has been reached for the purposes of <a
+   href="#event-stream-interpretation">interpreting the event stream</a>.</p></li>
+
+   <li><p>Resume <a href="#event-stream-interpretation">interpreting</a> subsequent input from this
+   <code>EventSource</code> object's <span data-x="concept-EventSource-stream-reader">stream
+   reader</span>.</p></li>
+  </ol>
   </div>
 
   </div>
@@ -133512,6 +133662,52 @@ data:&nbsp;test
   </div>
 
 
+  <div class="example">
+   <p>The <code data-x="dom-EventSource-fromReadableStream">fromReadableStream()</code> method
+   allows applications to handle networking and reconnection logic themselves, while still using
+   <code>EventSource</code> for event stream parsing. The following example uses a
+   <code>TransformStream</code> to allow multiple <code>fetch()</code> responses to be piped
+   through to a single <code>EventSource</code>:</p>
+
+   <pre><code class="js">const url = "https://example.com/events";
+const ts = new TransformStream();
+const source = EventSource.fromReadableStream(ts.readable);
+source.onmessage = (event) => {
+  console.log("Received:", event.data);
+};
+
+async function connect() {
+  const headers = { "Authorization": "Bearer token123" };
+  if (source.lastEventId) {
+    headers["Last-Event-ID"] = source.lastEventId;
+  }
+  try {
+    const response = await fetch(url, { headers });
+    await response.body.pipeTo(ts.writable, { preventClose: true });
+  } catch (e) {
+    // Discard any incomplete event left in the parser's buffer.
+    source.reset();
+  }
+
+  // The fetch stream has ended, but ts.writable is still open, so
+  // ts.readable does not signal done and the EventSource stays open.
+  // If close() was called, stop reconnecting:
+  if (source.readyState === EventSource.CLOSED) return;
+  // Wait and reconnect:
+  const delay = source.reconnectionTime;
+  setTimeout(connect, delay);
+}
+
+connect();</code></pre>
+
+   <p>Using <code data-x="">{ preventClose: true }</code> in the <code
+   data-x="">pipeTo()</code> call prevents the <code>TransformStream</code>'s writable
+   side from being closed when the fetch stream ends. This keeps the readable side — and therefore
+   the <code>EventSource</code> — alive between reconnections, preserving all registered event
+   listeners.</p>
+  </div>
+
+
   <h4>Authoring notes</h4>
 
   <p>Legacy proxy servers are known to, in certain cases, drop HTTP connections after a short
@@ -133617,17 +133813,40 @@ data:&nbsp;test
   <div algorithm>
   <p>If a user agent is to <dfn data-x="concept-EventSource-forcibly-close">forcibly close</dfn> an
   <code>EventSource</code> object (this happens when a <code>Document</code> object goes away
-  permanently), the user agent must abort any instances of the <span
-  data-x="concept-fetch">fetch</span> algorithm started for this <code>EventSource</code> object,
-  and must set the <code data-x="dom-EventSource-readyState">readyState</code> attribute to <code
-  data-x="dom-EventSource-CLOSED">CLOSED</code>.</p> <!-- same as calling close() -->
+  permanently), the user agent must run the following steps:</p>
+  <!-- same as calling close() -->
+
+  <ol>
+   <li><p>Abort any instances of the <span data-x="concept-fetch">fetch</span> algorithm started
+   for this <code>EventSource</code> object.</p></li>
+
+   <li><p>Let <var>reader</var> be this <code>EventSource</code> object's <span
+   data-x="concept-EventSource-stream-reader">stream reader</span>.</p></li>
+
+   <li><p>If <var>reader</var> is not null, then
+   ! <span>ReadableStreamCancel</span>(<var>reader</var>.[[stream]], undefined).</p></li>
+
+   <li><p>Set the <code data-x="dom-EventSource-readyState">readyState</code> attribute to <code
+   data-x="dom-EventSource-CLOSED">CLOSED</code>.</p></li>
+  </ol>
   </div>
 
   <div algorithm>
   <p>If an <code>EventSource</code> object is garbage collected while its connection is still open,
-  the user agent must abort any instance of the <span data-x="concept-fetch">fetch</span> algorithm
-  opened by this <code>EventSource</code>.</p> <!-- no need to throw tasks away or anything; for it
-  to get garbage collected, there can't be anything that would be able to receive those events -->
+  the user agent must run the following steps:</p>
+  <!-- no need to throw tasks away or anything; for it to get garbage collected, there can't be
+  anything that would be able to receive those events -->
+
+  <ol>
+   <li><p>Abort any instance of the <span data-x="concept-fetch">fetch</span> algorithm opened by
+   this <code>EventSource</code>.</p></li>
+
+   <li><p>Let <var>reader</var> be this <code>EventSource</code> object's <span
+   data-x="concept-EventSource-stream-reader">stream reader</span>.</p></li>
+
+   <li><p>If <var>reader</var> is not null, then
+   ! <span>ReadableStreamCancel</span>(<var>reader</var>.[[stream]], undefined).</p></li>
+  </ol>
   </div>
 
 
@@ -161703,6 +161922,9 @@ INSERT INTERFACES HERE
 
    <dt id="refsSTORAGE">[STORAGE]</dt>
    <dd><cite><a href="https://storage.spec.whatwg.org/">Storage</a></cite>, A. van Kesteren. WHATWG.</dd>
+
+   <dt id="refsSTREAMS">[STREAMS]</dt>
+   <dd><cite><a href="https://streams.spec.whatwg.org/">Streams</a></cite>, A. van Kesteren, D. Denicola, R. Dahl, T. Cargill. WHATWG.</dd>
 
    <dt id="refsSVG">[SVG]</dt>
    <dd><cite><a href="https://svgwg.org/svg2-draft/">Scalable Vector Graphics (SVG) 2</a></cite>, N Andronikos, R. Atanassov, T. Bah, B. Birtles, B. Brinza, C. Concolato, E. Dahlström, C. Lilley, C. McCormack, D. Schepers, R. Schwerdtfeger, D. Storey, S. Takagi, J. Watt. W3C.</dd>
