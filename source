@@ -99845,7 +99845,7 @@ interface <dfn interface>History</dfn> {
    data-x="fire-navigate-prr-classicHistoryAPIState">classicHistoryAPIState</i> set to
    <var>serializedData</var>.</p></li>
 
-   <li><p>If <var>continue</var> is false, then return.</p>
+   <li><p>If <var>continue</var> is false, then return.</p></li>
 
    <li><p>Run the <span>URL and history update steps</span> given <var>document</var> and
    <var>newURL</var>, with <i data-x="uhus-serializedData">serializedData</i> set to
@@ -100541,6 +100541,8 @@ enum <dfn enum>NavigationHistoryBehavior</dfn> {
    <li><p>Set <var>navigation</var>'s <span data-x="navigation-current-entry-index">current entry
    index</span> to the result of <span>getting the navigation API entry index</span> of
    <var>reactivatedSHE</var> within <var>navigation</var>.</p></li>
+
+   <li><p><span>Flush navigation API restore callbacks</span> given <var>navigation</var>.</p></li>
 
    <li>
     <p><span>Queue a global task</span> on the <span>navigation and traversal task source</span>
@@ -102072,6 +102074,8 @@ const p2 = navigation.navigate(url2).finished;</code></pre>
    <code>ErrorEvent</code>, with additional attributes initialized according to
    <var>errorInfo</var>.</p></li>
 
+   <li><p><span>Flush navigation API restore callbacks</span> given <var>navigation</var>.</p></li>
+
    <li><p>If <var>navigation</var>'s <span data-x="concept-Navigation-transition">transition</span>
    is null, then return.</p></li>
 
@@ -102424,6 +102428,7 @@ interface <dfn interface>NavigateEvent</dfn> : <span>Event</span> {
 
   undefined <span data-x="dom-NavigateEvent-intercept">intercept</span>(optional <span>NavigationInterceptOptions</span> options = {});
   undefined <span data-x="dom-NavigateEvent-scroll">scroll</span>();
+  undefined <span data-x="dom-NavigateEvent-deferPageSwap">deferPageSwap</span>(<span>NavigationDeferPageSwapOptions</span> options);
 };
 
 dictionary <dfn dictionary>NavigateEventInit</dfn> : <span>EventInit</span> {
@@ -102447,6 +102452,10 @@ dictionary <dfn dictionary>NavigationInterceptOptions</dfn> {
   <span>NavigationScrollBehavior</span> <dfn dict-member for="NavigationInterceptOptions" data-x="dom-NavigationInterceptOptions-scroll">scroll</dfn>;
 };
 
+dictionary <dfn dictionary>NavigationDeferPageSwapOptions</dfn> {
+  <span>NavigationDeferPageSwapHandler</span> <dfn dict-member for="NavigationDeferPageSwapOptions" data-x="dom-NavigationDeferPageSwapOptions-handler">handler</dfn>;
+};
+
 enum <dfn enum>NavigationFocusReset</dfn> {
   "<dfn enum-value for="NavigationFocusReset" data-x="dom-NavigationFocusReset-after-transition">after-transition</dfn>",
   "<dfn enum-value for="NavigationFocusReset" data-x="dom-NavigationFocusReset-manual">manual</dfn>"
@@ -102457,7 +102466,9 @@ enum <dfn enum>NavigationScrollBehavior</dfn> {
   "<dfn enum-value for="NavigationScrollBehavior" data-x="dom-NavigationScrollBehavior-manual">manual</dfn>"
 };
 
-callback <dfn callback>NavigationInterceptHandler</dfn> = <span data-x="idl-Promise">Promise</span>&lt;undefined> ();</code></pre>
+callback <dfn callback>NavigationInterceptHandler</dfn> = <span data-x="idl-Promise">Promise</span>&lt;undefined> ();
+callback <dfn callback>NavigationDeferPageSwapHandler</dfn> = <span data-x="idl-Promise">Promise</span>&lt;undefined> (<span>NavigationDeferPageSwapController</span> controller);</code></pre>
+
 
   <dl class="domintro">
    <dt><code data-x=""><var>event</var>.<span subdfn data-x="dom-NavigateEvent-navigationType">navigationType</span></code></dt>
@@ -102633,6 +102644,26 @@ callback <dfn callback>NavigationInterceptHandler</dfn> = <span data-x="idl-Prom
     before the navigation has committed, this method will throw an
     <span>"<code>InvalidStateError</code>"</span> <code>DOMException</code>.</p>
    </dd>
+
+   <dt><code data-x=""><var>event</var>.<span subdfn data-x="dom-NavigateEvent-deferPageSwap">deferPageSwap</span>(<span>NavigationDeferPageSwapOptions</span> options)</code></dt>
+   <dd>
+    <p>Delays finalizing a same-origin cross-document navigation, without intercepting it as
+    a same-document navigation. The navigation will continue to the new page once handlers passed to
+    this method are settled. This allows setting up some exit animation, or performing some
+    asynchronous exit actions, without the page deactivation aborting those actions in the
+    middle.</p>
+
+    <p>Like <code data-x="dom-NavigateEvent-intercept">intercept()</code>, this method only works
+    on same-origin non-traverse navigations.</p>
+
+    <p>Deferring and intercepting cannot co-exist on the same <code>NavigateEvent</code>. Calling
+    one after the other would throw an <span>"<code>InvalidStateError</code>"</span>
+    <code>DOMException</code> when the latter is called.</p>
+
+    <p>All the <code data-x="dom-NavigationDeferPageSwapOptions-handler">handler</code> option
+    passed by succesful calls to this methods are called in order, and once their returned promises
+    are resolved, the navigation can proceed to swap the page.</p>
+   </dd>
   </dl>
 
   <div w-nodev>
@@ -102651,6 +102682,10 @@ callback <dfn callback>NavigationInterceptHandler</dfn> = <span data-x="idl-Prom
   <p>Each <code>NavigateEvent</code> has a <dfn
   data-x="concept-NavigateEvent-navigation-handler-list">navigation handler list</dfn>, a
   <span>list</span> of <code>NavigationInterceptHandler</code> callbacks, initially empty.</p>
+
+  <p>Each <code>NavigateEvent</code> has a <dfn
+  data-x="concept-NavigateEvent-defer-page-swap-handler-list">defer page-swap handler list</dfn>, a
+  <span>list</span> of <code>NavigationDeferPageSwapHandler</code> callbacks, initially empty.</p>
 
   <p>Each <code>NavigateEvent</code> has a <dfn data-x="concept-NavigateEvent-focusReset">focus
   reset behavior</dfn>, a <code>NavigationFocusReset</code>-or-null, initially null.</p>
@@ -102706,6 +102741,15 @@ callback <dfn callback>NavigationInterceptHandler</dfn> = <span data-x="idl-Prom
 
    <li><p>If <span>this</span>'s <span>dispatch flag</span> is unset, then throw an
    <span>"<code>InvalidStateError</code>"</span> <code>DOMException</code>.</p></li>
+
+   <li>
+    <p>If <span>this</span>'s <span
+    data-x="concept-NavigateEvent-defer-page-swap-handler-list">defer page-swap handler list</span>
+    is not <span data-x="list empty">empty</span>, then throw an
+    <span>"<code>InvalidStateError</code>"</span> <code>DOMException</code>.</p>
+
+    <p class="note">The same navigation cannot be both intercepted and deferred.</p>
+   </li>
 
    <li>
     <p>If <var>options</var>["<code
@@ -102795,6 +102839,38 @@ callback <dfn callback>NavigationInterceptHandler</dfn> = <span data-x="idl-Prom
 
    <li><p><span>Process scroll behavior</span> given <span>this</span>.</p></li>
   </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn method for="NavigateEvent"><code
+  data-x="dom-NavigateEvent-deferPageSwap">deferPageSwap(<var>options</var>)</code></dfn> method
+  steps are:</p>
+
+  <ol>
+   <li><p><span data-x="NavigateEvent-perform-shared-checks">Perform shared checks</span> given
+   <span>this</span>.</p></li>
+
+   <li><p>If <span>this</span>'s <code data-x="dom-NavigateEvent-canIntercept">canIntercept</code>
+   attribute was initialized to false, then throw a <span>"<code>SecurityError</code>"</span>
+   <code>DOMException</code>.</p></li>
+
+   <li><p>If <span>this</span>'s <span>dispatch flag</span> is unset, then throw an
+   <span>"<code>InvalidStateError</code>"</span> <code>DOMException</code>.</p></li>
+
+   <li>
+    <p>If <span>this</span>'s <span
+    data-x="concept-NavigateEvent-interception-state">interception state</span> is not "<code
+    data-x="">none</code>", then throw an <span>"<code>InvalidStateError</code>"</span>
+    <code>DOMException</code>.</p>
+
+    <p class="note">The same navigation cannot be both intercepted and deferred.</p>
+   </li>
+
+   <li><p><span data-x="list append">Append</span> <var>handler</var> to <span>this</span>'s
+   <span data-x="concept-NavigateEvent-defer-page-swap-handler-list">defer page-swap handler
+   list</span>.</p></li>
+  </ol>
+
   </div>
 
   <div algorithm>
@@ -102982,6 +103058,70 @@ callback <dfn callback>NavigationInterceptHandler</dfn> = <span data-x="idl-Prom
 
 
   </div>
+
+  <h6>The <code>NavigationDeferPageSwapController</code> interface</h6>
+
+  <pre><code class="idl">[Exposed=Window]
+  interface <dfn interface>NavigationDeferPageSwapController</dfn> {
+    undefined <span data-x="dom-NavigationDeferPageSwapController-addRestoreCallback">addRestoreCallback</span>(<span>NavigationDeferPageSwapRestoreHandler</span> handler);
+    readonly attribute <span data-x="idl-Promise">Promise</span>&lt;undefined> <span data-x="dom-NavigationDeferPageSwapController-ready">ready</span>;
+  };
+
+  callback <dfn callback>NavigationDeferPageSwapRestoreHandler</dfn> = undefined ();</code></pre>
+
+  <dl class="domintro">
+   <dt><code data-x=""><var>deferControlller</var>.<span subdfn data-x="dom-NavigationDeferPageSwapController-addRestoreCallback">addRestoreCallback</span>(<span>NavigationDeferPageSwapRestoreHandler</span> <var>handler</var>)</code></dt>
+   <dd><p>Adds a callback <var>handler</var> that will be called when the state needs to be restored
+   to the pre-navigation conditions. The handler is called if the navigation is aborted, or if the
+   navigation succeeded and the page is subsequently <a href="#note-bfcache">restored from
+   back/forward cache</a>.</p></dd>
+
+   <dt><code data-x=""><var>deferControlller</var>.<span subdfn data-x="dom-NavigationDeferPageSwapController-ready">ready</span></code></dt>
+   <dd><p>A promise which fulfills when the next document is ready, allowing the caller of <code
+   data-x="dom-NavigateEvent-deferPageSwap">deferPageSwap()</code> to fine-tune the exact timing Of
+   the swap.</p></dd>
+  </dl>
+
+  <p>A <code>NavigationDeferPageSwapController</code> has a <code>NavigateEvent</code> <dfn
+  data-x="concept-NavigationDeferPageSwapController-event">event</dfn>.</p>
+
+  <p>A <code>NavigationDeferPageSwapController</code> has a <span
+  data-x="idl-promise">Promise</span> <dfn
+  data-x="concept-NavigationDeferPageSwapController-ready-promise">ready promise</dfn>.</p>
+
+  <div algorithm>
+  <p>The <dfn attribute for="NavigationDeferPageSwapController"><code
+  data-x="dom-NavigationDeferPageSwapController-ready">ready</code></dfn> getter step is to return
+  <span>this</span>'s <span
+  data-x="concept-NavigationDeferPageSwapController-ready-promise">ready promise</span>.
+  </div>
+
+  <div algorithm>
+  <p>The <dfn method for="NavigationDeferPageSwapController"><code
+  data-x="dom-NavigationDeferPageSwapController-addRestoreCallback">addRestoreCallback(<var>callback</var>)</code></dfn>
+  method steps are:</p>
+
+  <ol>
+   <li><p>Let <var>event</var> be <span>this</span>'s <span
+   data-x="concept-NavigationDeferPageSwapController-event">event</span>.</p></li>
+
+   <li><p><span data-x="NavigateEvent-perform-shared-checks">Perform shared checks</span> given
+   <var>event</var>.</p></li>
+
+   <li><p>If <var>event</var>'s <span>relevant global object</span>'s
+   <span data-x="window-navigation-api">navigation API</span>'s <span>ongoing <code
+   data-x="event-navigate">navigate</code> event</span> is not <var>event</var>, then throw an
+   <span>"<code>InvalidStateError</code>"</span> <code>DOMException</code>.</p></li>
+
+   <li><p><span data-x="list append">Append</span> <var>callback</var> to <var>event</var>'s
+   <span>relevant global object</span>'s <span data-x="window-navigation-api">navigation
+   API</span>'s <span data-x="navigation-restore-callback-list">restore callback
+   list</span>.</p></li>
+  </ol>
+
+  </div>
+
+
 
   <h6>The <code>NavigationDestination</code> interface</h6>
 
@@ -103226,7 +103366,8 @@ interface <dfn interface>NavigationDestination</dfn> {
   state</span>-or-null <dfn
   data-x="fire-navigate-prr-classicHistoryAPIState"><var>classicHistoryAPIState</var></dfn> (default
   null), and an optional <span>navigation API method tracker</span>-or-null <dfn
-  data-x="fire-navigate-prr-api-method-tracker"><var>apiMethodTracker</var></dfn>:</p>
+  data-x="fire-navigate-prr-api-method-tracker"><var>apiMethodTracker</var></dfn> (default
+  null):</p>
 
   <ol>
    <li><p>Let <var>document</var> be <var>navigation</var>'s <span>relevant global object</span>'s <span
@@ -103284,11 +103425,52 @@ interface <dfn interface>NavigationDestination</dfn> {
    <li><p>Set <var>destination</var>'s <span data-x="concept-NavigationDestination-sameDocument">is
    same document</span> to <var>isSameDocument</var>.</p></li>
 
-   <li><p>Return the result of performing the <span>inner <code
-   data-x="event-navigate">navigate</code> event firing algorithm</span> given
-   <var>navigation</var>, <var>navigationType</var>, <var>event</var>, <var>destination</var>,
-   <var>userInvolvement</var>, <var>sourceElement</var>, <var>formDataEntryList</var>, null, and
-   <var>apiMethodTracker</var>.</p></li>
+   <li><p>Perform the <span>inner <code data-x="event-navigate">navigate</code> event firing
+   algorithm</span> given <var>navigation</var>, <var>navigationType</var>, <var>event</var>,
+   <var>destination</var>, <var>userInvolvement</var>, <var>sourceElement</var>,
+   <var>formDataEntryList</var>, null, and <var>apiMethodTracker</var>. If that returned false,
+   return false.</p></li>
+
+   <li><p>If <var>event</var>'s <span
+   data-x="concept-NavigateEvent-defer-page-swap-handler-list">defer page-swap handler list</span>
+   is empty, return true.</p></li>
+
+   <li><p>Let <var>deferControlller</var> be a new <code>NavigationDeferPageSwapController</code>
+   created in <var>navigation</var>'s <span data-x="concept-relevant-realm">relevant realm</span>,
+   whose <span data-x="concept-NavigationDeferPageSwapController-event">event</span> is
+   <var>event</var>.</p></li>
+
+   <li><p>Let <var>deferPromisesList</var> be an empty <span>list</span>.</p></li>
+
+   <li><p>Let <var>navigationID</var> be <var>navigable</var>'s
+   <span>ongoing navigation</span>.</p></li>
+
+   <li>
+    <p>Set <var>document</var>'s <span>node navigable</span>'s
+    <span>notify ready for page-swap</span> to the following step: <span>Queue a global task</span>
+    on the <span>navigation and traversal task source</span> given <var>document</var>'s
+    <span>relevant global object</span> to run the following:
+
+    <ol>
+     <li><p>Resolve <var>deferControlller</var>'s <span
+     data-x="concept-NavigationDeferPageSwapController-ready-promise">ready promise</span>.</p></li>
+
+     <li><p>Set <var>document</var>'s <span>node navigable</span>'s
+     <span>notify ready for page-swap</span> to null.<p></li>
+    </ol>
+   </li>
+
+   <li><p><span data-x="list iterate">For each</span> <var>handler</var> of <var>event</var>'s <span
+   data-x="concept-NavigateEvent-defer-page-swap-handler-list">navigation defer page-swap handler
+   list</span>, <span data-x="list append">append</span> the result of <span
+   data-x="es-invoking-callback-functions">invoking</span> <var>handler</var> with
+   « <var>deferControlller</var> » to <var>deferPromisesList</var>.</p></li>
+
+   <li><p><span>Wait for all</span> <var>deferPromisesList</var>, with the following as both the
+   success and failure step: <span>proceed with navigation after deferred commit</span> given
+   <var>navigable</var> and <var>navigationID</var>.</p></li>
+
+   <li><p>Return true.</p></li>
   </ol>
   </div>
 
@@ -108409,7 +108591,7 @@ location.href = '#foo';</code></pre>
      data-x="fire-navigate-prr-api-method-tracker">apiMethodTracker</i> set to
      <var>apiMethodTracker</var>.</p></li>
 
-     <li><p>If <var>continue</var> is false, then return.</p>
+     <li><p>If <var>continue</var> is false, then return.</p></li>
     </ol>
 
     <p class="note">It is possible for navigations with <var>userInvolvement</var> of "<code
@@ -108612,8 +108794,8 @@ location.href = '#foo';</code></pre>
       data-x="dom-navigationtimingtype-navigate">navigate</code>", <var>sourceSnapshotParams</var>,
       <var>targetSnapshotParams</var>, <var>userInvolvement</var>, <var>navigationId</var>,
       <var>navigationParams</var>, <var>cspNavigationType</var>, with <i
-      data-x="attempt-to-populate-allow-post">allowPOST</i> set to true and <i
-      data-x="attempt-to-populate-completion-steps">completionSteps</i> set to the following
+      data-x="attempt-to-populate-allow-post">allowPOST</i> set to true,
+      and <i data-x="attempt-to-populate-completion-steps">completionSteps</i> set to the following
       step:</p>
 
       <ol>
@@ -109057,14 +109239,14 @@ location.href = '#foo';</code></pre>
    <li><p>If <var>navigationAPIState</var> is not null, then set
    <var>destinationNavigationAPIState</var> to <var>navigationAPIState</var>.</p></li>
 
-   <li><p>Let <var>continue</var> be the result of <span data-x="fire a push/replace/reload navigate
-   event">firing a push/replace/reload <code data-x="event-navigate">navigate</code> event</span> at
-   <var>navigation</var> with <i data-x="fire-navigate-prr-navigationType">navigationType</i> set to
-   <var>historyHandling</var>, <i data-x="fire-navigate-prr-isSameDocument">isSameDocument</i> set
-   to true, <i data-x="fire-navigate-prr-userInvolvement">userInvolvement</i> set to
-   <var>userInvolvement</var>, <i data-x="fire-navigate-prr-sourceElement">sourceElement</i> set
-   to <var>sourceElement</var>, <i data-x="fire-navigate-prr-destinationURL">destinationURL</i>
-   set to <var>url</var>, and <i
+   <li><p>Let <var>continue</var> be the result of <span
+   data-x="fire a push/replace/reload navigate event">firing a push/replace/reload <code
+   data-x="event-navigate">navigate</code> event</span> at <var>navigation</var> with <i
+   data-x="fire-navigate-prr-navigationType">navigationType</i> set to <var>historyHandling</var>,
+   <i data-x="fire-navigate-prr-isSameDocument">isSameDocument</i> set to true, <i
+   data-x="fire-navigate-prr-userInvolvement">userInvolvement</i> set to <var>userInvolvement</var>,
+   <i data-x="fire-navigate-prr-sourceElement">sourceElement</i> set to <var>sourceElement</var>, <i
+   data-x="fire-navigate-prr-destinationURL">destinationURL</i> set to <var>url</var>, and <i
    data-x="fire-navigate-prr-navigationAPIState">navigationAPIState</i> set to
    <var>destinationNavigationAPIState</var>.</p></li>
 
@@ -109722,12 +109904,24 @@ location.href = '#foo';</code></pre>
   </div>
 
 
-  <h5>Aborting navigation</h5>
+  <h5>Aborting &amp; deferring navigation</h5>
 
   <p id="concept-navigate-mature">Each <span>navigable</span> has an <dfn>ongoing navigation</dfn>,
   which is a <span>navigation ID</span>, "<code data-x="">traversal</code>", or null, initially
   null. It is used to track navigation aborting and to prevent any navigations from taking place
   during <span data-x="apply the traverse history step">traversal</span>.</p>
+
+  <p>Each <span>navigable</span> has a <dfn>commit navigation steps</dfn>, which is null or an algorithm
+  accepting nothing, initially null.</p>
+
+  <p>Each <span>navigable</span> has a boolean <dfn>deferring page swap</dfn>, initially false.</p>
+
+  <p>Each <span>navigable</span> has an associated <dfn>notify ready for page-swap</dfn>, which is
+  null or an algorithm that accepts nothing, initially null.</p>
+
+  <p>Each <code>Navigation</code> has an associated <dfn
+  data-x="navigation-restore-callback-list">restore callback list</dfn>, a <span>list</span> of
+  algorithms, initially empty.</p>
 
   <div algorithm>
   <p>To <dfn>set the ongoing navigation</dfn> for a <span>navigable</span> <var>navigable</var> to
@@ -109737,12 +109931,47 @@ location.href = '#foo';</code></pre>
    <li><p>If <var>navigable</var>'s <span>ongoing navigation</span> is equal to <var>newValue</var>,
    then return.</p></li>
 
+   <li><p><span>Proceed with navigation after deferred commit</span> given <var>navigable</var>
+   and <var>newValue</var>.</p></li>
+
    <li><p><span>Inform the navigation API about aborting navigation</span> given
    <var>navigable</var>.</p></li>
 
    <li><p>Set <var>navigable</var>'s <span>ongoing navigation</span> to
    <var>newValue</var>.</p></li>
   </ol>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>proceed with navigation after deferred commit</dfn> given a <span>navigable</span> <var>navigable</var>
+  and a <span>navigation ID</span> <var>navigationID</var>, <span>queue a global task</span> on the <span>navigation and traversal task source</span> of <var>navigable</var>'s <span data-x="nav-window">active
+  window</span> to run the steps:</p>
+
+  <ol>
+   <li><p>Set <var>navigable</var>'s <span>deferring page swap</span> to false.</p></li>
+
+   <li><p>If <var>navigable</var>'s <span>commit navigation steps</span> is not null, then call
+   <var>navigable</var>'s <span>commit navigation steps</span> given
+   <var>navigationID</var>.</p></li>
+
+   <li><p>Set <var>navigable</var>'s <span>commit navigation steps</span> to null.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+   <p>To <dfn>flush navigation API restore callbacks</dfn> for a <code>Navigation</code> object
+   <var>navigation</var>:</p>
+   <ol>
+    <li><p>Set <var>callbacks</var> to <var>navigation</var>'s <span
+    data-x="navigation-restore-callback-list">restore callback list</span>.</p></li>
+
+    <li><p>Set <var>navigation</var>'s <span
+    data-x="navigation-restore-callback-list">restore callback list</span> to an empty
+    list.</p></li>
+
+    <li><p><span data-x="list iterate">For each</span> <var>restoreCallback</var> in
+    <var>callbacks</var>, call <var>restoreCallback</var>.</p></li>
+   </ol>
   </div>
 
 
@@ -109773,7 +110002,7 @@ location.href = '#foo';</code></pre>
      <li><p>If <var>navigationAPIState</var> is not null, then set
      <var>destinationNavigationAPIState</var> to <var>navigationAPIState</var>.</p></li>
 
-     <li><p>Let <var>continue</var> be the result of <span data-x="fire a push/replace/reload
+     <li><p>Let <var>eventResult</var> be the result of <span data-x="fire a push/replace/reload
      navigate event">firing a push/replace/reload <code data-x="event-navigate">navigate</code>
      event</span> at <var>navigation</var> with <i
      data-x="fire-navigate-prr-navigationType">navigationType</i> set to "<code
@@ -109788,7 +110017,7 @@ location.href = '#foo';</code></pre>
      data-x="fire-navigate-prr-api-method-tracker">apiMethodTracker</i> set to
      <var>apiMethodTracker</var>.</p></li>
 
-     <li><p>If <var>continue</var> is false, then return.</p></li>
+     <li><p>If <var>eventResult</var> is null, then return.</p></li>
     </ol>
    </li>
 
@@ -110021,8 +110250,7 @@ location.href = '#foo';</code></pre>
   (default null), an optional <span>navigation params</span>-or-null <var>navigationParams</var>
   (default null), an optional string <var>cspNavigationType</var> (default "<code
   data-x="">other</code>"), an optional boolean <dfn
-  data-x="attempt-to-populate-allow-post"><var>allowPOST</var></dfn> (default false), and optional
-  algorithm steps <dfn
+  data-x="attempt-to-populate-allow-post"><var>allowPOST</var></dfn> (default false), and optional algorithm steps <dfn
   data-x="attempt-to-populate-completion-steps"><var>completionSteps</var></dfn> (default an empty
   algorithm):</p>
 
@@ -110104,13 +110332,22 @@ location.href = '#foo';</code></pre>
     </ol>
    </li>
 
-   <li id="process-a-navigate-response">
-    <p><span>Queue a global task</span> on the <span>navigation and traversal task source</span>,
-    given <var>navigable</var>'s <span>active window</span>, to run these steps:</p>
+   <li>
+    <p>Let <dfn data-x="process a navigate response"><var>processNavigateResponse</var></dfn>
+    be the following steps given a <span>navigation ID</span> <var>navigationToResume</var>:</p>
 
     <ol>
-     <li><p>If <var>navigable</var>'s <span>ongoing navigation</span> no longer equals
-     <var>navigationId</var>, then run <var>completionSteps</var> and abort these steps.</p></li>
+     <li><p>If <var>navigable</var>'s <span>notify ready for page-swap</span> is not null, then
+     run <var>navigable</var>'s <span>notify ready for page-swap</span>.</p></li>
+
+     <li><p>If <var>navigationToResume</var> no longer equals <var>navigationId</var>, then run
+     <var>completionSteps</var> and abort these steps.</p></li>
+
+     <li><p>Set <var>navigable</var>'s <span>commit navigation steps</span> to null.</p></li>
+
+     <li><p>If <var>navigable</var>'s <span>deferring page swap</span> is true,
+     then set <var>navigable</var>'s <span>commit navigation steps</span> to
+     <var>processNavigateResponse</var> and abort these steps.</p></li>
 
      <li>
       <p>Let <var>saveExtraDocumentState</var> be true.</p>
@@ -110332,6 +110569,10 @@ location.href = '#foo';</code></pre>
      <li><p>Run <var>completionSteps</var>.</p></li>
     </ol>
    </li>
+
+   <li><p><span>Queue a global task</span> on the <span>navigation and
+   traversal task source</span> of <var>navigable</var>'s <span data-x="nav-window">active
+   window</span> to call <var>processNavigateResponse</var>.</p></li>
   </ol>
   </div>
 
