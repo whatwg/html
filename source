@@ -125992,11 +125992,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
 
    <li><p>Let <var>parser</var> be a new <span>HTML parser</span> whose <span>allow declarative
    shadow roots</span> is <var>document</var>'s <span
-   data-x="concept-document-allow-declarative-shadow-roots">allow declarative shadow roots</span>,
-   associated with <var>document</var>.</p></li>
-
-   <li><p>Set <var>parser</var>'s <span>parser sanitizer configuration</span> to
-   <var>configuration</var>.</p></li>
+   data-x="concept-document-allow-declarative-shadow-roots">allow declarative shadow roots</span>
+   and <span>parser sanitizer configuration</span> is <var>configuration</var>, associated with
+   <var>document</var>.</p></li>
 
    <li><p>Place <var>html</var> into the <span>input stream</span> for <var>parser</var>. The
    encoding <span data-x="concept-encoding-confidence">confidence</span> is
@@ -128762,12 +128760,12 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
   </div>
 
   <div algorithm>
-  <p>To determine whether an attribute <var>attribute</var> <dfn>contains a <code>javascript:</code>
+  <p>To determine whether a string <var>value</var> <dfn>contains a <code>javascript:</code>
   URL</dfn>:</p>
 
   <ol>
    <li><p>Let <var>url</var> be the result of running the <span>basic URL parser</span> on
-   <var>attribute</var>'s <span data-x="concept-attribute-value">value</span>.</p></li>
+   <var>value</var>.</p></li>
 
    <li><p>If <var>url</var> is failure, then return false.</p></li>
 
@@ -128856,6 +128854,94 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
   </div>
 
   <div algorithm>
+  <p>To check if a <dfn>sanitizer config allows an attribute</dfn> given a
+  <span>SanitizerAttributeNamespace</span> <var>attrName</var>, a string <var>value</var>, a
+  <span>SanitizerElementNamespace</span> <var>elementName</var>, and a <span>SanitizerConfig</span>
+  <var>configuration</var>:</p>
+
+  <ol>
+   <li><p>Let <var>elementWithLocalAttributes</var> be «[ ]».</p></li>
+
+   <li><p>If <var>configuration</var>["<code data-x="dom-SanitizerConfig-elements">elements</code>"]
+   <span data-x="map exists">exists</span> and <var>configuration</var>["<code
+   data-x="dom-SanitizerConfig-elements">elements</code>"] <span data-x="list
+   contains">contains</span> <var>elementName</var>, then set <var>elementWithLocalAttributes</var>
+   to <var>configuration</var>["<code
+   data-x="dom-SanitizerConfig-elements">elements</code>"][<var>elementName</var>].</p></li>
+
+   <li>
+    <p>If <var>elementWithLocalAttributes</var>["<code
+    data-x="dom-SanitizerElementNamespaceWithAttributes-removeAttributes">removeAttributes</code>"]
+    <span data-x="map exists">exists</span> and <var>elementWithLocalAttributes</var>["<code
+    data-x="dom-SanitizerElementNamespaceWithAttributes-removeAttributes">removeAttributes</code>"]
+    <span data-x="list contains">contains</span> <var>attrName</var>, then return false.</p>
+   </li>
+
+   <li>
+    <p>Otherwise, if <var>configuration</var>["<code
+    data-x="dom-SanitizerConfig-attributes">attributes</code>"] <span data-x="map
+    exists">exists</span>:</p>
+
+    <ol>
+     <li>
+      <p>If <var>configuration</var>["<code
+      data-x="dom-SanitizerConfig-attributes">attributes</code>"] does not <span data-x="list
+      contains">contain</span> <var>attrName</var> and <var>elementWithLocalAttributes</var>["<code
+      data-x="dom-SanitizerElementNamespaceWithAttributes-attributes">attributes</code>"] <span
+      data-x="map with default">with default</span> « » does not <span data-x="list
+      contains">contain</span> <var>attrName</var>, and if "<code data-x="">data-</code>" is not a
+      <span>code unit prefix</span> of <var>attrName</var>'s <code
+      data-x="dom-SanitizerAttributeNamespace-name">name</code> or <var>attrName</var>'s <code
+      data-x="dom-SanitizerAttributeNamespace-namespace">namespace</code> is not null or
+      <var>configuration</var>["<code
+      data-x="dom-SanitizerConfig-dataAttributes">dataAttributes</code>"] is not true, then return
+      false.</p>
+     </li>
+    </ol>
+   </li>
+
+   <li>
+    <p>Otherwise:</p>
+
+    <ol>
+     <li><p>If <var>elementWithLocalAttributes</var>["<code
+     data-x="dom-SanitizerElementNamespaceWithAttributes-attributes">attributes</code>"] <span
+     data-x="map exists">exists</span> and <var>elementWithLocalAttributes</var>["<code
+     data-x="dom-SanitizerElementNamespaceWithAttributes-attributes">attributes</code>"] does not
+     <span data-x="list contains">contain</span> <var>attrName</var>, then return false.</p></li>
+
+     <li><p>Otherwise, if <var>configuration</var>["<code
+     data-x="dom-SanitizerConfig-removeAttributes">removeAttributes</code>"] <span data-x="list
+     contains">contains</span> <var>attrName</var>, then return false.</p></li>
+    </ol>
+   </li>
+
+   <li><p>If <var>configuration</var>["<code
+   data-x="dom-SanitizerConfig-javascriptURLs">javascriptURLs</code>"] is true, then return
+   true.</p></li>
+
+   <li><p>If the pair (<var>elementName</var>, <var>attrName</var>) matches an entry in the
+   <span>built-in navigating URL attributes list</span>, and if <var>value</var> <span>contains a
+   <code>javascript:</code> URL</span>, then return false.</p></li>
+
+   <li><p>If <var>elementName</var>'s <code
+   data-x="dom-SanitizerElementNamespace-namespace">namespace</code> is the <span>MathML
+   namespace</span>, <var>attrName</var>'s <code
+   data-x="dom-SanitizerAttributeNamespace-name">name</code> is "<code data-x="">href</code>",
+   <var>attrName</var>'s <code data-x="dom-SanitizerAttributeNamespace-namespace">namespace</code>
+   is null or the <span>XLink namespace</span>, and <var>value</var> <span>contains a
+   <code>javascript:</code> URL</span>, then return false.</p></li>
+
+   <li><p>If the <span>built-in animating URL attributes list</span> <span data-x="list
+   contains">contains</span> the pair (<var>elementName</var>, <var>attrName</var>), and
+   <var>value</var> is "<code data-x="">href</code>" or "<code data-x="">xlink:href</code>", then
+   return false.</p></li>
+
+   <li><p>Return true.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
   <p>To <dfn>sanitize attributes</dfn> of an <code>Element</code> <var>element</var> given a
   <span>SanitizerConfig</span> <var>configuration</var>:</p>
 
@@ -128873,93 +128959,10 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
      <var>attribute</var>'s <span data-x="concept-attribute-local-name">local name</span> and <span
      data-x="concept-attribute-namespace">namespace</span>.</p></li>
 
-     <li><p>Let <var>elementWithLocalAttributes</var> be «[ ]».</p></li>
-
-     <li><p>If <var>configuration</var>["<code
-     data-x="dom-SanitizerConfig-elements">elements</code>"] <span data-x="map exists">exists</span>
-     and <var>configuration</var>["<code data-x="dom-SanitizerConfig-elements">elements</code>"]
-     <span data-x="list contains">contains</span> <var>elementName</var>, then set
-     <var>elementWithLocalAttributes</var> to <var>configuration</var>["<code
-     data-x="dom-SanitizerConfig-elements">elements</code>"][<var>elementName</var>].</p></li>
-
-     <li>
-      <p>If <var>elementWithLocalAttributes</var>["<code
-      data-x="dom-SanitizerElementNamespaceWithAttributes-removeAttributes">removeAttributes</code>"]
-      <span data-x="map exists">exists</span> and <var>elementWithLocalAttributes</var>["<code
-      data-x="dom-SanitizerElementNamespaceWithAttributes-removeAttributes">removeAttributes</code>"]
-      <span data-x="list contains">contains</span> <var>attrName</var>, then <span
-      data-x="concept-element-attributes-remove">remove</span> <var>attribute</var> from
-      <var>element</var>'s <span>attribute list</span> and <span>continue</span>.</p>
-     </li>
-
-     <li>
-      <p>Otherwise, if <var>configuration</var>["<code
-      data-x="dom-SanitizerConfig-attributes">attributes</code>"] <span data-x="map
-      exists">exists</span>:</p>
-
-      <ol>
-       <li>
-        <p>If <var>configuration</var>["<code
-        data-x="dom-SanitizerConfig-attributes">attributes</code>"] does not <span data-x="list
-        contains">contain</span> <var>attrName</var> and
-        <var>elementWithLocalAttributes</var>["<code
-        data-x="dom-SanitizerElementNamespaceWithAttributes-attributes">attributes</code>"] <span
-        data-x="map with default">with default</span> « » does not <span data-x="list
-        contains">contain</span> <var>attrName</var>, and if "<code data-x="">data-</code>" is not a
-        <span>code unit prefix</span> of <var>attribute</var>'s <span
-        data-x="concept-attribute-local-name">local name</span> or <var>attribute</var>'s <span
-        data-x="concept-attribute-namespace">namespace</span> is not null or
-        <var>configuration</var>["<code
-        data-x="dom-SanitizerConfig-dataAttributes">dataAttributes</code>"] is not true, then <span
-        data-x="concept-element-attributes-remove">remove</span> <var>attribute</var> from
-        <var>element</var>'s <span>attribute list</span> and <span>continue</span>.</p>
-       </li>
-      </ol>
-     </li>
-
-     <li>
-      <p>Otherwise:</p>
-
-      <ol>
-       <li><p>If <var>elementWithLocalAttributes</var>["<code
-       data-x="dom-SanitizerElementNamespaceWithAttributes-attributes">attributes</code>"] <span
-       data-x="map exists">exists</span> and <var>elementWithLocalAttributes</var>["<code
-       data-x="dom-SanitizerElementNamespaceWithAttributes-attributes">attributes</code>"] does not
-       <span data-x="list contains">contain</span> <var>attrName</var>, then <span
-       data-x="concept-element-attributes-remove">remove</span> <var>attribute</var> from
-       <var>element</var>'s <span>attribute list</span> and <span>continue</span>.</p></li>
-
-       <li><p>Otherwise, if <var>configuration</var>["<code
-       data-x="dom-SanitizerConfig-removeAttributes">removeAttributes</code>"] <span data-x="list
-       contains">contains</span> <var>attrName</var>, <span
-       data-x="concept-element-attributes-remove">remove</span> <var>attribute</var> from
-       <var>element</var>'s <span>attribute list</span> and <span>continue</span>.</p></li>
-      </ol>
-     </li>
-
-     <li><p>If <var>configuration</var>["<code
-     data-x="dom-SanitizerConfig-javascriptURLs">javascriptURLs</code>"] is true, then
-     <span>continue</span>.</p></li>
-
-     <li><p>If the pair (<var>elementName</var>, <var>attrName</var>) matches an entry in the
-     <span>built-in navigating URL attributes list</span>, and if <var>attribute</var>
-     <span>contains a <code>javascript:</code> URL</span>, then <span
-     data-x="concept-element-attributes-remove">remove</span> <var>attribute</var> from
-     <var>element</var>'s <span>attribute list</span>.</p></li>
-
-     <li><p>If <var>element</var>'s <span data-x="concept-element-namespace">namespace</span> is the
-     <span>MathML namespace</span>, <var>attribute</var>'s <span
-     data-x="concept-attribute-local-name">local name</span> is "<code data-x="">href</code>",
-     <var>attribute</var>'s <span data-x="concept-attribute-namespace">namespace</span> is null or
-     the <span>XLink namespace</span>, and <var>attribute</var> <span>contains a
-     <code>javascript:</code> URL</span>, then <span
-     data-x="concept-element-attributes-remove">remove</span> <var>attribute</var> from
-     <var>element</var>'s <span>attribute list</span>.</p></li>
-
-     <li><p>If the <span>built-in animating URL attributes list</span> <span data-x="list
-     contains">contains</span> the pair (<var>elementName</var>, <var>attrName</var>), and
-     <var>attribute</var>'s <span data-x="concept-attribute-value">value</span> is "<code
-     data-x="">href</code>" or "<code data-x="">xlink:href</code>", then <span
+     <li><p>If the result of checking if a <span data-x="sanitizer config allows an
+     attribute">sanitizer config allows an attribute</span> given <var>attrName</var>,
+     <var>attribute</var>'s <span data-x="concept-attribute-value">value</span>,
+     <var>elementName</var>, and <var>configuration</var> is false, then <span
      data-x="concept-element-attributes-remove">remove</span> <var>attribute</var> from
      <var>element</var>'s <span>attribute list</span>.</p></li>
     </ol>
@@ -146944,14 +146947,29 @@ document.body.appendChild(text);
     <p>If there is a <code>template</code> element on the <span>stack of open elements</span>, then
     ignore the token.</p>
 
-    <p>Otherwise, for each attribute on the token, check to see if the attribute is already present
-    on the top element of the <span>stack of open elements</span>. If it is not, add the attribute
-    and its corresponding value to that element.</p>
+    <p>Otherwise, let <var>htmlElement</var> be the top element of the <span>stack of open
+    elements</span>.</p>
 
-    <p>If the parser's <span>parser sanitizer configuration</span> is not null, then <span
-    data-x="sanitize attributes">sanitize attributes</span> of the top element of the
-    <span>stack of open elements</span> given the parser's <span>parser sanitizer
-    configuration</span>.</p>
+    <p>Let <var>htmlElementName</var> be a <span>SanitizerElementNamespace</span> with
+    <var>htmlElement</var>'s <span data-x="concept-element-local-name">local name</span> and <span
+    data-x="concept-element-namespace">namespace</span>.</p>
+
+    <p><span data-x="list iterate">For each</span> <var>attribute</var> on the token:</p>
+
+    <ol>
+     <li><p>Let <var>htmlAttrName</var> be a <span>SanitizerAttributeNamespace</span> with
+     <var>attribute</var>'s name and null.</p></li>
+
+     <li><p>If the parser's <span>parser sanitizer configuration</span> is not null and the
+     result of checking if a <span data-x="sanitizer config allows an attribute">sanitizer config
+     allows an attribute</span> given <var>htmlAttrName</var>, <var>attribute</var>'s value,
+     <var>htmlElementName</var>, and the parser's <span>parser sanitizer configuration</span> is
+     false, then <span>continue</span>.</p></li>
+
+     <li><p>Check to see if <var>attribute</var>'s name is already present on
+     <var>htmlElement</var>. If it is not, add <var>attribute</var>'s name and its corresponding
+     value to that element.</p></li>
+    </ol>
    </dd>
 
    <dt>A start tag whose tag name is one of: "base", "basefont", "bgsound", "link", "meta",
@@ -146971,15 +146989,31 @@ document.body.appendChild(text);
     <code>template</code> element on the <span>stack of open elements</span>, then ignore the token.
     (<span>fragment case</span> or there is a <code>template</code> element on the stack)</p>
 
-    <p>Otherwise, set the <span>frameset-ok flag</span> to "not ok"; then, for each attribute on the
-    token, check to see if the attribute is already present on the <code>body</code> element (the
-    second element) on the <span>stack of open elements</span>, and if it is not, add the attribute
-    and its corresponding value to that element.</p>
+    <p>Otherwise, set the <span>frameset-ok flag</span> to "not ok".</p>
 
-    <p>If the parser's <span>parser sanitizer configuration</span> is not null, then <span
-    data-x="sanitize attributes">sanitize attributes</span> of the <code>body</code> element (the
-    second element) on the <span>stack of open elements</span> given the parser's <span>parser
-    sanitizer configuration</span>.</p>
+    <p>Let <var>bodyElement</var> be the <code>body</code> element (the second element) on the
+    <span>stack of open elements</span>.</p>
+
+    <p>Let <var>bodyElementName</var> be a <span>SanitizerElementNamespace</span> with
+    <var>bodyElement</var>'s <span data-x="concept-element-local-name">local name</span> and <span
+    data-x="concept-element-namespace">namespace</span>.</p>
+
+    <p><span data-x="list iterate">For each</span> <var>attribute</var> on the token:</p>
+
+    <ol>
+     <li><p>Let <var>bodyAttrName</var> be a <span>SanitizerAttributeNamespace</span> with
+     <var>attribute</var>'s name and null.</p></li>
+
+     <li><p>If the parser's <span>parser sanitizer configuration</span> is not null and the
+     result of checking if a <span data-x="sanitizer config allows an attribute">sanitizer config
+     allows an attribute</span> given <var>bodyAttrName</var>, <var>attribute</var>'s value,
+     <var>bodyElementName</var>, and the parser's <span>parser sanitizer configuration</span> is
+     false, then <span>continue</span>.</p></li>
+
+     <li><p>Check to see if <var>attribute</var>'s name is already present on
+     <var>bodyElement</var>, and if it is not, add <var>attribute</var>'s name and its
+     corresponding value to that element.</p></li>
+    </ol>
    </dd>
 
    <dt>A start tag whose tag name is "frameset"</dt>
@@ -148187,7 +148221,7 @@ document.body.appendChild(text);
      elements</span>, and insert the new element into the <span>stack of open elements</span>
      immediately below the position of <var>furthestBlock</var> in that stack.</p></li>
 
-     <li><p>Let <var>sanitizerAction</var> be "<span
+     <li><p>Set <var>sanitizerAction</var> to "<span
      data-x="sanitizer-action-keep">Keep</span>".</p></li>
 
      <li><p>If the parser's <span>parser sanitizer configuration</span> is not null, then set
