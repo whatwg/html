@@ -119226,20 +119226,6 @@ document.querySelector("button").addEventListener("click", bound);
     Also, a module script with the same URL shouldn't be evaluated multiple times,
     to avoid unintentional double evaluation just because of different integrity values specified by accident,
     so the module map isn't keyed by integrity metadata.</p>
-
-  <div class="example">
-
-   <p>The following examples illustrates how integrity mismatches make module scripts loading to fail:</p>
-
-   <pre><code class="html">&lt;script type="module" src="foo.js" integrity="sha256-(correct hash)">&lt;/script>  &lt;!-- success --></code></pre>
-
-   <pre><code class="html">&lt;link rel="modulepreload" href="foo.js"> &lt;!-- success -->
-&lt;script type="module" src="foo.js" integrity="sha256-(correct hash)">&lt;/script>  &lt;!-- fail --></code></pre>
-
-   <pre><code class="html">&lt;script type="module" src="foo.js">&lt;/script> &lt;!-- success -->
-&lt;script type="module" src="foo.js" integrity="sha256-(correct hash)">&lt;/script> &lt;!-- fail --></code></pre>
-
-  </div>
    </li>
 
    <li>
@@ -122466,6 +122452,64 @@ import "https://example.com/foo/../module2.mjs";</code></pre>
     await import("./foo4.mjs", { with: { type: null } });
     await import("./foo5.mjs", { with: { type: undefined } });
 &lt;/script></code></pre>
+  </div>
+
+  <div class="example">
+   <p>Because <span data-x="module map">module maps</span> are not keyed by <span
+   data-x="concept-script-fetch-options-integrity">integrity metadata</span>, once a module script is
+   in the <span>module map</span>, any later fetch of the same module with integrity metadata has to
+   match the integrity metadata of the existing entry (or the new fetch has to specify no integrity
+   metadata). If the module was initially fetched without integrity metadata, a subsequent fetch
+   specifying an <code data-x="attr-script-integrity">integrity</code> attribute will fail, even if
+   the resource's contents match the cryptographic hash.</p>
+
+   <p>In the following example, the <code data-x="rel-modulepreload">modulepreload</code>
+   <code>link</code> element preloads a module script without an <code
+   data-x="attr-link-integrity">integrity</code> attribute. The subsequent <code>script</code> element
+   specifies an <code data-x="attr-script-integrity">integrity</code> attribute and fails to load,
+   because the module script was already entered into the <span>module map</span> with empty integrity
+   metadata:</p>
+
+   <pre class="bad"><code class="html">&lt;!-- This will cause the script to fail to load! -->
+&lt;link rel="modulepreload" href="foo.js">
+&lt;script type="module" src="foo.js" integrity="sha256-(correct hash)">&lt;/script></code></pre>
+
+   <p>To avoid this failure, ensure that the <code data-x="attr-link-integrity">integrity</code>
+   attribute is also specified on the <code data-x="rel-modulepreload">modulepreload</code>
+   <code>link</code> element:</p>
+
+   <pre><code class="html">&lt;link rel="modulepreload" href="foo.js" integrity="sha256-(correct hash)">
+&lt;script type="module" src="foo.js" integrity="sha256-(correct hash)">&lt;/script></code></pre>
+
+   <p>Similarly, if a module script is loaded by a <code>script</code> element without an <code
+   data-x="attr-script-integrity">integrity</code> attribute, a subsequent <code>script</code>
+   element for the same module specifying an <code data-x="attr-script-integrity">integrity</code>
+   attribute will also fail to load:</p>
+
+   <pre class="bad"><code class="html">&lt;!-- This will cause the second script to fail to load! -->
+&lt;script type="module" src="foo.js">&lt;/script>
+&lt;script type="module" src="foo.js" integrity="sha256-(correct hash)">&lt;/script></code></pre>
+
+   <p>While failing a script load that would otherwise succeed in the absence of a preceding <code
+   data-x="rel-modulepreload">modulepreload</code> <code>link</code> element or <code>script</code>
+   element with mismatching integrity metadata is unfortunate, attempting to make such scripts load
+   successfully would result in evaluating <code data-x="">foo.js</code> multiple times (for
+   example, by keying <span data-x="module map">module maps</span> by <span
+   data-x="concept-script-fetch-options-integrity">integrity metadata</span>). Double evaluation
+   would likely be far more problematic and unexpected, given that mismatching integrity metadata is
+   much more likely to be an unintentional mistake than an intent to evaluate the same script
+   twice.</p>
+  </div>
+
+  <div class="example">
+   <p>Note that, conversely, if a module script was fetched with an <code
+   data-x="attr-link-integrity">integrity</code> attribute, a subsequent fetch without integrity
+   metadata (such as a <code>script</code> element without an <code
+   data-x="attr-script-integrity">integrity</code> attribute) can successfully reuse the validated
+   <span>module map</span> entry:</p>
+
+   <pre><code class="html">&lt;link rel="modulepreload" href="foo.js" integrity="sha256-(correct hash)">
+&lt;script type="module" src="foo.js">&lt;/script> &lt;!-- Reuses the validated module script --></code></pre>
   </div>
 
   <div w-nodev>
