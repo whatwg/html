@@ -103734,6 +103734,17 @@ interface <dfn interface>NavigationDestination</dfn> {
      <li><p>Set <var>navigation</var>'s <span>ongoing <code data-x="event-navigate">navigate</code>
      event</span> to null.</p></li>
 
+     <li>
+      <p>If <var>event</var>'s <span data-x="concept-NavigateEvent-interception-state">interception
+      state</span> is not "<code data-x="">none</code>", and <var>event</var>'s <span>relevant
+      global object</span>'s <span data-x="window navigable">navigable</span>'s <span>ongoing
+      navigation</span> is a <span>navigation ID</span>, then set that <span>navigable</span>'s
+      <span>ongoing navigation</span> to null.</p>
+
+      <p class="note">A <span>navigation ID</span> here is <var>event</var>'s own, since anything
+      that superseded it would have aborted <var>event</var> first.</p>
+     </li>
+
      <li><p><span data-x="NavigateEvent-finish">Finish</span> <var>event</var> given true.</p></li>
 
      <li><p>If <var>apiMethodTracker</var> is non-null, then <span>resolve the finished
@@ -103934,7 +103945,13 @@ interface <dfn interface>NavigationDestination</dfn> {
    data-x="NavigateEvent-finish">finish</span> <var>event</var> given false.</p></li>
 
    <li><p><span data-x="Abort a NavigateEvent">Abort</span> <var>event</var> given
-   <var>reason</var>.</p>
+   <var>reason</var>.</p></li>
+
+   <li><p>If <var>event</var>'s <span data-x="concept-NavigateEvent-interception-state">interception
+   state</span> is not "<code data-x="">none</code>", and <var>event</var>'s <span>relevant global
+   object</span>'s <span data-x="window navigable">navigable</span>'s <span>ongoing
+   navigation</span> is a <span>navigation ID</span>, then set that <span>navigable</span>'s
+   <span>ongoing navigation</span> to null.</p></li>
   </ol>
   </div>
 
@@ -108439,12 +108456,10 @@ location.href = '#foo';</code></pre>
     <ol>
      <li><p>Let <var>unloadPromptCanceled</var> be the result of <span>checking if unloading is
      canceled</span> for <var>navigable</var>'s <span data-x="nav-document">active
-     document</span>'s <span>inclusive descendant navigables</span>.</p>
+     document</span>'s <span>inclusive descendant navigables</span>.</p></li>
 
      <li>
-      <p>If <var>unloadPromptCanceled</var> is not "<code data-x="">continue</code>", or
-      <var>navigable</var>'s <span>ongoing navigation</span> is no longer
-      <var>navigationId</var>:</p>
+      <p>If <var>unloadPromptCanceled</var> is not "<code data-x="">continue</code>":</p>
 
       <ol>
        <li><p>Invoke <span>WebDriver BiDi navigation failed</span> with <var>navigable</var> and a
@@ -108458,179 +108473,201 @@ location.href = '#foo';</code></pre>
       </ol>
      </li>
 
-     <li><p><span>Queue a global task</span> on the <span>navigation and traversal task
-     source</span> given <var>navigable</var>'s <span data-x="nav-window">active window</span> to
-     <span>abort a document and its descendants</span> given <var>navigable</var>'s <span
-     data-x="nav-document">active document</span>.</p></li>
-
-     <li id="navigation-create-document-state">
-      <p>Let <var>documentState</var> be a new <span>document state</span> with</p>
-
-      <dl class="props">
-       <dt><span data-x="document-state-request-referrer-policy">request referrer policy</span></dt>
-       <dd><var>referrerPolicy</var></dd>
-
-       <dt><span data-x="document-state-initiator-origin">initiator origin</span></dt>
-       <dd><var>initiatorOriginSnapshot</var></dd>
-
-       <dt><span data-x="document-state-resource">resource</span></dt>
-       <dd><var>documentResource</var></dd>
-
-       <dt><span data-x="document-state-nav-target-name">navigable target name</span></dt>
-       <dd><var>navigable</var>'s <span data-x="nav-target">target name</span></dd>
-      </dl>
-
-      <p class="note">The <span data-x="document-state-nav-target-name">navigable target
-      name</span> can get cleared under various conditions later in the navigation process, before
-      the document state is finalized.</p>
-     </li>
-
      <li>
-      <p>If <var>url</var> <span>matches <code>about:blank</code></span> or
-      is <code>about:srcdoc</code>:</p>
+      <p><span>Queue a global task</span> on the <span>navigation and traversal task source</span>
+      given <var>navigable</var>'s <span data-x="nav-window">active window</span> to run these
+      steps:</p>
 
       <ol>
-       <li><p>Set <var>documentState</var>'s <span data-x="document-state-origin">origin</span> to
-       <var>initiatorOriginSnapshot</var>.</p></li>
-
-       <li><p>Set <var>documentState</var>'s <span data-x="document-state-about-base-url">about base
-       URL</span> to <var>initiatorBaseURLSnapshot</var>.</p></li>
-      </ol>
-     </li>
-
-     <li><p>Let <var>historyEntry</var> be a new <span>session history entry</span>, with its <span
-     data-x="she-url">URL</span> set to <var>url</var> and its <span
-     data-x="she-document-state">document state</span> set to
-     <var>documentState</var>.</p></li>
-
-     <li><p>Let <var>navigationParams</var> be null.</p></li>
-
-     <li>
-      <p>If <var>response</var> is non-null:</p>
-
-      <p class="note" id="note-navigate-called-with-response">The <span>navigate</span> algorithm
-      is only supplied with a <span data-x="concept-response">response</span> as part of the
-      <code>object</code> and <code>embed</code> processing models, or for processing parts of
-      <span data-x="navigate-multipart-x-mixed-replace"><code>multipart/x-mixed-replace</code>
-      responses</span> after the initial response.</p>
-
-      <ol>
-       <li><p>Let <var>sourcePolicyContainer</var> be a <span data-x="clone a policy
-       container">clone</span> of the <var>sourceDocument</var>'s <span
-       data-x="concept-document-policy-container">policy container</span>, if
-       <var>sourceDocument</var> is not null; otherwise null.</p></li>
-
-       <li><p>Let <var>policyContainer</var> be the result of <span data-x="determining navigation
-       params policy container">determining navigation params policy container</span> given
-       <var>response</var>'s <span data-x="concept-response-url">URL</span>,
-       null, <var>sourcePolicyContainer</var>, <var>navigable</var>'s <span
-       data-x="nav-container-document">container document</span>'s <span
-       data-x="concept-document-policy-container">policy container</span>, and null.</p></li>
-
-       <li><p>Let <var>finalSandboxFlags</var> be the <span data-x="set union">union</span> of
-       <var>targetSnapshotParams</var>'s <span data-x="target-snapshot-params-sandbox">sandboxing
-       flags</span> and <var>policyContainer</var>'s <span data-x="policy-container-csp-list">CSP
-       list</span>'s <span>CSP-derived sandboxing flags</span>.</p></li>
-
-       <li><p>Let <var>responseOrigin</var> be the result of <span>determining the origin</span>
-       given <var>response</var>'s <span data-x="concept-response-url">URL</span>,
-       <var>finalSandboxFlags</var>, and <var>documentState</var>'s <span
-       data-x="document-state-initiator-origin">initiator origin</span>.</p></li>
-
-       <li><p>Let <var>coop</var> be a new <span>opener policy</span>.</p></li>
-
        <li>
-        <p>Let <var>coopEnforcementResult</var> be a new <span
-        data-x="coop-enforcement-result">opener policy enforcement result</span>
-        with</p>
+        <p>If <var>navigable</var>'s <span>ongoing navigation</span> is no longer
+        <var>navigationId</var>:</p>
+
+        <ol>
+         <li><p>Invoke <span>WebDriver BiDi navigation failed</span> with <var>navigable</var> and
+         a new <span>WebDriver BiDi navigation status</span> whose <span
+         data-x="navigation-status-id">id</span> is <var>navigationId</var>, <span
+         data-x="navigation-status-status">status</span> is "<code
+         data-x="navigation-status-canceled">canceled</code>", and <span
+         data-x="navigation-status-url">url</span> is <var>url</var>.</p></li>
+
+         <li><p>Abort these steps.</p></li>
+        </ol>
+       </li>
+
+       <li><p><span>Abort a document and its descendants</span> given <var>navigable</var>'s <span
+       data-x="nav-document">active document</span>.</p></li>
+
+       <li id="navigation-create-document-state">
+        <p>Let <var>documentState</var> be a new <span>document state</span> with</p>
 
         <dl class="props">
-         <dt><span data-x="coop-enforcement-url">url</span></dt>
-         <dd><var>response</var>'s <span data-x="concept-response-url">URL</span></dd>
+         <dt><span data-x="document-state-request-referrer-policy">request referrer policy</span></dt>
+         <dd><var>referrerPolicy</var></dd>
 
-         <dt><span data-x="coop-enforcement-origin">origin</span></dt>
-         <dd><var>responseOrigin</var></dd>
+         <dt><span data-x="document-state-initiator-origin">initiator origin</span></dt>
+         <dd><var>initiatorOriginSnapshot</var></dd>
 
-         <dt><span data-x="coop-enforcement-coop">opener policy</span></dt>
-         <dd><var>coop</var></dd>
+         <dt><span data-x="document-state-resource">resource</span></dt>
+         <dd><var>documentResource</var></dd>
+
+         <dt><span data-x="document-state-nav-target-name">navigable target name</span></dt>
+         <dd><var>navigable</var>'s <span data-x="nav-target">target name</span></dd>
         </dl>
+
+        <p class="note">The <span data-x="document-state-nav-target-name">navigable target
+        name</span> can get cleared under various conditions later in the navigation process, before
+        the document state is finalized.</p>
        </li>
 
        <li>
-        <p>Set <var>navigationParams</var> to a new <span>navigation params</span>, with</p>
+        <p>If <var>url</var> <span>matches <code>about:blank</code></span> or
+        is <code>about:srcdoc</code>:</p>
 
-        <dl class="props">
-         <dt><span data-x="navigation-params-id">id</span></dt>
-         <dd><var>navigationId</var></dd>
+        <ol>
+         <li><p>Set <var>documentState</var>'s <span data-x="document-state-origin">origin</span> to
+         <var>initiatorOriginSnapshot</var>.</p></li>
 
-         <dt><span data-x="navigation-params-navigable">navigable</span></dt>
-         <dd><var>navigable</var></dd>
-
-         <dt><span data-x="navigation-params-request">request</span></dt>
-         <dd>null</dd>
-
-         <dt><span data-x="navigation-params-response">response</span></dt>
-         <dd><var>response</var></dd>
-
-         <dt><span data-x="navigation-params-fetch-controller">fetch controller</span></dt>
-         <dd>null</dd>
-
-         <dt><span data-x="navigation-params-commit-early-hints">commit early hints</span></dt>
-         <dd>null</dd>
-
-         <dt><span data-x="navigation-params-coop-enforcement-result">COOP enforcement result</span></dt>
-         <dd><var>coopEnforcementResult</var></dd>
-
-         <dt><span data-x="navigation-params-reserved-environment">reserved environment</span></dt>
-         <dd>null</dd>
-
-         <dt><span data-x="navigation-params-origin">origin</span></dt>
-         <dd><var>responseOrigin</var></dd>
-
-         <dt><span data-x="navigation-params-policy-container">policy container</span></dt>
-         <dd><var>policyContainer</var></dd>
-
-         <dt><span data-x="navigation-params-sandboxing">final sandboxing flag set</span></dt>
-         <dd><var>finalSandboxFlags</var></dd>
-
-         <dt><span data-x="navigation-params-iframe-referrer-policy"><code>iframe</code> element referrer policy</span></dt>
-         <dd><var>targetSnapshotParams</var>'s <span
-         data-x="target-snapshot-params-iframe-referrer-policy"><code>iframe</code> element referrer
-         policy</span></dd>
-
-         <dt><span data-x="navigation-params-coop">opener policy</span></dt>
-         <dd><var>coop</var></dd>
-
-         <dt><span data-x="navigation-params-nav-timing-type">navigation timing type</span></dt>
-         <dd>"<code data-x="dom-navigationtimingtype-navigate">navigate</code>"</dd>
-
-         <dt><span data-x="navigation-params-about-base-url">about base URL</span></dt>
-         <dd><var>documentState</var>'s <span data-x="document-state-about-base-url">about base
-         URL</span></dd>
-
-         <dt><span data-x="navigation-params-user-involvement">user involvement</span></dt>
-         <dd><var>userInvolvement</var></dd>
-        </dl>
+         <li><p>Set <var>documentState</var>'s <span data-x="document-state-about-base-url">about base
+         URL</span> to <var>initiatorBaseURLSnapshot</var>.</p></li>
+        </ol>
        </li>
-      </ol>
-     </li>
 
-     <li>
-      <p><span>Attempt to populate the history entry's document</span> for <var>historyEntry</var>,
-      given <var>navigable</var>, "<code
-      data-x="dom-navigationtimingtype-navigate">navigate</code>", <var>sourceSnapshotParams</var>,
-      <var>targetSnapshotParams</var>, <var>userInvolvement</var>, <var>navigationId</var>,
-      <var>navigationParams</var>, <var>cspNavigationType</var>, with <i
-      data-x="attempt-to-populate-allow-post">allowPOST</i> set to true and <i
-      data-x="attempt-to-populate-completion-steps">completionSteps</i> set to the following
-      step:</p>
+       <li><p>Let <var>historyEntry</var> be a new <span>session history entry</span>, with its <span
+       data-x="she-url">URL</span> set to <var>url</var> and its <span
+       data-x="she-document-state">document state</span> set to
+       <var>documentState</var>.</p></li>
 
-      <ol>
-       <li><p><span data-x="tn-append-session-history-traversal-steps">Append session history
-       traversal steps</span> to <var>navigable</var>'s <span
-       data-x="nav-traversable">traversable navigable</span> to <span>finalize a cross-document
-       navigation</span> given <var>navigable</var>, <var>historyHandling</var>,
-       <var>userInvolvement</var>, and <var>historyEntry</var>.</p></li>
+       <li><p>Let <var>navigationParams</var> be null.</p></li>
+
+       <li>
+        <p>If <var>response</var> is non-null:</p>
+
+        <p class="note" id="note-navigate-called-with-response">The <span>navigate</span> algorithm
+        is only supplied with a <span data-x="concept-response">response</span> as part of the
+        <code>object</code> and <code>embed</code> processing models, or for processing parts of
+        <span data-x="navigate-multipart-x-mixed-replace"><code>multipart/x-mixed-replace</code>
+        responses</span> after the initial response.</p>
+
+        <ol>
+         <li><p>Let <var>sourcePolicyContainer</var> be a <span data-x="clone a policy
+         container">clone</span> of the <var>sourceDocument</var>'s <span
+         data-x="concept-document-policy-container">policy container</span>, if
+         <var>sourceDocument</var> is not null; otherwise null.</p></li>
+
+         <li><p>Let <var>policyContainer</var> be the result of <span data-x="determining navigation
+         params policy container">determining navigation params policy container</span> given
+         <var>response</var>'s <span data-x="concept-response-url">URL</span>,
+         null, <var>sourcePolicyContainer</var>, <var>navigable</var>'s <span
+         data-x="nav-container-document">container document</span>'s <span
+         data-x="concept-document-policy-container">policy container</span>, and null.</p></li>
+
+         <li><p>Let <var>finalSandboxFlags</var> be the <span data-x="set union">union</span> of
+         <var>targetSnapshotParams</var>'s <span data-x="target-snapshot-params-sandbox">sandboxing
+         flags</span> and <var>policyContainer</var>'s <span data-x="policy-container-csp-list">CSP
+         list</span>'s <span>CSP-derived sandboxing flags</span>.</p></li>
+
+         <li><p>Let <var>responseOrigin</var> be the result of <span>determining the origin</span>
+         given <var>response</var>'s <span data-x="concept-response-url">URL</span>,
+         <var>finalSandboxFlags</var>, and <var>documentState</var>'s <span
+         data-x="document-state-initiator-origin">initiator origin</span>.</p></li>
+
+         <li><p>Let <var>coop</var> be a new <span>opener policy</span>.</p></li>
+
+         <li>
+          <p>Let <var>coopEnforcementResult</var> be a new <span
+          data-x="coop-enforcement-result">opener policy enforcement result</span>
+          with</p>
+
+          <dl class="props">
+           <dt><span data-x="coop-enforcement-url">url</span></dt>
+           <dd><var>response</var>'s <span data-x="concept-response-url">URL</span></dd>
+
+           <dt><span data-x="coop-enforcement-origin">origin</span></dt>
+           <dd><var>responseOrigin</var></dd>
+
+           <dt><span data-x="coop-enforcement-coop">opener policy</span></dt>
+           <dd><var>coop</var></dd>
+          </dl>
+         </li>
+
+         <li>
+          <p>Set <var>navigationParams</var> to a new <span>navigation params</span>, with</p>
+
+          <dl class="props">
+           <dt><span data-x="navigation-params-id">id</span></dt>
+           <dd><var>navigationId</var></dd>
+
+           <dt><span data-x="navigation-params-navigable">navigable</span></dt>
+           <dd><var>navigable</var></dd>
+
+           <dt><span data-x="navigation-params-request">request</span></dt>
+           <dd>null</dd>
+
+           <dt><span data-x="navigation-params-response">response</span></dt>
+           <dd><var>response</var></dd>
+
+           <dt><span data-x="navigation-params-fetch-controller">fetch controller</span></dt>
+           <dd>null</dd>
+
+           <dt><span data-x="navigation-params-commit-early-hints">commit early hints</span></dt>
+           <dd>null</dd>
+
+           <dt><span data-x="navigation-params-coop-enforcement-result">COOP enforcement result</span></dt>
+           <dd><var>coopEnforcementResult</var></dd>
+
+           <dt><span data-x="navigation-params-reserved-environment">reserved environment</span></dt>
+           <dd>null</dd>
+
+           <dt><span data-x="navigation-params-origin">origin</span></dt>
+           <dd><var>responseOrigin</var></dd>
+
+           <dt><span data-x="navigation-params-policy-container">policy container</span></dt>
+           <dd><var>policyContainer</var></dd>
+
+           <dt><span data-x="navigation-params-sandboxing">final sandboxing flag set</span></dt>
+           <dd><var>finalSandboxFlags</var></dd>
+
+           <dt><span data-x="navigation-params-iframe-referrer-policy"><code>iframe</code> element referrer policy</span></dt>
+           <dd><var>targetSnapshotParams</var>'s <span
+           data-x="target-snapshot-params-iframe-referrer-policy"><code>iframe</code> element referrer
+           policy</span></dd>
+
+           <dt><span data-x="navigation-params-coop">opener policy</span></dt>
+           <dd><var>coop</var></dd>
+
+           <dt><span data-x="navigation-params-nav-timing-type">navigation timing type</span></dt>
+           <dd>"<code data-x="dom-navigationtimingtype-navigate">navigate</code>"</dd>
+
+           <dt><span data-x="navigation-params-about-base-url">about base URL</span></dt>
+           <dd><var>documentState</var>'s <span data-x="document-state-about-base-url">about base
+           URL</span></dd>
+
+           <dt><span data-x="navigation-params-user-involvement">user involvement</span></dt>
+           <dd><var>userInvolvement</var></dd>
+          </dl>
+         </li>
+        </ol>
+       </li>
+
+       <li>
+        <p><span>In parallel</span>, <span>attempt to populate the history entry's document</span>
+        for <var>historyEntry</var>, given <var>navigable</var>, "<code
+        data-x="dom-navigationtimingtype-navigate">navigate</code>", <var>sourceSnapshotParams</var>,
+        <var>targetSnapshotParams</var>, <var>userInvolvement</var>, <var>navigationId</var>,
+        <var>navigationParams</var>, <var>cspNavigationType</var>, with <i
+        data-x="attempt-to-populate-allow-post">allowPOST</i> set to true and <i
+        data-x="attempt-to-populate-completion-steps">completionSteps</i> set to the following
+        step:</p>
+
+        <ol>
+         <li><p><span data-x="tn-append-session-history-traversal-steps">Append session history
+         traversal steps</span> to <var>navigable</var>'s <span
+         data-x="nav-traversable">traversable navigable</span> to <span>finalize a cross-document
+         navigation</span> given <var>navigable</var>, <var>historyHandling</var>,
+         <var>userInvolvement</var>, and <var>historyEntry</var>.</p></li>
+        </ol>
+       </li>
       </ol>
      </li>
     </ol>
@@ -109083,11 +109120,12 @@ location.href = '#foo';</code></pre>
     <ol>
      <li>
       <p>If <var>navigation</var>'s <span>ongoing <code data-x="event-navigate">navigate</code>
-      event</span> is not null, then <span>set the ongoing navigation</span> of <var>navigable</var>
-      to <var>navigationId</var>.</p>
+      event</span> is not null, then set <var>navigable</var>'s <span>ongoing navigation</span> to
+      <var>navigationId</var>.</p>
 
       <p class="note">This makes intercepted hash navigations cancelable by browser UI or <code
-      data-x="dom-window-stop">window.stop()</code>.</p>
+      data-x="dom-window-stop">window.stop()</code>. The value is cleared again once the event's
+      handlers have settled.</p>
      </li>
 
      <li><p>Return.</p></li>
@@ -109570,6 +109608,15 @@ location.href = '#foo';</code></pre>
 
         <ol>
          <li>
+          <p><span>Set the ongoing navigation</span> for <var>traversable</var> to "<code
+          data-x="">traversal</code>".</p>
+
+          <p class="note">Marking before the <code data-x="event-navigate">navigate</code> event
+          fires means this can abort a superseded navigation's <code
+          data-x="event-navigate">navigate</code> event, but never the traversal's own.</p>
+         </li>
+
+         <li>
           <p>If <var>needsBeforeunload</var> is true:</p>
 
           <ol>
@@ -109588,7 +109635,8 @@ location.href = '#foo';</code></pre>
          </li>
 
          <li><p>If <var>finalStatus</var> is "<code data-x="">canceled-by-beforeunload</code>", then
-         abort these steps.</p></li>
+         set <var>traversable</var>'s <span>ongoing navigation</span> to null, set
+         <var>eventsFired</var> to true, and abort these steps.</p></li>
 
          <li><p>Let <var>navigation</var> be <var>traversable</var>'s <span
          data-x="nav-window">active window</span>'s <span data-x="window-navigation-api">navigation
@@ -109600,7 +109648,8 @@ location.href = '#foo';</code></pre>
          <var>userInvolvementForNavigateEvent</var>.</p></li>
 
          <li><p>If <var>navigateEventResult</var> is false, then set <var>finalStatus</var> to
-         "<code data-x="">canceled-by-navigate</code>".</p></li>
+         "<code data-x="">canceled-by-navigate</code>" and set <var>traversable</var>'s
+         <span>ongoing navigation</span> to null.</p></li>
 
          <li><p>Set <var>eventsFired</var> to true.</p></li>
         </ol>
@@ -109642,6 +109691,15 @@ location.href = '#foo';</code></pre>
    </li>
 
    <li><p>Wait for <var>completedTasks</var> to be <var>totalTasks</var>.</p></li>
+
+   <li>
+    <p>If <var>traversable</var> was given, and <var>finalStatus</var> is not "<code
+    data-x="">continue</code>", then <span>queue a global task</span> on the <span>navigation and
+    traversal task source</span> given <var>traversable</var>'s <span data-x="nav-window">active
+    window</span> to run these steps: if <var>traversable</var>'s <span>ongoing navigation</span> is
+    "<code data-x="">traversal</code>", then set <var>traversable</var>'s <span>ongoing
+    navigation</span> to null.</p>
+   </li>
 
    <li><p>Return <var>finalStatus</var>.</p></li>
   </ol>
@@ -109738,6 +109796,12 @@ location.href = '#foo';</code></pre>
   null. It is used to track navigation aborting and to prevent any navigations from taking place
   during <span data-x="apply the traverse history step">traversal</span>.</p>
 
+  <p class="note">The <span>ongoing navigation</span> is only ever read or written from <span
+  data-x="concept-task">tasks</span> on the <span>event loop</span> of the <span>navigable</span>'s
+  <span data-x="nav-window">active window</span>: never from steps running <span>in parallel</span>,
+  and never from the <span data-x="tn-session-history-traversal-queue">session history traversal
+  queue</span>.</p>
+
   <div algorithm>
   <p>To <dfn>set the ongoing navigation</dfn> for a <span>navigable</span> <var>navigable</var> to
   <var>newValue</var>:</p>
@@ -109782,6 +109846,12 @@ location.href = '#foo';</code></pre>
      <li><p>If <var>navigationAPIState</var> is not null, then set
      <var>destinationNavigationAPIState</var> to <var>navigationAPIState</var>.</p></li>
 
+     <li><p>Let <var>wasTraversing</var> be true if <var>navigable</var>'s <span>ongoing
+     navigation</span> is "<code data-x="">traversal</code>"; otherwise false.</p></li>
+
+     <li><p><span>Set the ongoing navigation</span> for <var>navigable</var> to "<code
+     data-x="">traversal</code>".</p></li>
+
      <li><p>Let <var>continue</var> be the result of <span data-x="fire a push/replace/reload
      navigate event">firing a push/replace/reload <code data-x="event-navigate">navigate</code>
      event</span> at <var>navigation</var> with <i
@@ -109797,7 +109867,16 @@ location.href = '#foo';</code></pre>
      data-x="fire-navigate-prr-api-method-tracker">apiMethodTracker</i> set to
      <var>apiMethodTracker</var>.</p></li>
 
-     <li><p>If <var>continue</var> is false, then return.</p></li>
+     <li>
+      <p>If <var>continue</var> is false:</p>
+
+      <ol>
+       <li><p>If <var>wasTraversing</var> is false, then set <var>navigable</var>'s <span>ongoing
+       navigation</span> to null.</p></li>
+
+       <li><p>Return.</p></li>
+      </ol>
+     </li>
     </ol>
    </li>
 
@@ -111469,9 +111548,6 @@ location.href = '#foo';</code></pre>
       event and the corresponding <span data-x="dom-NavigateEvent-signal">signal</span> from firing
       as a result of a successful cross-document navigation.</p>
      </li>
-
-     <li><p>Set <var>navigable</var>'s <span>ongoing navigation</span> to "<code
-     data-x="">traversal</code>".</p></li>
     </ol>
    </li>
 
@@ -111502,6 +111578,21 @@ location.href = '#foo';</code></pre>
     part</a>.</p>
 
     <ol>
+     <li>
+      <p>If <var>navigationType</var> is "<code
+      data-x="dom-NavigationType-traverse">traverse</code>" or "<code
+      data-x="dom-NavigationType-reload">reload</code>", then <span>set the ongoing navigation</span>
+      for <var>navigable</var> to "<code data-x="">traversal</code>".</p>
+
+      <p class="note">Push and replace history steps are bookkeeping for a <span
+      data-x="navigate">navigation</span> that is already tracked through the <span>ongoing
+      navigation</span>, or for a same-document navigation that already took effect, so they leave
+      it untouched. Marking here, before the <code data-x="event-navigate">navigate</code> events
+      fired <a href="#descendant-navigable-traversal-navigate-events">below</a> for descendant
+      navigables, means this can only abort a superseded navigation's <code
+      data-x="event-navigate">navigate</code> event, never the traversal's own.</p>
+     </li>
+
      <li><p>Let <var>displayedEntry</var> be <var>navigable</var>'s <span
      data-x="nav-active-history-entry">active session history entry</span>.</p></li>
 
@@ -111832,22 +111923,11 @@ location.href = '#foo';</code></pre>
       <p>If <var>changingNavigableContinuation</var>'s <span
       data-x="changing-nav-continuation-update-only">update-only</span> is true, or
       <var>targetEntry</var>'s <span data-x="she-document">document</span> is
-      <var>displayedDocument</var>:</p>
+      <var>displayedDocument</var>, then <span>queue a global task</span> on the <span>navigation
+      and traversal task source</span> given <var>navigable</var>'s <span
+      data-x="nav-window">active window</span> to perform <var>afterPotentialUnloads</var>.</p>
 
       <p class="note">This is a same-document navigation: we proceed without unloading.</p>
-
-      <ol>
-       <li>
-        <p>Set <var>navigable</var>'s <span>ongoing navigation</span> to null.</p>
-
-        <p class="note">This allows new <span data-x="navigate">navigations</span> of
-        <var>navigable</var> to start, whereas during the traversal they were blocked.</p>
-       </li>
-
-       <li><p><span>Queue a global task</span> on the <span>navigation and traversal task
-       source</span> given <var>navigable</var>'s <span data-x="nav-window">active window</span> to
-       perform <var>afterPotentialUnloads</var>.</p></li>
-      </ol>
      </li>
 
      <li>
@@ -111866,6 +111946,16 @@ location.href = '#foo';</code></pre>
       <p>In both cases, let <var>afterPotentialUnloads</var> be the following steps:</p>
 
       <ol>
+       <li><p>If <var>navigationType</var> is "<code
+       data-x="dom-NavigationType-traverse">traverse</code>" or "<code
+       data-x="dom-NavigationType-reload">reload</code>", then set <var>navigable</var>'s
+       <span>ongoing navigation</span> to null.</p></li>
+
+       <li><p>Otherwise, if <var>changingNavigableContinuation</var>'s <span
+       data-x="changing-nav-continuation-update-only">update-only</span> is false, and
+       <var>navigable</var>'s <span>ongoing navigation</span> is a <span>navigation ID</span>, then
+       set <var>navigable</var>'s <span>ongoing navigation</span> to null.</p></li>
+
        <li><p>Let <var>previousEntry</var> be <var>navigable</var>'s <span
        data-x="nav-active-history-entry">active session history entry</span>.</p></li>
 
@@ -111977,13 +112067,6 @@ location.href = '#foo';</code></pre>
       </ol>
      </li>
 
-     <li>
-      <p>Set <var>navigable</var>'s <span>ongoing navigation</span> to null.</p>
-
-      <p class="note">This allows new <span data-x="navigate">navigations</span> of
-      <var>navigable</var> to start, whereas during the traversal they were blocked.</p>
-     </li>
-
      <li><p><span>Unload a document and its descendants</span> given
      <var>displayedDocument</var>, <var>targetEntry</var>'s <span
      data-x="she-document">document</span>, <var>afterPotentialUnloads</var>, and
@@ -112002,24 +112085,11 @@ location.href = '#foo';</code></pre>
       step:</p>
 
       <ol>
-       <li>
-        <p><span data-x="tn-append-session-history-traversal-steps">Append the following session
-        history traversal steps</span> to <var>navigable</var>'s <span
-        data-x="nav-traversable">traversable navigable</span>:</p>
-
-        <ol>
-         <li>
-          <p>Set <var>navigable</var>'s <span>ongoing navigation</span> to null.</p>
-
-          <p class="note">This allows new <span data-x="navigate">navigations</span> of
-          <var>navigable</var> to start, whereas during the traversal they were blocked.</p>
-         </li>
-
-         <li><p><span>Unload a document and its descendants</span> given
-         <var>displayedDocument</var>, <var>targetEntry</var>'s <span
-         data-x="she-document">document</span>, and <var>afterPotentialUnloads</var>.</p></li>
-        </ol>
-       </li>
+       <li><p><span data-x="tn-append-session-history-traversal-steps">Append session history
+       traversal steps</span> to <var>navigable</var>'s <span data-x="nav-traversable">traversable
+       navigable</span> to <span>unload a document and its descendants</span> given
+       <var>displayedDocument</var>, <var>targetEntry</var>'s <span
+       data-x="she-document">document</span>, and <var>afterPotentialUnloads</var>.</p></li>
       </ol>
      </li>
 
