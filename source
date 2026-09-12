@@ -112697,6 +112697,15 @@ location.href = '#foo';</code></pre>
     </ol>
    </li>
 
+   <li><p>For each <code>EventSource</code> object <var>eventSource</var> whose
+   <span>relevant global object</span> is <var>document</var>'s <span>relevant global
+   object</span>, if <var>eventSource</var>'s <span
+   data-x="concept-event-stream-reconnect-after-bfcache">reconnect after back/forward cache
+   restoration</span> flag is true, then set it to false and <span>queue a global task</span> on
+   the <span>remote event task source</span> given <var>eventSource</var>'s <span>relevant global
+   object</span> to <span data-x="reconnect an EventSource">reconnect</span>
+   <var>eventSource</var>.</p></li>
+
    <li><p><span>Update the navigation API entries for reactivation</span> given
    <var>document</var>'s <span>relevant global object</span>'s <span
    data-x="window-navigation-api">navigation API</span>, <var>entriesForNavigationAPI</var>, and
@@ -114317,6 +114326,35 @@ new PaymentRequest(&hellip;); // Allowed to use
      <li><p><span data-x="map clear">Clear</span> <var>window</var>'s
      <span>map of active timers</span>.</p></li>
     </ol>
+   </li>
+
+   <li>
+    <p>Otherwise, for each <code>EventSource</code> object <var>eventSource</var> whose
+    <span>relevant global object</span> is equal to <var>window</var>, if
+    <var>eventSource</var>'s <code data-x="dom-EventSource-readyState">readyState</code>
+    attribute is not <code data-x="dom-EventSource-CLOSED">CLOSED</code> and there are any
+    ongoing instances of the <span data-x="concept-fetch">fetch</span> algorithm started for
+    <var>eventSource</var>, then:</p>
+
+    <ol>
+     <li><p>Abort those instances of the <span data-x="concept-fetch">fetch</span> algorithm.
+     Their <i data-x="processResponse">processResponse</i> and <i
+     data-x="processResponseEndOfBody">processResponseEndOfBody</i> steps must do nothing if
+     subsequently invoked. Discard any pending tasks queued by the <span>announce the
+     connection</span> algorithm for those instances, and any further data received from the
+     network for them.</p></li>
+
+     <li><p>Set <var>eventSource</var>'s <code
+     data-x="dom-EventSource-readyState">readyState</code> attribute to <code
+     data-x="dom-EventSource-CONNECTING">CONNECTING</code>.</p></li>
+
+     <li><p>Set <var>eventSource</var>'s <span
+     data-x="concept-event-stream-reconnect-after-bfcache">reconnect after back/forward cache
+     restoration</span> flag to true.</p></li>
+    </ol>
+
+    <p class="note">Tasks that were already <span data-x="queue a task">queued</span> to dispatch
+    events for data received before this point are not discarded.</p>
    </li>
   </ol>
   </div>
@@ -132895,6 +132933,9 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
 
    <li><p>A <dfn data-x="concept-event-stream-last-event-id">last event ID string</dfn>. This must
    initially be the empty string.</p></li>
+
+   <li><p>A <dfn data-x="concept-event-stream-reconnect-after-bfcache">reconnect after
+   back/forward cache restoration</dfn> flag, which must initially be false.</p></li>
   </ul>
 
   <p>Apart from <span data-x="concept-EventSource-url">url</span> these are not currently exposed on
@@ -133149,37 +133190,40 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
 
    <li><p>Wait until the aforementioned task has run, if it has not yet run.</p></li>
 
+   <li><p><span>Queue a task</span> to <span data-x="reconnect an EventSource">reconnect</span>
+   the <code>EventSource</code> object.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn data-x="reconnect an EventSource">reconnect</dfn> an <code>EventSource</code> object
+  <var>eventSource</var>:</p>
+
+  <ol>
+   <li><p>If <var>eventSource</var>'s <code
+   data-x="dom-EventSource-readyState">readyState</code> attribute is not set to <code
+   data-x="dom-EventSource-CONNECTING">CONNECTING</code>, then return.</p></li>
+
+   <li><p>Let <var>request</var> be <var>eventSource</var>'s <span
+   data-x="concept-event-stream-request">request</span>.</p></li>
+
    <li>
-    <p><span>Queue a task</span> to run the following steps:</p>
+    <p>If <var>eventSource</var>'s <span data-x="concept-event-stream-last-event-id">last event
+    ID string</span> is not the empty string:</p>
 
     <ol>
-     <li><p>If the <code>EventSource</code> object's <code
-     data-x="dom-EventSource-readyState">readyState</code> attribute is not set to <code
-     data-x="dom-EventSource-CONNECTING">CONNECTING</code>, then return.</p></li>
+     <li><p>Let <var>lastEventIDValue</var> be <var>eventSource</var>'s <span
+     data-x="concept-event-stream-last-event-id">last event ID string</span>, <span data-x="UTF-8
+     encode">encoded as UTF-8</span>.</p></li>
 
-     <li><p>Let <var>request</var> be the <code>EventSource</code> object's <span
-     data-x="concept-event-stream-request">request</span>.
-
-     <li>
-      <p>If the <code>EventSource</code> object's <span
-      data-x="concept-event-stream-last-event-id">last event ID string</span> is not the empty
-      string:</p>
-
-      <ol>
-       <li><p>Let <var>lastEventIDValue</var> be the <code>EventSource</code> object's <span
-       data-x="concept-event-stream-last-event-id">last event ID string</span>, <span data-x="UTF-8
-       encode">encoded as UTF-8</span>.</p></li>
-
-       <li><p><span data-x="concept-header-list-set">Set</span> (`<code>Last-Event-ID</code>`,
-       <var>lastEventIDValue</var>) in <var>request</var>'s <span
-       data-x="concept-request-header-list">header list</span>.</p></li>
-      </ol>
-     </li>
-
-     <!--FETCH--><li><p><span data-x="concept-fetch">Fetch</span> <var>request</var> and process the
-     response obtained in this fashion, if any, as described earlier in this section.</p></li>
+     <li><p><span data-x="concept-header-list-set">Set</span> (`<code>Last-Event-ID</code>`,
+     <var>lastEventIDValue</var>) in <var>request</var>'s <span
+     data-x="concept-request-header-list">header list</span>.</p></li>
     </ol>
    </li>
+
+   <!--FETCH--><li><p><span data-x="concept-fetch">Fetch</span> <var>request</var> and process the
+   response obtained in this fashion, if any, as described earlier in this section.</p></li>
   </ol>
   </div>
 
@@ -133200,14 +133244,22 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
   data-x="queue a task">queued</span> by <code>EventSource</code> objects is the <dfn>remote event
   task source</dfn>.</p>
 
+  <p class="note">The <span>unloading document cleanup steps</span> interrupt ongoing connections
+  when a <code>Document</code> enters the <a href="#note-bfcache">back/forward cache</a>.
+  On restoration, interrupted connections are restarted without an additional <code
+  data-x="event-error">error</code> event or reconnection delay. A successful reconnection fires
+  an <code data-x="event-open">open</code> event, which authors can use as a trigger to check
+  for missed events.</p>
+
   </div>
 
 
   <h4>The `<code>Last-Event-ID</code>` header</h4>
 
-  <p>The <dfn http-header><code>Last-Event-ID</code></dfn>` HTTP request header reports an
+  <p>The <dfn http-header><code>Last-Event-ID</code></dfn> HTTP request header reports an
   <code>EventSource</code> object's <span data-x="concept-event-stream-last-event-id">last event ID
-  string</span> to the server when the user agent is to <span>reestablish the connection</span>.
+  string</span> to the server when the user agent is to <span data-x="reconnect an
+  EventSource">reconnect</span> the object.</p>
 
   <p class="XXX">See <a href="https://github.com/whatwg/html/issues/7363">whatwg/html issue
   #7363</a> to define the value space better. It is essentially any UTF-8 encoded string, that does
