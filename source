@@ -112697,6 +112697,15 @@ location.href = '#foo';</code></pre>
     </ol>
    </li>
 
+   <li><p>For each <code>EventSource</code> object <var>eventSource</var> whose
+   <span>relevant global object</span> is <var>document</var>'s <span>relevant global
+   object</span>, if <var>eventSource</var>'s <span
+   data-x="concept-event-stream-reconnect-after-bfcache">reconnect after back/forward cache
+   restoration</span> flag is true, then set it to false and <span>queue a global task</span> on
+   the <span>remote event task source</span> given <var>eventSource</var>'s <span>relevant global
+   object</span> to <span data-x="connect an EventSource">connect</span>
+   <var>eventSource</var>.</p></li>
+
    <li><p><span>Update the navigation API entries for reactivation</span> given
    <var>document</var>'s <span>relevant global object</span>'s <span
    data-x="window-navigation-api">navigation API</span>, <var>entriesForNavigationAPI</var>, and
@@ -114317,6 +114326,35 @@ new PaymentRequest(&hellip;); // Allowed to use
      <li><p><span data-x="map clear">Clear</span> <var>window</var>'s
      <span>map of active timers</span>.</p></li>
     </ol>
+   </li>
+
+   <li>
+    <p>Otherwise, for each <code>EventSource</code> object <var>eventSource</var> whose
+    <span>relevant global object</span> is equal to <var>window</var>, if
+    <var>eventSource</var>'s <code data-x="dom-EventSource-readyState">readyState</code>
+    attribute is not <code data-x="dom-EventSource-CLOSED">CLOSED</code> and there are any
+    ongoing instances of the <span data-x="concept-fetch">fetch</span> algorithm started for
+    <var>eventSource</var>, then:</p>
+
+    <ol>
+     <li><p>Abort those instances of the <span data-x="concept-fetch">fetch</span> algorithm.
+     Their <i data-x="processResponse">processResponse</i> and <i
+     data-x="processResponseEndOfBody">processResponseEndOfBody</i> steps must do nothing if
+     subsequently invoked. Discard any pending tasks queued by the <span>announce the
+     connection</span> algorithm for those instances, and any further data received from the
+     network for them.</p></li>
+
+     <li><p>Set <var>eventSource</var>'s <code
+     data-x="dom-EventSource-readyState">readyState</code> attribute to <code
+     data-x="dom-EventSource-CONNECTING">CONNECTING</code>.</p></li>
+
+     <li><p>Set <var>eventSource</var>'s <span
+     data-x="concept-event-stream-reconnect-after-bfcache">reconnect after back/forward cache
+     restoration</span> flag to true.</p></li>
+    </ol>
+
+    <p class="note">Tasks that were already <span data-x="queue a task">queued</span> to dispatch
+    events for data received before this point are not discarded.</p>
    </li>
   </ol>
   </div>
@@ -132895,6 +132933,9 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
 
    <li><p>A <dfn data-x="concept-event-stream-last-event-id">last event ID string</dfn>. This must
    initially be the empty string.</p></li>
+
+   <li><p>A <dfn data-x="concept-event-stream-reconnect-after-bfcache">reconnect after
+   back/forward cache restoration</dfn> flag, which must initially be false.</p></li>
   </ul>
 
   <p>Apart from <span data-x="concept-EventSource-url">url</span> these are not currently exposed on
@@ -132997,35 +133038,7 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
    <li><p>Set <var>ev</var>'s <span data-x="concept-event-stream-request">request</span> to
    <var>request</var>.</p></li>
 
-   <li><p>Let <var>processEventSourceEndOfBody</var> given <span
-   data-x="concept-response">response</span> <var>res</var> be the following step: if
-   <var>res</var> is not a <span>network error</span>, then <span>reestablish the
-   connection</span>.</p></li>
-
-   <li>
-    <p><span data-x="concept-fetch">Fetch</span> <var>request</var>, with <i
-    data-x="processResponseEndOfBody">processResponseEndOfBody</i> set to
-    <var>processEventSourceEndOfBody</var> and <i data-x="processResponse">processResponse</i> set
-    to the following steps given <span data-x="concept-response">response</span>
-    <var>res</var>:</p>
-
-    <ol>
-     <li><p>If <var>res</var> is an <span>aborted network error</span>, then <span>fail the
-     connection</span>.</p></li>
-
-     <li><p>Otherwise, if <var>res</var> is a <span>network error</span>, then <span>reestablish
-     the connection</span>, unless the user agent knows that to be futile, in which case the user
-     agent may <span>fail the connection</span>.</p></li>
-
-     <li><p>Otherwise, if <var>res</var>'s <span data-x="concept-response-status">status</span> is
-     not 200, or if <var>res</var>'s `<code>Content-Type</code>` is not
-     `<code>text/event-stream</code>`, then <span>fail the connection</span>.</p>
-
-     <li><p>Otherwise, <span>announce the connection</span> and <a
-     href="#event-stream-interpretation">interpret</a> <var>res</var>'s <span
-     data-x="concept-response-body">body</span> line by line.</p></li>
-    </ol>
-   </li>
+   <li><p><span data-x="connect an EventSource">Connect</span> <var>ev</var>.</p></li>
 
    <li><p>Return <var>ev</var>.</p></li>
   </ol>
@@ -133108,38 +133121,102 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
   <h4 id="sse-processing-model"><span id="processing-model-9"></span>Processing model</h4>
 
   <div algorithm>
-  <p>When a user agent is to <dfn>announce the connection</dfn>, the user agent must <span>queue a
-  task</span> which, if the <code data-x="dom-EventSource-readyState">readyState</code> attribute is
-  set to a value other than <code data-x="dom-EventSource-CLOSED">CLOSED</code>, sets the <code
-  data-x="dom-EventSource-readyState">readyState</code> attribute to <code
-  data-x="dom-EventSource-OPEN">OPEN</code> and <span data-x="concept-event-fire">fires an
-  event</span> named <code data-x="event-open">open</code> at the <code>EventSource</code>
-  object.</p>
+  <p>To <dfn data-x="connect an EventSource">connect</dfn> an <code>EventSource</code> object
+  <var>eventSource</var>:</p>
+
+  <ol>
+   <li><p>If <var>eventSource</var>'s <code
+   data-x="dom-EventSource-readyState">readyState</code> attribute is not <code
+   data-x="dom-EventSource-CONNECTING">CONNECTING</code>, then return.</p></li>
+
+   <li><p>Let <var>request</var> be <var>eventSource</var>'s <span
+   data-x="concept-event-stream-request">request</span>.</p></li>
+
+   <li>
+    <p>If <var>eventSource</var>'s <span data-x="concept-event-stream-last-event-id">last event
+    ID string</span> is not the empty string:</p>
+
+    <ol>
+     <li><p>Let <var>lastEventIDValue</var> be <var>eventSource</var>'s <span
+     data-x="concept-event-stream-last-event-id">last event ID string</span>, <span data-x="UTF-8
+     encode">encoded as UTF-8</span>.</p></li>
+
+     <li><p><span data-x="concept-header-list-set">Set</span> (`<code>Last-Event-ID</code>`,
+     <var>lastEventIDValue</var>) in <var>request</var>'s <span
+     data-x="concept-request-header-list">header list</span>.</p></li>
+    </ol>
+   </li>
+
+   <li><p>Let <var>processEventSourceEndOfBody</var> given <span
+   data-x="concept-response">response</span> <var>res</var> be the following step: if
+   <var>res</var> is not a <span>network error</span>, then <span>reestablish the
+   connection</span> for <var>eventSource</var>.</p></li>
+
+   <li>
+    <p><!--FETCH--><span data-x="concept-fetch">Fetch</span> <var>request</var>, with <i
+    data-x="processResponseEndOfBody">processResponseEndOfBody</i> set to
+    <var>processEventSourceEndOfBody</var> and <i data-x="processResponse">processResponse</i> set
+    to the following steps given <span data-x="concept-response">response</span>
+    <var>res</var>:</p>
+
+    <ol>
+     <li><p>If <var>res</var> is an <span>aborted network error</span>, then <span>fail the
+     connection</span> for <var>eventSource</var>.</p></li>
+
+     <li><p>Otherwise, if <var>res</var> is a <span>network error</span>, then <span>reestablish
+     the connection</span> for <var>eventSource</var>, unless the user agent knows that to be
+     futile, in which case the user agent may <span>fail the connection</span> for
+     <var>eventSource</var>.</p></li>
+
+     <li><p>Otherwise, if <var>res</var>'s <span data-x="concept-response-status">status</span> is
+     not 200, or if <var>res</var>'s `<code>Content-Type</code>` is not
+     `<code>text/event-stream</code>`, then <span>fail the connection</span> for
+     <var>eventSource</var>.</p></li>
+
+     <li><p>Otherwise, <span>announce the connection</span> for <var>eventSource</var> and <a
+     href="#event-stream-interpretation">interpret</a> <var>res</var>'s <span
+     data-x="concept-response-body">body</span> line by line.</p></li>
+    </ol>
+   </li>
+  </ol>
   </div>
 
   <div algorithm>
-  <p>When a user agent is to <dfn>reestablish the connection</dfn>, the user agent must run the
-  following steps. These steps are run <span>in parallel</span>, not as part of a <span
-  data-x="concept-task">task</span>. (The tasks that it queues, of course, are run like normal tasks
-  and not themselves <span>in parallel</span>.)</p>
+  <p>To <dfn>announce the connection</dfn> for an <code>EventSource</code> object
+  <var>eventSource</var>, <span>queue a task</span> which, if <var>eventSource</var>'s <code
+  data-x="dom-EventSource-readyState">readyState</code> attribute is set to a value other than
+  <code data-x="dom-EventSource-CLOSED">CLOSED</code>, sets <var>eventSource</var>'s <code
+  data-x="dom-EventSource-readyState">readyState</code> attribute to <code
+  data-x="dom-EventSource-OPEN">OPEN</code> and <span data-x="concept-event-fire">fires an
+  event</span> named <code data-x="event-open">open</code> at <var>eventSource</var>.</p>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>reestablish the connection</dfn> for an <code>EventSource</code> object
+  <var>eventSource</var>, run the following steps. These steps are run <span>in parallel</span>, not
+  as part of a <span data-x="concept-task">task</span>. (The tasks that it queues, of course, are run
+  like normal tasks and not themselves <span>in parallel</span>.)</p>
 
   <ol>
    <li>
     <p><span>Queue a task</span> to run the following steps:</p>
 
     <ol>
-     <li><p>If the <code data-x="dom-EventSource-readyState">readyState</code> attribute is set to
+     <li><p>If <var>eventSource</var>'s <code
+     data-x="dom-EventSource-readyState">readyState</code> attribute is set to
      <code data-x="dom-EventSource-CLOSED">CLOSED</code>, abort the task.</p></li>
 
-     <li><p>Set the <code data-x="dom-EventSource-readyState">readyState</code> attribute to <code
+     <li><p>Set <var>eventSource</var>'s <code
+     data-x="dom-EventSource-readyState">readyState</code> attribute to <code
      data-x="dom-EventSource-CONNECTING">CONNECTING</code>.</p></li>
 
      <li><p><span data-x="concept-event-fire">Fire an event</span> named <code
-     data-x="event-error">error</code> at the <code>EventSource</code> object.</p></li>
+     data-x="event-error">error</code> at <var>eventSource</var>.</p></li>
     </ol>
    </li>
 
-   <li><p>Wait a delay equal to the reconnection time of the event source.</li>
+   <li><p>Wait a delay equal to <var>eventSource</var>'s <span
+   data-x="concept-event-stream-reconnection-time">reconnection time</span>.</p></li>
 
    <li><p>Optionally, wait some more. In particular, if the previous attempt failed, then user
    agents might introduce an exponential backoff delay to avoid overloading a potentially already
@@ -133149,49 +133226,21 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
 
    <li><p>Wait until the aforementioned task has run, if it has not yet run.</p></li>
 
-   <li>
-    <p><span>Queue a task</span> to run the following steps:</p>
-
-    <ol>
-     <li><p>If the <code>EventSource</code> object's <code
-     data-x="dom-EventSource-readyState">readyState</code> attribute is not set to <code
-     data-x="dom-EventSource-CONNECTING">CONNECTING</code>, then return.</p></li>
-
-     <li><p>Let <var>request</var> be the <code>EventSource</code> object's <span
-     data-x="concept-event-stream-request">request</span>.
-
-     <li>
-      <p>If the <code>EventSource</code> object's <span
-      data-x="concept-event-stream-last-event-id">last event ID string</span> is not the empty
-      string:</p>
-
-      <ol>
-       <li><p>Let <var>lastEventIDValue</var> be the <code>EventSource</code> object's <span
-       data-x="concept-event-stream-last-event-id">last event ID string</span>, <span data-x="UTF-8
-       encode">encoded as UTF-8</span>.</p></li>
-
-       <li><p><span data-x="concept-header-list-set">Set</span> (`<code>Last-Event-ID</code>`,
-       <var>lastEventIDValue</var>) in <var>request</var>'s <span
-       data-x="concept-request-header-list">header list</span>.</p></li>
-      </ol>
-     </li>
-
-     <!--FETCH--><li><p><span data-x="concept-fetch">Fetch</span> <var>request</var> and process the
-     response obtained in this fashion, if any, as described earlier in this section.</p></li>
-    </ol>
-   </li>
+   <li><p><span>Queue a task</span> to <span data-x="connect an EventSource">connect</span>
+   <var>eventSource</var>.</p></li>
   </ol>
   </div>
 
   <div algorithm>
-  <p>When a user agent is to <dfn>fail the connection</dfn>, the user agent must <span>queue a
-  task</span> which, if the <code data-x="dom-EventSource-readyState">readyState</code> attribute is
-  set to a value other than <code data-x="dom-EventSource-CLOSED">CLOSED</code>, sets the <code
+  <p>To <dfn>fail the connection</dfn> for an <code>EventSource</code> object
+  <var>eventSource</var>, <span>queue a task</span> which, if <var>eventSource</var>'s <code
+  data-x="dom-EventSource-readyState">readyState</code> attribute is set to a value other than
+  <code data-x="dom-EventSource-CLOSED">CLOSED</code>, sets <var>eventSource</var>'s <code
   data-x="dom-EventSource-readyState">readyState</code> attribute to <code
   data-x="dom-EventSource-CLOSED">CLOSED</code> and <span data-x="concept-event-fire">fires an
-  event</span> named <code data-x="event-error">error</code> at the <code>EventSource</code> object.
-  <strong>Once the user agent has <span data-x="fail the connection">failed the connection</span>,
-  it does <em>not</em> attempt to reconnect.</strong></p>
+  event</span> named <code data-x="event-error">error</code> at <var>eventSource</var>.
+  <strong>Once the user agent has <span data-x="fail the connection">failed the connection</span>
+  for <var>eventSource</var>, it does <em>not</em> attempt to reconnect.</strong></p>
   </div>
 
   <hr>
@@ -133200,14 +133249,25 @@ dictionary <dfn dictionary>EventSourceInit</dfn> {
   data-x="queue a task">queued</span> by <code>EventSource</code> objects is the <dfn>remote event
   task source</dfn>.</p>
 
+  <p class="note">The <span>unloading document cleanup steps</span> interrupt ongoing connections
+  when a <code>Document</code> enters the <a href="#note-bfcache">back/forward cache</a>.
+  These connections are restarted when the document is <span data-x="reactivate a
+  document">reactivated</span>, unless the <code>EventSource</code> has been closed. The
+  interruption does not fire an <code data-x="event-error">error</code> event, and restoration
+  does not invoke <span>reestablish the connection</span> or wait for the <span
+  data-x="concept-event-stream-reconnection-time">reconnection time</span>. A successful
+  reconnection fires an <code data-x="event-open">open</code> event, which authors can use as a
+  trigger to check for missed events.</p>
+
   </div>
 
 
   <h4>The `<code>Last-Event-ID</code>` header</h4>
 
-  <p>The <dfn http-header><code>Last-Event-ID</code></dfn>` HTTP request header reports an
+  <p>The <dfn http-header><code>Last-Event-ID</code></dfn> HTTP request header reports an
   <code>EventSource</code> object's <span data-x="concept-event-stream-last-event-id">last event ID
-  string</span> to the server when the user agent is to <span>reestablish the connection</span>.
+  string</span> to the server when the user agent is to <span data-x="connect an
+  EventSource">connect</span> the object.</p>
 
   <p class="XXX">See <a href="https://github.com/whatwg/html/issues/7363">whatwg/html issue
   #7363</a> to define the value space better. It is essentially any UTF-8 encoded string, that does
@@ -133627,7 +133687,8 @@ data:&nbsp;test
   <div algorithm>
   <p>If a user agent is to <dfn data-x="concept-EventSource-forcibly-close">forcibly close</dfn> an
   <code>EventSource</code> object (this happens when a <code>Document</code> object goes away
-  permanently), the user agent must abort any instances of the <span
+  permanently, and not when a <code>Document</code> enters the <a href="#note-bfcache">back/forward
+  cache</a>), the user agent must abort any instances of the <span
   data-x="concept-fetch">fetch</span> algorithm started for this <code>EventSource</code> object,
   and must set the <code data-x="dom-EventSource-readyState">readyState</code> attribute to <code
   data-x="dom-EventSource-CLOSED">CLOSED</code>.</p> <!-- same as calling close() -->
