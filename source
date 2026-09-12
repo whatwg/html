@@ -7937,6 +7937,33 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
   </ol>
   </div>
 
+  <div algorithm>
+  <p>To <dfn export>match integrity metadata</dfn>, given a string
+  <var>consumerIntegrityMetadata</var> and a string <var>existingIntegrityMetadata</var>:</p>
+
+  <ol>
+   <li><p>Let <var>parsedConsumerIntegrityMetadata</var> be the result of
+   <span data-x="parse integrity metadata">parsing</span>
+   <var>consumerIntegrityMetadata</var>.</p></li>
+
+   <li><p>Let <var>parsedExistingIntegrityMetadata</var> be the result of
+   <span data-x="parse integrity metadata">parsing</span>
+   <var>existingIntegrityMetadata</var>.</p></li>
+
+   <li><p>If <var>parsedConsumerIntegrityMetadata</var> is <code data-x="">no metadata</code>, then return true.</p></li>
+
+   <li>
+    <p>If <var>parsedConsumerIntegrityMetadata</var> is equal to
+    <var>parsedExistingIntegrityMetadata</var>, then return true.</p>
+
+    <p class="XXX">This comparison would ignore unknown integrity options. See <a
+    href="https://github.com/w3c/webappsec-subresource-integrity/issues/116">issue #116.</a></p>
+   </li>
+
+   <li><p>Return false.</p></li>
+  </ol>
+  </div>
+
 
   <h4 id="content-type-sniffing">Determining the type of a resource</h4>
 
@@ -29494,29 +29521,10 @@ document.body.appendChild(wbr);</code></pre>
 
    <li><p>Let <var>entry</var> be <var>preloads</var>[<var>key</var>].</p></li>
 
-   <li><p>Let <var>consumerIntegrityMetadata</var> be the result of
-   <span data-x="parse integrity metadata">parsing</span> <var>integrityMetadata</var>.</p></li>
-
-   <li><p>Let <var>preloadIntegrityMetadata</var> be the result of
-   <span data-x="parse integrity metadata">parsing</span> <var>entry</var>'s
-   <span data-x="preload integrity metadata">integrity metadata</span>.</p></li>
-
    <li>
-    <p>If none of the following conditions apply:</p>
-
-    <ul>
-     <li><p><var>consumerIntegrityMetadata</var> is <code data-x="">no metadata</code>;</p></li>
-
-     <li>
-      <p><var>consumerIntegrityMetadata</var> is equal to <var>preloadIntegrityMetadata</var>;
-      or</p>
-
-      <p class="XXX">This comparison would ignore unknown integrity options. See <a
-      href="https://github.com/w3c/webappsec-subresource-integrity/issues/116">issue #116.</a></p>
-     </li>
-    </ul>
-
-    <p>then return false.</p>
+    <p>If the result of running <span>match integrity metadata</span> given
+    <var>integrityMetadata</var> and <var>entry</var>'s <span data-x="preload integrity
+    metadata">integrity metadata</span> is false, then return false.</p>
 
     <p class="note">A mismatch in integrity metadata between the preload and the consumer, even if
     both match the data, would lead to an additional fetch from the network.</p>
@@ -118258,8 +118266,8 @@ document.querySelector("button").addEventListener("click", bound);
    <dt><dfn for="script" export
    data-x="concept-script-script-fetch-options">Fetch options</dfn></dt>
 
-   <dd>Null or a <span>script fetch options</span>, containing various options related to fetching
-   this script or <span data-x="module script">module scripts</span> that it imports.</dd>
+   <dd>A <span>script fetch options</span>, containing various options related to fetching this
+   script or <span data-x="module script">module scripts</span> that it imports.</dd>
 
    <dt>A <dfn for="script" export data-x="concept-script-base-url">base
    URL</dfn></dt>
@@ -118345,11 +118353,13 @@ document.querySelector("button").addEventListener("click", bound);
    </li>
   </ul>
 
-  <p class="note">As CSS style sheets, JSON documents, and text do not import dependent modules, and do not
-  throw exceptions on evaluation, the <span data-x="concept-script-script-fetch-options">fetch
-  options</span> and <span data-x="concept-script-base-url">base URL</span> of <span data-x="CSS
-  module script">CSS module scripts</span>, <span data-x="JSON module script">JSON module
-  scripts</span>, and <span data-x="text module script">text module scripts</span> are always null.</p>
+  <p class="note">As CSS style sheets, JSON documents, and text do not import dependent modules, the
+  <span data-x="concept-script-base-url">base URL</span> of <span data-x="CSS module script">CSS
+  module scripts</span>, <span data-x="JSON module script">JSON module scripts</span>, and <span
+  data-x="text module script">text module scripts</span> is always null. Their <span
+  data-x="concept-script-script-fetch-options">fetch options</span> are still recorded, as the <span
+  data-x="concept-script-fetch-options-integrity">integrity metadata</span> is compared against when
+  a later fetch finds the script in the <span>module map</span>.</p>
 
   <div algorithm>
   <p>The <dfn>active script</dfn> is determined by the following algorithm:</p>
@@ -119190,16 +119200,62 @@ document.querySelector("button").addEventListener("click", bound);
    <li><p>Let <var>moduleMap</var> be <var>settingsObject</var>'s <span
    data-x="concept-settings-object-module-map">module map</span>.</p></li>
 
-   <li><p>If <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)] is a <span>module
-   script</span>, run <var>onComplete</var> given <var>moduleMap</var>[(<var>url</var>,
-   <var>moduleType</var>)], and return.</p></li>
+   <li>
+    <p>If <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)] is a <span>module
+    script</span>:</p>
 
-   <li><p>If <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)] is a <span>list</span>,
-   <span data-x="list append">append</span> <var>onComplete</var> to
-   <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)], and return.</p></li>
+    <ol>
+     <li><p>Let <var>moduleScript</var> be
+     <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)].</p></li>
+
+     <li><p>If the result of running <span>match integrity metadata</span> given
+     <var>options</var>'s <span data-x="concept-script-fetch-options-integrity">integrity
+     metadata</span> and <var>moduleScript</var>'s <span
+     data-x="concept-script-script-fetch-options">fetch options</span>'s <span
+     data-x="concept-script-fetch-options-integrity">integrity metadata</span> is false, then run
+     <var>onComplete</var> given null, and return.</p></li>
+
+     <li><p>Run <var>onComplete</var> given <var>moduleScript</var>, and return.</p></li>
+    </ol>
+
+    <p class="note">Unlike <span data-x="consume a preloaded resource"><code>&lt;link rel="preload"></code> cache hits</span>,
+    which ignore preloaded results and trigger a network request on an integrity mismatch,
+    a mismatch in a <span>module map</span> results in a load failure (even when <var>options</var>'s <span data-x="concept-script-fetch-options-integrity">integrity metadata</span>
+    would result in a successful fetch).
+    This is because successfully loaded module scripts cannot be refetched or evicted in the same settings object.
+    Also, a module script with the same URL shouldn't be evaluated multiple times,
+    to avoid unintentional double evaluation just because of different integrity values specified by accident,
+    so the module map isn't keyed by integrity metadata.</p>
+   </li>
+
+   <li>
+    <p>If <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)] is an <span>in-progress module
+    fetch record</span>:</p>
+
+    <ol>
+     <li><p>Let <var>inFlightRecord</var> be
+     <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)].</p></li>
+
+     <li><p>If the result of running <span>match integrity metadata</span> given
+     <var>options</var>'s <span data-x="concept-script-fetch-options-integrity">integrity
+     metadata</span> and <var>inFlightRecord</var>'s <span
+     data-x="in-progress module fetch record integrity metadata">integrity metadata</span> is false,
+     then run <var>onComplete</var> given null, and return.</p></li>
+
+     <li><p><span data-x="list append">Append</span> <var>onComplete</var> to
+     <var>inFlightRecord</var>'s <span data-x="in-progress module fetch record wait
+     list">wait list</span>, and return.</p></li>
+    </ol>
+   </li>
+
+   <li><p>Let <var>inFlightRecord</var> be a new <span>in-progress module fetch record</span> whose
+   <span data-x="in-progress module fetch record wait list">wait list</span> is « <var>onComplete</var>
+   » and <span data-x="in-progress module fetch record integrity metadata">integrity metadata</span>
+   is <var>options</var>'s <span data-x="concept-script-fetch-options-integrity">integrity
+   metadata</span>.</p></li>
 
    <li><p><span data-x="map set">Set</span> <var>moduleMap</var>[(<var>url</var>,
-   <var>moduleType</var>)] to « <var>onComplete</var> ».</p></li>
+   <var>moduleType</var>)] to <var>inFlightRecord</var>.</p></li>
 
    <li><p>Let <var>request</var> be a new <span data-x="concept-request">request</span> whose
    <span data-x="concept-request-url">URL</span> is <var>url</var>, <span
@@ -119257,7 +119313,8 @@ document.querySelector("button").addEventListener("click", bound);
 
       <ol>
        <li><p>Let <var>callbacks</var> be
-       <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)].</p></li>
+       <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)]'s <span
+       data-x="in-progress module fetch record wait list">wait list</span>.</p></li>
 
        <li><p><span data-x="map remove">Remove</span>
        <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)].</p></li>
@@ -119298,7 +119355,7 @@ document.querySelector("button").addEventListener("click", bound);
 
        <li><p>If <var>moduleType</var> is "<code data-x="">text</code>", then set
        <var>moduleScript</var> to the result of <span>creating a text module script</span> given
-       <var>sourceText</var> and <var>settingsObject</var>.</p></li>
+       <var>sourceText</var>, <var>settingsObject</var>, and <var>options</var>.</p></li>
 
        <li><p>If <var>mimeType</var> is a <span>JavaScript MIME type</span> and <var>moduleType</var>
        is "<code data-x="">javascript-or-wasm</code>", then set <var>moduleScript</var> to the result of
@@ -119308,18 +119365,19 @@ document.querySelector("button").addEventListener("click", bound);
 
        <li><p>If the <span>MIME type essence</span> of <var>mimeType</var> is "<code>text/css</code>"
        and <var>moduleType</var> is "<code data-x="">css</code>", then set <var>moduleScript</var> to
-       the result of <span>creating a CSS module script</span> given <var>sourceText</var> and
-       <var>settingsObject</var>.</p></li>
+       the result of <span>creating a CSS module script</span> given <var>sourceText</var>,
+       <var>settingsObject</var>, and <var>options</var>.</p></li>
 
        <li><p>If <var>mimeType</var> is a <span>JSON MIME type</span> and
        <var>moduleType</var> is "<code data-x="">json</code>", then set <var>moduleScript</var> to
-       the result of <span>creating a JSON module script</span> given <var>sourceText</var> and
-       <var>settingsObject</var>.</p></li>
+       the result of <span>creating a JSON module script</span> given <var>sourceText</var>,
+       <var>settingsObject</var>, and <var>options</var>.</p></li>
       </ol>
      </li>
 
      <li><p>Let <var>callbacks</var> be
-     <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)].</p></li>
+     <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)]'s <span
+     data-x="in-progress module fetch record wait list">wait list</span>.</p></li>
 
      <li>
       <p>If <var>moduleScript</var> is null, then <span data-x="map remove">remove</span>
@@ -119587,7 +119645,8 @@ document.querySelector("button").addEventListener("click", bound);
 
   <div algorithm>
   <p>To <dfn data-x="creating a CSS module script">create a CSS module script</dfn>, given a
-  string <var>source</var> and an <span>environment settings object</span> <var>settings</var>:</p>
+  string <var>source</var>, an <span>environment settings object</span> <var>settings</var>, and a
+  <span>script fetch options</span> <var>options</var>:</p>
 
   <ol>
    <li><p>Let <var>script</var> be a new <span>module script</span> that this algorithm will
@@ -119596,8 +119655,10 @@ document.querySelector("button").addEventListener("click", bound);
    <li><p>Set <var>script</var>'s <span data-x="concept-script-settings-object">settings
    object</span> to <var>settings</var>.</p></li>
 
-   <li><p>Set <var>script</var>'s <span data-x="concept-script-base-url">base URL</span> and
-   <span data-x="concept-script-script-fetch-options">fetch options</span> to null.</p></li>
+   <li><p>Set <var>script</var>'s <span data-x="concept-script-base-url">base URL</span> to null.</p></li>
+
+   <li><p>Set <var>script</var>'s <span data-x="concept-script-script-fetch-options">fetch
+   options</span> to <var>options</var>.</p></li>
 
    <li><p>Set <var>script</var>'s <span data-x="concept-script-parse-error">parse error</span> and
    <span data-x="concept-script-error-to-rethrow">error to rethrow</span> to null.</p></li>
@@ -119629,7 +119690,8 @@ document.querySelector("button").addEventListener("click", bound);
 
   <div algorithm>
   <p>To <dfn data-x="creating a JSON module script">create a JSON module script</dfn>, given a
-  string <var>source</var> and an <span>environment settings object</span> <var>settings</var>:</p>
+  string <var>source</var>, an <span>environment settings object</span> <var>settings</var>, and a
+  <span>script fetch options</span> <var>options</var>:</p>
 
   <ol>
    <li><p>Let <var>script</var> be a new <span>module script</span> that this algorithm will
@@ -119638,8 +119700,10 @@ document.querySelector("button").addEventListener("click", bound);
    <li><p>Set <var>script</var>'s <span data-x="concept-script-settings-object">settings
    object</span> to <var>settings</var>.</p></li>
 
-   <li><p>Set <var>script</var>'s <span data-x="concept-script-base-url">base URL</span> and
-   <span data-x="concept-script-script-fetch-options">fetch options</span> to null.</p></li>
+   <li><p>Set <var>script</var>'s <span data-x="concept-script-base-url">base URL</span> to null.</p></li>
+
+   <li><p>Set <var>script</var>'s <span data-x="concept-script-script-fetch-options">fetch
+   options</span> to <var>options</var>.</p></li>
 
    <li><p>Set <var>script</var>'s <span data-x="concept-script-parse-error">parse error</span> and
    <span data-x="concept-script-error-to-rethrow">error to rethrow</span> to null.</p></li>
@@ -119661,7 +119725,8 @@ document.querySelector("button").addEventListener("click", bound);
 
   <div algorithm>
   <p>To <dfn data-x="creating a text module script">create a text module script</dfn>, given a
-  string <var>text</var> and an <span>environment settings object</span> <var>settings</var>:</p>
+  string <var>text</var>, an <span>environment settings object</span> <var>settings</var>, and a
+  <span>script fetch options</span> <var>options</var>:</p>
 
   <ol>
    <li><p>Let <var>script</var> be a new <span>module script</span> that this algorithm will
@@ -119670,8 +119735,10 @@ document.querySelector("button").addEventListener("click", bound);
    <li><p>Set <var>script</var>'s <span data-x="concept-script-settings-object">settings
    object</span> to <var>settings</var>.</p></li>
 
-   <li><p>Set <var>script</var>'s <span data-x="concept-script-base-url">base URL</span> and
-   <span data-x="concept-script-script-fetch-options">fetch options</span> to null.</p></li>
+   <li><p>Set <var>script</var>'s <span data-x="concept-script-base-url">base URL</span> to null.</p></li>
+
+   <li><p>Set <var>script</var>'s <span data-x="concept-script-script-fetch-options">fetch
+   options</span> to <var>options</var>.</p></li>
 
    <li><p>Set <var>script</var>'s <span data-x="concept-script-parse-error">parse error</span> and
    <span data-x="concept-script-error-to-rethrow">error to rethrow</span> to null.</p></li>
@@ -122294,10 +122361,22 @@ dictionary <dfn dictionary>PromiseRejectionEventInit</dfn> : <span>EventInit</sp
   The <span>URL record</span> is the <span data-x="concept-request-url">request URL</span> at which
   the module was fetched, and the <span>string</span> indicates the type of the module (e.g. "<code
   data-x="">javascript-or-wasm</code>"). The <span>module map</span>'s values are either a
-  <span>module script</span> or a <span>list</span> of algorithms (that are waiting for the fetch to
-  complete).</span> <span data-x="module map">Module maps</span> are used to ensure that imported
-  module scripts are only fetched, parsed, and evaluated once per <code>Document</code> or <a
-  href="#workers">worker</a>.</p>
+  <span>module script</span> or an <span>in-progress module fetch record</span>.</span> <span
+  data-x="module map">Module maps</span> are used to ensure that imported module scripts are only
+  fetched, parsed, and evaluated once per <code>Document</code> or <a href="#workers">worker</a>.</p>
+
+  <div w-nodev>
+  <p>An <dfn>in-progress module fetch record</dfn> is a <span>struct</span>. It has the following
+  <span data-x="struct item">items</span>:</p>
+
+  <dl>
+   <dt><dfn data-x="in-progress module fetch record wait list">wait list</dfn>
+   <dd>A <span>list</span> of algorithms (that are waiting for the fetch to complete)
+
+   <dt><dfn data-x="in-progress module fetch record integrity metadata">integrity metadata</dfn>
+   <dd>A string
+  </dl>
+  </div>
 
   <div class="example">
    <p>Since <span data-x="module map">module maps</span> are keyed by (URL, module type), the
@@ -122373,6 +122452,60 @@ import "https://example.com/foo/../module2.mjs";</code></pre>
     await import("./foo4.mjs", { with: { type: null } });
     await import("./foo5.mjs", { with: { type: undefined } });
 &lt;/script></code></pre>
+  </div>
+
+  <div class="example">
+   <p>Because <span data-x="module map">module maps</span> are not keyed by <span
+   data-x="concept-script-fetch-options-integrity">integrity metadata</span>, once a module script is
+   in the <span>module map</span>, any later fetch of the same module with integrity metadata has to
+   match the integrity metadata of the existing entry (or the new fetch has to specify no integrity
+   metadata). If the module was initially fetched without integrity metadata, a subsequent fetch
+   specifying an <code data-x="attr-script-integrity">integrity</code> attribute will fail, even if
+   the resource's contents match the cryptographic hash.</p>
+
+   <p>In the following example, the <code data-x="rel-modulepreload">modulepreload</code>
+   <code>link</code> element preloads a module script without an <code
+   data-x="attr-link-integrity">integrity</code> attribute. The subsequent <code>script</code> element
+   specifies an <code data-x="attr-script-integrity">integrity</code> attribute and fails to load,
+   because the module script was already entered into the <span>module map</span> with empty integrity
+   metadata:</p>
+
+   <pre class="bad"><code class="html">&lt;!-- This will cause the script to fail to load! -->
+&lt;link rel="modulepreload" href="foo.js">
+&lt;script type="module" src="foo.js" integrity="sha256-(correct hash)">&lt;/script></code></pre>
+
+   <p>Similarly, if a module script is loaded by a <code>script</code> element without an <code
+   data-x="attr-script-integrity">integrity</code> attribute, a subsequent <code>script</code>
+   element for the same module specifying an <code data-x="attr-script-integrity">integrity</code>
+   attribute will also fail to load:</p>
+
+   <pre class="bad"><code class="html">&lt;!-- This will cause the second script to fail to load! -->
+&lt;script type="module" src="foo.js">&lt;/script>
+&lt;script type="module" src="foo.js" integrity="sha256-(correct hash)">&lt;/script></code></pre>
+
+   <p>While failing a script load that would otherwise succeed in the absence of a preceding <code
+   data-x="rel-modulepreload">modulepreload</code> <code>link</code> element or <code>script</code>
+   element with mismatching integrity metadata is unfortunate, attempting to make such scripts load
+   successfully would result in evaluating <code data-x="">foo.js</code> multiple times (for
+   example, by keying <span data-x="module map">module maps</span> by <span
+   data-x="concept-script-fetch-options-integrity">integrity metadata</span>). Double evaluation
+   would likely be far more problematic and unexpected, given that mismatching integrity metadata is
+   much more likely to be an unintentional mistake than an intent to evaluate the same script
+   twice.</p>
+
+   <p>To avoid this failure, all <code>link</code>
+   <code data-x="rel-modulepreload">modulepreload</code> and <code data-x="">&lt;script type="module"></code> elements should have the same <code data-x="attr-link-integrity">integrity</code>
+   attribute values for the same URL:</p>
+
+   <pre><code class="html">&lt;link rel="modulepreload" href="foo.js" integrity="sha256-(correct hash)">
+&lt;script type="module" src="foo.js" integrity="sha256-(correct hash)">&lt;/script></code></pre>
+
+   <p>Or subsequent elements can have no <code data-x="attr-script-integrity">integrity</code>
+   attributes if integrity check is not needed:</p>
+
+   <pre><code class="html">&lt;!-- The script successfully reuses the modulepreload result. -->
+&lt;link rel="modulepreload" href="foo.js" integrity="sha256-(correct hash)">
+&lt;script type="module" src="foo.js">&lt;/script></code></pre>
   </div>
 
   <div w-nodev>
