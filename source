@@ -128811,14 +128811,11 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
   </ul>
 
   <div algorithm>
-  <p>To <dfn>sanitize</dfn> an <code>Element</code> <var>element</var> given a
-  <span>SanitizerConfig</span> <var>configuration</var>:</p>
+  <p>To <dfn>get the sanitizer action for an element name</dfn> given a
+  <span>SanitizerElementNamespace</span> <var>elementName</var> and a <span>SanitizerConfig</span>
+  <var>configuration</var>:</p>
 
   <ol>
-   <li><p>Let <var>elementName</var> be a <span>SanitizerElementNamespace</span> with
-   <var>element</var>'s <span data-x="concept-element-local-name">local name</span> and <span
-   data-x="concept-element-namespace">namespace</span>.</p></li>
-
    <li>
     <p>If <var>configuration</var>["<code
     data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaceWithChildrenElements</code>"]
@@ -128846,10 +128843,27 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
    contains">contains</span> <var>elementName</var>, return "<span
    data-x="sanitizer-action-remove">Remove</span>".</p></li>
 
-   <li><p><span>Sanitize attributes</span> of <var>element</var> given
-   <var>configuration</var>.</p></li>
-
    <li><p>Return "<span data-x="sanitizer-action-keep">Keep</span>".</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>sanitize</dfn> an <code>Element</code> <var>element</var> given a
+  <span>SanitizerConfig</span> <var>configuration</var>:</p>
+
+  <ol>
+   <li><p>Let <var>elementName</var> be a <span>SanitizerElementNamespace</span> with
+   <var>element</var>'s <span data-x="concept-element-local-name">local name</span> and <span
+   data-x="concept-element-namespace">namespace</span>.</p></li>
+
+   <li><p>Let <var>action</var> be the result of <span data-x="get the sanitizer action for an
+   element name">getting the sanitizer action for an element name</span> given
+   <var>elementName</var> and <var>configuration</var>.</p></li>
+
+   <li><p>If <var>action</var> is "<span data-x="sanitizer-action-keep">Keep</span>", then
+   <span>sanitize attributes</span> of <var>element</var> given <var>configuration</var>.</p></li>
+
+   <li><p>Return <var>action</var>.</p></li>
   </ol>
   </div>
 
@@ -145412,20 +145426,40 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
    <li><p>Let <var>localName</var> be <var>token</var>'s tag name.</p></li>
 
-   <li>
-    <p>Let <var>is</var> be the value of the "<code data-x="attr-is">is</code>" attribute in
-    <var>token</var>, if such an attribute exists; otherwise null.</p>
+   <li><p>Let <var>is</var> be the value of the "<code data-x="attr-is">is</code>" attribute in
+   <var>token</var>, if such an attribute exists; otherwise null.</p></li>
 
-    <p class="XXX">We need to sanitize the "is" attribute before applying it to the element creation
-    process.</p>
-   </li>
+   <li><p>Let <var>sanitizerConfiguration</var> be the parser's <span>parser sanitizer
+   configuration</span>.</p></li>
+
+   <li><p>Let <var>elementName</var> be a <span>SanitizerElementNamespace</span> with
+   <var>localName</var> and <var>namespace</var>.</p></li>
+
+   <li><p>If <var>is</var> is non-null, <var>sanitizerConfiguration</var> is non-null, and the
+   result of checking if a <span>sanitizer config allows an attribute</span> given a
+   <span>SanitizerAttributeNamespace</span> with "<code data-x="attr-is">is</code>" and null,
+   <var>is</var>, <var>elementName</var>, and <var>sanitizerConfiguration</var> is false, then set
+   <var>is</var> to null.</p></li>
 
    <li><p>Let <var>registry</var> be the result of <span data-x="look up a custom element
    registry">looking up a custom element registry</span> given <var>intendedParent</var>.</p></li>
 
-   <li><p>Let <var>definition</var> be the result of <span data-x="look up a custom element
-   definition">looking up a custom element definition</span> given <var>registry</var>,
-   <var>namespace</var>, <var>localName</var>, and <var>is</var>.</p></li>
+   <li><p>Let <var>definition</var> be null.</p></li>
+
+   <li>
+    <p>If <var>sanitizerConfiguration</var> is null, or the result of <span data-x="get the
+    sanitizer action for an element name">getting the sanitizer action for an element name</span>
+    given <var>elementName</var> and <var>sanitizerConfiguration</var> is "<span
+    data-x="sanitizer-action-keep">Keep</span>", then set <var>definition</var> to the result of
+    <span data-x="look up a custom element definition">looking up a custom element
+    definition</span> given <var>registry</var>, <var>namespace</var>, <var>localName</var>, and
+    <var>is</var>.</p>
+
+    <p class="note">Elements that the sanitizer will remove or replace with their children are
+    created as ordinary elements, so no <span data-x="custom element constructor">custom element
+    constructor</span> runs for them. Likewise, an <code data-x="attr-is">is</code> attribute that
+    the sanitizer will remove does not create a <span>customized built-in element</span>.</p>
+   </li>
 
    <li><p>Let <var>willExecuteScript</var> be true if <var>definition</var> is non-null and the
    parser's <span>fragment context element</span> is null; otherwise false.</p></li>
