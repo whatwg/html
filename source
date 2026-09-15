@@ -37649,9 +37649,17 @@ interface <dfn interface>HTMLVideoElement</dfn> : <span>HTMLMediaElement</span> 
   (including, for example, because the <span data-x="dom-VideoTrack-selected">selected video
   track</span> was changed), if the element's <code data-x="dom-media-readyState">readyState</code>
   attribute is not <code data-x="dom-media-HAVE_NOTHING">HAVE_NOTHING</code>, the user agent must
-  <span>queue a media element task</span> given the <span>media element</span> to <span
-  data-x="concept-event-fire">fire an event</span> named <code
-  data-x="event-media-resize">resize</code> at the <span>media element</span>.</p>
+  run the following steps:</p>
+
+  <ol>
+   <li><p>Let <var>loadingAcMapping</var> be the element's <span>media loading Async Context
+   Mapping</span>.</p></li>
+
+   <li><p><span>Queue a media element task</span> given the <span>media element</span> to <span
+   data-x="concept-event-fire">fire an event</span> named <code
+   data-x="event-media-resize">resize</code> at the <span>media element</span> with
+   <var>loadingAcMapping</var>.</p></li>
+  </ol>
   </div>
 
   </div>
@@ -38874,6 +38882,14 @@ interface <dfn interface>MediaError</dfn> {
   </ol>
   </div>
 
+  <p>A <span>media element</span> has a <dfn>media loading Async Context Mapping</dfn>, which is an
+  <span>Async Context Mapping</span>, initially « ». It is used to fire the events relative to
+  obtaining the <span>media resource</span>.</p>
+
+  <p>A <span>media element</span> has a <dfn>media playback Async Context Mapping</dfn>, which is an
+  <span>Async Context Mapping</span>, initially « ». It is used to fire the events relative to
+  playing the <span>media resource</span>.</p>
+
   <p>A <span>media element</span> has an associated boolean <dfn>is currently stalled</dfn>, which
   is initially false.</p>
 
@@ -38913,12 +38929,30 @@ interface <dfn interface>MediaError</dfn> {
     data-x="task queue">task queues</span>, then remove those tasks.</p>
 -->
 
-   <li><p>If the <span>media element</span>'s <code
-   data-x="dom-media-networkState">networkState</code> is set to <code
-   data-x="dom-media-NETWORK_LOADING">NETWORK_LOADING</code> or <code
-   data-x="dom-media-NETWORK_IDLE">NETWORK_IDLE</code>, <span>queue a media element task</span>
-   given the <span>media element</span> to <span data-x="concept-event-fire">fire an event</span>
-   named <code data-x="event-media-abort">abort</code> at the <span>media element</span>.</p></li>
+   <li>
+    <p>Let <var>loadingAcMapping</var> be <span>AsyncContextSnapshot</span>().</p>
+
+    <p class="note">The element's <span>media loading Async Context Mapping</span> is set to this
+    same mapping by the <span data-x="concept-media-load-algorithm">resource selection
+    algorithm</span>, which the last step below invokes. It is captured into a variable here because
+    the <code data-x="event-media-abort">abort</code> and <code
+    data-x="event-media-emptied">emptied</code> events are queued before that happens, and so cannot
+    read the slot.</p>
+   </li>
+
+   <li>
+    <p>If the <span>media element</span>'s <code
+    data-x="dom-media-networkState">networkState</code> is set to <code
+    data-x="dom-media-NETWORK_LOADING">NETWORK_LOADING</code> or <code
+    data-x="dom-media-NETWORK_IDLE">NETWORK_IDLE</code>, <span>queue a media element task</span>
+    given the <span>media element</span> to <span data-x="concept-event-fire">fire an event</span>
+    named <code data-x="event-media-abort">abort</code> at the <span>media element</span> with
+    <var>loadingAcMapping</var>.</p>
+
+    <p class="note">The <code data-x="event-media-abort">abort</code> event is fired with the
+    <span>Async Context Mapping</span> that caused the new load, not the one of the load that is
+    being aborted.</p>
+   </li>
 
    <li>
     <p>If the <span>media element</span>'s <code data-x="dom-media-networkState">networkState</code>
@@ -38927,7 +38961,8 @@ interface <dfn interface>MediaError</dfn> {
     <ol>
      <li><p><span>Queue a media element task</span> given the <span>media element</span> to <span
      data-x="concept-event-fire">fire an event</span> named <code
-     data-x="event-media-emptied">emptied</code> at the <span>media element</span>.</p></li>
+     data-x="event-media-emptied">emptied</code> at the <span>media element</span> with
+     <var>loadingAcMapping</var>.</p></li>
 
      <li><p>If a fetching process is in progress for the <span>media
      element</span>, the user agent should stop it.</p></li>
@@ -39015,6 +39050,10 @@ interface <dfn interface>MediaError</dfn> {
    <!-- precondition: networkState == NETWORK_EMPTY or we're coming straight from the algorithm above
                       (where setting it to empty is commented out) -->
 
+   <li><p>Let <var>loadingAcMapping</var> be <span>AsyncContextSnapshot</span>(), and set the
+   element's <span>media loading Async Context Mapping</span> to
+   <var>loadingAcMapping</var>.</p></li>
+
    <li><p>Set the element's <code data-x="dom-media-networkState">networkState</code> attribute to
    the <code data-x="dom-media-NETWORK_NO_SOURCE">NETWORK_NO_SOURCE</code> value.</p></li>
 
@@ -39074,7 +39113,8 @@ interface <dfn interface>MediaError</dfn> {
 
    <li><p>&#x231B; <span>Queue a media element task</span> given the <span>media element</span> to
    <span data-x="concept-event-fire">fire an event</span> named <code
-   data-x="event-media-loadstart">loadstart</code> at the <span>media element</span>.</p></li>
+   data-x="event-media-loadstart">loadstart</code> at the <span>media element</span> with
+   <var>loadingAcMapping</var>.</p></li>
 
    <li>
     <p>Run the appropriate steps from the following list:</p>
@@ -39137,9 +39177,10 @@ interface <dfn interface>MediaError</dfn> {
 
        <li><p><i>Failed with attribute</i>: Reaching this step indicates that the media resource
        failed to load or that <var>urlRecord</var> is failure. <span>Take pending play
-       promises</span> and <span>queue a media element task</span> given the <span>media
-       element</span> to run the <span>dedicated media source failure steps</span> with the
-       result.</p></li>
+       promises</span>, let <var>loadingAcMapping</var> be the element's <span>media loading Async
+       Context Mapping</span>, and <span>queue a media element task</span> given the <span>media
+       element</span> to run the <span>dedicated media source failure steps</span> with the result
+       and <var>loadingAcMapping</var>.</p></li>
 
        <li><p>Wait for the <span data-x="concept-task">task</span> queued by the previous step to have
        executed.</p></li>
@@ -39290,7 +39331,8 @@ interface <dfn interface>MediaError</dfn> {
     </dl>
 
     <p>The <dfn>dedicated media source failure steps</dfn> with a list of promises
-    <var>promises</var> are the following steps:</p>
+    <var>promises</var> and an <span>Async Context Mapping</span> <var>loadingAcMapping</var> are
+    the following steps:</p>
 
     <ol>
      <li><p>Set the <code data-x="dom-media-error">error</code> attribute to the result of
@@ -39305,7 +39347,8 @@ interface <dfn interface>MediaError</dfn> {
      <li><p>Set the element's <span>show poster flag</span> to true.</p></li>
 
      <li><p><span data-x="concept-event-fire">Fire an event</span> named <code
-     data-x="event-media-error">error</code> at the <span>media element</span>.</p></li>
+     data-x="event-media-error">error</code> at the <span>media element</span> with
+     <var>loadingAcMapping</var>.</p></li>
 
      <li><p><span>Reject pending play promises</span> with <var>promises</var> and a
      <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code>.</p></li>
@@ -39492,9 +39535,11 @@ interface <dfn interface>MediaError</dfn> {
          <li><p>Set the <code data-x="dom-media-networkState">networkState</code> to <code
          data-x="dom-media-NETWORK_IDLE">NETWORK_IDLE</code>.</p></li>
 
-         <li><p><span>Queue a media element task</span> given the <span>media element</span> to
-         <span data-x="concept-event-fire">fire an event</span> named <code
-         data-x="event-media-suspend">suspend</code> at the element.</p></li>
+         <li><p>Let <var>loadingAcMapping</var> be the element's <span>media loading Async Context
+         Mapping</span>, then <span>queue a media element task</span> given the <span>media
+         element</span> to <span data-x="concept-event-fire">fire an event</span> named <code
+         data-x="event-media-suspend">suspend</code> at the element with
+         <var>loadingAcMapping</var>.</p></li>
 
          <li><p><span>Queue a media element task</span> given the <span>media element</span> to set
          the element's <span>delaying-the-load-event flag</span> to false. This stops <span
@@ -39598,14 +39643,16 @@ interface <dfn interface>MediaError</dfn> {
         <span>implementation-defined</span> length of time, which should be about three seconds.
         When a <span>media element</span> that is actively attempting to obtain <span>media
         data</span> has failed to receive any data for a duration equal to the <span>media element
-        stall timeout</span>, the user agent must <span>queue a media element task</span> given the
-        <span>media element</span> to:</p>
+        stall timeout</span>, the user agent must let <var>loadingAcMapping</var> be the element's
+        <span>media loading Async Context Mapping</span> and <span>queue a media element task</span>
+        given the <span>media element</span> to:</p>
 
         <ol>
          <li><p>Set the element's <span>is currently stalled</span> to true.</p></li>
 
          <li><p><span data-x="concept-event-fire">Fire an event</span> named <code
-         data-x="event-media-stalled">stalled</code> at the element.</p></li>
+         data-x="event-media-stalled">stalled</code> at the element with
+         <var>loadingAcMapping</var>.</p></li>
         </ol>
 
         <p>User agents may allow users to selectively block or slow <span>media data</span> downloads.
@@ -39618,14 +39665,23 @@ interface <dfn interface>MediaError</dfn> {
         e.g. after buffering five minutes of a one hour media resource, while waiting for the user
         to decide whether to play the resource or not, while waiting for user input in an
         interactive resource, or when the user navigates away from the page. When a <span>media
-        element</span>'s download has been suspended, the user agent must <span>queue a media
+        element</span>'s download has been suspended, the user agent must run the following
+        steps:</p>
+
+        <ol>
+         <li><p>Let <var>loadingAcMapping</var> be the element's <span>media loading Async Context
+         Mapping</span>.</p></li>
+
+         <li><p><span>Queue a media element task</span> given the <span>media element</span> to set
+         the <code data-x="dom-media-networkState">networkState</code> to <code
+         data-x="dom-media-NETWORK_IDLE">NETWORK_IDLE</code> and <span
+         data-x="concept-event-fire">fire an event</span> named <code
+         data-x="event-media-suspend">suspend</code> at the element with
+         <var>loadingAcMapping</var>.</p></li>
+        </ol>
+
+        <p>If and when downloading of the resource resumes, the user agent must <span>queue a media
         element task</span> given the <span>media element</span> to set the <code
-        data-x="dom-media-networkState">networkState</code> to <code
-        data-x="dom-media-NETWORK_IDLE">NETWORK_IDLE</code> and <span
-        data-x="concept-event-fire">fire an event</span> named <code
-        data-x="event-media-suspend">suspend</code> at the element. If and when downloading of the
-        resource resumes, the user agent must <span>queue a media element task</span> given the
-        <span>media element</span> to set the <code
         data-x="dom-media-networkState">networkState</code> to <code
         data-x="dom-media-NETWORK_LOADING">NETWORK_LOADING</code>. Between the queuing of these
         tasks, the load is suspended (so <code data-x="event-media-progress">progress</code> events
@@ -39651,14 +39707,16 @@ interface <dfn interface>MediaError</dfn> {
         <span data-x="Content-Type sniffing: video">rules for sniffing audio and video specifically</span>.</p>
 
         <p>While the load is not suspended (see below), every 350ms (&#xB1;200ms) or for every byte
-        received, whichever is <em>least</em> frequent, <span>queue a media element task</span>
-        given the <span>media element</span> to:
+        received, whichever is <em>least</em> frequent, let <var>loadingAcMapping</var> be the
+        element's <span>media loading Async Context Mapping</span> and <span>queue a media element
+        task</span> given the <span>media element</span> to:
 
         <ol>
          <li><p>Set the element's <span>is currently stalled</span> to false.</p></li>
 
          <li><p><span data-x="concept-event-fire">Fire an event</span> named <code
-         data-x="event-media-progress">progress</code> at the element.</p></li>
+         data-x="event-media-progress">progress</code> at the element with
+         <var>loadingAcMapping</var>.</p></li>
         </ol>
 
         <p>While the user agent might still need network access to obtain parts of the <span>media
@@ -39840,12 +39898,20 @@ interface <dfn interface>MediaError</dfn> {
        </li>
 
        <li>
-        <p>For <code>video</code> elements, set the <code
-        data-x="dom-video-videoWidth">videoWidth</code> and <code
-        data-x="dom-video-videoHeight">videoHeight</code> attributes, and <span>queue a media
-        element task</span> given the <span>media element</span> to <span
-        data-x="concept-event-fire">fire an event</span> named <code
-        data-x="event-media-resize">resize</code> at the <span>media element</span>.</p>
+        <p>For <code>video</code> elements, run the following steps:</p>
+
+        <ol>
+         <li><p>Set the <code data-x="dom-video-videoWidth">videoWidth</code> and <code
+         data-x="dom-video-videoHeight">videoHeight</code> attributes.</p></li>
+
+         <li><p>Let <var>loadingAcMapping</var> be the element's <span>media loading Async Context
+         Mapping</span>.</p></li>
+
+         <li><p><span>Queue a media element task</span> given the <span>media element</span> to
+         <span data-x="concept-event-fire">fire an event</span> named <code
+         data-x="event-media-resize">resize</code> at the <span>media element</span> with
+         <var>loadingAcMapping</var>.</p></li>
+        </ol>
 
         <p class="note">Further <code data-x="event-media-resize">resize</code> events will be fired
         if the dimensions subsequently change.</p>
@@ -39914,12 +39980,14 @@ interface <dfn interface>MediaError</dfn> {
 
      <dd>
       <p><span data-x="concept-event-fire">Fire an event</span> named <code
-      data-x="event-media-progress">progress</code> at the <span>media element</span>.</p>
+      data-x="event-media-progress">progress</code> at the <span>media element</span> with its
+      <span>media loading Async Context Mapping</span>.</p>
 
       <p>Set the <code data-x="dom-media-networkState">networkState</code> to <code
       data-x="dom-media-NETWORK_IDLE">NETWORK_IDLE</code> and <span
       data-x="concept-event-fire">fire an event</span> named
-      <code data-x="event-media-suspend">suspend</code> at the <span>media element</span>.</p>
+      <code data-x="event-media-suspend">suspend</code> at the <span>media element</span> with its
+      <span>media loading Async Context Mapping</span>.</p>
 
       <p>If the user agent ever discards any <span>media data</span> and then needs to resume the
       network activity to obtain it again, then it must <span>queue a media element task</span>
@@ -39955,7 +40023,8 @@ interface <dfn interface>MediaError</dfn> {
        data-x="delay the load event">delaying the load event</span>.</p></li>
 
        <li><p><span data-x="concept-event-fire">Fire an event</span> named <code
-       data-x="event-media-error">error</code> at the <span>media element</span>.</p></li>
+       data-x="event-media-error">error</code> at the <span>media element</span> with its
+       <span>media loading Async Context Mapping</span>.</p></li>
 
        <li><p>Abort the overall <span data-x="concept-media-load-algorithm">resource selection
        algorithm</span>.</p></li>
@@ -39986,7 +40055,8 @@ interface <dfn interface>MediaError</dfn> {
        data-x="delay the load event">delaying the load event</span>.</p></li>
 
        <li><p><span data-x="concept-event-fire">Fire an event</span> named <code
-       data-x="event-media-error">error</code> at the <span>media element</span>.</p></li>
+       data-x="event-media-error">error</code> at the <span>media element</span> with its
+       <span>media loading Async Context Mapping</span>.</p></li>
 
        <li><p>Abort the overall <span data-x="concept-media-load-algorithm">resource selection
        algorithm</span>.</p></li>
@@ -40010,7 +40080,8 @@ interface <dfn interface>MediaError</dfn> {
        data-x="dom-MediaError-MEDIA_ERR_ABORTED">MEDIA_ERR_ABORTED</code>.</p></li>
 
        <li><p><span data-x="concept-event-fire">Fire an event</span> named <code
-       data-x="event-media-abort">abort</code> at the <span>media element</span>.</p></li>
+       data-x="event-media-abort">abort</code> at the <span>media element</span> with its
+       <span>media loading Async Context Mapping</span>.</p></li>
 
        <li>
         <p>If the <span>media element</span>'s <code data-x="dom-media-readyState">readyState</code>
@@ -40018,7 +40089,8 @@ interface <dfn interface>MediaError</dfn> {
         the element's <code data-x="dom-media-networkState">networkState</code> attribute to the
         <code data-x="dom-media-NETWORK_EMPTY">NETWORK_EMPTY</code> value, set the element's
         <span>show poster flag</span> to true, and <span data-x="concept-event-fire">fire an
-        event</span> named <code data-x="event-media-emptied">emptied</code> at the element.</p>
+        event</span> named <code data-x="event-media-emptied">emptied</code> at the element with its
+        <span>media loading Async Context Mapping</span>.</p>
 
         <p>Otherwise, set the element's <code data-x="dom-media-networkState">networkState</code>
         attribute to the <code data-x="dom-media-NETWORK_IDLE">NETWORK_IDLE</code> value.</p>
@@ -40432,13 +40504,23 @@ interface <dfn interface>MediaError</dfn> {
   <div algorithm>
   <p id="durationChange">When the length of the <span>media resource</span> changes to a known value
   (e.g. from being unknown to known, or from a previously established length to a new length), the
-  user agent must <span>queue a media element task</span> given the <span>media element</span> to
-  <span data-x="concept-event-fire">fire an event</span> named <code
-  data-x="event-media-durationchange">durationchange</code> at the <span>media element</span>. (The
-  event is not fired when the duration is reset as part of loading a new media resource.) If the
-  duration is changed such that the <span>current playback position</span> ends up being greater
-  than the time of the end of the <span>media resource</span>, then the user agent must also <span
-  data-x="dom-media-seek">seek</span> to the time of the end of the <span>media resource</span>.</p>
+  user agent must run the following steps:</p>
+
+  <ol>
+   <li><p>Let <var>loadingAcMapping</var> be the element's <span>media loading Async Context
+   Mapping</span>.</p></li>
+
+   <li><p><span>Queue a media element task</span> given the <span>media element</span> to <span
+   data-x="concept-event-fire">fire an event</span> named <code
+   data-x="event-media-durationchange">durationchange</code> at the <span>media element</span> with
+   <var>loadingAcMapping</var>. (The event is not fired when the duration is reset as part of
+   loading a new media resource.)</p></li>
+
+   <li><p>If the duration is changed such that the <span>current playback position</span> ends up
+   being greater than the time of the end of the <span>media resource</span>, then <span
+   data-x="dom-media-seek">seek</span> to the time of the end of the <span>media
+   resource</span>.</p></li>
+  </ol>
   </div>
 
   <p class="example">If an "infinite" stream ends for some reason, then the duration would change
@@ -40586,9 +40668,11 @@ interface <dfn interface>MediaError</dfn> {
 
      <dd id="fire-loadedmetadata">
 
-      <p><span>Queue a media element task</span> given the <span>media element</span> to <span
-      data-x="concept-event-fire">fire an event</span> named <code
-      data-x="event-media-loadedmetadata">loadedmetadata</code> at the element.</p>
+      <p>Let <var>loadingAcMapping</var> be the element's <span>media loading Async Context
+      Mapping</span>, then <span>queue a media element task</span> given the <span>media
+      element</span> to <span data-x="concept-event-fire">fire an event</span> named <code
+      data-x="event-media-loadedmetadata">loadedmetadata</code> at the element with
+      <var>loadingAcMapping</var>.</p>
 
       <p class="note">Before this task is run, as part of the <span>event loop</span> mechanism, the
       rendering will have been updated to resize the <code>video</code> element if appropriate.</p>
@@ -40603,9 +40687,17 @@ interface <dfn interface>MediaError</dfn> {
      <dd>
       <p id="fire-loadeddata">If this is the first time this occurs for this <span>media
       element</span> since the <code data-x="dom-media-load">load()</code> algorithm was last
-      invoked, the user agent must <span>queue a media element task</span> given the <span>media
-      element</span> to <span data-x="concept-event-fire">fire an event</span> named <code
-      data-x="event-media-loadeddata">loadeddata</code> at the element.</p>
+      invoked, the user agent must run the following steps:</p>
+
+      <ol>
+       <li><p>Let <var>loadingAcMapping</var> be the element's <span>media loading Async Context
+       Mapping</span>.</p></li>
+
+       <li><p><span>Queue a media element task</span> given the <span>media element</span> to <span
+       data-x="concept-event-fire">fire an event</span> named <code
+       data-x="event-media-loadeddata">loadeddata</code> at the element with
+       <var>loadingAcMapping</var>.</p></li>
+      </ol>
 
       <p>If the new ready state is <code data-x="dom-media-HAVE_FUTURE_DATA">HAVE_FUTURE_DATA</code>
       or <code data-x="dom-media-HAVE_ENOUGH_DATA">HAVE_ENOUGH_DATA</code>, then the relevant steps
@@ -40624,12 +40716,21 @@ interface <dfn interface>MediaError</dfn> {
       data-x="dom-media-HAVE_FUTURE_DATA">HAVE_FUTURE_DATA</code>, and the element has not
       <span>ended playback</span>, and playback has not <span>stopped due to errors</span>,
       <span>paused for user interaction</span>, or <span>paused for in-band content</span>, the user
-      agent must <span>queue a media element task</span> given the <span>media element</span> to
-      <span data-x="concept-event-fire">fire an event</span> named <code
-      data-x="event-media-timeupdate">timeupdate</code> at the element, and <span>queue a media
-      element task</span> given the <span>media element</span> to <span
-      data-x="concept-event-fire">fire an event</span> named <code
-      data-x="event-media-waiting">waiting</code> at the element.</p>
+      agent must run the following steps:</p>
+
+      <ol>
+       <li><p>Let <var>playbackAcMapping</var> be the element's <span>media playback Async Context
+       Mapping</span>.</p></li>
+
+       <li><p><span>Queue a media element task</span> given the <span>media element</span> to <span
+       data-x="concept-event-fire">fire an event</span> named <code
+       data-x="event-media-timeupdate">timeupdate</code> at the element.</p></li>
+
+       <li><p><span>Queue a media element task</span> given the <span>media element</span> to <span
+       data-x="concept-event-fire">fire an event</span> named <code
+       data-x="event-media-waiting">waiting</code> at the element with
+       <var>playbackAcMapping</var>.</p></li>
+      </ol>
      </dd>
 
      <!-- going up to future -->
@@ -40638,9 +40739,17 @@ interface <dfn interface>MediaError</dfn> {
      is <code data-x="dom-media-HAVE_FUTURE_DATA">HAVE_FUTURE_DATA</code></dt>
 
      <dd>
-      <p>The user agent must <span>queue a media element task</span> given the <span>media
-      element</span> to <span data-x="concept-event-fire">fire an event</span> named <code
-      data-x="event-media-canplay">canplay</code> at the element.</p>
+      <p>The user agent must run the following steps:</p>
+
+      <ol>
+       <li><p>Let <var>loadingAcMapping</var> be the element's <span>media loading Async Context
+       Mapping</span>.</p></li>
+
+       <li><p><span>Queue a media element task</span> given the <span>media element</span> to <span
+       data-x="concept-event-fire">fire an event</span> named <code
+       data-x="event-media-canplay">canplay</code> at the element with
+       <var>loadingAcMapping</var>.</p></li>
+      </ol>
 
       <p>If the element's <code data-x="dom-media-paused">paused</code> attribute is false, the user
       agent must <span>notify about playing</span> for the element.</p>
@@ -40651,22 +40760,29 @@ interface <dfn interface>MediaError</dfn> {
      data-x="dom-media-HAVE_ENOUGH_DATA">HAVE_ENOUGH_DATA</code></dt>
 
      <dd>
+      <p>Let <var>loadingAcMapping</var> be the element's <span>media loading Async Context
+      Mapping</span>.</p>
+
       <p>If the previous ready state was <code
       data-x="dom-media-HAVE_CURRENT_DATA">HAVE_CURRENT_DATA</code> or less, the user agent must
       <span>queue a media element task</span> given the <span>media element</span> to <span
       data-x="concept-event-fire">fire an event</span> named <code
-      data-x="event-media-canplay">canplay</code> at the element, and, if the element's <code
+      data-x="event-media-canplay">canplay</code> at the element with <var>loadingAcMapping</var>,
+      and, if the element's <code
       data-x="dom-media-paused">paused</code> attribute is false, <span>notify about playing</span>
       for the element.</p>
 
       <p>The user agent must <span>queue a media element task</span> given the <span>media
       element</span> to <span data-x="concept-event-fire">fire an event</span> named <code
-      data-x="event-media-canplaythrough">canplaythrough</code> at the element.</p>
+      data-x="event-media-canplaythrough">canplaythrough</code> at the element with
+      <var>loadingAcMapping</var>.</p>
 
       <p>If the element is not <span>eligible for autoplay</span>, then the user agent must abort
       these substeps.</p>
 
-      <p>The user agent may run the following substeps:</p>
+      <p>The user agent may set the element's <span>media playback Async Context Mapping</span> to
+      the element's <span>media loading Async Context Mapping</span> and then run the following
+      substeps:</p>
 
       <ol>
        <li>Set the <code data-x="dom-media-paused">paused</code> attribute to false.</li>
@@ -40674,9 +40790,10 @@ interface <dfn interface>MediaError</dfn> {
        <li>If the element's <span>show poster flag</span> is true, set it to false and run the
        <i data-x="time marches on">time marches on</i> steps.</li>
 
-       <li><span>Queue a media element task</span> given the element to <span
+       <li>Let <var>playbackAcMapping</var> be the element's <span>media playback Async Context
+       Mapping</span>, then <span>queue a media element task</span> given the element to <span
        data-x="concept-event-fire">fire an event</span> named <code
-       data-x="event-media-play">play</code> at the element.</li>
+       data-x="event-media-play">play</code> at the element with <var>playbackAcMapping</var>.</li>
 
        <li><span>Notify about playing</span> for the element.</li>
       </ol>
@@ -40684,8 +40801,9 @@ interface <dfn interface>MediaError</dfn> {
       <p>Alternatively, if the element is a <code>video</code> element, the user agent may start
       observing whether the element <span data-x="intersect the viewport">intersects the
       viewport</span>. When the element starts <span data-x="intersect the viewport">intersecting
-      the viewport</span>, if the element is still <span>eligible for autoplay</span>, run the
-      substeps above. Optionally, when the element stops <span data-x="intersect the
+      the viewport</span>, if the element is still <span>eligible for autoplay</span>, set the
+      element's <span>media playback Async Context Mapping</span> to « » and run the substeps
+      above. Optionally, when the element stops <span data-x="intersect the
       viewport">intersecting the viewport</span>, if the <span>can autoplay flag</span> is still
       true and the <code data-x="attr-media-autoplay">autoplay</code> attribute is still specified,
       run the following substeps:</p>
@@ -41134,11 +41252,14 @@ interface <dfn interface>MediaError</dfn> {
    result.</p></li>
 
    <li>
-    <p><span>Queue a media element task</span> given the element and the following steps:</p>
+    <p>Let <var>playbackAcMapping</var> be the element's <span>media playback Async Context
+    Mapping</span>, then <span>queue a media element task</span> given the element and the following
+    steps:</p>
 
     <ol>
      <li><p><span data-x="concept-event-fire">Fire an event</span> named <code
-     data-x="event-media-playing">playing</code> at the element.</p></li>
+     data-x="event-media-playing">playing</code> at the element with
+     <var>playbackAcMapping</var>.</p></li>
 
      <li><p><span>Resolve pending play promises</span> with <var>promises</var>.</p></li>
     </ol>
@@ -41167,6 +41288,9 @@ interface <dfn interface>MediaError</dfn> {
     Playback is not possible until the <span>media element load algorithm</span> clears the <code
     data-x="dom-media-error">error</code> attribute.</p>
    </li>
+
+   <li><p>Set the <span>media element</span>'s <span>media playback Async Context Mapping</span> to
+   <span>AsyncContextSnapshot</span>().</p></li>
 
    <li><p>Let <var>resumptionSteps</var> be the <span>media element</span>'s <span>lazy load
     resumption steps</span>.</p></li>
@@ -41220,9 +41344,13 @@ interface <dfn interface>MediaError</dfn> {
      <li><p>If the <span>show poster flag</span> is true, set the element's <span>show poster
      flag</span> to false and run the <i data-x="time marches on">time marches on</i> steps.</p></li>
 
+     <li><p>Let <var>playbackAcMapping</var> be the <span>media element</span>'s <span>media
+     playback Async Context Mapping</span>.</p></li>
+
      <li><p><span>Queue a media element task</span> given the <span>media element</span> to <span
      data-x="concept-event-fire">fire an event</span> named <code
-     data-x="event-media-play">play</code> at the element.</p></li>
+     data-x="event-media-play">play</code> at the element with
+     <var>playbackAcMapping</var>.</p></li>
 
      <li>
       <p>If the <span>media element</span>'s <code data-x="dom-media-readyState">readyState</code>
@@ -41230,7 +41358,8 @@ interface <dfn interface>MediaError</dfn> {
       data-x="dom-media-HAVE_METADATA">HAVE_METADATA</code>, or <code
       data-x="dom-media-HAVE_CURRENT_DATA">HAVE_CURRENT_DATA</code>, <span>queue a media element
       task</span> given the <span>media element</span> to <span data-x="concept-event-fire">fire an
-      event</span> named <code data-x="event-media-waiting">waiting</code> at the element.</p>
+      event</span> named <code data-x="event-media-waiting">waiting</code> at the element with
+      <var>playbackAcMapping</var>.</p>
 
       <p>Otherwise, the <span>media element</span>'s <code
       data-x="dom-media-readyState">readyState</code> attribute has the value <code
