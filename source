@@ -39930,7 +39930,9 @@ interface <dfn interface>MediaError</dfn> {
        <li><p>Let <var>jumped</var> be false.</p></li>
 
        <li><p>If the <span>media element</span>'s <span>default playback start position</span> is
-       greater than zero, then <span data-x="dom-media-seek">seek</span> to that time, and let <var>jumped</var> be true.</p></li>
+       greater than zero, then <span data-x="dom-media-seek">seek</span> to that time given the
+       element's <span>media loading Async Context Mapping</span>, and let <var>jumped</var> be
+       true.</p></li>
 
        <li><p>Set the <span>media element</span>'s <span>default playback
        start position</span> to zero.</p></li>
@@ -39941,7 +39943,9 @@ interface <dfn interface>MediaError</dfn> {
         <p>If either the <span>media resource</span> or the <span>URL</span> of the <var>current
         media resource</var> indicate a particular start time, then set the <var>initial playback
         position</var> to that time and, if <var>jumped</var> is still false, <span
-        data-x="dom-media-seek">seek</span> to that time.</p>
+        data-x="dom-media-seek">seek</span> to that time given the element's <span>media loading
+        Async
+        Context Mapping</span>.</p>
 
         <p class="example">For example, with media formats that support <span>media fragment
         syntax</span>, the <span data-x="concept-url-fragment">fragment</span> can be used to
@@ -40430,8 +40434,8 @@ interface <dfn interface>MediaError</dfn> {
   data-x="dom-media-HAVE_NOTHING">HAVE_NOTHING</code>, then it must set the <span>media
   element</span>'s <span>default playback start position</span> to the new value; otherwise, it must
   set the <span>official playback position</span> to the new value and then <span
-  data-x="dom-media-seek">seek</span> to the new value. The new value must be interpreted as being
-  in seconds.</p>
+  data-x="dom-media-seek">seek</span> to the new value given
+  <span>AsyncContextSnapshot</span>(). The new value must be interpreted as being in seconds.</p>
   </div>
 
   <p>If the <span>media resource</span> is a streaming resource, then the user agent might be unable
@@ -40449,7 +40453,8 @@ interface <dfn interface>MediaError</dfn> {
   <div algorithm>
   <p>When the <span>earliest possible position</span> changes: if the <span>current playback
   position</span> is before the <span>earliest possible position</span>, the user agent must <span
-  data-x="dom-media-seek">seek</span> to the <span>earliest possible position</span>; otherwise, if
+  data-x="dom-media-seek">seek</span> to the <span>earliest possible position</span> given the
+  element's <span>media loading Async Context Mapping</span>; otherwise, if
   the user agent has not fired a <code data-x="event-media-timeupdate">timeupdate</code> event at
   the element in the past 15 to 250ms and is not still running event handlers for such an event,
   then the user agent must run the following steps:</p>
@@ -40527,8 +40532,8 @@ interface <dfn interface>MediaError</dfn> {
 
    <li><p>If the duration is changed such that the <span>current playback position</span> ends up
    being greater than the time of the end of the <span>media resource</span>, then <span
-   data-x="dom-media-seek">seek</span> to the time of the end of the <span>media
-   resource</span>.</p></li>
+   data-x="dom-media-seek">seek</span> to the time of the end of the <span>media resource</span>
+   given <var>loadingAcMapping</var>.</p></li>
   </ol>
   </div>
 
@@ -41111,7 +41116,8 @@ interface <dfn interface>MediaError</dfn> {
   <ol>
    <li><p>If the <span>media element</span> has a <code data-x="attr-media-loop">loop</code>
    attribute specified, then <span data-x="dom-media-seek">seek</span> to the <span>earliest
-   possible position</span> of the <span>media resource</span> and return.</p></li>
+   possible position</span> of the <span>media resource</span> given the element's <span>media
+   playback Async Context Mapping</span> and return.</p></li>
    <!-- v2/v3: We should fire a 'looping' event here to explain why this immediately fires a
    'playing' event, otherwise the 'playing' event that fires from the readyState going from
    HAVE_CURRENT_DATA back to HAVE_FUTURE_DATA will seem inexplicable (since the normally matching
@@ -41358,6 +41364,9 @@ interface <dfn interface>MediaError</dfn> {
   <p>The <dfn>internal play steps</dfn> for a <span>media element</span> are as follows:</p>
 
   <ol>
+   <li><p>Let <var>playbackAcMapping</var> be the <span>media element</span>'s <span>media playback
+   Async Context Mapping</span>.</p></li>
+
    <li><p>If the <span>media element</span>'s <code
    data-x="dom-media-networkState">networkState</code> attribute has the value <code
    data-x="dom-media-NETWORK_EMPTY">NETWORK_EMPTY</code>, invoke the <span>media element</span>'s
@@ -41366,7 +41375,8 @@ interface <dfn interface>MediaError</dfn> {
    <li>
     <p>If the <span data-x="ended playback">playback has ended</span> and the <span>direction of
     playback</span> is forwards, <span data-x="dom-media-seek">seek</span> to the <span>earliest
-    possible position</span> of the <span>media resource</span>.</p>
+    possible position</span> of the <span>media resource</span> given
+    <var>playbackAcMapping</var>.</p>
 
     <p class="note">This <a href="#seekUpdate">will cause</a> the user agent to <span>queue a media
     element task</span> given the <span>media element</span> to <span
@@ -41384,9 +41394,6 @@ interface <dfn interface>MediaError</dfn> {
 
      <li><p>If the <span>show poster flag</span> is true, set the element's <span>show poster
      flag</span> to false and run the <i data-x="time marches on">time marches on</i> steps.</p></li>
-
-     <li><p>Let <var>playbackAcMapping</var> be the <span>media element</span>'s <span>media
-     playback Async Context Mapping</span>.</p></li>
 
      <li><p><span>Queue a media element task</span> given the <span>media element</span> to <span
      data-x="concept-event-fire">fire an event</span> named <code
@@ -41827,16 +41834,22 @@ interface <dfn interface>MediaError</dfn> {
   <div algorithm>
   <p>The <dfn method for="HTMLMediaElement"><code
   data-x="dom-media-fastSeek">fastSeek(<var>time</var>)</code></dfn> method must <span
-  data-x="dom-media-seek">seek</span> to the time given by <var>time</var>, with the
-  <i>approximate-for-speed</i> flag set.</p>
+  data-x="dom-media-seek">seek</span> to the time given by <var>time</var> given
+  <span>AsyncContextSnapshot</span>(), with the <i>approximate-for-speed</i> flag set.</p>
   </div>
 
   <div algorithm>
-  <p>When the user agent is required to <dfn data-x="dom-media-seek">seek</dfn> to a particular <var>new playback position</var> in the <span>media resource</span>, optionally with the
-  <i>approximate-for-speed</i> flag set, it means that the user agent must run the following steps.
+  <p>When the user agent is required to <dfn data-x="dom-media-seek">seek</dfn> to a particular
+  <var>new playback position</var> in the <span>media resource</span> given an <span>Async Context
+  Mapping</span> <var>acMapping</var>, optionally with the <i>approximate-for-speed</i> flag set, it
+  means that the user agent must run the following steps.
   This algorithm interacts closely with the <span>event loop</span> mechanism; in particular, it has
   a <span>synchronous section</span> (which is triggered as part of the <span>event loop</span>
   algorithm). Steps in that section are marked with &#x231B;.</p>
+
+  <p class="note">When the user agent seeks on its own behalf — because the user interacted with
+  the <span>media element</span>'s controls, or because the <span>media resource</span> is
+  internally scripted or interactive — <var>acMapping</var> is « ».</p>
 
   <ol>
    <li><p>Set the <span>media element</span>'s <span>show poster flag</span> to false.</p></li>
@@ -41887,7 +41900,7 @@ interface <dfn interface>MediaError</dfn> {
 
    <li><p><span>Queue a media element task</span> given the <span>media element</span> to <span
    data-x="concept-event-fire">fire an event</span> named <code
-   data-x="event-media-seeking">seeking</code> at the element.</p></li>
+   data-x="event-media-seeking">seeking</code> at the element with <var>acMapping</var>.</p></li>
 
    <li>
     <p>Set the <span>current playback position</span> to the <var>new playback
@@ -41926,11 +41939,12 @@ interface <dfn interface>MediaError</dfn> {
 
    <li id="seekUpdate"><p>&#x231B; <span>Queue a media element task</span> given the <span>media
    element</span> to <span data-x="concept-event-fire">fire an event</span> named <code
-   data-x="event-media-timeupdate">timeupdate</code> at the element.</p></li>
+   data-x="event-media-timeupdate">timeupdate</code> at the element with
+   <var>acMapping</var>.</p></li>
 
    <li><p>&#x231B; <span>Queue a media element task</span> given the <span>media element</span> to
    <span data-x="concept-event-fire">fire an event</span> named <code
-   data-x="event-media-seeked">seeked</code> at the element.</p></li>
+   data-x="event-media-seeked">seeked</code> at the element with <var>acMapping</var>.</p></li>
   </ol>
   </div>
 
