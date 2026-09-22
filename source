@@ -5005,6 +5005,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li><dfn data-x="tt-trustedscript-data" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#trustedscript-data"><code>data</code></dfn></li>
      <li><dfn data-x="tt-trustedscripturl" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#trustedscripturl"><code>TrustedScriptURL</code></dfn></li>
      <li><dfn data-x="tt-getcompliantstring" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string">get trusted type compliant string</dfn></li>
+     <li>The <dfn data-x="tt-pre-navigation-check" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#require-trusted-types-for-pre-navigation-check"><code data-x="">require-trusted-types-for</code> pre-navigation check</dfn> algorithm</li>
     </ul>
    </dd>
 
@@ -108366,14 +108367,24 @@ location.href = '#foo';</code></pre>
 
     <ol>
      <li>
-      <p>Let <var>request</var> be a new <span data-x="concept-request">request</span> whose <span
-      data-x="concept-request-url">URL</span> is <var>url</var> and whose <span
-      data-x="concept-request-policy-container">policy container</span> is
-      <var>sourceSnapshotParams</var>'s <span
-      data-x="source-snapshot-params-policy-container">source policy container</span>.</p>
+      <p>Let <var>request</var> be a new <span data-x="concept-request">request</span>, with</p>
 
-      <p class="note">This is a synthetic <span data-x="concept-request">request</span> solely for
-      plumbing into <span>navigate to a <code>javascript:</code> URL</span>. It will never hit the
+      <dl class="props">
+       <dt><span data-x="concept-request-url">URL</span></dt>
+       <dd><var>url</var></dd>
+
+       <dt><span data-x="concept-request-client">client</span></dt>
+       <dd><var>sourceSnapshotParams</var>'s <span data-x="source-snapshot-params-client">fetch
+       client</span></dd>
+
+       <dt><span data-x="concept-request-policy-container">policy container</span></dt>
+       <dd><var>sourceSnapshotParams</var>'s <span
+       data-x="source-snapshot-params-policy-container">source policy container</span></dd>
+      </dl>
+
+      <p class="note">This is a synthetic <span data-x="concept-request">request</span>, needed
+      because the Content Security Policy check in <span>navigate to a <code>javascript:</code>
+      URL</span> operates on a <span data-x="concept-request">request</span>. It will never hit the
       network.</p>
      </li>
 
@@ -108793,23 +108804,37 @@ location.href = '#foo';</code></pre>
    <var>targetNavigable</var>'s <span data-x="nav-document">active document</span>'s <span
    data-x="concept-document-origin">origin</span>, then return.</p></li>
 
-   <li><p>If the result of <span>should navigation request of type be blocked by Content Security
-   Policy?</span> given <var>request</var> and <var>cspNavigationType</var> is "<code
-   data-x="">Blocked</code>", then return. <ref>CSP</ref></p></li>
+   <li>
+    <p>If the result of <span>should navigation request of type be blocked by Content Security
+    Policy?</span> given <var>request</var> and <var>cspNavigationType</var> is "<code
+    data-x="">Blocked</code>", then return. <ref>CSP</ref></p>
+
+    <p class="note">This can change <var>request</var>'s <span
+    data-x="concept-request-url">URL</span>, as the <span data-x="tt-pre-navigation-check"><code
+    data-x="">require-trusted-types-for</code> pre-navigation check</span> passes the script source
+    through the default policy. <ref>TRUSTED-TYPES</ref></p>
+   </li>
 
    <li><p>Let <var>newDocument</var> be the result of <span data-x="evaluate a javascript:
    URL">evaluating a <code>javascript:</code> URL</span> given <var>targetNavigable</var>,
    <var>request</var>'s <span data-x="concept-request-url">URL</span>, <var>initiatorOrigin</var>,
-   and <var>userInvolvement</var>.</p></li>
+   <var>userInvolvement</var>, and <var>navigationId</var>.</p></li>
 
    <li>
     <p>If <var>newDocument</var> is null:</p>
 
     <ol>
-     <li><p>If <var>initialInsertion</var> is true and <var>targetNavigable</var>'s <span
-     data-x="nav-document">active document</span>'s <span>is initial
-     <code>about:blank</code></span> is true, then run the <span>iframe load event steps</span>
-     given <var>targetNavigable</var>'s <span data-x="nav-container">container</span>.</p></li>
+     <li>
+      <p>If <var>initialInsertion</var> is true, <var>targetNavigable</var>'s <span
+      data-x="nav-container">container</span> is non-null, and <var>targetNavigable</var>'s <span
+      data-x="nav-document">active document</span>'s <span>is initial
+      <code>about:blank</code></span> is true, then run the <span>iframe load event steps</span>
+      given <var>targetNavigable</var>'s <span data-x="nav-container">container</span>.</p>
+
+      <p class="note">The <span data-x="tt-pre-navigation-check">pre-navigation check</span> runs
+      author code through the default policy, which can have removed <var>targetNavigable</var>'s
+      <span data-x="nav-container">container</span> in the meantime.</p>
+     </li>
 
      <li><p>Return.</p></li>
     </ol>
@@ -108898,8 +108923,8 @@ location.href = '#foo';</code></pre>
   <div algorithm>
   <p>To <dfn>evaluate a <code>javascript:</code> URL</dfn> given a <span>navigable</span>
   <var>targetNavigable</var>, a <span>URL</span> <var>url</var>, an <span>origin</span>
-  <var>newDocumentOrigin</var>, and a <span>user navigation involvement</span>
-  <var>userInvolvement</var>:</p>
+  <var>newDocumentOrigin</var>, a <span>user navigation involvement</span>
+  <var>userInvolvement</var>, and a <span>navigation ID</span> <var>navigationId</var>:</p>
 
   <ol>
    <li><p>Let <var>urlString</var> be the result of running the <span
