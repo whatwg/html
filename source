@@ -3240,6 +3240,8 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li>The <dfn data-x-href="https://tc39.es/proposal-async-context/#async-context-mapping">Async Context Mapping</dfn> specification type</li>
      <li>The <dfn data-x-href="https://tc39.es/proposal-async-context/#sec-asynccontextsnapshot">AsyncContextSnapshot</dfn> abstract operation</li>
      <li>The <dfn data-x-href="https://tc39.es/proposal-async-context/#sec-asynccontextswap">AsyncContextSwap</dfn> abstract operation</li>
+     <li>The <dfn data-x-href="https://tc39.es/proposal-async-context/#sec-createasynccontextsnapshotobject">CreateAsyncContextSnapshotObject</dfn> abstract operation</li>
+     <li>The <dfn data-x-href="https://tc39.es/proposal-async-context/#sec-asynccontext.snapshot-objects"><code>AsyncContext.Snapshot</code></dfn> class</li>
     </ul>
    </dd>
 
@@ -118350,8 +118352,9 @@ new PaymentRequest(&hellip;); // Allowed to use
   its size in an <span>implementation-defined</span> manner, e.g., by removing old entries from it
   when new ones are added.</p>
 
-  <p>A <span>global object</span> has an <dfn>about-to-be-notified rejected promises list</dfn>, a
-  <span>list</span> of <code data-x="idl-Promise">Promise</code> objects, initially empty.</p>
+  <p>A <span>global object</span> has an <dfn>about-to-be-notified rejected promises map</dfn>, an
+  <span>ordered map</span> from <code data-x="idl-Promise">Promise</code> objects to <span>Async
+  Context Mapping</span>s, initially empty.</p>
 
   <p>A <span>global object</span> has an <dfn data-x="concept-global-import-map">import map</dfn>,
   initially an <span>empty import map</span>.</p>
@@ -121146,20 +121149,21 @@ dictionary <dfn dictionary>ErrorEventInit</dfn> : <span>EventInit</span> {
   <var>global</var>:</p>
 
   <ol>
-   <li><p>Let <var>list</var> be a <span data-x="list clone">clone</span> of <var>global</var>'s
-   <span>about-to-be-notified rejected promises list</span>.</p></li>
+   <li><p>Let <var>map</var> be <var>global</var>'s <span>about-to-be-notified rejected promises
+   map</span>.</p></li>
 
-   <li><p>If <var>list</var> <span data-x="list is empty">is empty</span>, then return.</p></li>
+   <li><p>If <var>map</var> is <span data-x="map empty">empty</span>, then return.</p></li>
 
-   <li><p><span data-x="list empty">Empty</span> <var>global</var>'s <span>about-to-be-notified
-   rejected promises list</span>.</p></li>
+   <li><p>Set <var>global</var>'s <span>about-to-be-notified rejected promises map</span> to a new
+   <span>ordered map</span>.</p></li>
 
    <li>
     <p><span>Queue a global task</span> on the <span>DOM manipulation task source</span> given
     <var>global</var> to run the following step:</p>
 
     <ol>
-     <li><p><span data-x="list iterate">For each</span> promise <var>p</var> of <var>list</var>:</p>
+     <li><p><span data-x="map iterate">For each</span> <var>p</var> -> <var>acMapping</var> of
+     <var>map</var>:</p>
 
       <ol>
        <li><p>If <var>p</var>.[[PromiseIsHandled]] is true, then <span>continue</span>.</p></li>
@@ -121169,8 +121173,10 @@ dictionary <dfn dictionary>ErrorEventInit</dfn> : <span>EventInit</span> {
        <var>global</var>, using <code>PromiseRejectionEvent</code>, with the <code
        data-x="dom-Event-cancelable">cancelable</code> attribute initialized to true, the <code
        data-x="dom-PromiseRejectionEvent-promise">promise</code> attribute initialized to
-       <var>p</var>, and the <code data-x="dom-PromiseRejectionEvent-reason">reason</code>
-       attribute initialized to <var>p</var>.[[PromiseResult]].</p></li>
+       <var>p</var>, the <code data-x="dom-PromiseRejectionEvent-reason">reason</code> attribute
+       initialized to <var>p</var>.[[PromiseResult]], and the <code
+       data-x="dom-PromiseRejectionEvent-rejectedContext">rejectedContext</code> attribute
+       initialized to <span>CreateAsyncContextSnapshotObject</span>(<var>acMapping</var>).</p></li>
 
        <li id="concept-promise-rejection-handled"><p id="concept-promise-rejection-nothandled">If
        <var>notCanceled</var> is true, then the user agent may report
@@ -121195,11 +121201,13 @@ interface <dfn interface>PromiseRejectionEvent</dfn> : <span>Event</span> {
 
   readonly attribute <span data-x="idl-object">object</span> <span data-x="dom-PromiseRejectionEvent-promise">promise</span>;
   readonly attribute any <span data-x="dom-PromiseRejectionEvent-reason">reason</span>;
+  readonly attribute <span data-x="idl-object">object</span>? <span data-x="dom-PromiseRejectionEvent-rejectedContext">rejectedContext</span>;
 };
 
 dictionary <dfn dictionary>PromiseRejectionEventInit</dfn> : <span>EventInit</span> {
   required <span data-x="idl-object">object</span> promise;
   any reason;
+  <span data-x="idl-object">object</span>? rejectedContext = null;
 };</code></pre>
 
   <div algorithm>
@@ -121218,6 +121226,16 @@ dictionary <dfn dictionary>PromiseRejectionEventInit</dfn> : <span>EventInit</sp
   <p>The <dfn attribute for="PromiseRejectionEvent"><code
   data-x="dom-PromiseRejectionEvent-reason">reason</code></dfn> attribute must return the value it
   was initialized to. It represents the rejection reason for the promise.</p>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn attribute for="PromiseRejectionEvent"><code
+  data-x="dom-PromiseRejectionEvent-rejectedContext">rejectedContext</code></dfn> attribute must
+  return the value it was initialized to. For <code
+  data-x="event-unhandledrejection">unhandledrejection</code> it is an
+  <code>AsyncContext.Snapshot</code> object representing the <span>Async Context Mapping</span> that
+  was current when the promise rejected; for <code
+  data-x="event-rejectionhandled">rejectionhandled</code> it is null.</p>
   </div>
 
 
@@ -122776,8 +122794,9 @@ dictionary <dfn dictionary>PromiseRejectionEventInit</dfn> : <span>EventInit</sp
     <p>If <var>operation</var> is "<code data-x="">reject</code>":</p>
 
     <ol>
-     <li><p><span data-x="list append">Append</span> <var>promise</var> to <var>global</var>'s
-     <span>about-to-be-notified rejected promises list</span>.</p></li>
+     <li><p><span data-x="map set">Set</span> <var>global</var>'s <span>about-to-be-notified
+     rejected promises map</span>[<var>promise</var>] to
+     <span>AsyncContextSnapshot</span>().</p></li>
     </ol>
    </li>
 
@@ -122785,9 +122804,10 @@ dictionary <dfn dictionary>PromiseRejectionEventInit</dfn> : <span>EventInit</sp
     <p>If <var>operation</var> is "<code data-x="">handle</code>":</p>
 
     <ol>
-     <li><p>If <var>global</var>'s <span>about-to-be-notified rejected promises list</span> <span
-     data-x="list contains">contains</span> <var>promise</var>, then <span data-x="list
-     remove">remove</span> <var>promise</var> from that list and return.</p></li>
+     <li><p>If <var>global</var>'s <span>about-to-be-notified rejected promises map</span> <span
+     data-x="map exists">contains</span> <var>promise</var>, then <span data-x="map
+     remove">remove</span> <var>global</var>'s <span>about-to-be-notified rejected promises
+     map</span>[<var>promise</var>] and return.</p></li>
 
      <li><p>If <var>global</var>'s <span>outstanding rejected promises weak set</span> does not
      <span data-x="list contains">contain</span> <var>promise</var>, then return.</p></li>
