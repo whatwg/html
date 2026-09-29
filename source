@@ -70261,11 +70261,14 @@ callback <dfn callback>BlobCallback</dfn> = undefined (<span>Blob</span>? blob);
   reference, an <dfn data-x="concept-element-image-originating-canvas">originating
   <code>canvas</code> element</dfn> weak reference, <dfn
   data-x="concept-element-image-snapshot-width">width</dfn> and <dfn
-  data-x="concept-element-image-snapshot-height">height</dfn> (dimensions in the <span
-  data-x="concept-element-image-originating-canvas">originating <code>canvas</code> element</span>'s
-  <span>output bitmap</span> pixels), a <dfn
-  data-x="concept-element-image-snapshot-translation-matrix">translation matrix</dfn>, and a <dfn
-  data-x="concept-element-image-snapshot-scaling-matrix">scaling matrix</dfn>.</p>
+  data-x="concept-element-image-snapshot-height">height</dfn> (dimensions of the <span
+  data-x="concept-element-image-snapshot-originating-element">originating element</span>'s
+  <span>border box</span> in <span data-x="'px'">CSS pixels</span>), <dfn
+  data-x="concept-element-image-snapshot-canvas-width">canvas width</dfn> and <dfn
+  data-x="concept-element-image-snapshot-canvas-height">canvas height</dfn> (dimensions of the
+  <span data-x="concept-element-image-originating-canvas">originating <code>canvas</code>
+  element</span>'s <span>content box</span> in <span data-x="'px'">CSS pixels</span>), and a <dfn
+  data-x="concept-element-image-snapshot-translation-matrix">translation matrix</dfn>.</p>
 
   <p>The internal representation of an <span data-x="concept-element-image-snapshot">element image
   snapshot</span> is <span>implementation-defined</span>, but must preserve crisp text and vector
@@ -75624,9 +75627,22 @@ try {
    data-x="concept-element-image-originating-canvas">originating <code>canvas</code> element</span>
    is not <var>originatingCanvas</var>, then throw a <code>TypeError</code>.</p></li>
 
+   <li>
+    <p>Let <var>scaleX</var> be <var>context</var>'s <span>output bitmap</span>'s width in pixels
+    divided by <var>snapshot</var>'s <span
+    data-x="concept-element-image-snapshot-canvas-width">canvas width</span> and <var>scaleY</var>
+    be <var>context</var>'s <span>output bitmap</span>'s height in pixels divided by
+    <var>snapshot</var>'s <span data-x="concept-element-image-snapshot-canvas-height">canvas
+    height</span>.</p>
+
+    <p class="note">These scale factors are used to compute the default destination size, and ensure
+    that an element's default size matches what it would be outside of a <code>canvas</code>.</p>
+   </li>
+
    <li><p>If not given, <var>dw</var> and <var>dh</var> must default to <var>snapshot</var>'s <span
-   data-x="concept-element-image-snapshot-width">width</span> and <span
-   data-x="concept-element-image-snapshot-height">height</span>, respectively.</p></li>
+   data-x="concept-element-image-snapshot-width">width</span> multiplied by <var>scaleX</var> and
+   <var>snapshot</var>'s <span data-x="concept-element-image-snapshot-height">height</span>
+   multiplied by <var>scaleY</var>, respectively.</p></li>
 
    <li><p>If not given, <var>sourceRect</var> must default to a source rectangle at (0, 0) with
    <var>snapshot</var>'s <span data-x="concept-element-image-snapshot-width">width</span> and <span
@@ -75665,8 +75681,14 @@ try {
     <p class="XXX">This is not correct, needs to be in the same coordinate space as canvasTransform.</p>
    </li>
 
-   <li><p>Let <var>canvasTransform</var> be the result of <span>get element transform</span> with
-   <var>snapshot</var> and <var>T<sub>draw</sub></var>.</p></li>
+   <li><p>Let <var>T<sub>translate</sub></var> be <var>snapshot</var>'s <span
+   data-x="concept-element-image-snapshot-translation-matrix">translation matrix</span>.</p></li>
+
+   <li><p>Let <var>T<sub>scale</sub></var> be a new scaling matrix corresponding to
+   <var>scaleX</var> and <var>scaleY</var>.</p></li>
+
+   <li><p>Let <var>canvasTransform</var> be a <code>DOMMatrix</code> initialized to
+   <var>T<sub>translate</sub></var><sup>-1</sup>&sdot;<var>T<sub>scale</sub></var><sup>-1</sup>&sdot;<var>T<sub>draw</sub></var>&sdot;<var>T<sub>translate</sub></var>.</p></li>
 
    <li><p>Let <var>targetElement</var> be <var>snapshot</var>'s <span
    data-x="concept-element-image-snapshot-originating-element">originating element</span>.</p></li>
@@ -75763,23 +75785,6 @@ try {
    <code>DOMException</code>.</p></li>
 
    <li><p>Return <var>snapshots</var>[<var>element</var>].</p></li>
-  </ol>
-  </div>
-
-  <div algorithm>
-  <p>To <dfn>get element transform</dfn>, with an <span
-  data-x="concept-element-image-snapshot">element image snapshot</span> <var>snapshot</var> and a
-  <span>transformation matrix</span> <var>T<sub>draw</sub></var>:</p>
-
-  <ol>
-   <li><p>Let <var>T<sub>translate</sub></var> be <var>snapshot</var>'s <span
-   data-x="concept-element-image-snapshot-translation-matrix">translation matrix</span>.</p></li>
-
-   <li><p>Let <var>T<sub>scale</sub></var> be <var>snapshot</var>'s <span
-   data-x="concept-element-image-snapshot-scaling-matrix">scaling matrix</span>.</p></li>
-
-   <li><p>Return a <code>DOMMatrix</code> initialized to
-   <var>T<sub>translate</sub></var><sup>-1</sup>&sdot;<var>T<sub>scale</sub></var><sup>-1</sup>&sdot;<var>T<sub>draw</sub></var>&sdot;<var>T<sub>scale</sub></var>&sdot;<var>T<sub>translate</sub></var>.</p></li>
   </ol>
   </div>
 
@@ -78246,8 +78251,12 @@ interface <dfn interface>ElementImage</dfn> {
    <li><p>If <span>this</span>'s <span>[[Detached]]</span> internal slot's value is true, then
    return 0.</p></li>
 
-   <li><p>Return <span>this</span>'s <span data-x="concept-ElementImage-snapshot">snapshot</span>'s
-   <span data-x="concept-element-image-snapshot-width">width</span>.</p></li>
+   <li>
+    <p>Return <span>this</span>'s <span data-x="concept-ElementImage-snapshot">snapshot</span>'s
+    <span data-x="concept-element-image-snapshot-width">width</span>.</p>
+
+    <p class="XXX">Update this definition now that snapshot dimensions are in CSS pixels.</p>
+   </li>
   </ol>
   </div>
 
@@ -78259,8 +78268,12 @@ interface <dfn interface>ElementImage</dfn> {
    <li><p>If <span>this</span>'s <span>[[Detached]]</span> internal slot's value is true, then
    return 0.</p></li>
 
-   <li><p>Return <span>this</span>'s <span data-x="concept-ElementImage-snapshot">snapshot</span>'s
-   <span data-x="concept-element-image-snapshot-height">height</span>.</p></li>
+   <li>
+    <p>Return <span>this</span>'s <span data-x="concept-ElementImage-snapshot">snapshot</span>'s
+    <span data-x="concept-element-image-snapshot-height">height</span>.</p>
+
+    <p class="XXX">Update this definition now that snapshot dimensions are in CSS pixels.</p>
+   </li>
   </ol>
   </div>
 
@@ -124682,21 +124695,9 @@ import "https://example.com/foo/../module2.mjs";</code></pre>
        <li><p>Set <var>canvas</var>'s <span data-x="concept-canvas-force-paint-event">force paint
        event</span> to false.</p></li>
 
-       <li><p>Let <var>contentBox</var> be <var>canvas</var>'s <span>content box</span>.</p></li>
-
-       <li><p>Let <var>scaleX</var> be <var>canvas</var>'s <span>output bitmap</span>'s width in
-       pixels divided by <var>contentBox</var>'s width in <span data-x="'px'">CSS pixels</span> and
-       <var>scaleY</var> be <var>canvas</var>'s <span>output bitmap</span>'s height in pixels
-       divided by <var>contentBox</var>'s height in <span data-x="'px'">CSS pixels</span>.</p>
-
-       <li>
-        <p>Let <var>scalingMatrix</var> be a new scaling matrix corresponding to <var>scaleX</var>
-        and <var>scaleY</var>.</p>
-
-        <p class="note">These scale factors are used to compute the sizes of <span
-        data-x="concept-element-image-snapshot">element image snapshots</span>, and ensure that
-        an element's default size matches what it would be outside of a <code>canvas</code>.</p>
-       </li>
+       <li><p>Let <var>canvasWidth</var> be <var>canvas</var>'s <span>content box</span>'s width in
+       <span data-x="'px'">CSS pixels</span> and <var>canvasHeight</var> be <var>canvas</var>'s
+       <span>content box</span>'s height in <span data-x="'px'">CSS pixels</span>.</p></li>
 
        <li><p>Let <var>changedElements</var> be an empty <span>list</span>.</p></li>
 
@@ -124709,25 +124710,29 @@ import "https://example.com/foo/../module2.mjs";</code></pre>
          <li><p>If <var>element</var> does not have a <span>CSS box</span>, then continue.</p></li>
 
          <li><p>Let <var>width</var> be <var>element</var>'s <span>border box</span>'s width in
-         <span data-x="'px'">CSS pixels</span> multiplied by <var>scaleX</var> and <var>height</var>
-         be <var>element</var>'s <span>border box</span>'s height in <span data-x="'px'">CSS
-         pixels</span> multiplied by <var>scaleY</var>.</p></li>
+         <span data-x="'px'">CSS pixels</span> and <var>height</var> be <var>element</var>'s
+         <span>border box</span>'s height in <span data-x="'px'">CSS pixels</span>.</p></li>
 
          <li><p>Let <var>translationMatrix</var> be a new translation matrix corresponding to the
          <span>computed value</span> of the <span>'transform-origin'</span> property of
          <var>element</var>.</p></li>
 
-         <li><p>If <var>snapshots</var>[<var>element</var>] <span data-x="map exists">exists</span>
-         and its <span data-x="concept-element-image-snapshot-width">width</span> is
-         <var>width</var>, <span data-x="concept-element-image-snapshot-height">height</span> is
-         <var>height</var>, <span
-         data-x="concept-element-image-snapshot-translation-matrix">translation matrix</span>
-         matches <var>translationMatrix</var>, and <span
-         data-x="concept-element-image-snapshot-scaling-matrix">scaling matrix</span> matches
-         <var>scalingMatrix</var>, then determine, in an <span>implementation-defined</span> manner,
-         if the snapshot needs to be updated to match the current state of <var>element</var>. If
-         the implementation can guarantee that the snapshot is up-to-date, then
-         <span>continue</span>.</p></li>
+         <li>
+          <p>If <var>snapshots</var>[<var>element</var>] <span data-x="map exists">exists</span>
+          and its <span data-x="concept-element-image-snapshot-width">width</span> is
+          <var>width</var>, <span data-x="concept-element-image-snapshot-height">height</span> is
+          <var>height</var>, <span data-x="concept-element-image-snapshot-canvas-width">canvas
+          width</span> is <var>canvasWidth</var>, <span
+          data-x="concept-element-image-snapshot-canvas-height">canvas height</span> is
+          <var>canvasHeight</var>, and <span
+          data-x="concept-element-image-snapshot-translation-matrix">translation matrix</span>
+          equals <var>translationMatrix</var>, then determine, in an
+          <span>implementation-defined</span> manner, if the snapshot needs to be updated to match
+          the current state of <var>element</var>. If the implementation can guarantee that the
+          snapshot is up-to-date, then <span>continue</span>.</p>
+
+          <p class="XXX">Specify that matrix equality means that every element m11 to m44 are equal.</p>
+         </li>
 
          <li>
           <p>Let <var>snapshot</var> be a new <span
@@ -124738,12 +124743,13 @@ import "https://example.com/foo/../module2.mjs";</code></pre>
           element</span> set to a weak reference to <var>canvas</var>, <span
           data-x="concept-element-image-snapshot-width">width</span> set to <var>width</var>, <span
           data-x="concept-element-image-snapshot-height">height</span> set to <var>height</var>,
-          <span data-x="concept-element-image-snapshot-translation-matrix">translation matrix</span>
-          set to <var>translationMatrix</var>, and <span
-          data-x="concept-element-image-snapshot-scaling-matrix">scaling matrix</span> set to
-          <var>scalingMatrix</var>. The snapshot must capture <var>element</var>'s <span>border
-          box</span> in a representation suited for drawing at the destination <var>width</var> and
-          <var>height</var>. Descendants that are themselves <span>eligible for drawing</span> onto
+          <span data-x="concept-element-image-snapshot-canvas-width">canvas width</span> set to
+          <var>canvasWidth</var>, <span data-x="concept-element-image-snapshot-canvas-height">canvas
+          height</span> set to <var>canvasHeight</var>, and <span
+          data-x="concept-element-image-snapshot-translation-matrix">translation matrix</span> set to
+          <var>translationMatrix</var>. The snapshot must capture <var>element</var> in a
+          representation suited for drawing any part of the snapshot (including overflow) at any
+          size. Descendants that are themselves <span>eligible for drawing</span> onto
           <var>canvas</var> and their descendants in turn must not be included in the snapshot.
           (Separate snapshots will have already been created for these elements.) Descendants that
           are in the <span>top layer</span> must not be included in the snapshot, unless
@@ -124752,9 +124758,10 @@ import "https://example.com/foo/../module2.mjs";</code></pre>
           href="https://whatpr.org/html/12554/rendering.html#read-back-allowed-rendering">read-back-allowed
           rendering</a>.</p>
 
-          <p class="note">The width, height, and other properties of <var>snapshot</var> are fully
-          determined at this point and are not affected by future changes, e.g., changes to
-          <var>canvas</var>'s <span>output bitmap</span>'s dimensions.</p>
+          <p class="note">The <span data-x="concept-element-image-snapshot-width">width</span>,
+          <span data-x="concept-element-image-snapshot-height">height</span>, and other properties
+          of <var>snapshot</var> are frozen at this point and are not affected by future changes to
+          <var>element</var> or <var>canvas</var>.</p>
          </li>
 
          <li><p>Set <var>snapshots</var>[<var>element</var>] to <var>snapshot</var>.</p></li>
