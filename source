@@ -5009,9 +5009,8 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li><dfn data-x="tt-getcompliantstring" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string">get trusted type compliant string</dfn></li>
      <li>The <dfn data-x="tt-pre-navigation-check" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#require-trusted-types-for-pre-navigation-check"><code data-x="">require-trusted-types-for</code> pre-navigation check</dfn> algorithm</li>
      <li><dfn data-x="tt-getcompliantinput" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-input">get trusted type compliant input</dfn></li>
-     <li><dfn data-x="tt-trustedhtmlparseroptions-sanitizer-configuration" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#trustedhtmlparseroptions-sanitizer-configuration"><code>sanitizerConfiguration</code></dfn></li>
-     <li><dfn data-x="tt-trustedhtmlparseroptions-runscripts" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#trustedhtmlparseroptions-runscripts"><code>runScripts</code></dfn></li>
-     <li><dfn data-x="tt-createhtml" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicy-createhtml"><code>createHTML</code></dfn></li>
+     <li><dfn data-x="tt-trustedhtmlparseroptions-sanitizer-configuration" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#trustedhtmlparseroptions-sanitizer-configuration"><code>TrustedHTMLParserOptions</code> sanitizer configuration</dfn></li>
+     <li><dfn data-x="tt-trustedhtmlparseroptions-runscripts" data-x-href="https://w3c.github.io/trusted-types/dist/spec/#trustedhtmlparseroptions-runscripts"><code>TrustedHTMLParserOptions</code> runScripts</dfn></li>
     </ul>
    </dd>
 
@@ -67738,8 +67737,11 @@ interface <dfn interface>HTMLScriptElement</dfn> : <span>HTMLElement</span> {
   <p class="note">When inserted using the <code data-x="dom-document-write">document.write()</code>
   method, <code>script</code> elements <a href="#document-written-scripts-intervention">usually</a>
   execute (typically blocking further script execution or HTML parsing). When inserted using the
-  <code data-x="dom-element-innerHTML">innerHTML</code> and <code
-  data-x="dom-element-outerHTML">outerHTML</code> attributes, they do not execute at all.</p>
+  <code data-x="dom-Element-innerHTML">innerHTML</code> and <code
+  data-x="dom-Element-outerHTML">outerHTML</code> attributes, or the <code
+  data-x="dom-Element-insertAdjacentHTML">insertAdjacentHTML()</code> method, they do not execute at
+  all, unless a Trusted Types default policy's <code data-x="">createParserOptions</code> callback
+  enables script execution.</p>
 
   <p>The <code data-x="attr-script-defer">defer</code> attribute may be specified even if the <code
   data-x="attr-script-async">async</code> attribute is specified, to cause legacy web browsers that
@@ -126083,7 +126085,7 @@ dictionary <dfn dictionary>GetHTMLOptions</dfn> {
 interface <dfn interface>DOMParser</dfn> {
   <span data-x="dom-DOMParser-constructor">constructor</span>();
 
-  [NewObject] <code>Document</code> <span data-x="dom-DOMParser-parseFromString">parseFromString</span>((<span data-x="tt-trustedhtml">TrustedHTML</span> or DOMString) string, <span>DOMParserSupportedType</span> type);
+  [NewObject] <span>Document</span> <span data-x="dom-DOMParser-parseFromString">parseFromString</span>((<span data-x="tt-trustedhtml">TrustedHTML</span> or DOMString) string, <span>DOMParserSupportedType</span> type);
 };
 
 enum <dfn enum>DOMParserSupportedType</dfn> {
@@ -126221,47 +126223,57 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <dt><code data-x=""><var>element</var>.<span subdfn data-x="dom-Element-setHTML">setHTML</span>(<var>html</var>, <var>options</var>)</code></dt>
    <dd><p>Parses <var>html</var> using the HTML parser with options <var>options</var>, and replaces
    the children of <var>element</var> with the result. <var>element</var> provides context for the
-   HTML parser. The parsed fragment is <span data-x="sanitize">sanitized</span> based on the
-   <var>options</var>'s "<code data-x="dom-SetHTMLOptions-sanitizer">sanitizer</code>" member, and
+   HTML parser. The parsed fragment is <span data-x="sanitize">sanitized</span> based on
+   <var>options</var>'s <code data-x="dom-SetHTMLOptions-sanitizer">sanitizer</code> member, and
    <span data-x="dom-Sanitizer-removeUnsafe">unsafe content is removed</span>.</p></dd>
 
    <dt><code data-x=""><var>shadowRoot</var>.<span subdfn data-x="dom-ShadowRoot-setHTML">setHTML</span>(<var>html</var>, <var>options</var>)</code></dt>
    <dd><p>Parses <var>html</var> using the HTML parser with options <var>options</var>, and replaces
    the children of <var>shadowRoot</var> with the result. <var>shadowRoot</var>'s <span
    data-x="concept-DocumentFragment-host">host</span> provides context for the HTML parser. The
-   parsed fragment is <span data-x="sanitize">sanitized</span> based on the <var>options</var>'s
-   "<code data-x="dom-SetHTMLOptions-sanitizer">sanitizer</code>" member, and <span
+   parsed fragment is <span data-x="sanitize">sanitized</span> based on <var>options</var>'s <code
+   data-x="dom-SetHTMLOptions-sanitizer">sanitizer</code> member, and <span
    data-x="dom-Sanitizer-removeUnsafe">unsafe content is removed</span>.</p></dd>
 
    <dt><code data-x=""><var>element</var>.<span subdfn data-x="dom-Element-setHTMLUnsafe">setHTMLUnsafe</span>(<var>html</var>, <var>options</var>)</code></dt>
    <dd><p>Parses <var>html</var> using the HTML parser with options <var>options</var>, and replaces
    the children of <var>element</var> with the result. <var>element</var> provides context for the
-   HTML parser. If the <var>options</var> dictionary contains a "<code
-   data-x="dom-SetHTMLUnsafeOptions-sanitizer">sanitizer</code>" member, it is used to
-   <span>sanitize</span> the parsed fragment before it is inserted into <var>element</var>. If the
-   <var>options</var> dictionary's "<code
-   data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code>" member is true, scripts contained
-   in <var>html</var> will be executed immediately after the node tree is updated (unless altered by
-   a Trusted Types default policy).</p></dd>
+   HTML parser. If <var>options</var> is a <code>SetHTMLUnsafeOptions</code> dictionary containing a
+   <code data-x="dom-SetHTMLUnsafeOptions-sanitizer">sanitizer</code> member or a <code
+   data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object with a non-null
+   sanitizer configuration, it is used to <span>sanitize</span> the parsed fragment before it is
+   inserted into <var>element</var>. If <var>options</var>'s <code
+   data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> is true, scripts contained in
+   <var>html</var> will be executed immediately after the node tree is updated (unless altered by a
+   Trusted Types default policy). Throws a <code>TypeError</code> if Trusted Types are enforced and
+   either <var>html</var> is not a <code data-x="tt-trustedhtml">TrustedHTML</code> object (and no
+   default policy converts it) or <var>options</var> is not a <code
+   data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object and no default policy
+   defines <code data-x="">createParserOptions</code>.</p></dd>
 
    <dt><code data-x=""><var>shadowRoot</var>.<span subdfn data-x="dom-ShadowRoot-setHTMLUnsafe">setHTMLUnsafe</span>(<var>html</var>, <var>options</var>)</code></dt>
    <dd><p>Parses <var>html</var> using the HTML parser with options <var>options</var>, and replaces
    the children of <var>shadowRoot</var> with the result. <var>shadowRoot</var>'s <span
-   data-x="concept-DocumentFragment-host">host</span> provides context for the HTML parser. If the
-   <var>options</var> dictionary contains a "<code
-   data-x="dom-SetHTMLUnsafeOptions-sanitizer">sanitizer</code>" member, it is used to
-   <span>sanitize</span> the parsed fragment before it is inserted into <var>shadowRoot</var>. If
-   the <var>options</var> dictionary's "<code
-   data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code>" member is true, scripts contained
-   in <var>html</var> will be executed immediately after the node tree is updated (unless altered by
-   a Trusted Types default policy).</p>
+   data-x="concept-DocumentFragment-host">host</span> provides context for the HTML parser. If
+   <var>options</var> is a <code>SetHTMLUnsafeOptions</code> dictionary containing a <code
+   data-x="dom-SetHTMLUnsafeOptions-sanitizer">sanitizer</code> member or a <code
+   data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object with a non-null
+   sanitizer configuration, it is used to <span>sanitize</span> the parsed fragment before it is
+   inserted into <var>shadowRoot</var>. If <var>options</var>'s <code
+   data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> is true, scripts contained in
+   <var>html</var> will be executed immediately after the node tree is updated (unless altered by a
+   Trusted Types default policy). Throws a <code>TypeError</code> if Trusted Types are enforced and
+   either <var>html</var> is not a <code data-x="tt-trustedhtml">TrustedHTML</code> object (and no
+   default policy converts it) or <var>options</var> is not a <code
+   data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object and no default policy
+   defines <code data-x="">createParserOptions</code>.</p>
    </dd>
 
    <dt><code data-x=""><var>doc</var> = Document.<span subdfn data-x="dom-parseHTML">parseHTML</span>(<var>html</var>, <var>options</var>)</code></dt>
    <dd><p>Parses <var>html</var> using the HTML parser with options <var>options</var>, and returns
    a new <code>Document</code> containing the result. The resulting document is <span
-   data-x="sanitize">sanitized</span> based on the <var>options</var>'s "<code
-   data-x="dom-SetHTMLOptions-sanitizer">sanitizer</code>" member, and <span
+   data-x="sanitize">sanitized</span> based on <var>options</var>'s <code
+   data-x="dom-SetHTMLOptions-sanitizer">sanitizer</code> member, and <span
    data-x="dom-Sanitizer-removeUnsafe">unsafe content is removed</span>.</p></dd>
 
    <dt><code data-x=""><var>doc</var> = Document.<span data-x="dom-parseHTMLUnsafe">parseHTMLUnsafe</span>(<var>html</var>, <var>options</var>)</code></dt>
@@ -126273,9 +126285,15 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <p>Note that <code>script</code> elements are not evaluated during parsing, and the resulting
     document's <span data-x="document's character encoding">encoding</span> will always be
     <span>UTF-8</span>. The document's <span data-x="concept-document-url">URL</span> will be
-    <code>about:blank</code>. If the <var>options</var> dictionary contains a "<code
-    data-x="dom-ParseHTMLUnsafeOptions-sanitizer">sanitizer</code>" member, it is used to
-    <span>sanitize</span> the resulting DOM.</p>
+    <code>about:blank</code>. If <var>options</var> is a <code>ParseHTMLUnsafeOptions</code>
+    dictionary containing a <code data-x="dom-ParseHTMLUnsafeOptions-sanitizer">sanitizer</code>
+    member or a <code data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object
+    with a non-null sanitizer configuration, it is used to <span>sanitize</span> the resulting DOM.
+    Throws a <code>TypeError</code> if Trusted Types are enforced and either <var>html</var> is not
+    a <code data-x="tt-trustedhtml">TrustedHTML</code> object (and no default policy converts it) or
+    <var>options</var> is not a <code
+    data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object and no default
+    policy defines <code data-x="">createParserOptions</code>.</p>
    </dd>
   </dl>
 
@@ -126386,8 +126404,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     data-x="dom-SanitizerPresets-default">default</code>".</p>
    </li>
 
-   <li><p><span data-x="sanitize">Sanitize</span> <var>document</var> with <var>sanitizer</var> and
-   true.</p></li>
+   <li><p><span>Sanitize</span> <var>document</var> with <var>sanitizer</var> and true.</p></li>
 
    <li><p>Return <var>document</var>.</p></li>
   </ol>
@@ -126428,8 +126445,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    options">getting a sanitizer instance from options</span> given <var>compliantOptions</var> and
    false.</p></li>
 
-   <li><p>If <var>sanitizer</var> is not null, then <span data-x="sanitize">sanitize</span>
-   <var>document</var> with <var>sanitizer</var> and false.</p></li>
+   <li><p>If <var>sanitizer</var> is not null, then <span>sanitize</span> <var>document</var> with
+   <var>sanitizer</var> and false.</p></li>
 
    <li><p>Return <var>document</var>.</p></li>
   </ol>
@@ -126533,34 +126550,32 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <li><p>Let <var>context document</var> be <var>node</var>'s <span>node document</span>.</p></li>
 
    <li><p>If <var>context document</var> is an <span data-x="HTML documents">HTML document</span>,
-   return the result of <span>HTML fragment serialization algorithm</span> with <var>node</var>,
-   false, and « ».</p></li>
+   then return the result of <span>HTML fragment serialization algorithm</span> with
+   <var>node</var>, false, and « ».</p></li>
 
    <li><p>Return the <span data-x="xml-serialization">XML serialization</span> of <var>node</var>
    given <var>require well-formed</var>.</p></li>
   </ol>
   </div>
 
-  <p>A <dfn export>fragment parser mode</dfn> is one of the following:</p>
+  <p>A <dfn>fragment parser mode</dfn> is one of the following:</p>
 
   <dl>
-   <dt><dfn export for="fragment parser mode" data-x="fragment-parser-mode-safe">Safe</dfn></dt>
+   <dt><dfn for="fragment parser mode" data-x="fragment-parser-mode-safe">Safe</dfn></dt>
    <dd><p><span data-x="sanitizer-category-unsafe">Unsafe</span> elements and attributes are
-   removed, while the <span data-x="allow declarative shadow roots">allow declarative shadow
-   roots</span> flag is true. The <span>HTML parser</span> is used regardless of the type of
-   document.</p></dd>
+   removed, while the <span>allow declarative shadow roots</span> flag is true. The <span>HTML
+   parser</span> is used regardless of the type of document.</p></dd>
 
-   <dt><dfn export for="fragment parser mode" data-x="fragment-parser-mode-unsafe">Unsafe</dfn></dt>
-   <dd><p><span data-x="sanitizer-category-unsafe">Unsafe</span> elements and attributes are
-   allowed, alongside declarative shadow roots (the <span data-x="allow declarative shadow
-   roots">allow declarative shadow roots</span> flag is true). The <span>HTML parser</span> is used
-   regardless of the type of document.</p></dd>
+   <dt><dfn for="fragment parser mode" data-x="fragment-parser-mode-unsafe">Unsafe</dfn></dt>
+   <dd><p><span data-x="sanitizer-category-unsafe">Unsafe</span> elements and attributes are not
+   removed unless a sanitizer is supplied, and declarative shadow roots are allowed (the <span>allow
+   declarative shadow roots</span> flag is true). The <span>HTML parser</span> is used regardless of
+   the type of document.</p></dd>
 
-   <dt><dfn export for="fragment parser mode" data-x="fragment-parser-mode-legacy">Legacy</dfn></dt>
-   <dd><p><span data-x="sanitizer-category-unsafe">Unsafe</span> elements and attributes are
-   allowed, while the <span data-x="allow declarative shadow roots">allow declarative shadow
-   roots</span> flag is false. Fragments inserted into <span>XML documents</span> are parsed using
-   the <span>XML parser</span>.</p></dd>
+   <dt><dfn for="fragment parser mode" data-x="fragment-parser-mode-legacy">Legacy</dfn></dt>
+   <dd><p><span data-x="sanitizer-category-unsafe">Unsafe</span> elements and attributes are not
+   removed unless a sanitizer is supplied, while the <span>allow declarative shadow roots</span>
+   flag is false. In <span>XML documents</span>, the <span>XML parser</span> is used.</p></dd>
   </dl>
 
   <div algorithm>
@@ -126620,9 +126635,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     document</span>, then return the result of invoking the <span>XML fragment parsing
     algorithm</span> given <var>target</var> and <var>markup</var>.</p>
 
-    <p class="note">Sanitization is not supported for <span>XML documents</span>; a sanitizer
-    configuration supplied by a Trusted Types policy is ignored here, and <code
-    data-x="tt-createhtml">createHTML</code> is required instead.</p>
+    <p class="note">Sanitization is not supported for <span>XML documents</span>.</p>
    </li>
 
    <li><p>Let <var>safe</var> be true if <var>mode</var> is <span
@@ -126634,8 +126647,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
 
    <li><p>Let <var>scriptingMode</var> be <span data-x="scripting-mode-inert">Inert</span>.</p></li>
 
-   <li><p>Let <var>runScripts</var> be <var>options</var>'s <code
-   data-x="tt-trustedhtmlparseroptions-runscripts">runScripts</code> if <var>options</var> is a
+   <li><p>Let <var>runScripts</var> be <var>options</var>'s <span
+   data-x="tt-trustedhtmlparseroptions-runscripts">runScripts</span> if <var>options</var> is a
    <code data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code>; otherwise
    <var>options</var>["<code data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code>"] <span
    data-x="map with default">with default</span> false.</p></li>
@@ -126660,12 +126673,13 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     given <var>target</var>, <var>markup</var>, <var>allowDeclarativeShadowRoots</var>, and
     <var>scriptingMode</var>.</p>
 
-    <p class="note">Scripts in <var>fragment</var> will only execute once inserted into
-    <var>target</var>.</p>
+    <p class="note">Scripts in <var>fragment</var> will only execute once they are inserted into a
+    document, and only if <var>scriptingMode</var> is <span
+    data-x="scripting-mode-fragment">Fragment</span>.</p>
    </li>
 
-   <li><p>If <var>sanitizer</var> is not null, then <span data-x="sanitize">sanitize</span>
-   <var>fragment</var> with <var>sanitizer</var> and <var>safe</var>.</p></li>
+   <li><p>If <var>sanitizer</var> is not null, then <span>sanitize</span> <var>fragment</var> with
+   <var>sanitizer</var> and <var>safe</var>.</p></li>
 
    <li><p>Return <var>fragment</var>.</p></li>
   </ol>
@@ -126691,9 +126705,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <li><p>Let (<var>compliantString</var>, <var>compliantOptions</var>) be the result of invoking
    the <span data-x="tt-getcompliantinput">get trusted type compliant input</span> algorithm with
    <span>this</span>'s <span>relevant global object</span>, the given value, a new
-   <code>SetHTMLUnsafeOptions</code> dictionary, "<code data-x="">Element innerHTML</code>", and
+   <code>SetHTMLUnsafeOptions</code> dictionary, "<code data-x="">Element innerHTML</code>",
    <span>this</span>'s <span>node document</span>'s <span
-   data-x="concept-document-type">type</span>.</p></li>
+   data-x="concept-document-type">type</span>, and false.</p></li>
 
    <li><p>Let <var>target</var> be <span>this</span>'s <span>template contents</span> if
    <span>this</span> is a <code>template</code> element; otherwise <span>this</span>.</p></li>
@@ -126712,9 +126726,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <li><p>Let (<var>compliantString</var>, <var>compliantOptions</var>) be the result of invoking
    the <span data-x="tt-getcompliantinput">get trusted type compliant input</span> algorithm with
    <span>this</span>'s <span>relevant global object</span>, the given value, a new
-   <code>SetHTMLUnsafeOptions</code> dictionary, "<code data-x="">ShadowRoot innerHTML</code>", and
+   <code>SetHTMLUnsafeOptions</code> dictionary, "<code data-x="">ShadowRoot innerHTML</code>",
    <span>this</span>'s <span>node document</span>'s <span
-   data-x="concept-document-type">type</span>.</p></li>
+   data-x="concept-document-type">type</span>, and false.</p></li>
 
    <li><p><span>Set and filter HTML</span> given <span>this</span>, <var>compliantString</var>,
    <var>compliantOptions</var>, and <span
@@ -126776,9 +126790,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <li><p>Let (<var>compliantString</var>, <var>compliantOptions</var>) be the result of invoking
    the <span data-x="tt-getcompliantinput">get trusted type compliant input</span> algorithm with
    <span>this</span>'s <span>relevant global object</span>, the given value, a new
-   <code>SetHTMLUnsafeOptions</code> dictionary, "<code data-x="">Element outerHTML</code>", and
+   <code>SetHTMLUnsafeOptions</code> dictionary, "<code data-x="">Element outerHTML</code>",
    <span>this</span>'s <span>node document</span>'s <span
-   data-x="concept-document-type">type</span>.</p></li>
+   data-x="concept-document-type">type</span>, and false.</p></li>
 
    <li><p>Let <var>parent</var> be <span>this</span>'s <span>parent</span>.</p></li>
 
@@ -126857,8 +126871,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    the <span data-x="tt-getcompliantinput">get trusted type compliant input</span> algorithm with
    <span>this</span>'s <span>relevant global object</span>, <var>string</var>, a new
    <code>SetHTMLUnsafeOptions</code> dictionary, "<code data-x="">Element
-   insertAdjacentHTML</code>", and <span>this</span>'s <span>node document</span>'s <span
-   data-x="concept-document-type">type</span>.</p></li>
+   insertAdjacentHTML</code>", <span>this</span>'s <span>node document</span>'s <span
+   data-x="concept-document-type">type</span>, and false.</p></li>
 
    <li><p>Let <var>context</var> be null.</p></li>
 
@@ -126969,7 +126983,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   content attributes</span>.</p>
 
   <pre><code class="idl">partial interface <span id="Range-partial">Range</span> {
-  [<span>CEReactions</span>, NewObject] <code>DocumentFragment</code> <span data-x="dom-Range-createContextualFragment">createContextualFragment</span>((<span data-x="tt-trustedhtml">TrustedHTML</span> or DOMString) string);
+  [<span>CEReactions</span>, NewObject] <span>DocumentFragment</span> <span data-x="dom-Range-createContextualFragment">createContextualFragment</span>((<span data-x="tt-trustedhtml">TrustedHTML</span> or DOMString) string);
 };</code></pre>
 
   <div w-nodev>
@@ -126993,9 +127007,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     createContextualFragment</code>", <var>node</var>'s <span>node document</span>'s <span
     data-x="concept-document-type">type</span>, and false.</p>
 
-    <p class="note">A Trusted Types default policy can override the options, for example by
-    returning <code data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> as false to
-    prevent scripts from executing when inserting the returned fragment.</p>
+    <p class="note">A Trusted Types default policy can override the options, for example by setting
+    <code data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> to false to prevent scripts
+    from executing when inserting the returned fragment.</p>
    </li>
 
    <li><p>Let <var>element</var> be null.</p></li>
@@ -127021,7 +127035,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     </ul>
 
     <p>then set <var>element</var> to the result of <span data-x="create an element">creating an
-    element</span> given <span>this</span>'s <span>node document</span>, "<code
+    element</span> given <var>node</var>'s <span>node document</span>, "<code
     data-x="">body</code>", and the <span>HTML namespace</span>.</p>
    </li>
 
@@ -128440,8 +128454,8 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
 
     <ol>
      <li>
-      <p>If <var>options</var>'s <code
-      data-x="tt-trustedhtmlparseroptions-sanitizer-configuration">sanitizerConfiguration</code> is
+      <p>If <var>options</var>'s <span
+      data-x="tt-trustedhtmlparseroptions-sanitizer-configuration">sanitizer configuration</span> is
       null:</p>
 
       <ol>
@@ -128451,8 +128465,9 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
       </ol>
      </li>
 
-     <li><p>Set <var>sanitizerInput</var> to <var>options</var>'s <code
-     data-x="tt-trustedhtmlparseroptions-sanitizer-configuration">sanitizerConfiguration</code>.</p></li>
+     <li><p>Set <var>sanitizerInput</var> to <var>options</var>'s <span
+     data-x="tt-trustedhtmlparseroptions-sanitizer-configuration">sanitizer
+     configuration</span>.</p></li>
     </ol>
    </li>
 
@@ -128482,6 +128497,9 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
     </ol>
    </li>
 
+   <li><p>If <var>sanitizerInput</var> is a <code>Sanitizer</code>, then set
+   <var>sanitizerInput</var> to <var>sanitizerInput</var>'s <span>configuration</span>.</p></li>
+
    <li>
     <p>If <var>sanitizerInput</var> is a dictionary:</p>
 
@@ -128507,8 +128525,8 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
   <var>sanitizer</var> and a boolean <var>safe</var>:</p>
 
   <ol>
-   <li><p>Let <var>configuration</var> be a <span data-x="map clone">clone</span> of
-   <var>sanitizer</var>'s <span>configuration</span>.</p></li>
+   <li><p>Let <var>configuration</var> be <var>sanitizer</var>'s
+   <span>configuration</span>.</p></li>
 
    <li><p><span>Assert</span>: <var>configuration</var> is <span
    data-x="dom-SanitizerConfig-valid">valid</span>.</p></li>
@@ -128591,13 +128609,16 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
        <var>child</var>'s <span data-x="concept-element-local-name">local name</span> and <span
        data-x="concept-element-namespace">namespace</span>.</p></li>
 
-       <li><p>If <var>node</var> is not a <code>Document</code>, <var>configuration</var>["<code
-       data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaceWithChildrenElements</code>"]
-       <span data-x="map exists">exists</span>, and <var>configuration</var>["<code
-       data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaceWithChildrenElements</code>"]
-       <span data-x="list contains">contains</span> <var>elementName</var>:</p>
+       <li>
+        <p>If <var>configuration</var>["<code
+        data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaceWithChildrenElements</code>"]
+        <span data-x="map exists">exists</span> and <var>configuration</var>["<code
+        data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaceWithChildrenElements</code>"]
+        <span data-x="list contains">contains</span> <var>elementName</var>:</p>
 
         <ol>
+         <li><p><span>Assert</span>: <var>node</var> is not a <code>Document</code>.</p></li>
+
          <li><p>Run the <span>inner sanitize steps</span> given <var>child</var> and
          <var>configuration</var>.</p></li>
 
@@ -142298,11 +142319,17 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    algorithm</span>.</dd>
 
    <dt><dfn data-x="scripting-mode-fragment">Fragment</dfn></dt>
-   <dd>Scripts are executed as soon as they are inserted into the document as part of a the
+   <dd>Scripts are executed as soon as they are inserted into the document as part of the
    <span>HTML fragment parsing algorithm</span>, ignoring <code
    data-x="attr-script-async">async</code> and <code data-x="attr-script-defer">defer</code>
    attributes. This mode is used by <code
-   data-x="dom-Range-createContextualFragment">createContextualFragment()</code>.</dd>
+   data-x="dom-Range-createContextualFragment">createContextualFragment()</code>, by <code
+   data-x="dom-Element-setHTMLUnsafe">setHTMLUnsafe()</code> when <code
+   data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> is true, and by <code
+   data-x="dom-Element-innerHTML">innerHTML</code>, <code
+   data-x="dom-Element-outerHTML">outerHTML</code>, and <code
+   data-x="dom-Element-insertAdjacentHTML">insertAdjacentHTML()</code> when a Trusted Types default
+   policy enables script execution.</dd>
   </dl>
 
   <p>The <dfn>frameset-ok flag</dfn> is set to "ok" when the parser is created. It is set to "not
