@@ -8256,6 +8256,30 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
   data-x="attr-loading-eager-state">Eager</span> state.</p>
   </div>
 
+  <div algorithm>
+  <p>The <dfn>effective lazy loading state</dfn>, given an element <var>element</var> that has a
+  <span>lazy loading attribute</span>, is determined as follows:</p>
+
+  <ol>
+   <li>
+    <p>If <var>element</var> is an <code>img</code> element that does not have a <code
+    data-x="attr-img-loading">loading</code> content attribute:</p>
+
+    <ol>
+     <li><p>Let <var>posterElement</var> be the nearest <code>poster</code> element ancestor of
+     <var>element</var>, if any.</p></li>
+
+     <li><p>If <var>posterElement</var> is not null, <var>posterElement</var>'s <span>parent</span>
+     is a <code>video</code> element <var>video</var>, and <var>element</var> is <var>video</var>'s
+     <span>poster image element</span>, then return <var>video</var>'s <span>lazy loading
+     attribute</span>'s current state.</p></li>
+    </ol>
+   </li>
+
+   <li><p>Return <var>element</var>'s <span>lazy loading attribute</span>'s current state.</p></li>
+  </ol>
+  </div>
+
   <hr>
 
   <div algorithm>
@@ -8273,7 +8297,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
     that a server can track how many images are requested and when.</p>
    </li>
 
-   <li><p>If <var>element</var>'s <span>lazy loading attribute</span> is in the <span
+   <li><p>If <var>element</var>'s <span>effective lazy loading state</span> is the <span
    data-x="attr-loading-lazy-state">Lazy</span> state, then return true.</p></li>
 
    <li><p>Return false.</p></li>
@@ -8341,8 +8365,19 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
          <code>video</code> element, then set <var>posterResumptionSteps</var> to the <code>video</code>
          element's <span>poster lazy load resumption steps</span>.</p></li>
 
-         <li><p>If <var>resumptionSteps</var> is null and <var>posterResumptionSteps</var> is null,
-         then continue.</p></li>
+         <li><p>Let <var>posterImage</var> be null.</p></li>
+
+         <li><p>If <var>entry</var>.<code
+         data-x="dom-IntersectionObserverEntry-isIntersecting">isIntersecting</code> is true and
+         <var>entry</var>.<code data-x="dom-IntersectionObserverEntry-target">target</code> is a
+         <code>video</code> element, then set <var>posterImage</var> to the <code>video</code>
+         element's <span data-x="poster image element">poster image element</span>.</p></li>
+
+         <li><p>Let <var>posterImageResumptionSteps</var> be <var>posterImage</var>'s <span>lazy load
+         resumption steps</span> if <var>posterImage</var> is not null, and null otherwise.</p></li>
+
+         <li><p>If <var>resumptionSteps</var>, <var>posterResumptionSteps</var>, and
+         <var>posterImageResumptionSteps</var> are all null, then continue.</p></li>
 
          <li><p><span>Stop intersection-observing a lazy loading element</span> for
          <var>entry</var>.<code data-x="dom-IntersectionObserverEntry-target">target</code>.</p></li>
@@ -8365,6 +8400,16 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
           to null.</p></li>
 
           <li><p>Invoke <var>posterResumptionSteps</var>.</p></li>
+         </ol>
+         </li>
+
+         <li><p>If <var>posterImageResumptionSteps</var> is not null:</p>
+
+         <ol>
+          <li><p>Set <var>posterImage</var>'s <span>lazy load resumption steps</span> to
+          null.</p></li>
+
+          <li><p>Invoke <var>posterImageResumptionSteps</var>.</p></li>
          </ol>
          </li>
         </ol>
@@ -30752,6 +30797,7 @@ interface <dfn interface>HTMLModElement</dfn> : <span>HTMLElement</span> {
    <dd><span>Palpable content</span>.</dd>
    <dt><span data-x="concept-element-contexts">Contexts in which this element can be used</span>:</dt>
    <dd>Where <span>embedded content</span> is expected.</dd>
+   <dd>As a child of a <code>poster</code> element.</dd>
    <dt><span data-x="concept-element-content-model">Content model</span>:</dt>
    <dd>Zero or more <code>source</code> elements, followed by one <code>img</code> element,
    optionally intermixed with <span>script-supporting elements</span>.</dd>
@@ -31121,6 +31167,7 @@ interface <dfn interface>HTMLSourceElement</dfn> : <span>HTMLElement</span> {
    <dt><span data-x="concept-element-contexts">Contexts in which this element can be used</span>:</dt>
    <dd>Where <span>embedded content</span> is expected.</dd>
    <dd>As a child of a <code>picture</code> element, after all <code>source</code> elements.</dd>
+   <dd>As a child of a <code>poster</code> element.</dd>
    <dt><span data-x="concept-element-content-model">Content model</span>:</dt>
    <dd><span data-x="concept-content-nothing">Nothing</span>.</dd>
    <dt><span data-x="concept-element-attributes">Content attributes</span>:</dt>
@@ -31240,7 +31287,7 @@ interface <dfn interface>HTMLImageElement</dfn> : <span>HTMLElement</span> {
   data-x="image candidate string">image candidate strings</span> using a <span>width
   descriptor</span>, the <code data-x="attr-img-sizes">sizes</code> attribute must also be present.
   If the <code data-x="attr-img-srcset">srcset</code> attribute is <em>not</em> specified, and the
-  <code data-x="attr-img-loading">loading</code> attribute is in the <span
+  <code>img</code> element's <span>effective lazy loading state</span> is the <span
   data-x="attr-loading-lazy-state">Lazy</span> state, the <code
   data-x="attr-img-sizes">sizes</code> attribute may be specified with the value "<code
   data-x="">auto</code>" (<span>ASCII case-insensitive</span>). The <dfn element-attr for="img"
@@ -31252,8 +31299,8 @@ interface <dfn interface>HTMLImageElement</dfn> : <span>HTMLElement</span> {
   <p>An <code>img</code> element <dfn>allows auto-sizes</dfn> if:</p>
 
   <ul>
-   <li>its <code data-x="attr-img-loading">loading</code> attribute is in the <span
-  data-x="attr-loading-lazy-state">Lazy</span> state, and</li>
+   <li>its <span>effective lazy loading state</span> is the <span
+   data-x="attr-loading-lazy-state">Lazy</span> state, and</li>
 
    <li>its <code data-x="attr-img-sizes">sizes</code> attribute's value is "<code
    data-x="">auto</code>" (<span>ASCII case-insensitive</span>), or starts with "<code
@@ -31289,10 +31336,15 @@ interface <dfn interface>HTMLImageElement</dfn> : <span>HTMLElement</span> {
 
   <div algorithm>
   <p>When the <code data-x="attr-img-loading">loading</code> attribute's state is changed to the
-  <span data-x="attr-loading-eager-state">Eager</span> state, the user agent must run these
+  <span data-x="attr-loading-eager-state">Eager</span> state, or when the <code
+  data-x="attr-img-loading">loading</code> attribute of an <code>img</code> element whose
+  <span>poster video</span> is not null is set, changed, or removed, the user agent must run these
   steps:</p>
 
   <ol>
+   <li><p>If the <span>will lazy load element steps</span> given the <code>img</code> element
+   return true, then return.</p></li>
+
    <li><p>Let <var>resumptionSteps</var> be the <code>img</code> element's <span>lazy load
    resumption steps</span>.</p></li>
 
@@ -32695,11 +32747,14 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
 
   <p class="note">If the <code>img</code> element that initiated the image loading (with the
   <span>update the image data</span> or <span data-x="img-environment-changes">react to environment
-  changes</span> algorithms) <span>allows auto-sizes</span> and is <span>being rendered</span>,
-  then <code data-x="valdef-sizes-auto">auto</code> is the <span>concrete object size</span> width.
-  If it <span>allows auto-sizes</span> and is not <span>being rendered</span>, but its <span>last
-  auto-sizes width</span> is not null, then <code data-x="valdef-sizes-auto">auto</code> is that
-  width. Otherwise, the <code data-x="valdef-sizes-auto">auto</code> value is ignored and the next
+  changes</span> algorithms) <span>allows auto-sizes</span>, then <code
+  data-x="valdef-sizes-auto">auto</code> is the <span>concrete object size</span> width of its
+  <span>poster video</span>, or of the <code>img</code> element itself if that is null, if that
+  element is <span>being rendered</span>.
+  If the <code>img</code> <span>allows auto-sizes</span> and the element used for sizing is not
+  <span>being rendered</span>, but the <code>img</code>'s <span>last auto-sizes width</span> is not
+  null, then <code data-x="valdef-sizes-auto">auto</code> is that width.
+  Otherwise, the <code data-x="valdef-sizes-auto">auto</code> value is ignored and the next
   <span>source size</span> is used instead, if any.</p>
 
   <p>The <code data-x="valdef-sizes-auto">auto</code> keyword may be specified in the <code
@@ -32960,14 +33015,26 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
    data-x="attr-source-type">type</code>, <code data-x="attr-dim-width">width</code> or <code
    data-x="attr-dim-height">height</code> attributes set, changed, or removed.</p></li>
 
+   <li><p>The element's <span>poster video</span> changes.</p></li>
+
    <li><p>The element's <span data-x="concept-node-adopt-ext">adopting steps</span> are run.</p></li>
 
-   <li><p>If the element <span>allows auto-sizes</span>: the element starts <span>being
+   <li><p>The element starts or stops <span data-x="allows auto-sizes">allowing auto-sizes</span>.</p></li>
+
+   <li><p>If the element <span>allows auto-sizes</span>: the element starts or stops <span>being
+   rendered</span>, or its <span>concrete object size</span> width changes; or, if the element's
+   <span>poster video</span> is not null, that <code>video</code> element starts or stops <span>being
    rendered</span>, or its <span>concrete object size</span> width changes. This must set the
    <i>maybe omit events</i> flag for the <span>update the image data</span> algorithm.</p></li>
 
    <!-- NOT when the base URL changes (except for when adopted into a new doc) -->
   </ul>
+
+  <p class="note">An <code>img</code> element starts or stops <span data-x="allows auto-sizes">allowing auto-sizes</span> when
+  its <span>effective lazy loading state</span> changes, including when its <span>poster
+  video</span>'s <code data-x="attr-media-loading">loading</code> attribute changes and the
+  <code>img</code> element has no <code data-x="attr-img-loading">loading</code> content
+  attribute.</p>
   </div>
 
 
@@ -33320,10 +33387,8 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
    data-x="concept-request-priority">priority</span> to the current state of <var>element</var>'s
    <code data-x="attr-img-fetchpriority">fetchpriority</code> attribute.</p></li>
 
-   <li><p>Let <var>delay load event</var> be true if the <code>img</code>'s <span>lazy loading
-   attribute</span> is in the <span data-x="attr-loading-eager-state">Eager</span> state, or if
-   <span data-x="concept-n-noscript">scripting is disabled</span> for the <code>img</code>, and
-   false otherwise.</p></li>
+   <li><p>Let <var>delay load event</var> be true if the <span>will lazy load element steps</span>
+   given the <code>img</code> return false, and false otherwise.</p></li>
 
    <li>
     <p>If the <span>will lazy load element steps</span> given the <code>img</code> return true:</p>
@@ -33332,7 +33397,9 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
      <li><p>Set the <code>img</code>'s <span>lazy load resumption steps</span> to the rest of this
      algorithm starting with the step labeled <i>fetch the image</i>.</p></li>
 
-     <li><p><span>Start intersection-observing a lazy loading element</span> for
+     <li><p>If <var>element</var>'s <span>poster video</span> is not null, then <span>start
+     intersection-observing a lazy loading element</span> for <var>element</var>'s <span>poster
+     video</span>. Otherwise, <span>start intersection-observing a lazy loading element</span> for
      <var>element</var>.</p></li>
 
      <li><p>Return.</p></li>
@@ -34107,9 +34174,14 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
       not null, and <var>img</var> <span>allows auto-sizes</span>:</p>
 
       <ol>
-       <li><p>If <var>img</var> is <span>being rendered</span>, then set <var>size</var> to the
-       <span>concrete object size</span> width of <var>img</var>, in <span data-x="'px'">CSS
-       pixels</span>, and set <var>img</var>'s <span>last auto-sizes width</span> to
+       <li><p>Let <var>sizingElement</var> be <var>img</var>.</p></li>
+
+       <li><p>If <var>img</var>'s <span>poster video</span> is not null, then set
+       <var>sizingElement</var> to <var>img</var>'s <span>poster video</span>.</p></li>
+
+       <li><p>If <var>sizingElement</var> is <span>being rendered</span>, then set <var>size</var>
+       to the <span>concrete object size</span> width of <var>sizingElement</var>, in <span
+       data-x="'px'">CSS pixels</span>, and set <var>img</var>'s <span>last auto-sizes width</span> to
        <var>size</var>.</p></li>
 
        <li><p>Otherwise, if <var>img</var>'s <span>last auto-sizes width</span> is not null, then
@@ -34818,6 +34890,30 @@ all registered voters. In it, she admitted that the country was divided.&lt;/p>
       alt="A high forehead, cheerful disposition, and dark hair round out the President's face.">
  &lt;figcaption> The President of Ruritania. Photo &copy; 2014 PolitiPhoto. &lt;/figcaption>
 &lt;/figure></strong></code></pre>
+
+  </div>
+
+
+
+  <h6>An image used as a video poster frame</h6>
+
+  <p>When an <code>img</code> element is a <code>video</code> element's <span>poster image
+  element</span>, its <code data-x="attr-img-alt">alt</code> attribute must be an appropriate
+  replacement for the <span>poster frame</span>: it should describe that poster image specifically,
+  rather than the video as a whole.</p>
+
+  <div class="example">
+
+   <pre><code class="html">&lt;video controls&gt;
+  &lt;source src="surfer.mp4" type="video/mp4"&gt;
+  &lt;poster&gt;
+   &lt;img src="poster.jpg" alt="A surfer charging down the face of a breaking wave"&gt;
+  &lt;/poster&gt;
+&lt;/video&gt;</code></pre>
+
+   <p>Here, the alternative text describes the still that is shown before playback. Text such as "A
+   documentary about professional surfing" would be inappropriate, because it describes the video
+   as a whole rather than replacing the poster image.</p>
 
   </div>
 
@@ -37087,16 +37183,17 @@ interface <dfn interface>HTMLObjectElement</dfn> : <span>HTMLElement</span> {
    <dt><span data-x="concept-element-content-model">Content model</span>:</dt>
    <dd>If the element has a <code data-x="attr-media-src">src</code> attribute:
  zero or more <code>track</code> elements, then
- <span>transparent</span>, but with no <span>media element</span> descendants.</dd>
+ <span>transparent</span>, but with no <span>media element</span> descendants; optionally
+ intermixed with one <code>poster</code> element.</dd>
    <dd>If the element does not have a <code data-x="attr-media-src">src</code> attribute: zero or more <code>source</code> elements, then
  zero or more <code>track</code> elements, then
- <span>transparent</span>, but with no <span>media element</span> descendants.</dd>
+ <span>transparent</span>, but with no <span>media element</span> descendants; optionally
+ intermixed with one <code>poster</code> element.</dd>
    <dt><span data-x="concept-element-attributes">Content attributes</span>:</dt>
    <dd><span>Global attributes</span></dd>
    <dd><code data-x="attr-media-src">src</code></dd>
    <dd><code data-x="attr-media-crossorigin">crossorigin</code></dd>
    <dd><code data-x="attr-video-poster">poster</code></dd>
-   <dd><code data-x="attr-video-posterfromimg">posterfromimg</code></dd>
    <dd><code data-x="attr-media-preload">preload</code></dd>
    <dd><code data-x="attr-media-autoplay">autoplay</code></dd>
    <dd><code data-x="attr-video-playsinline">playsinline</code></dd>
@@ -37124,7 +37221,6 @@ interface <dfn interface>HTMLVideoElement</dfn> : <span>HTMLMediaElement</span> 
   readonly attribute unsigned long <span data-x="dom-video-videoHeight">videoHeight</span>;
   [<span>CEReactions</span>, <span data-x="xattr-ReflectURL">ReflectURL</span>] attribute USVString <dfn attribute for="HTMLVideoElement" data-x="dom-video-poster">poster</dfn>;
   readonly attribute USVString <dfn attribute for="HTMLVideoElement" data-x="dom-video-currentPoster">currentPoster</dfn>;
-  [<span>CEReactions</span>, <span data-x="xattr-Reflect">Reflect</span>] attribute boolean <dfn attribute for="HTMLVideoElement" data-x="dom-video-posterFromImg">posterFromImg</dfn>;
   [<span>CEReactions</span>, <span data-x="xattr-Reflect">Reflect</span>] attribute boolean <dfn attribute for="HTMLVideoElement" data-x="dom-video-playsInline">playsInline</dfn>;
 
 };</code></pre>
@@ -37164,70 +37260,83 @@ interface <dfn interface>HTMLVideoElement</dfn> : <span>HTMLMediaElement</span> 
   attributes">the attributes common to all media elements</span>.</p>
 
   <p>The <dfn element-attr for="video"><code data-x="attr-video-poster">poster</code></dfn>
-  attribute gives the <span>URL</span> of an image file that the user agent can show while no video
-  data is available.  The attribute, if present, must contain a <span>valid non-empty URL
-  potentially surrounded by spaces</span>.</p>
+  attribute gives the <span>URL</span> of an image file that the user agent can show as the
+  element's poster frame. The attribute, if present, must contain a <span>valid
+  non-empty URL potentially surrounded by spaces</span>.</p>
 
-  <p>The <dfn element-attr for="video"><code
-  data-x="attr-video-posterfromimg">posterfromimg</code></dfn> attribute is a <span>boolean
-  attribute</span>. When present, the user agent must, before considering the <code
-  data-x="attr-video-poster">poster</code> attribute, run <span data-x="update the image
-  data">update the image data</span> for the first <code>img</code> element in <span>tree
-  order</span> that is a <span data-x="concept-tree-descendant">descendant</span> of the <code>video</code> element and is not a <span data-x="concept-tree-descendant">descendant</span> of a
-  <code>source</code> or <code>track</code> element. If that <code>img</code> element's
-  <code data-x="dom-img-currentSrc">currentSrc</code> is not the empty string, the <span>poster
-  frame</span> is the image data loaded for that element; otherwise the <code
-  data-x="attr-video-poster">poster</code> attribute is used. The <code>video</code> element paints
-  the <span>poster frame</span>, and the <code>img</code> element must not be rendered. The <code>img</code> element's <code
-  data-x="attr-dim-width">width</code> and <code data-x="attr-dim-height">height</code> attributes
-  must be ignored. When the <code>img</code> element's <code
-  data-x="attr-img-sizes">sizes</code> attribute contains the <code
-  data-x="valdef-sizes-auto">auto</code> keyword, the <code>video</code> element's layout box must
-  be used as the <span>concrete object size</span> for that evaluation.</p>
+  <p>A <code>video</code> element's <dfn>poster frame</dfn>, if any, is the image given by the <code
+  data-x="attr-video-poster">poster</code> attribute when the element does not have a <code>poster</code>
+  element child, or else the image from its <span>poster image element</span> when it does.</p>
 
-  <p>While the <code>video</code> element is representing its <span>poster frame</span> and the
-  <code data-x="attr-video-posterfromimg">posterfromimg</code> attribute is present, that <code>img</code>
-  element participates in the accessibility tree as an <code>img</code> whose <span
-  data-x="concept-accessible-name">accessible name</span> is given by its <code
-  data-x="attr-img-alt">alt</code> attribute (an empty <code data-x="attr-img-alt">alt</code>
-  marks the poster as decorative). While the <code>video</code> element is not representing its
-  <span>poster frame</span>, that <code>img</code> must not be included in the accessibility
-  tree.</p>
+  <p class="note">Authors can specify the <code data-x="attr-video-poster">poster</code> attribute
+  in addition to a <code>poster</code> element child, to provide a poster image for user agents
+  that do not support the <code>poster</code> element.</p>
+
+  <p>When a <code>video</code> element has a <code>poster</code> element child, the <code>video</code>
+  element paints the <span>poster frame</span>; its <span>poster image element</span> must not be
+  rendered, and that element's <code data-x="attr-dim-width">width</code> and <code
+  data-x="attr-dim-height">height</code> attributes must be ignored. That element's <span>poster
+  video</span> is used for lazy-load intersection observation and for <code
+  data-x="valdef-sizes-auto">auto</code> <span>concrete object size</span> sizing.</p>
+
+  <dl class="domintro">
+   <dt><code data-x=""><var>video</var>.<span subdfn data-x="dom-video-currentPoster">currentPoster</span></code></dt>
+   <dd><p>Returns the poster image's <span>absolute URL</span>.</p></dd>
+  </dl>
+
+  <p class="note">The <code data-x="dom-video-currentPoster">currentPoster</code> attribute can
+  return a non-empty URL even when the element has no <span>poster frame</span>, for example when
+  the poster image is not yet <span data-x="img-available">available</span>.</p>
 
   <div w-nodev>
 
   <div algorithm>
-  <p>If the specified resource is to be used, then, when the element is created, when the <code
-  data-x="attr-video-poster">poster</code> attribute is set, changed, or removed, when the <code
-  data-x="attr-video-posterfromimg">posterfromimg</code> attribute is set, changed, or removed,
-  when a descendant <code>img</code> element is inserted or removed, or when such an <code>img</code>
-  element's <code data-x="dom-img-currentSrc">currentSrc</code> changes, the user agent
-  must run the following steps to determine the element's <dfn>poster frame</dfn> (regardless of
-  the value of the element's <span>show poster flag</span>):</p> <!-- thus it is unaffected by
-  changes to the base URL. -->
+  <p>If a <code>video</code> element has a <code>poster</code> element child, then its <span>poster
+  frame</span> is the <span data-x="img-req-data">image data</span> of its <span>poster image
+  element</span>'s <span>current request</span>, if that element is not null and its <span>current
+  request</span> is <span data-x="img-available">available</span>, and there is no <span>poster
+  frame</span> otherwise.</p>
+  </div>
+
+  <div algorithm>
+  <p>If the specified resource is to be used, then, when the element is created or when the <code
+  data-x="attr-video-poster">poster</code> attribute is set, changed, or removed, the user agent must
+  <span>update the poster frame</span> for the element.</p>
+
+  <p>To <dfn>update the poster frame</dfn> for a <code>video</code> element <var>video</var>
+  (regardless of the value of <var>video</var>'s <span>show poster flag</span>):</p> <!-- thus it
+  is unaffected by changes to the base URL. -->
 
   <ol>
-   <li><p>If there is an existing instance of this algorithm running for this <code>video</code>
-   element, abort that instance of this algorithm without changing the <span>poster
-   frame</span>.</p></li>
+   <li><p>If there is an existing instance of this algorithm running for <var>video</var>, abort
+   that instance of this algorithm without changing the <span>poster frame</span>.</p></li>
 
-   <li><p>Let <var>posterImg</var> be null. If the <code
-   data-x="attr-video-posterfromimg">posterfromimg</code> attribute is present, then set
-   <var>posterImg</var> to the first <code>img</code> element in <span>tree order</span> that is a
-   <span data-x="concept-tree-descendant">descendant</span> of this <code>video</code> element and is not a <span data-x="concept-tree-descendant">descendant</span> of a <code>source</code> or
-   <code>track</code> element.</p></li>
+   <li>
+    <p>If <var>video</var>'s <span>blocked-on-parser</span> flag is true, then return.</p>
 
-   <li><p>If <var>posterImg</var> is not null and its <code
-   data-x="dom-img-currentSrc">currentSrc</code> is not the empty string, then set the
-   <code>video</code> element's <span>poster lazy load resumption steps</span> to null, set the
-   <span>poster frame</span> to the image data loaded by <var>posterImg</var> (updating as it
-   loads, reselects, or fails), and return.</p></li>
+    <p class="note">This defers fetching the image given by the <code
+    data-x="attr-video-poster">poster</code> attribute until the <code>video</code> element's end
+    tag has been parsed, since a <code>poster</code> element child parsed in the meantime takes
+    precedence. It also keeps the <span>speculative HTML parser</span> from <span data-x="speculative
+    fetch">speculatively fetching</span> that image, since that parser only fetches what the normal
+    parser would.</p>
+   </li>
+
+   <li>
+    <p>If <var>video</var> has a <code>poster</code> element child:</p>
+
+    <ol>
+     <li><p>Set <var>video</var>'s <span>poster lazy load resumption steps</span> to null.</p></li>
+
+     <li><p>Return.</p></li>
+    </ol>
+   </li>
 
    <li><p>If the <code data-x="attr-video-poster">poster</code> attribute's value is the empty string
    or if the attribute is absent:</p>
 
    <ol>
-    <li><p>Set the <code>video</code> element's <span>poster lazy load resumption steps</span> to
+    <li><p>Set <var>video</var>'s <span>poster lazy load resumption steps</span> to
     null.</p></li>
 
     <li><p>There is no <span>poster frame</span>; return.</p></li>
@@ -37235,29 +37344,29 @@ interface <dfn interface>HTMLVideoElement</dfn> : <span>HTMLMediaElement</span> 
    </li>
 
    <li><p>Let <var>url</var> be the result of <span>encoding-parsing a URL</span> given the <code
-   data-x="attr-video-poster">poster</code> attribute's value, relative to the element's <span>node
-   document</span>.</p></li>
+   data-x="attr-video-poster">poster</code> attribute's value, relative to <var>video</var>'s
+   <span>node document</span>.</p></li>
 
    <li><p>If <var>url</var> is failure, then return. <span class="note">There is no <span>poster
    frame</span>.</span></p></li>
 
    <li><p>Let <var>request</var> be a new <span data-x="concept-request">request</span> whose <span
    data-x="concept-request-url">URL</span> is <var>url</var>, <span
-   data-x="concept-request-client">client</span> is the element's <span>node document</span>'s
+   data-x="concept-request-client">client</span> is <var>video</var>'s <span>node document</span>'s
    <span>relevant settings object</span>, <span
    data-x="concept-request-destination">destination</span> is "<code data-x="">image</code>", <span
    data-x="concept-request-initiator-type">initiator type</span> is "<code data-x="">video</code>",
    <span data-x="concept-request-credentials-mode">credentials mode</span> is "<code
    data-x="">include</code>", and whose <span>use-URL-credentials flag</span> is set.</p></li>
 
-   <li><p>If the <span>will lazy load element steps</span> given the <code>video</code> return
+   <li><p>If the <span>will lazy load element steps</span> given <var>video</var> return
    true:</p>
 
    <ol>
     <li><p>Let <var>posterResumptionSteps</var> be the rest of this algorithm starting with the step
     labeled <i>Fetch</i>.</p></li>
 
-    <li><p>Set the <code>video</code> element's <span>poster lazy load resumption steps</span> to
+    <li><p>Set <var>video</var>'s <span>poster lazy load resumption steps</span> to
     <var>posterResumptionSteps</var>.</p></li>
 
     <li><p>Return.</p></li>
@@ -37265,7 +37374,7 @@ interface <dfn interface>HTMLVideoElement</dfn> : <span>HTMLMediaElement</span> 
    </li>
 
    <li><p><!--FETCH--><span data-x="concept-fetch">Fetch</span> <var>request</var>. This must
-   <span>delay the load event</span> of the element's <span>node document</span>.</p></li>
+   <span>delay the load event</span> of <var>video</var>'s <span>node document</span>.</p></li>
 
    <!-- could define how to sniff for an image here -->
 
@@ -37279,65 +37388,42 @@ interface <dfn interface>HTMLVideoElement</dfn> : <span>HTMLMediaElement</span> 
 
   <ol>
    <li>
-    <p>If <span>this</span> has the <code data-x="attr-video-posterfromimg">posterfromimg</code>
-    attribute set:</p>
+    <p>If <span>this</span> has a <code>poster</code> element child:</p>
 
     <ol>
-     <li><p>Let <var>posterImg</var> be the first <code>img</code> element in <span>tree order</span>
-     that is a <span data-x="concept-tree-descendant">descendant</span> of <span>this</span> and is not a <span data-x="concept-tree-descendant">descendant</span> of a <code>source</code> or
-     <code>track</code> element.</p></li>
+     <li><p>Let <var>posterImg</var> be <span>this</span>'s <span>poster image element</span>.</p></li>
 
-     <li><p>If <var>posterImg</var> is not null, return <var>posterImg</var>'s <code
+     <li><p>If <var>posterImg</var> is null, then return the empty string.</p></li>
+
+     <li><p>Return <var>posterImg</var>'s <code
      data-x="dom-img-currentSrc">currentSrc</code>.</p></li>
     </ol>
    </li>
 
-   <li><p>If <span>this</span> has a non-empty <code
-   data-x="attr-video-poster">poster</code> content attribute, return the result of <span>encoding-parsing
-   a URL</span> given that value relative to <span>this</span>'s <span>node document</span>, or the
-   empty string if parsing fails.</p></li>
+   <li><p>If <span>this</span> does not have a <code data-x="attr-video-poster">poster</code>
+   content attribute, or its value is the empty string, then return the empty string.</p></li>
 
-   <li><p>Return the empty string.</p></li>
+   <li><p>Let <var>url</var> be the result of <span>encoding-parsing-and-serializing a URL</span>
+   given the <code data-x="attr-video-poster">poster</code> content attribute's value, relative to
+   <span>this</span>'s <span>node document</span>.</p></li>
+
+   <li><p>If <var>url</var> is failure, then return the empty string.</p></li>
+
+   <li><p>Return <var>url</var>.</p></li>
   </ol>
   </div>
 
   </div>
 
-  <p class="note">The image given by the <code data-x="attr-video-poster">poster</code> attribute
-  or by an <code>img</code> element when the <code
-  data-x="attr-video-posterfromimg">posterfromimg</code> attribute is present, the <i
-  data-x="poster frame">poster frame</i>, is
-  intended to be a representative frame of the video (typically one of the first non-blank frames)
-  that serves as a representative sample of the video that the user can expect.</p>
+  <p class="note">The <i data-x="poster frame">poster frame</i> is intended to be a representative
+  frame of the video (typically one of the first non-blank frames) that gives the user an idea of
+  what the video is like.</p>
 
-
-  <p>The <dfn element-attr for="video"><code
-  data-x="attr-video-playsinline">playsinline</code></dfn> attribute is a <span>boolean
-  attribute</span>. If present, it serves as a hint to the user agent that the video ought to be
-  displayed "inline" in the document by default, constrained to the element's playback area, instead
-  of being displayed fullscreen or in an independent resizable window.</p>
-
-  <p class="note">The absence of the <code data-x="attr-video-playsinline">playsinline</code>
-  attribute does not imply that the video will display fullscreen by default. Indeed, most user
-  agents have chosen to play all videos inline by default, and in such user agents the <code
-  data-x="attr-video-playsinline">playsinline</code> attribute has no effect.</p>
-
-  <p>If the <code data-x="attr-video-poster">poster</code> attribute is present or the <code
-  data-x="attr-video-posterfromimg">posterfromimg</code> attribute is present, and the <code
-  data-x="attr-media-loading">loading</code> attribute of the <code>video</code> element, or of
-  the qualifying <code>img</code> element if the <code
-  data-x="attr-video-posterfromimg">posterfromimg</code> attribute is present and that <code>img</code>
-  has its own <code data-x="attr-img-loading">loading</code> attribute, is in the <span
-  data-x="attr-loading-lazy-state">Lazy</span> state, the user agent must
-  defer loading the poster image source data until the element's <span>lazy load resumption
-  steps</span> are invoked. Lazy-load intersection is evaluated against the <code>video</code>
-  element's layout box via the <span>node document</span>'s <span>lazy load intersection
-  observer</span>.</p>
-
-  <p>When the <code data-x="attr-video-posterfromimg">posterfromimg</code> attribute
-  is present, the user agent must defer speculative fetching of the <code
-  data-x="attr-video-poster">poster</code> attribute URL until the <code>video</code>'s end tag has
-  been tokenized.</p>
+  <p class="note">The <code>video</code> element's <code data-x="attr-media-loading">loading</code>
+  attribute also applies to the <span>poster frame</span>, unless the <span data-x="poster image
+  element">poster image element</span> has its own <code data-x="attr-img-loading">loading</code>
+  attribute. In either case, poster frame lazy loading is determined by the <code>video</code>
+  element's position relative to the viewport.</p>
 
   <div class="example">
     <pre><code class="html">&lt;video src="1.mp4" poster="1.jpg" type="video/mp4"&gt;
@@ -37353,14 +37439,14 @@ interface <dfn interface>HTMLVideoElement</dfn> : <span>HTMLMediaElement</span> 
 &lt;video src="10.mp4" type="video/mp4" preload="metadata" loading="lazy"&gt;
 &lt;video src="11.mp4" type="video/mp4" poster="11.jpg" preload="none" loading="eager"&gt;
 &lt;div id="very-large-2"&gt;&lt;/div&gt; &lt;!-- Everything after this div is also below the viewport --&gt;
-&lt;video src="12.mp4" type="video/mp4" poster="12.jpg" posterfromimg loading="lazy"&gt;
-  &lt;img src="12-poster.jpg" alt="A description of the poster"&gt;
+&lt;video src="12.mp4" type="video/mp4" poster="12.jpg" loading="lazy"&gt;
+  &lt;poster&gt;&lt;img src="12-poster.jpg" alt="A description of the poster"&gt;&lt;/poster&gt;
 &lt;/video&gt;
-&lt;video src="13.mp4" type="video/mp4" poster="13.jpg" posterfromimg&gt;
-  &lt;img src="13-poster.jpg" loading="lazy" alt="A description of the poster"&gt;
+&lt;video src="13.mp4" type="video/mp4" poster="13.jpg"&gt;
+  &lt;poster&gt;&lt;img src="13-poster.jpg" loading="lazy" alt="A description of the poster"&gt;&lt;/poster&gt;
 &lt;/video&gt;
-&lt;video src="14.mp4" type="video/mp4" poster="14.jpg" posterfromimg loading="lazy"&gt;
-  &lt;img src="14-poster.jpg" loading="eager" alt="A description of the poster"&gt;
+&lt;video src="14.mp4" type="video/mp4" poster="14.jpg" loading="lazy"&gt;
+  &lt;poster&gt;&lt;img src="14-poster.jpg" loading="eager" alt="A description of the poster"&gt;&lt;/poster&gt;
 &lt;/video&gt;</code></pre>
 
        <p>In the example above, the videos load as follows:</p>
@@ -37401,82 +37487,88 @@ interface <dfn interface>HTMLVideoElement</dfn> : <span>HTMLMediaElement</span> 
         the window's load event.</p></dd>
 
         <dt><code data-x="">11.mp4</code></dt>
-        <dd><p>The video does not load until played. The poster image loads eagerly and delays the
-        window's load event.</p></dd>
+        <dd><p>The video does not load until played. The poster image loads eagerly and delays the window's load event.</p></dd>
 
         <dt><code data-x="">12.mp4</code></dt>
-        <dd><p>The video and its <code data-x="attr-video-posterfromimg">posterfromimg</code> poster
-        image both load only once scrolled into the viewport. The <code>video</code> element's <code
-        data-x="attr-media-loading">loading</code> attribute governs loading eagerness because the
-        <code>img</code> defines none of its own.</p></dd>
+        <dd><p>The video and poster image load only once scrolled into the viewport, and do not
+        delay the window's load event. The <code>video</code> element's <code
+        data-x="attr-media-loading">loading</code> attribute applies to the <code>img</code>, which
+        has none of its own.</p></dd>
 
         <dt><code data-x="">13.mp4</code></dt>
-        <dd><p>The video loads eagerly, but its <code data-x="attr-video-posterfromimg">posterfromimg</code>
-        poster image loads only once scrolled into the viewport. The <code>img</code>'s own <code
-        data-x="attr-img-loading">loading</code> attribute governs the poster's loading eagerness independently
-        of the <code>video</code>.</p></dd>
+        <dd><p>The video loads eagerly, but its poster image loads only once scrolled into the
+        viewport. The <code>img</code>'s own <code data-x="attr-img-loading">loading</code>
+        attribute governs the poster's loading eagerness independently of the
+        <code>video</code>.</p></dd>
 
         <dt><code data-x="">14.mp4</code></dt>
-        <dd><p>The video loads only once scrolled into the viewport, but its
-        <code data-x="attr-video-posterfromimg">posterfromimg</code> poster image loads eagerly. The
-        <code>img</code>'s <code data-x="attr-img-loading">loading="eager"</code> overrides the
-        <code>video</code>'s <code data-x="attr-media-loading">loading="lazy"</code> for the poster.</p></dd>
+        <dd><p>The video loads only once scrolled into the viewport, but its poster image loads
+        eagerly. The <code>img</code>'s <code data-x="attr-img-loading">loading="eager"</code>
+        overrides the <code>video</code>'s <code data-x="attr-media-loading">loading="lazy"</code> for
+        the poster.</p></dd>
        </dl>
       </div>
 
   <div class="example">
-   <p>With <code data-x="attr-video-posterfromimg">posterfromimg</code>, a child <code>img</code>
-   can drive art-directed and density-switched poster selection:</p>
-   <pre><code class="html">&lt;video posterfromimg controls&gt;
+   <p>In this example, a <code>poster</code> element provides art-directed and density-switched
+   poster selection:</p>
+
+   <pre><code class="html">&lt;video controls poster="poster-tall.jpg"&gt;
   &lt;source media="(orientation: landscape)" src="surfer-wide.mp4" type="video/mp4"&gt;
   &lt;source src="surfer-tall.mp4" type="video/mp4"&gt;
-  &lt;picture&gt;
+  &lt;poster&gt;
+   &lt;picture&gt;
     &lt;source media="(orientation: landscape)" srcset="poster-wide.avif" type="image/avif"&gt;
     &lt;source media="(orientation: landscape)" srcset="poster-wide.jpg"&gt;
     &lt;img src="poster-tall.jpg"
-         alt="A surfer charging down the face of a barreling wave"&gt;
-  &lt;/picture&gt;
+         alt="A surfer charging down the face of a breaking wave"&gt;
+   &lt;/picture&gt;
+  &lt;/poster&gt;
 &lt;/video&gt;</code></pre>
-   <p>The <code>img</code> itself is not rendered; the <code>video</code> paints the selected
-   image as its <span>poster frame</span> within the <code>video</code>'s layout box.  <code
-   data-x="dom-video-currentPoster">video.currentPoster</code> returns the <code>img</code>'s
-   <code    data-x="dom-img-currentSrc">currentSrc</code>. The <code>img</code>'s <code
-   data-x="attr-img-alt">alt</code> provides its accessible name while the poster is displayed.</p>
   </div>
 
   <div class="example">
-   <p><code data-x="attr-img-loading">loading</code>=lazy on the <code>video</code> defers the
+   <p><code data-x="attr-media-loading">loading</code>=lazy on the <code>video</code> defers the
    poster fetch until the <code>video</code>'s layout box approaches the viewport:</p>
-   <pre><code class="html">&lt;video src="landscape.mp4" posterfromimg loading="lazy"&gt;
-  &lt;picture&gt;
-    &lt;source srcset="sunset-16x9.avif" type="image/avif"&gt;
-    &lt;img src="sunset-16x9.jpg" alt="Sunset over a white sand beach."&gt;
-  &lt;/picture&gt;
-&lt;/video&gt;
 
-&lt;video src="portrait.mp4" posterfromimg loading="lazy"&gt;
-  &lt;picture&gt;
+   <pre><code class="html">&lt;video src="portrait.mp4" loading="lazy"&gt;
+  &lt;poster&gt;
+   &lt;picture&gt;
     &lt;source srcset="skater-9x16.avif" type="image/avif"&gt;
     &lt;img src="skater-9x16.jpg" alt="A skateboarder slides down a handrail above a concrete staircase."&gt;
-  &lt;/picture&gt;
+   &lt;/picture&gt;
+  &lt;/poster&gt;
 &lt;/video&gt;</code></pre>
-   <p>Each poster is deferred until its own <code>video</code>'s layout box enters the viewport,
-   since lazy-load intersection is evaluated against the <code>video</code> element rather than
-   the unrendered <code>img</code>.</p>
+
+   <p>The poster is deferred until the <code>video</code>'s layout box enters the viewport, since
+   lazy-load intersection is evaluated against the <code>video</code> element rather than the
+   unrendered <code>img</code>.</p>
   </div>
 
   <div class="example">
-   <p>The <code>img</code> element's <code data-x="attr-img-loading">loading</code> attribute can
-   override the <code>video</code>'s lazy policy for the poster:</p>
-   <pre><code class="html">&lt;video src="hero.mp4" posterfromimg loading="lazy" preload="none"&gt;
-  &lt;img src="hero-poster.jpg" loading="eager"
-       alt="A chef presenting a plate of tacos."&gt;
+   <p>In this example, the same URL is used for the <code data-x="attr-video-poster">poster</code>
+   attribute and the <code>poster</code> element's <code>img</code>. The attribute provides a poster
+   image for user agents that do not support the <code>poster</code> element; the <code
+   data-x="attr-img-alt">alt</code> attribute on the <code>img</code> provides alternative text
+   for the <span>poster frame</span>.</p>
+
+   <pre><code class="html">&lt;video src="hero.mp4" poster="hero-poster.jpg" preload="none"&gt;
+  &lt;poster&gt;
+   &lt;img src="hero-poster.jpg" alt="A chef presenting a plate of tacos."&gt;
+  &lt;/poster&gt;
 &lt;/video&gt;</code></pre>
   </div>
 
-  <p class="note">An <code>img</code> inside a <code>video</code> does not supply the <span>poster
-  frame</span> unless the <code data-x="attr-video-posterfromimg">posterfromimg</code> attribute is
-  set.</p>
+  <p>The <dfn element-attr for="video"><code
+  data-x="attr-video-playsinline">playsinline</code></dfn> attribute is a <span>boolean
+  attribute</span>. If present, it serves as a hint to the user agent that the video ought to be
+  displayed "inline" in the document by default, constrained to the element's playback area, instead
+  of being displayed fullscreen or in an independent resizable window.</p>
+
+  <p class="note">The absence of the <code data-x="attr-video-playsinline">playsinline</code>
+  attribute does not imply that the video will display fullscreen by default. Indeed, most user
+  agents have chosen to play all videos inline by default, and in such user agents the <code
+  data-x="attr-video-playsinline">playsinline</code> attribute has no effect.</p>
 
   <div w-nodev>
 
@@ -38228,6 +38320,106 @@ interface <dfn interface>HTMLTrackElement</dfn> : <span>HTMLElement</span> {
 
   </div>
 
+
+  <h4>The <dfn element><code>poster</code></dfn> element</h4>
+
+  <dl class="element">
+   <dt><span data-x="concept-element-categories">Categories</span>:</dt>
+   <dd>None.</dd>
+   <dt><span data-x="concept-element-contexts">Contexts in which this element can be used</span>:</dt>
+   <dd>As a child of a <code>video</code> element.</dd>
+   <dt><span data-x="concept-element-content-model">Content model</span>:</dt>
+   <dd>One <code>img</code> element, or one <code>picture</code> element, optionally intermixed with
+   <span>script-supporting elements</span>.</dd>
+   <dt><span data-x="concept-element-attributes">Content attributes</span>:</dt>
+   <dd><span>Global attributes</span></dd>
+   <dt><span
+   data-x="concept-element-accessibility-considerations">Accessibility considerations</span>:</dt>
+   <dd class="XXX"><a href="https://w3c.github.io/html-aria/#el-poster">For authors</a>.</dd>
+   <dd class="XXX"><a href="https://w3c.github.io/html-aam/#el-poster">For implementers</a>.</dd>
+   <dt><span data-x="concept-element-sanitization">Sanitization</span>:</dt>
+   <dd><span data-x="sanitizer-uncategorized">Uncategorized</span>.</dd>
+   <dt><span data-x="concept-element-dom">DOM interface</span>:</dt>
+   <dd>Uses <code>HTMLElement</code>.</dd>
+  </dl>
+
+  <p>The <code>poster</code> element allows authors to specify a <span>poster frame</span> for its
+  parent <code>video</code> element, using an <code>img</code> element, optionally within a
+  <code>picture</code> element. It does not <span data-x="represents">represent</span> anything on
+  its own.</p>
+
+  <div algorithm>
+  <p>The <dfn>poster image element</dfn> for a <code>video</code> element <var>video</var> is the
+  <code>img</code> element or null returned by the following steps:</p>
+
+  <ol>
+   <li><p>Let <var>posterElement</var> be the first <code>poster</code> element child of
+   <var>video</var> in <span>tree order</span>.</p></li>
+
+   <li><p>If <var>posterElement</var> is null, then return null.</p></li>
+
+   <li><p>Let <var>candidate</var> be the first <code>picture</code> or <code>img</code> element
+   child of <var>posterElement</var> in <span>tree order</span>, or null if there is none.</p></li>
+
+   <li><p>If <var>candidate</var> is a <code>picture</code> element, then return the first
+   <code>img</code> element child of <var>candidate</var> in <span>tree order</span>, or null if
+   there is none.</p></li>
+
+   <li><p>Return <var>candidate</var>.</p></li>
+  </ol>
+  </div>
+
+  <p>An <code>img</code> element's <dfn>poster video</dfn> is the <code>video</code> element whose
+  <span>poster image element</span> is that <code>img</code> element, or null if there is no such
+  element.</p>
+
+  <p>The <code data-x="attr-img-alt">alt</code> attribute on the <span>poster image
+  element</span> must be an appropriate replacement for the parent <code>video</code> element's
+  <span>poster frame</span>. It should describe that poster image specifically, rather than the
+  video as a whole. See <a href="#alt">Requirements for providing text to act as an alternative for
+  images</a> for more detail, including an example.</p>
+
+  <div w-nodev>
+
+  <div algorithm>
+  <p>The <code>poster</code> <span>HTML element insertion steps</span>, given
+  <var>insertedNode</var>, are:</p>
+
+  <ol>
+   <li><p>Let <var>parent</var> be <var>insertedNode</var>'s <span>parent</span>.</p></li>
+
+   <li><p>If <var>parent</var> is a <code>video</code> element, then <span>update the poster
+   frame</span> for <var>parent</var>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <code>poster</code> <span>HTML element moving steps</span>, given <var>movedNode</var>,
+  <var>isSubtreeRoot</var>, and <var>oldAncestor</var> are:</p>
+
+  <ol>
+   <li><p>If <var>isSubtreeRoot</var> is true and <var>oldAncestor</var> is a <code>video</code>
+   element, then <span>update the poster frame</span> for <var>oldAncestor</var>.</p></li>
+
+   <li><p>If <var>isSubtreeRoot</var> is true and <var>movedNode</var>'s <span>parent</span> is a
+   <code>video</code> element, then <span>update the poster frame</span> for <var>movedNode</var>'s
+   <span>parent</span>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <code>poster</code> <span>HTML element removing steps</span>, given <var>removedNode</var>,
+  <var>isSubtreeRoot</var>, and <var>oldAncestor</var> are:</p>
+
+  <ol>
+   <li><p>If <var>isSubtreeRoot</var> is true and <var>oldAncestor</var> is a <code>video</code>
+   element, then <span>update the poster frame</span> for <var>oldAncestor</var>.</p></li>
+  </ol>
+  </div>
+
+  </div>
+
+
   <h4>Media elements</h4>
 
   <p><span>HTMLMediaElement</span> objects (<code>audio</code> and <code>video</code>, in this
@@ -38326,8 +38518,19 @@ interface <dfn interface>HTMLMediaElement</dfn> : <span>HTMLElement</span> {
    <var>posterResumptionSteps</var> to the <code>video</code> element's <span>poster lazy load
    resumption steps</span>.</p></li>
 
-   <li><p>If <var>resumptionSteps</var> is null and <var>posterResumptionSteps</var> is null, then
-   return.</p></li>
+   <li><p>Let <var>posterImage</var> be null.</p></li>
+
+   <li><p>If the <span>media element</span> is a <code>video</code> element whose <span
+   data-x="poster image element">poster image element</span> is not null, and the <span>will lazy
+   load element steps</span> given that <span data-x="poster image element">poster image
+   element</span> return false, then set <var>posterImage</var> to that <span data-x="poster image
+   element">poster image element</span>.</p></li>
+
+   <li><p>Let <var>posterImageResumptionSteps</var> be <var>posterImage</var>'s <span>lazy load
+   resumption steps</span> if <var>posterImage</var> is not null, and null otherwise.</p></li>
+
+   <li><p>If <var>resumptionSteps</var>, <var>posterResumptionSteps</var>, and
+   <var>posterImageResumptionSteps</var> are all null, then return.</p></li>
 
    <li><p>If <var>resumptionSteps</var> is not null:</p>
 
@@ -38345,6 +38548,15 @@ interface <dfn interface>HTMLMediaElement</dfn> : <span>HTMLElement</span> {
     null.</p></li>
 
     <li><p>Invoke <var>posterResumptionSteps</var>.</p></li>
+   </ol>
+   </li>
+
+   <li><p>If <var>posterImageResumptionSteps</var> is not null:</p>
+
+   <ol>
+    <li><p>Set <var>posterImage</var>'s <span>lazy load resumption steps</span> to null.</p></li>
+
+    <li><p>Invoke <var>posterImageResumptionSteps</var>.</p></li>
    </ol>
    </li>
   </ol>
@@ -42450,6 +42662,10 @@ interface <dfn interface>VideoTrack</dfn> {
   <span>HTML parser</span> or <span>XML parser</span>, the user agent must <span>honor user
   preferences for automatic text track selection</span>, <span>populate the list of pending text
   tracks</span>, and set the element's <span>blocked-on-parser</span> flag to false.</p>
+
+  <p>When a <code>video</code> element is popped off the <span>stack of open elements</span> of an
+  <span>HTML parser</span> or <span>XML parser</span>, the user agent must <span>update the poster
+  frame</span> for it.</p>
   </div>
 
   <div algorithm>
@@ -157468,7 +157684,8 @@ interface <dfn interface>External</dfn> {
          <span data-x="Form-associated element">form-associated</span>;
          <span data-x="Palpable content">palpable</span></td>
      <td><span data-x="Phrasing content">phrasing</span>;
-         <code>picture</code></td>
+         <code>picture</code>;
+         <code>poster</code></td>
      <td>empty</td>
      <td><span data-x="global attributes">globals</span>;
          <code data-x="attr-img-alt">alt</code>;
@@ -157872,12 +158089,24 @@ interface <dfn interface>External</dfn> {
          <span data-x="Phrasing content">phrasing</span>;
          <span data-x="Embedded content">embedded</span>;
          <span data-x="Palpable content">palpable</span></td>
-     <td><span data-x="Phrasing content">phrasing</span></td>
+     <td><span data-x="Phrasing content">phrasing</span>;
+         <code>poster</code></td>
      <td><code>source</code>*;
          one <code>img</code>;
          <span>script-supporting elements</span></td>
      <td><span data-x="global attributes">globals</span></td>
      <td><code>HTMLPictureElement</code></td>
+    </tr>
+
+    <tr>
+     <th><code>poster</code></th>
+     <td>Video poster image</td>
+     <td>none</td>
+     <td><code>video</code></td>
+     <td>one <code>img</code> or one <code>picture</code>;
+         <span>script-supporting elements</span></td>
+     <td><span data-x="global attributes">globals</span></td>
+     <td><code>HTMLElement</code></td>
     </tr>
 
     <tr>
@@ -158427,6 +158656,7 @@ interface <dfn interface>External</dfn> {
      <td><span data-x="Phrasing content">phrasing</span></td>
      <td><code>source</code>*;
          <code>track</code>*;
+         one <code>poster</code>;
          <span>transparent</span>*</td>
      <td><span data-x="global attributes">globals</span>;
          <code data-x="attr-media-src">src</code>;
@@ -160891,6 +161121,10 @@ interface <dfn interface>External</dfn> {
     <tr>
      <td> <code>picture</code>
      <td> <code>HTMLPictureElement</code> : <code>HTMLElement</code>
+
+    <tr>
+     <td> <code>poster</code>
+     <td> <code>HTMLElement</code>
 
     <tr>
      <td> <code>pre</code>
