@@ -114588,13 +114588,6 @@ new PaymentRequest(&hellip;); // Allowed to use
    <li><p>Set <var>document</var>'s <i data-x="concept-document-salvageable">salvageable</i> state
    to false.</p></li>
 
-   <li><p>Let <var>ports</var> be the list of <code>MessagePort</code>s whose <span>relevant global
-   object</span>'s <span data-x="concept-document-window">associated <code>Document</code></span> is
-   <var>document</var>.</p></li>
-
-   <li><p>For each <var>port</var> in <var>ports</var>, <span>disentangle</span>
-   <var>port</var>.</p></li>
-
    <li><p>Run any <span>unloading document cleanup steps</span> for <var>document</var> that
    are defined by this specification and <span>other applicable specifications</span>.</p></li>
 
@@ -134460,9 +134453,6 @@ interface <dfn interface>MessagePort</dfn> : <span>EventTarget</span> {
   undefined <span data-x="dom-MessagePort-postMessage-options">postMessage</span>(any message, optional <span>StructuredSerializeOptions</span> options = {});
   undefined <span data-x="dom-MessagePort-start">start</span>();
   undefined <span data-x="dom-MessagePort-close">close</span>();
-
-  // event handlers
-  attribute <span>EventHandler</span> <span data-x="handler-MessagePort-onclose">onclose</span>;
 };
 
 <span>MessagePort</span> includes <span>MessageEventTarget</span>;
@@ -134584,28 +134574,7 @@ dictionary <dfn dictionary>StructuredSerializeOptions</dfn> {
 
    <li><p>Disentangle <var>initiatorPort</var> and <var>otherPort</var>, so that they are no longer
    entangled or associated with each other.</p></li>
-
-   <li><p><span data-x="concept-event-fire">Fire an event</span> named <code
-   data-x="event-close">close</code> at <var>otherPort</var>.</p></li>
   </ol>
-
-  <div class="note">
-   <p>The <code data-x="event-close">close</code> event will be fired even if the port is not
-   explicitly closed. The cases where this event is dispatched are:</p>
-
-   <ul>
-    <li>the <code data-x="dom-MessagePort-close">close()</code> method was called;</li>
-
-    <li>the <code>Document</code> was <span data-x="destroy a document">destroyed</span>; or</li>
-
-    <li>the <code>MessagePort</code> was <a href="#ports-and-garbage-collection">garbage
-    collected</a>.</li>
-   </ul>
-
-   <p>We only dispatch the event on <var>otherPort</var> because <var>initiatorPort</var> explicitly
-   triggered the close, its <code>Document</code> no longer exists, or it was already garbage
-   collected, as described above.</p>
-  </div>
   </div>
 
   <hr>
@@ -134790,18 +134759,6 @@ dictionary <dfn dictionary>StructuredSerializeOptions</dfn> {
 
   <hr>
 
-  <p>The following are the <span>event handlers</span> (and their corresponding <span data-x="event
-  handler event type">event handler event types</span>) that must be supported,
-  as <span>event handler IDL attributes</span>, by all objects implementing the
-  <code>MessagePort</code> interface:</p>
-
-  <table>
-   <thead>
-    <tr><th><span data-x="event handlers">Event handler</span> <th><span>Event handler event type</span>
-   <tbody>
-    <tr><td><dfn attribute for="MessagePort"><code data-x="handler-MessagePort-onclose">onclose</code></dfn> <td> <code data-x="event-close">close</code>
-  </table>
-
   <div algorithm>
   <p>The first time a <code>MessagePort</code> object's <code
   data-x="handler-MessageEventTarget-onmessage">onmessage</code> IDL attribute is set, the port's
@@ -134812,20 +134769,36 @@ dictionary <dfn dictionary>StructuredSerializeOptions</dfn> {
   </div>
 
 
+  <h4>Broadcasting to many ports</h4>
+
+  <!-- NON-NORMATIVE SECTION -->
+
+  <p>Broadcasting to many ports is in principle relatively simple: keep an array of
+  <code>MessagePort</code> objects to send messages to, and iterate through the array to send a
+  message. However, this has one rather unfortunate effect: it prevents the ports from being garbage
+  collected, even if the other side has gone away. To avoid this problem, implement a simple
+  protocol whereby the other side acknowledges it still exists. If it doesn't do so after a certain
+  amount of time, assume it's gone, close the <code>MessagePort</code> object, and let it be garbage
+  collected.</p>
+
+
   <h4 id="ports-and-garbage-collection">Ports and garbage collection</h4>
 
   <div w-nodev>
   <div algorithm>
-  <p>When a <code>MessagePort</code> object <var>o</var> is garbage collected, if <var>o</var> is
-  entangled, then the user agent must <span data-x="disentangle">disentangle</span>
-  <var>o</var>.</p>
+  <p>When a <code>MessagePort</code> object <var>o</var> is entangled, user agents must either act
+  as if <var>o</var>'s entangled <code>MessagePort</code> object has a strong reference to
+  <var>o</var>, or as if <var>o</var>'s <span>relevant global object</span> has a strong reference
+  to <var>o</var>.</p>
   </div>
 
-  <div algorithm>
-  <p>When a <code>MessagePort</code> object <var>o</var> is entangled and <code
-  data-x="event-message">message</code> or <code data-x="event-messageerror">messageerror</code>
-  event listener is registered, user agents must act as if <var>o</var>'s entangled
-  <code>MessagePort</code> object has a strong reference to <var>o</var>.</p>
+  <div class="note">
+   <p>Thus, a message port can be received, given an event listener, and then forgotten, and so long
+   as that event listener could receive a message, the channel will be maintained.</p>
+
+   <p>Of course, if this was to occur on both sides of the channel, then both ports could be garbage
+   collected, since they would not be reachable from live code, despite having a strong reference to
+   each other.</p>
   </div>
 
   <p>Furthermore, a <code>MessagePort</code> object must not be garbage collected while there
@@ -134837,17 +134810,6 @@ dictionary <dfn dictionary>StructuredSerializeOptions</dfn> {
 
   <!-- ports in the ports attribute of a MessageEvent that isn't dispatched yet are safe because
   the MessageEvent is safe -->
-
-  <div class="note">
-
-   <p>Thus, a message port can be received, given an event listener, and then forgotten, and so long
-   as that event listener could receive a message, the channel will be maintained.</p>
-
-   <p>Of course, if this was to occur on both sides of the channel, then both ports could be garbage
-   collected, since they would not be reachable from live code, despite having a strong reference to
-   each other. However, if a message port has a pending message, it is not garbage collected.</p>
-
-  </div>
 
   </div>
 
@@ -161031,10 +160993,10 @@ INSERT INTERFACES HERE
      <td> Normally a mouse event; also synthetically fired at an element before its <span>activation behavior</span> is run, when an element is activated from a non-pointer input device (e.g. a keyboard)
 
     <tr> <!-- close -->
-     <td> <dfn event for="CloseWatcher,HTMLElement,MessagePort"><code data-x="event-close">close</code></dfn>
+     <td> <dfn event for="CloseWatcher,HTMLElement"><code data-x="event-close">close</code></dfn>
      <td> <code>Event</code>
-     <td> <code>CloseWatcher</code>, <code>dialog</code> elements, <code>MessagePort</code>
-     <td> Fired at <code>CloseWatcher</code> objects or <code>dialog</code> elements when they are closed via a <span>close request</span> or via web developer code, or at <code>MessagePort</code> objects when <span data-x="disentangle">disentangled</span>
+     <td> <code>CloseWatcher</code>, <code>dialog</code> elements
+     <td> Fired at <code>CloseWatcher</code> objects or <code>dialog</code> elements when they are closed via a <span>close request</span> or via web developer code
 
     <tr> <!-- command -->
      <td> <dfn event for="HTMLElement"><code data-x="event-command">command</code></dfn>
