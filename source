@@ -4263,6 +4263,8 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li><dfn data-x-href="https://drafts.csswg.org/css-cascade/#cascade-origin-animation">Animation Origin</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/css-cascade/#cascade-origin-transition">Transition Origin</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/css-cascade/#initial-value">initial value</dfn></li>
+     <li><dfn data-x="at-scope" data-x-href="https://drafts.csswg.org/css-cascade-6/#at-ruledef-scope"><code>@scope</code></dfn> rule</li>
+     <li><dfn data-x-href="https://drafts.csswg.org/css-cascade-6/#typedef-scope-start">&lt;scope-start></dfn></li>
     </ul>
 
     <p>The <code>CanvasRenderingContext2D</code> object's use of fonts depends on the features
@@ -13744,6 +13746,7 @@ console.assert(image.height === 200);</code></pre>
    <li><code>small</code></li>
    <li><code>span</code></li>
    <li><code>strong</code></li>
+   <li><code>style</code></li>
    <li><code>sub</code></li>
    <li><code>sup</code></li>
    <li><span>SVG <code>svg</code></span></li>
@@ -18966,9 +18969,11 @@ people expect to have work and what is necessary.
   <dl class="element">
    <dt><span data-x="concept-element-categories">Categories</span>:</dt>
    <dd><span>Metadata content</span>.</dd>
+   <dd><span>Flow content</span>.</dd>
    <dt><span data-x="concept-element-contexts">Contexts in which this element can be used</span>:</dt>
    <dd>Where <span>metadata content</span> is expected.</dd>
    <dd>In a <code>noscript</code> element that is a child of a <code>head</code> element.</dd>
+   <dd>Where <span>flow content</span> is expected, as the first child of its parent.</dd>
    <dt><span data-x="concept-element-content-model">Content model</span>:</dt>
    <dd><span data-x="text content">Text</span> that gives a <span>conformant style sheet</span>.</dd>
    <dt><span data-x="concept-element-attributes">Content attributes</span>:</dt>
@@ -19082,6 +19087,55 @@ console.log(style.disabled); // false</code></pre>
 
   <p>The <span>child text content</span> of a <code>style</code> element must be that of a
   <span>conformant style sheet</span>.</p>
+
+  <p>If a <code>style</code> element is a descendant of a <code>body</code> element, then the top
+  level of the style sheet given by its <span>child text content</span> must only contain the
+  following:</p>
+
+  <ul>
+   <li><p><code data-x="at-scope">@scope</code> rules without a <span>&lt;scope-start></span>, e.g.,
+   "<code data-x="">@scope { ... }</code>" or
+   "<code data-x="">@scope to (.x) { ... }</code>";</p></li>
+
+   <li><p><code data-x="">@media</code>, <code data-x="">@supports</code>, <code
+   data-x="">@container</code>, <code data-x="">@starting-style</code>, and <code
+   data-x="">@layer</code> rules with a block that only contains items in this list;</p></li>
+
+   <li><p><code data-x="">@namespace</code> rules; and</p></li>
+
+   <li><p><code data-x="">@layer</code> statements.</p></li>
+  </ul>
+
+  <p class="note">A <code data-x="">@charset</code> at the start of the style sheet is allowed,
+  since there is no actual at-rule named <code data-x="">@charset</code>: it is dropped when the
+  style sheet is parsed. <ref>CSSSYNTAX</ref></p>
+
+  <p class="note">The <span>scoping root</span> of such an <code data-x="at-scope">@scope</code>
+  rule is the <code>style</code> element's parent, so its style rules can only style the parent and
+  the parent's descendants. Since the <code>style</code> element has to be the first child of its
+  parent, those descendants come after the <code>style</code> element. This prevents a
+  <code>style</code> element in the <code>body</code> from restyling content that the user agent
+  might already have rendered, other than its parent.</p>
+
+  <div class="example">
+   <p>In the following fragment, the <code>style</code> element only styles its parent
+   <code>article</code> element and that element's descendants:</p>
+
+   <pre><code class="html">&lt;article>
+ &lt;style>
+  @scope {
+    :scope { border: 1px solid; }
+    img { max-width: 100%; }
+  }
+ &lt;/style>
+ &lt;h2>Kittens&lt;/h2>
+ &lt;img src="kittens.jpg" alt="Three kittens asleep in a basket.">
+&lt;/article></code></pre>
+
+   <p>Adding <code data-x="">h2 { margin: 0; }</code> outside the <code
+   data-x="at-scope">@scope</code> rule would make the style sheet non-conforming, even though the
+   only <code>h2</code> element comes after the <code>style</code> element.</p>
+  </div>
 
   <div algorithm>
   <p>A <code>style</code> element is <span>implicitly potentially render-blocking</span> if the
@@ -157985,9 +158039,11 @@ interface <dfn interface>External</dfn> {
     <tr>
      <th><code>style</code></th>
      <td>Embedded styling information</td>
-     <td><span data-x="Metadata content">metadata</span></td>
+     <td><span data-x="Metadata content">metadata</span>;
+         <span data-x="Flow content">flow</span></td>
      <td><code>head</code>;
-         <code>noscript</code>*</td>
+         <code>noscript</code>*;
+         <span data-x="Flow content">flow</span>*</td>
      <td>text*</td>
      <td><span data-x="global attributes">globals</span>;
          <code data-x="attr-style-media">media</code>;
@@ -158432,6 +158488,7 @@ interface <dfn interface>External</dfn> {
       <code>small</code>;
       <code>span</code>;
       <code>strong</code>;
+      <code>style</code>;
       <code>sub</code>;
       <code>sup</code>;
       <span>SVG <code>svg</code></span>;
