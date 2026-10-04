@@ -127145,7 +127145,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   <h4 id="html-streaming-methods">HTML streaming methods</h4>
 
   <p>The HTML streaming methods (e.g. <code data-x="dom-Element-streamHTML">streamHTML()</code>)
-  allow authors to insert chunks of HTML asynchronously using a <span>WritableStream</span>. As
+  allow authors to insert chunks of HTML asynchronously using a <code>WritableStream</code>. As
   chunks are written to the stream, the <span>HTML parser</span> incrementally processes the input
   and inserts the resulting DOM nodes into the target node.</p>
 
@@ -127153,13 +127153,21 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   streaming methods can parse and execute scripts incrementally when an <code
   data-x="">Unsafe</code> method (e.g. <code
   data-x="dom-Element-streamHTMLUnsafe">streamHTMLUnsafe()</code>) is used and the <code
-  data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> option is set to true. Scripts are
-  executed as their end tags are parsed (or when the stream closes, for <code
+  data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> option is set to true. Similar to
+  main document parsing, <span data-x="classic script">classic scripts</span> are executed as they
+  are parsed, pausing the stream's parser while an external script is being fetched; <code
   data-x="attr-script-defer">defer</code> and parser-inserted "<code data-x="">module</code>"
-  scripts), similar to main document parsing, except that streamed style sheets do not block
-  streamed scripts, and <code data-x="dom-document-write">document.write()</code> targets the live
-  document rather than the stream. Because the tree is constructed incrementally, scripts can
-  observe partial markup and DOM elements appended before the stream is closed.</p>
+  scripts are executed once the stream is closed; and <code data-x="attr-script-async">async</code>
+  scripts are executed as usual. Unlike main document parsing, no style sheet, whether streamed or
+  in the live document, blocks streamed scripts. Because the tree is constructed incrementally,
+  scripts can observe partial markup and DOM elements appended before the stream is closed.</p>
+
+  <p>Streamed scripts run in the live document, not in the stream's parser. In particular, <code
+  data-x="dom-document-write">document.write()</code> called from a streamed inline script writes to
+  the live document, at the <span>insertion point</span> of the live document's own parser (if any);
+  it never inserts into the stream. If the live document has finished parsing, such a call implies
+  <code data-x="dom-document-open">document.open()</code>, which replaces the document's contents,
+  including the streamed nodes.</p>
 
   <p>The promise returned by writing a chunk to the stream is settled once the chunk has been parsed
   as far as possible. If parsing is blocked on a script that is being fetched, the promise does not
@@ -127170,10 +127178,22 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   inserted is moved or removed while streaming, e.g., by a script, writing a subsequent chunk errors
   the stream, and nodes that would have been inserted before it in the meantime are dropped.</p>
 
+  <p>Chunks written to the stream are converted to strings. To stream bytes, for example from a
+  <code data-x="">Response</code> body, pipe them through a <code data-x="">TextDecoderStream</code>
+  first.</p>
+
+  <p>Text written to the stream is appended to the <code>Text</code> node immediately preceding the
+  insertion position when there is one, even if that node was not created by the stream. The stream
+  keeps inserting into the target even if the target is moved, including to another document; in
+  that case, scripts in the stream no longer execute. Elements left open when the stream is neither
+  closed nor aborted remain open indefinitely, and a streamed script with <code
+  data-x="attr-script-blocking">blocking="render"</code> keeps blocking rendering until the user
+  agent gives up on it.</p>
+
   <dl class="domintro">
    <dt><code data-x=""><var>stream</var> = <var>element</var>.<span subdfn data-x="dom-Element-streamHTML">streamHTML</span>([<var>options</var>])</code></dt>
    <dd><p>Removes <var>element</var>'s children (or the <span>template contents</span>'s children in
-   the case of a <code>template</code> element), and returns a <span>WritableStream</span> that, as
+   the case of a <code>template</code> element), and returns a <code>WritableStream</code> that, as
    strings are written to it, parses them using the HTML parser and incrementally inserts the
    result. <var>element</var> provides context for the HTML parser. The parsed fragments are <span
    data-x="sanitize">sanitized</span> based on <var>options</var>'s <code
@@ -127183,7 +127203,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    an HTML or SVG <code>script</code> element.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>shadowRoot</var>.<span subdfn data-x="dom-ShadowRoot-streamHTML">streamHTML</span>([<var>options</var>])</code></dt>
-   <dd><p>Removes <var>shadowRoot</var>'s children, and returns a <span>WritableStream</span> that,
+   <dd><p>Removes <var>shadowRoot</var>'s children, and returns a <code>WritableStream</code> that,
    as strings are written to it, parses them using the HTML parser and incrementally inserts the
    result. <var>shadowRoot</var>'s <span data-x="concept-DocumentFragment-host">host</span> provides
    context for the HTML parser. The parsed fragments are <span data-x="sanitize">sanitized</span>
@@ -127191,7 +127211,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    member, and <span data-x="dom-Sanitizer-removeUnsafe">unsafe content is removed</span>.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>element</var>.<span subdfn data-x="dom-Element-streamAppendHTML">streamAppendHTML</span>([<var>options</var>])</code></dt>
-   <dd><p>Returns a <span>WritableStream</span> that, as strings are written to it, parses them
+   <dd><p>Returns a <code>WritableStream</code> that, as strings are written to it, parses them
    using the HTML parser, and incrementally inserts the result after the last child of
    <var>element</var> (or of the <span>template contents</span> in the case of a
    <code>template</code> element). <var>element</var> provides context for the HTML parser. The
@@ -127202,7 +127222,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    an HTML or SVG <code>script</code> element.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>shadowRoot</var>.<span subdfn data-x="dom-ShadowRoot-streamAppendHTML">streamAppendHTML</span>([<var>options</var>])</code></dt>
-   <dd><p>Returns a <span>WritableStream</span> that, as strings are written to it, parses them
+   <dd><p>Returns a <code>WritableStream</code> that, as strings are written to it, parses them
    using the HTML parser, and incrementally inserts the result after the last child of
    <var>shadowRoot</var>. <var>shadowRoot</var>'s <span
    data-x="concept-DocumentFragment-host">host</span> provides context for the HTML parser. The
@@ -127211,7 +127231,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    data-x="dom-Sanitizer-removeUnsafe">unsafe content is removed</span>.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>element</var>.<span subdfn data-x="dom-Element-streamPrependHTML">streamPrependHTML</span>([<var>options</var>])</code></dt>
-   <dd><p>Returns a <span>WritableStream</span> that, as strings are written to it, parses them
+   <dd><p>Returns a <code>WritableStream</code> that, as strings are written to it, parses them
    using the HTML parser, and incrementally inserts the result before the first child of
    <var>element</var> (or of the <span>template contents</span> in the case of a
    <code>template</code> element). <var>element</var> provides context for the HTML parser. The
@@ -127223,10 +127243,11 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <var>element</var>'s <span>first child</span> (or the <span>template contents</span>'s
    <span>first child</span>), at the time of calling the method. The stream rejects with a
    <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if that node is no
-   longer a child of the target.</p></dd>
+   longer a child of the target. If there is no such child when the method is called, streamed
+   content is appended, so children added later by other means end up before it.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>shadowRoot</var>.<span subdfn data-x="dom-ShadowRoot-streamPrependHTML">streamPrependHTML</span>([<var>options</var>])</code></dt>
-   <dd><p>Returns a <span>WritableStream</span> that, as strings are written to it, parses them
+   <dd><p>Returns a <code>WritableStream</code> that, as strings are written to it, parses them
    using the HTML parser, and incrementally inserts the result before the first child of
    <var>shadowRoot</var>. <var>shadowRoot</var>'s <span
    data-x="concept-DocumentFragment-host">host</span> provides context for the HTML parser. The
@@ -127237,67 +127258,64 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    method. The stream rejects with a <span>"<code>HierarchyRequestError</code>"</span>
    <code>DOMException</code> if that node is no longer a child of <var>shadowRoot</var>.</p></dd>
 
-   <dt><code data-x=""><var>stream</var> = <var>childNode</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamBeforeHTML">streamBeforeHTML</span>([<var>options</var>])</code></dt>
-   <dd><p>Returns a <span>WritableStream</span> that, as strings are written to it, parses them
-   using the HTML parser, and incrementally inserts the result before <var>childNode</var>.
-   <var>childNode</var>'s parent (or, if that parent is a shadow root or <span>template
-   contents</span>, its <span data-x="concept-DocumentFragment-host">host</span>) provides context
-   for the HTML parser. The parsed fragments are <span data-x="sanitize">sanitized</span> based on
+   <dt><code data-x=""><var>stream</var> = <var>node</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamBeforeHTML">streamBeforeHTML</span>([<var>options</var>])</code></dt>
+   <dd><p>Returns a <code>WritableStream</code> that, as strings are written to it, parses them
+   using the HTML parser, and incrementally inserts the result before <var>node</var>.
+   <var>node</var>'s parent (or, if that parent is a shadow root or <span>template contents</span>,
+   its <span data-x="concept-DocumentFragment-host">host</span>) provides context for the HTML
+   parser. The parsed fragments are <span data-x="sanitize">sanitized</span> based on
    <var>options</var>'s <code data-x="dom-SetHTMLOptions-sanitizer">sanitizer</code> member, and
    <span data-x="dom-Sanitizer-removeUnsafe">unsafe content is removed</span>. Throws a
-   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>childNode</var>'s
+   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>node</var>'s
    <span>parent</span> is an HTML or SVG <code>script</code> element. Throws a
-   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if
-   <var>childNode</var>'s <span>parent</span> is null, a <code>Document</code>, a
-   <code>template</code> element, or a <code>DocumentFragment</code> without a <span
-   data-x="concept-DocumentFragment-host">host</span>. While streaming, content is inserted before
-   <var>childNode</var>, at the time of calling the method. The stream rejects with a
-   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if that node is no
-   longer a child of its <span>parent</span>.</p></dd>
+   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if <var>node</var>'s
+   <span>parent</span> is null, a <code>Document</code>, a <code>template</code> element, or a
+   <code>DocumentFragment</code> without a <span data-x="concept-DocumentFragment-host">host</span>.
+   While streaming, content is inserted before <var>node</var>, at the time of calling the method.
+   The stream rejects with a <span>"<code>HierarchyRequestError</code>"</span>
+   <code>DOMException</code> if that node is no longer a child of its <span>parent</span>.</p></dd>
 
-   <dt><code data-x=""><var>stream</var> = <var>childNode</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamAfterHTML">streamAfterHTML</span>([<var>options</var>])</code></dt>
-   <dd><p>Returns a <span>WritableStream</span> that, as strings are written to it, parses them
-   using the HTML parser, and incrementally inserts the result after <var>childNode</var>.
-   <var>childNode</var>'s parent (or, if that parent is a shadow root or <span>template
-   contents</span>, its <span data-x="concept-DocumentFragment-host">host</span>) provides context
-   for the HTML parser. The parsed fragments are <span data-x="sanitize">sanitized</span> based on
+   <dt><code data-x=""><var>stream</var> = <var>node</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamAfterHTML">streamAfterHTML</span>([<var>options</var>])</code></dt>
+   <dd><p>Returns a <code>WritableStream</code> that, as strings are written to it, parses them
+   using the HTML parser, and incrementally inserts the result after <var>node</var>.
+   <var>node</var>'s parent (or, if that parent is a shadow root or <span>template contents</span>,
+   its <span data-x="concept-DocumentFragment-host">host</span>) provides context for the HTML
+   parser. The parsed fragments are <span data-x="sanitize">sanitized</span> based on
    <var>options</var>'s <code data-x="dom-SetHTMLOptions-sanitizer">sanitizer</code> member, and
    <span data-x="dom-Sanitizer-removeUnsafe">unsafe content is removed</span>. Throws a
-   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>childNode</var>'s
+   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>node</var>'s
    <span>parent</span> is an HTML or SVG <code>script</code> element. Throws a
-   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if
-   <var>childNode</var>'s <span>parent</span> is null, a <code>Document</code>, a
-   <code>template</code> element, or a <code>DocumentFragment</code> without a <span
-   data-x="concept-DocumentFragment-host">host</span>. While streaming, content is inserted before
-   <var>childNode</var>'s <span>next sibling</span> (or after the last child of
-   <var>childNode</var>'s <span>parent</span> if it was the last child), at the time of calling the
-   method. The stream rejects with a <span>"<code>HierarchyRequestError</code>"</span>
-   <code>DOMException</code> if that next sibling is no longer a child of <var>childNode</var>'s
+   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if <var>node</var>'s
+   <span>parent</span> is null, a <code>Document</code>, a <code>template</code> element, or a
+   <code>DocumentFragment</code> without a <span data-x="concept-DocumentFragment-host">host</span>.
+   While streaming, content is inserted before <var>node</var>'s <span>next sibling</span> (or after
+   the last child of <var>node</var>'s <span>parent</span> if it was the last child), at the time of
+   calling the method. The stream rejects with a <span>"<code>HierarchyRequestError</code>"</span>
+   <code>DOMException</code> if that next sibling is no longer a child of <var>node</var>'s
    <span>parent</span>.</p></dd>
 
-   <dt><code data-x=""><var>stream</var> = <var>childNode</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamReplaceWithHTML">streamReplaceWithHTML</span>([<var>options</var>])</code></dt>
-   <dd><p>Removes <var>childNode</var>, and returns a <span>WritableStream</span> that, as strings
-   are written to it, parses them using the HTML parser and incrementally inserts the result in its
-   place. <var>childNode</var>'s parent (or, if that parent is a shadow root or <span>template
+   <dt><code data-x=""><var>stream</var> = <var>node</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamReplaceWithHTML">streamReplaceWithHTML</span>([<var>options</var>])</code></dt>
+   <dd><p>Removes <var>node</var>, and returns a <code>WritableStream</code> that, as strings are
+   written to it, parses them using the HTML parser and incrementally inserts the result in its
+   place. <var>node</var>'s parent (or, if that parent is a shadow root or <span>template
    contents</span>, its <span data-x="concept-DocumentFragment-host">host</span>) provides context
    for the HTML parser. The parsed fragments are <span data-x="sanitize">sanitized</span> based on
    <var>options</var>'s <code data-x="dom-SetHTMLOptions-sanitizer">sanitizer</code> member, and
    <span data-x="dom-Sanitizer-removeUnsafe">unsafe content is removed</span>. Throws a
-   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>childNode</var>'s
+   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>node</var>'s
    <span>parent</span> is an HTML or SVG <code>script</code> element. Throws a
-   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if
-   <var>childNode</var>'s <span>parent</span> is null, a <code>Document</code>, a
-   <code>template</code> element, or a <code>DocumentFragment</code> without a <span
-   data-x="concept-DocumentFragment-host">host</span>. While streaming, content is inserted before
-   <var>childNode</var>'s <span>next sibling</span> (or after the last child of
-   <var>childNode</var>'s former <span>parent</span> if it was the last child), at the time of
-   calling the method. The stream rejects with a <span>"<code>HierarchyRequestError</code>"</span>
-   <code>DOMException</code> if that next sibling is no longer a child of <var>childNode</var>'s
-   former <span>parent</span>.</p></dd>
+   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if <var>node</var>'s
+   <span>parent</span> is null, a <code>Document</code>, a <code>template</code> element, or a
+   <code>DocumentFragment</code> without a <span data-x="concept-DocumentFragment-host">host</span>.
+   While streaming, content is inserted before <var>node</var>'s <span>next sibling</span> (or after
+   the last child of <var>node</var>'s former <span>parent</span> if it was the last child), at the
+   time of calling the method. The stream rejects with a
+   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if that next sibling
+   is no longer a child of <var>node</var>'s former <span>parent</span>.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>element</var>.<span subdfn data-x="dom-Element-streamHTMLUnsafe">streamHTMLUnsafe</span>([<var>options</var>])</code></dt>
    <dd><p>Removes <var>element</var>'s children (or the <span>template contents</span>'s children in
-   the case of a <code>template</code> element), and returns a <span>WritableStream</span> that, as
+   the case of a <code>template</code> element), and returns a <code>WritableStream</code> that, as
    strings are written to it, parses them using the HTML parser and incrementally inserts the
    result. <var>element</var> provides context for the HTML parser. If <var>options</var> is a
    <code>SetHTMLUnsafeOptions</code> dictionary containing a <code
@@ -127317,7 +127335,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    Exceptions thrown by <code data-x="">createParserOptions</code> are rethrown.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>shadowRoot</var>.<span subdfn data-x="dom-ShadowRoot-streamHTMLUnsafe">streamHTMLUnsafe</span>([<var>options</var>])</code></dt>
-   <dd><p>Removes <var>shadowRoot</var>'s children, and returns a <span>WritableStream</span> that,
+   <dd><p>Removes <var>shadowRoot</var>'s children, and returns a <code>WritableStream</code> that,
    as strings are written to it, parses them using the HTML parser and incrementally inserts the
    result. <var>shadowRoot</var>'s <span data-x="concept-DocumentFragment-host">host</span> provides
    context for the HTML parser. If <var>options</var> is a <code>SetHTMLUnsafeOptions</code>
@@ -127335,7 +127353,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    Exceptions thrown by <code data-x="">createParserOptions</code> are rethrown.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>element</var>.<span subdfn data-x="dom-Element-streamAppendHTMLUnsafe">streamAppendHTMLUnsafe</span>([<var>options</var>])</code></dt>
-   <dd><p>Returns a <span>WritableStream</span> that, as strings are written to it, parses them
+   <dd><p>Returns a <code>WritableStream</code> that, as strings are written to it, parses them
    using the HTML parser, and incrementally inserts the result after the last child of
    <var>element</var> (or of the <span>template contents</span> in the case of a
    <code>template</code> element). <var>element</var> provides context for the HTML parser. If
@@ -127356,7 +127374,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    Exceptions thrown by <code data-x="">createParserOptions</code> are rethrown.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>shadowRoot</var>.<span subdfn data-x="dom-ShadowRoot-streamAppendHTMLUnsafe">streamAppendHTMLUnsafe</span>([<var>options</var>])</code></dt>
-   <dd><p>Returns a <span>WritableStream</span> that, as strings are written to it, parses them
+   <dd><p>Returns a <code>WritableStream</code> that, as strings are written to it, parses them
    using the HTML parser, and incrementally inserts the result after the last child of
    <var>shadowRoot</var>. <var>shadowRoot</var>'s <span
    data-x="concept-DocumentFragment-host">host</span> provides context for the HTML parser. If
@@ -127375,7 +127393,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    Exceptions thrown by <code data-x="">createParserOptions</code> are rethrown.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>element</var>.<span subdfn data-x="dom-Element-streamPrependHTMLUnsafe">streamPrependHTMLUnsafe</span>([<var>options</var>])</code></dt>
-   <dd><p>Returns a <span>WritableStream</span> that, as strings are written to it, parses them
+   <dd><p>Returns a <code>WritableStream</code> that, as strings are written to it, parses them
    using the HTML parser, and incrementally inserts the result before the first child of
    <var>element</var> (or of the <span>template contents</span> in the case of a
    <code>template</code> element). <var>element</var> provides context for the HTML parser. If
@@ -127397,10 +127415,12 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    content is inserted before <var>element</var>'s <span>first child</span> (or the <span>template
    contents</span>'s <span>first child</span>), at the time of calling the method. The stream
    rejects with a <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if
-   that node is no longer a child of the target.</p></dd>
+   that node is no longer a child of the target. If there is no such child when the method is
+   called, streamed content is appended, so children added later by other means end up before
+   it.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>shadowRoot</var>.<span subdfn data-x="dom-ShadowRoot-streamPrependHTMLUnsafe">streamPrependHTMLUnsafe</span>([<var>options</var>])</code></dt>
-   <dd><p>Returns a <span>WritableStream</span> that, as strings are written to it, parses them
+   <dd><p>Returns a <code>WritableStream</code> that, as strings are written to it, parses them
    using the HTML parser, and incrementally inserts the result before the first child of
    <var>shadowRoot</var>. <var>shadowRoot</var>'s <span
    data-x="concept-DocumentFragment-host">host</span> provides context for the HTML parser. If
@@ -127421,13 +127441,13 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    calling the method. The stream rejects with a <span>"<code>HierarchyRequestError</code>"</span>
    <code>DOMException</code> if that node is no longer a child of <var>shadowRoot</var>.</p></dd>
 
-   <dt><code data-x=""><var>stream</var> = <var>childNode</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamBeforeHTMLUnsafe">streamBeforeHTMLUnsafe</span>([<var>options</var>])</code></dt>
-   <dd><p>Returns a <span>WritableStream</span> that, as strings are written to it, parses them
-   using the HTML parser, and incrementally inserts the result before <var>childNode</var>.
-   <var>childNode</var>'s parent (or, if that parent is a shadow root or <span>template
-   contents</span>, its <span data-x="concept-DocumentFragment-host">host</span>) provides context
-   for the HTML parser. If <var>options</var> is a <code>SetHTMLUnsafeOptions</code> dictionary
-   containing a <code data-x="dom-SetHTMLUnsafeOptions-sanitizer">sanitizer</code> member or a <code
+   <dt><code data-x=""><var>stream</var> = <var>node</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamBeforeHTMLUnsafe">streamBeforeHTMLUnsafe</span>([<var>options</var>])</code></dt>
+   <dd><p>Returns a <code>WritableStream</code> that, as strings are written to it, parses them
+   using the HTML parser, and incrementally inserts the result before <var>node</var>.
+   <var>node</var>'s parent (or, if that parent is a shadow root or <span>template contents</span>,
+   its <span data-x="concept-DocumentFragment-host">host</span>) provides context for the HTML
+   parser. If <var>options</var> is a <code>SetHTMLUnsafeOptions</code> dictionary containing a
+   <code data-x="dom-SetHTMLUnsafeOptions-sanitizer">sanitizer</code> member or a <code
    data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object with a non-null
    sanitizer configuration, it is used to <span>sanitize</span> the parsed fragments before they are
    inserted into the node tree. If <var>options</var>'s <code
@@ -127435,27 +127455,26 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    stream will be executed as they are parsed (or when the stream closes, for <code
    data-x="attr-script-defer">defer</code> and parser-inserted "<code data-x="">module</code>"
    scripts), unless altered by a Trusted Types default policy. Throws a
-   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>childNode</var>'s
+   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>node</var>'s
    <span>parent</span> is an HTML or SVG <code>script</code> element. Throws a
-   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if
-   <var>childNode</var>'s <span>parent</span> is null, a <code>Document</code>, a
-   <code>template</code> element, or a <code>DocumentFragment</code> without a <span
-   data-x="concept-DocumentFragment-host">host</span>. Throws a <code>TypeError</code> if Trusted
-   Types are enforced and <var>options</var> is not a <code
-   data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object, unless a default
-   policy's <code data-x="">createParserOptions</code> returns a value other than null or undefined.
-   Exceptions thrown by <code data-x="">createParserOptions</code> are rethrown. While streaming,
-   content is inserted before <var>childNode</var>, at the time of calling the method. The stream
-   rejects with a <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if
-   that node is no longer a child of its <span>parent</span>.</p></dd>
+   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if <var>node</var>'s
+   <span>parent</span> is null, a <code>Document</code>, a <code>template</code> element, or a
+   <code>DocumentFragment</code> without a <span data-x="concept-DocumentFragment-host">host</span>.
+   Throws a <code>TypeError</code> if Trusted Types are enforced and <var>options</var> is not a
+   <code data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object, unless a
+   default policy's <code data-x="">createParserOptions</code> returns a value other than null or
+   undefined. Exceptions thrown by <code data-x="">createParserOptions</code> are rethrown. While
+   streaming, content is inserted before <var>node</var>, at the time of calling the method. The
+   stream rejects with a <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code>
+   if that node is no longer a child of its <span>parent</span>.</p></dd>
 
-   <dt><code data-x=""><var>stream</var> = <var>childNode</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamAfterHTMLUnsafe">streamAfterHTMLUnsafe</span>([<var>options</var>])</code></dt>
-   <dd><p>Returns a <span>WritableStream</span> that, as strings are written to it, parses them
-   using the HTML parser, and incrementally inserts the result after <var>childNode</var>.
-   <var>childNode</var>'s parent (or, if that parent is a shadow root or <span>template
-   contents</span>, its <span data-x="concept-DocumentFragment-host">host</span>) provides context
-   for the HTML parser. If <var>options</var> is a <code>SetHTMLUnsafeOptions</code> dictionary
-   containing a <code data-x="dom-SetHTMLUnsafeOptions-sanitizer">sanitizer</code> member or a <code
+   <dt><code data-x=""><var>stream</var> = <var>node</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamAfterHTMLUnsafe">streamAfterHTMLUnsafe</span>([<var>options</var>])</code></dt>
+   <dd><p>Returns a <code>WritableStream</code> that, as strings are written to it, parses them
+   using the HTML parser, and incrementally inserts the result after <var>node</var>.
+   <var>node</var>'s parent (or, if that parent is a shadow root or <span>template contents</span>,
+   its <span data-x="concept-DocumentFragment-host">host</span>) provides context for the HTML
+   parser. If <var>options</var> is a <code>SetHTMLUnsafeOptions</code> dictionary containing a
+   <code data-x="dom-SetHTMLUnsafeOptions-sanitizer">sanitizer</code> member or a <code
    data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object with a non-null
    sanitizer configuration, it is used to <span>sanitize</span> the parsed fragments before they are
    inserted into the node tree. If <var>options</var>'s <code
@@ -127463,26 +127482,25 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    stream will be executed as they are parsed (or when the stream closes, for <code
    data-x="attr-script-defer">defer</code> and parser-inserted "<code data-x="">module</code>"
    scripts), unless altered by a Trusted Types default policy. Throws a
-   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>childNode</var>'s
+   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>node</var>'s
    <span>parent</span> is an HTML or SVG <code>script</code> element. Throws a
-   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if
-   <var>childNode</var>'s <span>parent</span> is null, a <code>Document</code>, a
-   <code>template</code> element, or a <code>DocumentFragment</code> without a <span
-   data-x="concept-DocumentFragment-host">host</span>. Throws a <code>TypeError</code> if Trusted
-   Types are enforced and <var>options</var> is not a <code
-   data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object, unless a default
-   policy's <code data-x="">createParserOptions</code> returns a value other than null or undefined.
-   Exceptions thrown by <code data-x="">createParserOptions</code> are rethrown. While streaming,
-   content is inserted before <var>childNode</var>'s <span>next sibling</span> (or after the last
-   child of <var>childNode</var>'s <span>parent</span> if it was the last child), at the time of
+   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if <var>node</var>'s
+   <span>parent</span> is null, a <code>Document</code>, a <code>template</code> element, or a
+   <code>DocumentFragment</code> without a <span data-x="concept-DocumentFragment-host">host</span>.
+   Throws a <code>TypeError</code> if Trusted Types are enforced and <var>options</var> is not a
+   <code data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object, unless a
+   default policy's <code data-x="">createParserOptions</code> returns a value other than null or
+   undefined. Exceptions thrown by <code data-x="">createParserOptions</code> are rethrown. While
+   streaming, content is inserted before <var>node</var>'s <span>next sibling</span> (or after the
+   last child of <var>node</var>'s <span>parent</span> if it was the last child), at the time of
    calling the method. The stream rejects with a <span>"<code>HierarchyRequestError</code>"</span>
-   <code>DOMException</code> if that next sibling is no longer a child of <var>childNode</var>'s
+   <code>DOMException</code> if that next sibling is no longer a child of <var>node</var>'s
    <span>parent</span>.</p></dd>
 
-   <dt><code data-x=""><var>stream</var> = <var>childNode</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamReplaceWithHTMLUnsafe">streamReplaceWithHTMLUnsafe</span>([<var>options</var>])</code></dt>
-   <dd><p>Removes <var>childNode</var>, and returns a <span>WritableStream</span> that, as strings
-   are written to it, parses them using the HTML parser and incrementally inserts the result in its
-   place. <var>childNode</var>'s parent (or, if that parent is a shadow root or <span>template
+   <dt><code data-x=""><var>stream</var> = <var>node</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamReplaceWithHTMLUnsafe">streamReplaceWithHTMLUnsafe</span>([<var>options</var>])</code></dt>
+   <dd><p>Removes <var>node</var>, and returns a <code>WritableStream</code> that, as strings are
+   written to it, parses them using the HTML parser and incrementally inserts the result in its
+   place. <var>node</var>'s parent (or, if that parent is a shadow root or <span>template
    contents</span>, its <span data-x="concept-DocumentFragment-host">host</span>) provides context
    for the HTML parser. If <var>options</var> is a <code>SetHTMLUnsafeOptions</code> dictionary
    containing a <code data-x="dom-SetHTMLUnsafeOptions-sanitizer">sanitizer</code> member or a <code
@@ -127493,21 +127511,20 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    stream will be executed as they are parsed (or when the stream closes, for <code
    data-x="attr-script-defer">defer</code> and parser-inserted "<code data-x="">module</code>"
    scripts), unless altered by a Trusted Types default policy. Throws a
-   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>childNode</var>'s
+   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>node</var>'s
    <span>parent</span> is an HTML or SVG <code>script</code> element. Throws a
-   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if
-   <var>childNode</var>'s <span>parent</span> is null, a <code>Document</code>, a
-   <code>template</code> element, or a <code>DocumentFragment</code> without a <span
-   data-x="concept-DocumentFragment-host">host</span>. Throws a <code>TypeError</code> if Trusted
-   Types are enforced and <var>options</var> is not a <code
-   data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object, unless a default
-   policy's <code data-x="">createParserOptions</code> returns a value other than null or undefined.
-   Exceptions thrown by <code data-x="">createParserOptions</code> are rethrown. While streaming,
-   content is inserted before <var>childNode</var>'s <span>next sibling</span> (or after the last
-   child of <var>childNode</var>'s former <span>parent</span> if it was the last child), at the time
+   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if <var>node</var>'s
+   <span>parent</span> is null, a <code>Document</code>, a <code>template</code> element, or a
+   <code>DocumentFragment</code> without a <span data-x="concept-DocumentFragment-host">host</span>.
+   Throws a <code>TypeError</code> if Trusted Types are enforced and <var>options</var> is not a
+   <code data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object, unless a
+   default policy's <code data-x="">createParserOptions</code> returns a value other than null or
+   undefined. Exceptions thrown by <code data-x="">createParserOptions</code> are rethrown. While
+   streaming, content is inserted before <var>node</var>'s <span>next sibling</span> (or after the
+   last child of <var>node</var>'s former <span>parent</span> if it was the last child), at the time
    of calling the method. The stream rejects with a
    <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if that next sibling
-   is no longer a child of <var>childNode</var>'s former <span>parent</span>.</p></dd>
+   is no longer a child of <var>node</var>'s former <span>parent</span>.</p></dd>
   </dl>
 
   <div w-nodev>
@@ -127912,18 +127929,25 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <p>Let <var>writeAlgorithm</var> be the following steps given <var>chunk</var>:</p>
 
     <ol>
-     <li><p>Let <var>chunkString</var> be the result of <span
-     data-x="concept-idl-convert">converting</span> <var>chunk</var> to a <code
-     data-x="idl-DOMString">DOMString</code>. If this throws an exception, then <span data-x="abort
-     a parser">abort</span> <var>parser</var> and return a promise rejected with that exception,
-     created in <var>realm</var>.</p></li>
+     <li>
+      <p>Let <var>chunkString</var> be the result of <span
+      data-x="concept-idl-convert">converting</span> <var>chunk</var> to a <code
+      data-x="idl-DOMString">DOMString</code>. If this throws an exception, then <span data-x="abort
+      a fragment parser">abort</span> <var>parser</var> and return a promise rejected with that
+      exception, created in <var>realm</var>.</p>
+
+      <p class="note">Chunks are not required to be strings, but are converted to strings. For
+      example, a <code data-x="">Uint8Array</code> chunk would be converted to a comma-separated
+      list of numbers, rather than decoded. Byte streams need to be decoded, e.g., using a <code
+      data-x="">TextDecoderStream</code>, before being piped to the returned stream.</p>
+     </li>
 
      <li>
       <p>If <var>referenceChild</var> is non-null and <var>referenceChild</var>'s
       <span>parent</span> is not <var>target</var>:</p>
 
       <ol>
-       <li><p><span data-x="abort a parser">Abort</span> <var>parser</var>.</p></li>
+       <li><p><span data-x="abort a fragment parser">Abort</span> <var>parser</var>.</p></li>
 
        <li><p>Return a promise rejected with a new <span>"<code>HierarchyRequestError</code>"</span>
        <code>DOMException</code>, created in <var>realm</var>.</p></li>
@@ -127971,13 +127995,15 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    </li>
 
    <li>
-    <p>Let <var>abortAlgorithm</var> be the following steps: if <var>parser</var> has not been <span
-    data-x="abort a parser">aborted</span>, then <span data-x="abort a parser">abort</span>
-    <var>parser</var>.</p>
+    <p>Let <var>abortAlgorithm</var> be the following steps given <var ignore>reason</var>: if
+    <var>parser</var> has not been <span data-x="abort a parser">aborted</span>, then <span
+    data-x="abort a fragment parser">abort</span> <var>parser</var>.</p>
 
-    <p class="note">This only runs once any write in progress has completed. For example, if a
-    script in the chunk being written aborts <var>stream</var>, the rest of that chunk is still
-    parsed. Aborting the parser would fire a <code
+    <p class="note">While a write is in progress, this only runs once it has completed. For example,
+    if a script in the chunk being written aborts <var>stream</var>, the rest of that chunk is still
+    parsed. If <var>stream</var> is aborted while <var>parser</var> is running from a task, e.g., by
+    a <span data-x="concept-custom-element-reaction">custom element reaction</span>, the abort is
+    deferred until <var>parser</var> returns. Aborting the parser would fire a <code
     data-x="event-readystatechange">readystatechange</code> event on the temporary inert document,
     which is not observable.</p>
    </li>
@@ -143857,6 +143883,10 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <p>A <code>Document</code>-or-null <dfn>script target document</dfn>, initially null.</p>
 
+  <p>A boolean <dfn>fragment parser running</dfn> (initially false).</p>
+
+  <p>A boolean <dfn>fragment parser abort requested</dfn> (initially false).</p>
+
   <p>The <dfn>frameset-ok flag</dfn> is set to "ok" when the parser is created. It is set to "not
   ok" after certain tokens are seen, and back to "ok" when the <code>body</code> element is
   inserted implicitly.</p>
@@ -151468,10 +151498,17 @@ document.body.appendChild(text);
 
    <li>
     <p>If the parser's <span>fragment context element</span> is non-null (<span>fragment
-    case</span>), then <span>queue a global task</span> on the <span>DOM manipulation task
-    source</span> given the parser's <span>script target document</span>'s <span>relevant global
-    object</span> to <span>execute the deferred scripts</span> given the parser's
-    <code>Document</code>, and return.</p>
+    case</span>):</p>
+
+    <ol>
+     <li><p>If the <code>Document</code>'s <span>list of scripts that will execute when the document
+     has finished parsing</span> is not empty, then <span>queue a global task</span> on the
+     <span>DOM manipulation task source</span> given the parser's <span>script target
+     document</span>'s <span>relevant global object</span> to <span>execute the deferred
+     scripts</span> given the parser's <code>Document</code>.</p></li>
+
+     <li><p>Return.</p></li>
+    </ol>
 
     <p class="note">This happens whenever a fragment parser reaches the end of its input, e.g., in
     the <span>HTML fragment parsing algorithm</span>, or when the stream is closed while <span
@@ -151664,24 +151701,56 @@ document.body.appendChild(text);
   </div>
 
   <div algorithm>
-  <p>To <dfn>run a fragment parser</dfn> given an <span>HTML parser</span> <var>parser</var>, have
-  <var>parser</var>'s tokenizer process the characters in its <span>input stream</span>, processing
-  resulting tokens as they are emitted, until it has consumed all of them or the processing of the
-  tokenizer is aborted.</p>
+  <p>To <dfn>run a fragment parser</dfn> given an <span>HTML parser</span> <var>parser</var>:</p>
 
-  <p class="note">This does nothing if <var>parser</var>'s <span>parser pause flag</span> is true,
+  <ol>
+   <li>
+    <p>If <var>parser</var>'s <span>fragment parser running</span> is true, then return.</p>
+
+    <p class="note">The ongoing run of <var>parser</var> will consume any input that was appended to
+    its <span>input stream</span>. This happens when script that runs while <var>parser</var> is
+    running, e.g., a <code>script</code> element or a <span
+    data-x="concept-custom-element-reaction">custom element reaction</span>, writes to or closes the
+    stream that is feeding <var>parser</var>. While a write is in progress, the stream queues such
+    requests until that write completes; but when <var>parser</var> runs from a <span
+    data-x="concept-task">task</span> after a <span>pending parsing-blocking script</span> has
+    executed, there is no write in progress and the stream invokes its algorithms
+    synchronously.</p>
+   </li>
+
+   <li><p>Set <var>parser</var>'s <span>fragment parser running</span> to true.</p></li>
+
+   <li><p>Have <var>parser</var>'s tokenizer process the characters in its <span>input
+   stream</span>, processing resulting tokens as they are emitted, until it has consumed all of them
+   or the processing of the tokenizer is aborted.</p></li>
+
+   <li><p>Set <var>parser</var>'s <span>fragment parser running</span> to false.</p></li>
+
+   <li><p>If <var>parser</var>'s <span>fragment parser abort requested</span> is true, then <span
+   data-x="abort a parser">abort</span> <var>parser</var>.</p></li>
+  </ol>
+
+  <p class="note">Step 3 does nothing if <var>parser</var>'s <span>parser pause flag</span> is true,
   i.e., if it is waiting for a <span>pending parsing-blocking script</span>, per the tokenizer's <a
   href="#check-parser-pause-flag">parser pause flag check</a>. Any input appended in the meantime
   stays in the <span>input stream</span>. It also does nothing if <var>parser</var> has been <span
   data-x="abort a parser">aborted</span>, which empties its <span>input stream</span>.</p>
+  </div>
 
-  <p class="note">This algorithm is never invoked while <var>parser</var> is already running. If
-  script that runs while <var>parser</var> is running, e.g., a <code>script</code> element or a
-  <span data-x="concept-custom-element-reaction">custom element reaction</span>, writes to or closes
-  the stream that is feeding <var>parser</var>, the stream queues that request until the current
-  write completes, which only happens after <var>parser</var> returns. Running <var>parser</var>
-  after a <span>pending parsing-blocking script</span> has executed always happens in a separate
-  task.</p>
+  <div algorithm>
+  <p>To <dfn>abort a fragment parser</dfn> given an <span>HTML parser</span> <var>parser</var>:</p>
+
+  <ol>
+   <li><p>If <var>parser</var>'s <span>fragment parser running</span> is true, then set
+   <var>parser</var>'s <span>fragment parser abort requested</span> to true and return.</p></li>
+
+   <li><p><span data-x="abort a parser">Abort</span> <var>parser</var>.</p></li>
+  </ol>
+
+  <p class="note">Aborting <var>parser</var> while it is running, e.g., from a <span
+  data-x="concept-custom-element-reaction">custom element reaction</span> that aborts the stream,
+  would pop the <span>stack of open elements</span> in the middle of inserting an element. The abort
+  is therefore deferred until the current run of <var>parser</var> returns.</p>
   </div>
 
   </div>
@@ -151782,6 +151851,14 @@ document.body.appendChild(text);
     <p>Optionally, return.</p>
 
     <p class="note">This step allows user agents to opt out of speculative HTML parsing.</p>
+   </li>
+
+   <li>
+    <p>If <var>parser</var>'s <span>fragment context element</span> is non-null, then return.</p>
+
+    <p class="note">Fragment parsers, including those used when <span data-x="stream
+    HTML">streaming HTML</span>, do not speculatively parse. Their output might be sanitized, and the
+    speculative parser does not consult the sanitizer configuration.</p>
    </li>
 
    <li>
@@ -152787,8 +152864,8 @@ console.assert(container.firstChild instanceof SuperP);
    <li><p>Set up the <span>HTML parser</span>'s <span>stack of open elements</span> so that it
    contains just the single element <var>root</var>.</p></li>
 
-   <li><p>If <var>insertionLocation</var> is non-null, then set the parser's <span>insertion
-   target redirection map</span>[<var>root</var>] to <var>insertionLocation</var>.</p></li>
+   <li><p>Set the parser's <span>insertion target redirection map</span>[<var>root</var>] to
+   <var>insertionLocation</var>.</p></li>
 
    <li><p>If <var data-x="concept-frag-parse-context">contextElement</var> is a
    <code>template</code> element, then push "<span data-x="insertion mode: in template">in
