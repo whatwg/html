@@ -1841,7 +1841,8 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
    <li id="node-remove-focus-fixup">
     <p>If <var>document</var>'s <span data-x="focused area of the document">focused area</span> is
     <var>removedNode</var>, then set <var>document</var>'s <span data-x="focused area of the
-    document">focused area</span> to <var>document</var>'s <span>viewport</span>, and set
+    document">focused area</span> to <var>document</var>'s <span>viewport</span>, set
+    <var>document</var>'s <span>has pending focus reset</span> to true, and set
     <var>document</var>'s <span>relevant global object</span>'s <span
     data-x="window-navigation-api">navigation API</span>'s <span>focus changed during ongoing
     navigation</span> to false.</p>
@@ -11718,6 +11719,7 @@ partial interface <dfn id="document" data-lt="">Document</dfn> {
   // special <span>event handler IDL attributes</span> that only apply to Document objects
   [<span>LegacyLenientThis</span>] attribute <span>EventHandler</span> <span data-x="handler-onreadystatechange">onreadystatechange</span>;
   attribute <span>EventHandler</span> <span data-x="handler-onvisibilitychange">onvisibilitychange</span>;
+  attribute <span>EventHandler</span> <span data-x="handler-onfocusreset">onfocusreset</span>;
 
   // <a href="#Document-partial">also has obsolete members</a>
 };
@@ -86437,6 +86439,12 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
   area of the document</dfn>. Which control is so designated changes over time, based on algorithms
   in this specification.</p>
 
+  <p>Each <code>Document</code> has a <dfn>has pending focus reset</dfn> boolean, initially false.
+  It is set to true when the <span>focused area of the document</span> is <a
+  href="#node-remove-focus-fixup">synchronously reset</a> to the <span>viewport</span> because it
+  was removed, so that a <code data-x="event-focusreset">focusreset</code> event can be fired during
+  the <a href="#focus-fixup-rule">focus fixup</a>.</p>
+
   <p class="note">Even if a document is not <span>fully active</span> and not shown to the user, it
   can still have a <span>focused area of the document</span>. If a document's <span>fully
   active</span> state changes, its <span>focused area of the document</span> will stay the same.</p>
@@ -123755,26 +123763,63 @@ import "https://example.com/foo/../module2.mjs";</code></pre>
      </li>
 
      <li id="focus-fixup-rule">
-      <p>For each <var>doc</var> of <var>docs</var>, if the <span data-x="focused area of the
-      document">focused area</span> of <var>doc</var> is not a <span>focusable area</span>, then
-      run the <span>focusing steps</span> for <var>doc</var>'s <span>viewport</span>, and set
-      <var>doc</var>'s <span>relevant global object</span>'s <span
-      data-x="window-navigation-api">navigation API</span>'s <span>focus changed during ongoing
-      navigation</span> to false.</p>
+      <p>For each <var>doc</var> of <var>docs</var>:</p>
 
-      <p class="example">For example, this might happen because an element has the <code
-      data-x="attr-hidden">hidden</code> attribute added, causing it to stop <span>being
-      rendered</span>. It might also happen to an <code>input</code> element when the element gets
-      <span data-x="concept-fe-disabled">disabled</span>.</p>
+      <ol>
+       <li><p>Let <var>focusWasReset</var> be false.</p></li>
 
-      <p class="note">This will <a href="#note-sometimes-no-blur-event">usually</a> fire <code
-      data-x="event-blur">blur</code> events, and possibly <code
-      data-x="event-change">change</code> events.</p>
+       <li>
+        <p>If the <span data-x="focused area of the document">focused area</span> of <var>doc</var>
+        is not a <span>focusable area</span>:</p>
 
-      <p class="note">In addition to this asynchronous fixup, if the <span>focused area of the
-      document</span> is removed, there is a <a href="#node-remove-focus-fixup">synchronous
-      fixup</a>. That one will <em>not</em> fire <code data-x="event-blur">blur</code> or <code
-      data-x="event-change">change</code> events.</p>
+        <ol>
+         <li><p>Let <var>previousFocusedArea</var> be the <span data-x="focused area of the
+         document">focused area</span> of <var>doc</var>.</p></li>
+
+         <li><p>Run the <span>focusing steps</span> for <var>doc</var>'s
+         <span>viewport</span>.</p></li>
+
+         <li><p>Set <var>doc</var>'s <span>relevant global object</span>'s <span
+         data-x="window-navigation-api">navigation API</span>'s <span>focus changed during ongoing
+         navigation</span> to false.</p></li>
+
+         <li><p>If the <span data-x="focused area of the document">focused area</span> of
+         <var>doc</var> is not <var>previousFocusedArea</var>, then set <var>focusWasReset</var> to
+         true.</p></li>
+        </ol>
+
+        <p class="example">For example, this might happen because an element has the <code
+        data-x="attr-hidden">hidden</code> attribute added, causing it to stop <span>being
+        rendered</span>. It might also happen to an <code>input</code> element when the element gets
+        <span data-x="concept-fe-disabled">disabled</span>.</p>
+
+        <p class="note">This will <a href="#note-sometimes-no-blur-event">usually</a> fire <code
+        data-x="event-blur">blur</code> events, and possibly <code
+        data-x="event-change">change</code> events.</p>
+
+        <p class="note">In addition to this asynchronous fixup, if the <span>focused area of the
+        document</span> is removed, there is a <a href="#node-remove-focus-fixup">synchronous
+        fixup</a>. That one will <em>not</em> fire <code data-x="event-blur">blur</code> or <code
+        data-x="event-change">change</code> events.</p>
+       </li>
+
+       <li><p>Otherwise, if <var>doc</var>'s <span>has pending focus reset</span> is true and the
+       <span data-x="focused area of the document">focused area</span> of <var>doc</var> is
+       <var>doc</var>'s <span>viewport</span>, then set <var>focusWasReset</var> to true.</p></li>
+
+       <li><p>Set <var>doc</var>'s <span>has pending focus reset</span> to false.</p></li>
+
+       <li>
+        <p>If <var>focusWasReset</var> is true, then <span data-x="concept-event-fire">fire an
+        event</span> named <code data-x="event-focusreset">focusreset</code> at <var>doc</var>.</p>
+
+        <p class="note">This gives web developers a way to find out that focus was moved back to the
+        <span>viewport</span> without a direct call to a focus API, e.g., because the focused
+        element was removed from the document, became <span>inert</span>, or stopped <span>being
+        rendered</span>. Such cases do not always fire <code data-x="event-blur">blur</code>
+        events.</p>
+       </li>
+      </ol>
      </li>
 
      <li><p>For each <var>doc</var> of <var>docs</var>, <span>perform pending transition
@@ -125359,6 +125404,7 @@ typedef <span>OnBeforeUnloadEventHandlerNonNull</span>? <dfn typedef>OnBeforeUnl
    <thead>
     <tr><th><span data-x="event handlers">Event handler</span> <th><span>Event handler event type</span>
    <tbody>
+    <tr><td><dfn attribute for="Document"><code data-x="handler-onfocusreset">onfocusreset</code></dfn> <td> <code data-x="event-focusreset">focusreset</code>
     <tr><td><dfn attribute for="Document"><code data-x="handler-onreadystatechange">onreadystatechange</code></dfn> <td> <code data-x="event-readystatechange">readystatechange</code>
     <tr><td><dfn attribute for="Document"><code data-x="handler-onvisibilitychange">onvisibilitychange</code></dfn> <td> <code data-x="event-visibilitychange">visibilitychange</code>
   </table>
@@ -161341,6 +161387,12 @@ INSERT INTERFACES HERE
      <td> <code>Event</code>
      <td> <code>Window</code>, elements
      <td> Fired at nodes <span data-x="gains focus">gaining focus</span>
+
+    <tr> <!-- focusreset -->
+     <td> <dfn event for="Document"><code data-x="event-focusreset">focusreset</code></dfn>
+     <td> <code>Event</code>
+     <td> <code>Document</code>
+     <td> Fired at the <code>Document</code> when its <span>focused area of the document</span> is reset to its <span>viewport</span> by the <a href="#focus-fixup-rule">focus fixup</a> in the <span>update the rendering</span> steps
 
     <tr> <!-- formdata -->
      <td> <dfn event for="HTMLElement"><code data-x="event-formdata">formdata</code></dfn>
