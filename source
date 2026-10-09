@@ -85751,8 +85751,8 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
   <h4 id="user-activation-data-model">Data model</h4>
 
   <div var-scope>
-  <p>For the purpose of tracking user activation, each <code>Window</code> <var>W</var> has two
-  relevant values:</p>
+  <p>For the purpose of tracking user activation, each <code>Window</code> <var>W</var> has the
+  following relevant values:</p>
 
   <ul>
    <li><p>A <dfn>last activation timestamp</dfn>, which is either a
@@ -85760,8 +85760,9 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
    activated), or negative infinity (indicating that the activation has been <span data-x="consume
    user activation">consumed</span>). Initially positive infinity.</p></li>
 
-   <li><p>A <dfn>last history-action activation timestamp</dfn>, which is either a
-   <code>DOMHighResTimeStamp</code> or positive infinity, initially positive infinity.</p></li>
+   <li><p>A <dfn>has history-action activation</dfn> boolean, initially false.</p></li>
+
+   <li><p>A <dfn>has sticky activation</dfn> boolean, initially false.</p></li>
   </ul>
   </div>
 
@@ -85780,14 +85781,15 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
    <dt><dfn export>Sticky activation</dfn></dt>
    <dd>
     <div algorithm>
-    <p>When the <span>current high resolution time</span> given <var>W</var> is greater than or
-    equal to the <span>last activation timestamp</span> in <var>W</var>, <var>W</var> is said to
+    <p>When <var>W</var>'s <span>has sticky activation</span> is true, then <var>W</var> is said to
     have <span>sticky activation</span>.</p>
     </div>
 
     <p>This is <var>W</var>'s historical activation state, indicating whether the user has ever
     interacted in <var>W</var>. It starts false, then changes to true (and never changes back to
-    false) when <var>W</var> gets the very first <span>activation notification</span>.</p>
+    false) when <var>W</var> gets the very first <span>activation notification</span>. It is also
+    carried over between windows for same-origin navigations, reloads, and traversals (including <a
+    href="#note-sticky-activation-carry-over">during reactivation from bfcache</a>).</p>
    </dd>
 
    <dt><dfn export>Transient activation</dfn></dt>
@@ -85815,9 +85817,8 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
    <dt><dfn>History-action activation</dfn></dt>
    <dd>
     <div algorithm>
-    <p>When the <span>last history-action activation timestamp</span> of <var>W</var> is not equal
-    to the <span>last activation timestamp</span> of <var>W</var>, then <var>W</var> is said to have
-    <span>history-action activation</span>.</p>
+    <p>When <var>W</var>'s <span>has history-action activation</span> is true, then <var>W</var> is
+    said to have <span>history-action activation</span>.</p>
     </div>
 
     <p>This is a special variant of user activation, used to allow access to certain session history
@@ -85832,16 +85833,15 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
   </dl>
   </div>
 
-  <p class="note">The <span>last activation timestamp</span> and <span>last history-action
-  activation timestamp</span> are retained even after the <code>Document</code> changes its
-  <span>fully active</span> status (e.g., after navigating away from a <code>Document</code>, or
-  navigating to a cached <code>Document</code>). This means <span>sticky activation</span> state
-  spans multiple navigations as long as the same <code>Document</code> gets reused. For the
-  transient activation state, the original <span data-x="activation-expiry">expiry</span> time
-  remains unchanged (i.e., the state still expires within the <span>transient activation
-  duration</span> limit from the original <span>activation triggering input event</span>). It is
-  important to consider this when deciding whether to base certain things off <span>sticky
-  activation</span> or <span>transient activation</span>.</p>
+  <p class="note">The underlying values are retained even after the <code>Document</code> changes
+  its <span>fully active</span> status (e.g., after navigating away from a <code>Document</code>, or
+  navigating to a cached <code>Document</code>). This means <span>sticky activation</span> and
+  <span>history-action activation</span> span multiple navigations as long as the same
+  <code>Document</code> gets reused. For the transient activation state, the original <span
+  data-x="activation-expiry">expiry</span> time remains unchanged (i.e., the state still expires
+  within the <span>transient activation duration</span> limit from the original <span>activation
+  triggering input event</span>). It is important to consider this when deciding what type of
+  activation to base certain things on.</p>
 
   <h4 id="user-activation-processing-model">Processing model</h4>
 
@@ -85869,11 +85869,15 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
    <var>document</var>'s <span data-x="concept-document-origin">origin</span>.</p></li>
 
    <li>
-    <p><span data-x="list iterate">For each</span> <var>window</var> in <var>windows</var>:</p>
+    <p><span data-x="list iterate">For each</span> <var>window</var> of <var>windows</var>:</p>
 
     <ol>
      <li><p>Set <var>window</var>'s <span>last activation timestamp</span> to the <span>current
      high resolution time</span>.</p></li>
+
+     <li><p>Set <var>window</var>'s <span>has history-action activation</span> to true.</p></li>
+
+     <li><p>Set <var>window</var>'s <span>has sticky activation</span> to true.</p></li>
 
      <li><p><span>Notify the close watcher manager about user activation</span> given
      <var>window</var>.</p></li>
@@ -85922,7 +85926,7 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
    the <span data-x="nav-window">active window</span> of each item in
    <var>navigables</var>.</p></li>
 
-   <li><p><span data-x="list iterate">For each</span> <var>window</var> in <var>windows</var>, if
+   <li><p><span data-x="list iterate">For each</span> <var>window</var> of <var>windows</var>, if
    <var>window</var>'s <span>last activation timestamp</span> is not positive infinity, then set
    <var>window</var>'s <span>last activation timestamp</span> to negative infinity.</p></li>
   </ol>
@@ -85947,9 +85951,8 @@ interface <dfn interface>VisibilityStateEntry</dfn> : <span>PerformanceEntry</sp
    the <span data-x="nav-window">active window</span> of each item in
    <var>navigables</var>.</p></li>
 
-   <li><p><span data-x="list iterate">For each</span> <var>window</var> in <var>windows</var>, set
-   <var>window</var>'s <span>last history-action activation timestamp</span> to <var>window</var>'s
-   <span>last activation timestamp</span>.</p></li>
+   <li><p><span data-x="list iterate">For each</span> <var>window</var> of <var>windows</var>, set
+   <var>window</var>'s <span>has history-action activation</span> to false.</p></li>
   </ol>
   </div>
 
@@ -107583,6 +107586,16 @@ interface <dfn interface>NotRestoredReasons</dfn> {
    <li><p>An <dfn data-x="document-state-ever-populated" for="document state">ever populated</dfn>
    boolean, initially false.</p></li>
 
+   <li>
+    <p>A <dfn data-x="document-state-created-via-cross-origin-redirects" for="document state">was
+    created via cross-origin redirects</dfn> boolean, initially false.</p>
+
+    <p class="note">This is set to true if a <code>Document</code> whose <span>was created via
+    cross-origin redirects</span> is true was ever stored in the <span
+    data-x="document-state-document">document</span>. It is never set back to false, so it also
+    applies to later navigations that reuse the same document state.</p>
+   </li>
+
    <li><p id="she-bc-name">A <dfn data-x="document-state-nav-target-name" for="document
    state">navigable target name</dfn> string, initially the empty string.</p></li>
 
@@ -110682,6 +110695,19 @@ location.href = '#foo';</code></pre>
        <span data-x="document-state-ever-populated">ever populated</span> to true.</p></li>
 
        <li>
+        <p>If <var>entry</var>'s <span data-x="she-document-state">document state</span>'s <span
+        data-x="document-state-document">document</span>'s <span>was created via cross-origin
+        redirects</span> is true, then set <var>entry</var>'s <span
+        data-x="she-document-state">document state</span>'s <span
+        data-x="document-state-created-via-cross-origin-redirects">was created via cross-origin
+        redirects</span> to true.</p>
+
+        <p class="note">This is checked in <span>apply the history step</span> to decide whether
+        <span>sticky activation</span> is <a href="#note-sticky-activation-carry-over">carried
+        over</a>.</p>
+       </li>
+
+       <li>
         <p>If <var>saveExtraDocumentState</var> is true:</p>
 
         <ol>
@@ -111306,6 +111332,12 @@ location.href = '#foo';</code></pre>
        <dt><span data-x="document-state-ever-populated">ever populated</span></dt>
        <dd><var>oldDocState</var>'s <span data-x="document-state-ever-populated">ever
        populated</span></dd>
+
+       <dt><span data-x="document-state-created-via-cross-origin-redirects">was created via
+       cross-origin redirects</span></dt>
+       <dd><var>oldDocState</var>'s <span
+       data-x="document-state-created-via-cross-origin-redirects">was created via cross-origin
+       redirects</span></dd>
 
        <dt><span data-x="document-state-nav-target-name">navigable target name</span></dt>
        <dd><var>oldDocState</var>'s <span data-x="document-state-nav-target-name">navigable target
@@ -112223,6 +112255,8 @@ location.href = '#foo';</code></pre>
      entries for the navigation API</span> given <var>navigable</var> and
      <var>targetStep</var>.</p></li>
 
+     <li><p>Let <var>stickyActivationToCarryOver</var> be false.</p></li>
+
      <li>
       <p>If <var>changingNavigableContinuation</var>'s <span
       data-x="changing-nav-continuation-update-only">update-only</span> is true, or
@@ -112251,6 +112285,51 @@ location.href = '#foo';</code></pre>
       <ol>
        <li><p><span>Assert</span>: <var>navigationType</var> is not null.</p></li>
 
+       <li>
+        <p>If all of the following are true:</p>
+
+        <ul>
+         <li><p><var>displayedDocument</var>'s <span>relevant global object</span> has <span>sticky
+         activation</span>;</p></li>
+
+         <li><p><var>displayedDocument</var>'s <span data-x="concept-document-origin">origin</span>
+         is <span>same origin</span> with <var>targetEntry</var>'s <span
+         data-x="she-document">document</span>'s <span
+         data-x="concept-document-origin">origin</span>;</p></li>
+
+         <li><p><var>navigationType</var> is "<code
+         data-x="dom-NavigationType-reload">reload</code>", or both of the following are
+         true:</p>
+
+          <ul>
+           <li><p><var>targetEntry</var>'s <span data-x="she-document-state">document
+           state</span>'s <span data-x="document-state-initiator-origin">initiator origin</span> is
+           not null and is <span>same origin</span> with <var>targetEntry</var>'s <span
+           data-x="she-document">document</span>'s <span
+           data-x="concept-document-origin">origin</span>; and</p></li>
+
+           <li><p><var>targetEntry</var>'s <span data-x="she-document-state">document
+           state</span>'s <span data-x="document-state-created-via-cross-origin-redirects">was
+           created via cross-origin redirects</span> is false,</p></li>
+          </ul>
+         </li>
+        </ul>
+
+        <p>then set <var>stickyActivationToCarryOver</var> to true.</p>
+
+        <p class="note" id="note-sticky-activation-carry-over">This allows sticky activation to
+        survive same-origin navigations, reloads, and traversals, including to a <a
+        href="#note-bfcache">bfcached</a> document that did not previously have it. The remaining
+        conditions ensure that this cannot happen if the navigation was not initiated by a
+        same-origin <code>Document</code>, or went through a cross-origin redirect. Because <span
+        data-x="document-state-initiator-origin">initiator origin</span> and <span
+        data-x="document-state-created-via-cross-origin-redirects">was created via cross-origin
+        redirects</span> are stored on the <span data-x="she-document-state">document state</span>
+        and never reset, this holds even if <var>targetEntry</var>'s document was evicted from
+        bfcache and <span data-x="attempt to populate the history entry's
+        document">repopulated</span>.</p>
+       </li>
+
        <li><p><span data-x="deactivate a document for a cross-document navigation">Deactivate</span>
        <var>displayedDocument</var>, given <var>userInvolvement</var>, <var>targetEntry</var>,
        <var>navigationType</var>, and <var>afterPotentialUnloads</var>.</p></li>
@@ -112275,7 +112354,8 @@ location.href = '#foo';</code></pre>
        <var>changingNavigableContinuation</var>'s <span
        data-x="changing-nav-continuation-update-only">update-only</span>,
        <var>scriptHistoryLength</var>, <var>scriptHistoryIndex</var>, <var>navigationType</var>,
-       <var>entriesForNavigationAPI</var>, and <var>previousEntry</var>.</p></li>
+       <var>entriesForNavigationAPI</var>, <var>previousEntry</var>, and
+       <var>stickyActivationToCarryOver</var>.</p></li>
 
        <li><p>If <var>targetEntry</var>'s <span data-x="she-document">document</span> is equal to
        <var>displayedDocument</var>, then perform <var>updateDocument</var>.</p></li>
@@ -112828,8 +112908,9 @@ location.href = '#foo';</code></pre>
   <var>doNotReactivate</var>, integers <var>scriptHistoryLength</var> and
   <var>scriptHistoryIndex</var>, <code>NavigationType</code>-or-null <var>navigationType</var>, an
   optional <span>list</span> of <span data-x="session history entry">session history entries</span>
-  <var>entriesForNavigationAPI</var>, and an optional <span>session history entry</span>
-  <var>previousEntryForActivation</var>:</p>
+  <var>entriesForNavigationAPI</var>, an optional <span>session history entry</span>
+  <var>previousEntryForActivation</var>, and an optional boolean
+  <var>stickyActivationToCarryOver</var> (default false):</p>
 
   <ol>
    <li><p>Let <var>documentIsNew</var> be true if <var>document</var>'s <span>latest entry</span>
@@ -112844,8 +112925,11 @@ location.href = '#foo';</code></pre>
    <li><p>Set <var>document</var>'s <span data-x="doc-history">history object</span>'s <span
    data-x="concept-history-length">length</span> to <var>scriptHistoryLength</var>.</p></li>
 
-   <li><p>Let <var>navigation</var> be <var>history</var>'s <span>relevant global object</span>'s
+   <li><p>Let <var>navigation</var> be <var>document</var>'s <span>relevant global object</span>'s
    <span data-x="window-navigation-api">navigation API</span>.</p></li>
+
+   <li><p>If <var>stickyActivationToCarryOver</var> is true, then set <var>document</var>'s
+   <span>relevant global object</span>'s <span>has sticky activation</span> to true.</p></li>
 
    <li>
     <p>If <var>documentsEntryChanged</var> is true:</p>
@@ -113614,6 +113698,9 @@ location.href = '#foo';</code></pre>
   data-x="dom-DOMImplementation-createHTMLDocument">document.implementation.createHTMLDocument()</code>.</p>
 
   <ol>
+   <li><p>Let <var>navigable</var> be <var>navigationParams</var>'s <span
+   data-x="navigation-params-navigable">navigable</span>.</p></li>
+
    <li>
     <p>Let <var>browsingContext</var> be the result of <span
     data-x="obtain-browsing-context-navigation">obtaining a browsing context to use for a
@@ -113623,11 +113710,10 @@ location.href = '#foo';</code></pre>
     href="#browsing-context-group-switches-due-to-cross-origin-opener-policy">browsing context
     group switch</a>, in which case <var>browsingContext</var> will be a <span data-x="creating a
     new browsing context and document">newly-created</span> <span>browsing context</span> instead
-    of being <var>navigationParams</var>'s <span
-    data-x="navigation-params-navigable">navigable</span>'s <span data-x="nav-bc">active browsing
-    context</span>. In such a case, the created <code>Window</code>, <code>Document</code>, and
-    <span>agent</span> will not end up being used; because the created <code>Document</code>'s
-    <span data-x="concept-document-origin">origin</span> is <span
+    of being <var>navigable</var>'s <span data-x="nav-bc">active browsing context</span>. In such a
+    case, the created <code>Window</code>, <code>Document</code>, and <span>agent</span> will not
+    end up being used; because the created <code>Document</code>'s <span
+    data-x="concept-document-origin">origin</span> is <span
     data-x="concept-origin-opaque">opaque</span>, we will end up creating a new <span>agent</span>
     and <code>Window</code> <a href="#create-new-agent-and-window">later in this algorithm</a> to
     go along with the new <code>Document</code>.</p>
@@ -113635,23 +113721,21 @@ location.href = '#foo';</code></pre>
 
    <li>
     <p>Let <var>permissionsPolicy</var> be the result of <span>creating a permissions policy from a
-    response</span> given <var>navigationParams</var>'s <span
-    data-x="navigation-params-navigable">navigable</span>'s <span
-    data-x="nav-container">container</span>, <var>navigationParams</var>'s <span
-    data-x="navigation-params-origin">origin</span>, and <var>navigationParams</var>'s <span
-    data-x="navigation-params-response">response</span>. <ref>PERMISSIONSPOLICY</ref></p>
+    response</span> given <var>navigable</var>'s <span data-x="nav-container">container</span>,
+    <var>navigationParams</var>'s <span data-x="navigation-params-origin">origin</span>, and
+    <var>navigationParams</var>'s <span data-x="navigation-params-response">response</span>.
+    <ref>PERMISSIONSPOLICY</ref></p>
 
     <div class="note">
      <p>The <span>creating a permissions policy from a response</span> algorithm makes use of the
      passed <span>origin</span>. If <code data-x="dom-document-domain">document.domain</code> has
-     been used for <var>navigationParams</var>'s <span
-     data-x="navigation-params-navigable">navigable</span>'s <span
-     data-x="nav-container-document">container document</span>, then its <span
-     data-x="concept-document-origin">origin</span> cannot be <span>same origin-domain</span> with
-     the passed origin, because these steps run before the <var>document</var> is created, so it
-     cannot itself yet have used <code data-x="dom-document-domain">document.domain</code>. Note
-     that this means that Permissions Policy checks are less permissive compared to doing a
-     <span>same origin</span> check instead.</p>
+     been used for <var>navigable</var>'s <span data-x="nav-container-document">container
+     document</span>, then its <span data-x="concept-document-origin">origin</span> cannot be
+     <span>same origin-domain</span> with the passed origin, because these steps run before the
+     <var>document</var> is created, so it cannot itself yet have used <code
+     data-x="dom-document-domain">document.domain</code>. Note that this means that Permissions
+     Policy checks are less permissive compared to doing a <span>same origin</span> check
+     instead.</p>
 
      <p>See below for some examples of this in action.</p>
     </div>
@@ -113936,10 +114020,9 @@ location.href = '#foo';</code></pre>
    "<code data-x="">pre-media</code>".</p></li>
 
    <li>
-    <p>If <var>navigationParams</var>'s <span data-x="navigation-params-navigable">navigable</span>
-    is a <span>top-level traversable</span>, then <span>process the `<code>Speculation-Rules</code>`
-    header</span> given <var>document</var> and <var>navigationParams</var>'s <span
-    data-x="navigation-params-response">response</span>.</p>
+    <p>If <var>navigable</var> is a <span>top-level traversable</span>, then <span>process the
+    `<code>Speculation-Rules</code>` header</span> given <var>document</var> and
+    <var>navigationParams</var>'s <span data-x="navigation-params-response">response</span>.</p>
 
     <p class="note">This is conditional because <a
     href="#step-consider-speculative-loads-top-level-only">speculative loads are only considered for
