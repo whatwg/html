@@ -3837,6 +3837,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li><dfn data-x-href="https://drafts.csswg.org/css-images/#default-object-size">default object size</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/css-images/#default-sizing">default sizing algorithm</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/css-images/#concrete-object-size">concrete object size</dfn></li>
+     <li><dfn data-x-href="https://drafts.csswg.org/css-images/#natural-aspect-ratio">natural aspect ratio</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/css-images/#natural-dimensions">natural dimensions</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/css-images/#natural-height">natural height</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/css-images/#natural-width">natural width</dfn></li>
@@ -32874,6 +32875,10 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
   <p>Each <span>image request</span> has a <dfn>current pixel density</dfn>, which must initially be
   1.</p>
 
+  <p>Each <span>image request</span> has a <dfn>current source size</dfn>, which is a length in
+  <span data-x="'px'">CSS pixels</span> or null, initially null. It is non-null when the request's
+  URL comes from an <span>image source</span> that had a <span>width descriptor</span>.</p>
+
   <p>Each <span>image request</span> has <dfn>preferred density-corrected dimensions</dfn>, which is
   either a struct consisting of a width and a height or is null. It must initially be null.</p>
 
@@ -32885,6 +32890,9 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
    <li><p>Let <var>density</var> be <var>img</var>'s <span>current request</span>'s <span>current
    pixel density</span>.</p></li>
 
+   <li><p>Let <var>sourceSize</var> be <var>img</var>'s <span>current request</span>'s
+   <span>current source size</span>.</p></li>
+
    <li>
     <p>Let <var>dimensions</var> be <var>img</var>'s <span>current request</span>'s
     <span>preferred density-corrected dimensions</span>.</p>
@@ -32894,14 +32902,38 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
     image.</p>
    </li>
 
-   <li><p>If <var>dimensions</var> is not null, then set
-   <var>dimensions</var>'s width to <var>dimensions</var>'s width divided by
-   <var>density</var>, set <var>dimensions</var>'s height to <var>dimensions</var>'s height
-   divided by <var>density</var>, and return <var>dimensions</var>.</p></li>
+   <li>
+    <p>If <var>dimensions</var> is not null:</p>
+
+    <ol>
+     <li><p>If <var>sourceSize</var> is not null, then set <var>density</var> to
+     <var>dimensions</var>'s width divided by <var>sourceSize</var>.</p></li>
+
+     <li><p>Set <var>dimensions</var>'s width to <var>dimensions</var>'s width divided by
+     <var>density</var>, set <var>dimensions</var>'s height to <var>dimensions</var>'s height
+     divided by <var>density</var>, and return <var>dimensions</var>.</p></li>
+    </ol>
+   </li>
 
    <li><p>Let <var>intrinsicWidth</var>, <var>intrinsicHeight</var>, and
    <var>intrinsicRatio</var> be <var>img</var>'s <span data-x="natural dimensions">intrinsic
    width, intrinsic height, and intrinsic aspect ratio</span>, if any, respectively.</p></li>
+
+   <li>
+    <p>If <var>sourceSize</var> is not null:</p>
+
+    <ol>
+     <li><p>If <var>intrinsicWidth</var> is absent, then return the result of applying the
+     <span>default sizing algorithm</span> with <var>sourceSize</var>, absent, and
+     <var>intrinsicRatio</var>, using a <span>default object size</span> of 300 by 150.</p></li>
+
+     <li><p>If <var>intrinsicWidth</var> is greater than 0, then set <var>density</var> to
+     <var>intrinsicWidth</var> divided by <var>sourceSize</var>.</p></li>
+    </ol>
+
+    <p class="note">This means that the <span>source size</span> determines the width, even if the
+    <span>width descriptor</span> does not match the image's <span>natural width</span>.</p>
+   </li>
 
    <li><p>If <var>intrinsicWidth</var> is not absent, then set <var>intrinsicWidth</var> to
    <var>intrinsicWidth</var> divided by <var>density</var>.</p></li>
@@ -32920,13 +32952,26 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
   data is 300x600, it has <span>density-corrected natural width and height</span> of 96 <span
   data-x="'px'">CSS pixels</span> by 192 <span data-x="'px'">CSS pixels</span>.</p>
 
+  <div class="example">
+   <p>In the following example, the <span>width descriptor</span> says that the image is 400 image
+   pixels wide, but the image data is actually 200x100.</p>
+
+<pre><code class="html">&lt;img srcset="banner.png 400w" sizes="100px" alt="Sale"></code></pre>
+
+   <p>The <span>density-corrected natural width and height</span> is 100 <span
+   data-x="'px'">CSS pixels</span> by 50 <span data-x="'px'">CSS pixels</span>, since the width is
+   given by the <span>source size</span>.</p>
+  </div>
+
   <p>All <code>img</code> and <code>link</code> elements are associated with a <span>source set</span>.</p>
 
   <p>A <dfn>source set</dfn> is an ordered set of zero or more <span data-x="image source">image sources</span>
   and a <span>source size</span>.</p>
 
   <p>An <dfn>image source</dfn> is a <span>URL</span>, and optionally either a <span>pixel density
-  descriptor</span>, or a <span>width descriptor</span>.</p>
+  descriptor</span>, or a <span>width descriptor</span>. An <span>image source</span> also has a
+  <dfn data-x="image source source size">source size</dfn>, which is a length in <span
+  data-x="'px'">CSS pixels</span> or null, initially null.</p>
 
   <p>A <dfn>source size</dfn> is a <span>&lt;source-size-value></span>.
   When a <span>source size</span> has a unit relative to the <span>viewport</span>,
@@ -33162,7 +33207,8 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
    <li><p>Let <var>previousURL</var> be the <span>current request</span>'s <span
    data-x="img-req-url">current URL</span>.</p></li>
 
-   <li><p>Let <var>selected source</var> be null and <var>selected pixel density</var> be undefined.
+   <li><p>Let <var>selected source</var> be null, <var>selected pixel density</var> be undefined,
+   and <var>selected source size</var> be null.
 
    <li><p>If <var>element</var> does not <span>use <code>srcset</code> or
    <code>picture</code></span> and it has a <code data-x="attr-img-src">src</code> attribute
@@ -33209,7 +33255,8 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
        for presentation</span> given <var>element</var>.</p></li>
 
        <li><p>Set the <span>current request</span>'s <span>current pixel density</span> to <var>selected
-       pixel density</var>.</p></li>
+       pixel density</var> and its <span>current source size</span> to <var>selected source
+       size</var>.</p></li>
 
        <li>
         <p><span>Queue an element task</span> on the <span>DOM manipulation task source</span>
@@ -33247,9 +33294,9 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
     succession.</p>
    </li>
 
-   <li><p>Let <var>selected source</var> and <var>selected pixel density</var> be the URL and pixel
-   density that results from <span data-x="select an image source">selecting an image source</span>,
-   respectively.</p></li>
+   <li><p>Let <var>selected source</var>, <var>selected pixel density</var>, and
+   <var>selected source size</var> be the URL, pixel density, and source size that result from
+   <span data-x="select an image source">selecting an image source</span>, respectively.</p></li>
 
    <li>
     <p>If <var>selected source</var> is null:</p>
@@ -33347,7 +33394,9 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
    <li><p><span>Abort the image request</span> for the <span>pending request</span>.</p></li>
 
    <li><p>Set <var>image request</var> to a new <span>image request</span> whose <span
-   data-x="img-req-url">current URL</span> is <var>urlString</var>.</p></li>
+   data-x="img-req-url">current URL</span> is <var>urlString</var>, whose <span>current pixel
+   density</span> is <var>selected pixel density</var>, and whose <span>current source size</span>
+   is <var>selected source size</var>.</p></li>
 
    <li><p>If the <span>current request</span>'s <span data-x="img-req-state">state</span> is <span
    data-x="img-none">unavailable</span> or <span data-x="img-error">broken</span>, then set the
@@ -33711,8 +33760,8 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
   <ol>
    <li><p><span>Update the source set</span> for <var>el</var>.</p></li>
 
-   <li><p>If <var>el</var>'s <span>source set</span> is empty, return null as the URL and undefined
-   as the pixel density.</p></li>
+   <li><p>If <var>el</var>'s <span>source set</span> is empty, return null as the URL, undefined
+   as the pixel density, and null as the source size.</p></li>
 
    <li><p>Return the result of <span data-x="select an image source from a source set">selecting an
    image</span> from <var>el</var>'s <span>source set</span>.</p></li>
@@ -33732,7 +33781,8 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
    <li><p>In an <span>implementation-defined</span> manner, choose one <span>image source</span>
    from <var>sourceSet</var>. Let <var>selectedSource</var> be this choice.</p></li>
 
-   <li><p>Return <var>selectedSource</var> and its associated pixel density.</p></li>
+   <li><p>Return <var>selectedSource</var>, its associated pixel density, and its <span
+   data-x="image source source size">source size</span>.</p></li>
   </ol>
   </div>
 
@@ -34240,7 +34290,8 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
       <p>Otherwise, if the <span>image source</span> has a <span>width descriptor</span>, replace the <span>width
       descriptor</span> with a <span>pixel density descriptor</span> with a <span data-x="pixel density descriptor
       value">value</span> of the <span>width descriptor value</span> divided by <var>source size</var> and a unit
-      of <code data-x="">x</code>.</p>
+      of <code data-x="">x</code>, and set the <span>image source</span>'s <span
+      data-x="image source source size">source size</span> to <var>source size</var>.</p>
 
       <p class="note">If the <span>source size</span> is 0, then the density would be infinity,
       which results in the <span>natural dimensions</span> being 0 by 0.</p>
@@ -34285,18 +34336,19 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
    <!-- we don't support replacing push-JPEG images because defining what happens with
    the tasks and events and so on in that case would become implausibly complicated. -->
 
-   <li><p>&#x231B; Let <var>selected source</var> and <var>selected pixel
-   density</var> be the URL and pixel density that results from <span data-x="select an image
-   source">selecting an image source</span>, respectively.</p></li>
+   <li><p>&#x231B; Let <var>selected source</var>, <var>selected pixel density</var>, and
+   <var>selected source size</var> be the URL, pixel density, and source size that result from
+   <span data-x="select an image source">selecting an image source</span>, respectively.</p></li>
 
    <li><p>&#x231B; If <var>selected source</var> is null, then return.</p></li>
    <!-- not sure this can ever actually happen -->
 
-   <li><p>&#x231B; If <var>selected source</var> and <var>selected pixel
-   density</var> are the same as the element's <span>last selected source</span> and <span>current
-   pixel density</span>, then return.</p></li> <!-- note that this check happens before
-   base URL resolution, so changing the base URL doesn't trigger an update if nothing else changed
-   -->
+   <li><p>&#x231B; If <var>selected source</var>, <var>selected pixel density</var>, and
+   <var>selected source size</var> are the same as the element's <span>last selected
+   source</span>, and the element's <span>current request</span>'s <span>current pixel
+   density</span> and <span>current source size</span>, then return.</p></li>
+   <!-- note that this check happens before base URL resolution, so changing the base URL doesn't
+   trigger an update if nothing else changed -->
 
    <li><p>&#x231B; Let <var>urlString</var> be the result of <span>encoding-parsing-and-serializing
    a URL</span> given <var>selected source</var>, relative to the element's <span>node
@@ -34318,7 +34370,9 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
    data-x="attr-crossorigin-none">No CORS</span>, <var>origin</var>.</p></li>
 
    <li><p>&#x231B; Let <var>image request</var> be a new <span>image request</span>
-   whose <span data-x="img-req-url">current URL</span> is <var>urlString</var>.</p></li>
+   whose <span data-x="img-req-url">current URL</span> is <var>urlString</var>, whose <span>current
+   pixel density</span> is <var>selected pixel density</var>, and whose <span>current source
+   size</span> is <var>selected source size</var>.</p></li>
 
    <li><p>&#x231B; Set the element's <span>pending request</span> to <var>image request</var>.</p></li>
 
@@ -34334,8 +34388,7 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
      steps.</p>
 
      <li><p>Set the <code>img</code> element's <span>last selected source</span> to <var>selected
-     source</var> and the <code>img</code> element's <span>current pixel density</span> to
-     <var>selected pixel density</var>.</p></li>
+     source</var>.</p></li>
 
      <li><p>Set the <var>image request</var>'s <span data-x="img-req-state">state</span> to <span
      data-x="img-all">completely available</span>.</p></li>
@@ -153131,11 +153184,27 @@ iframe { border: 2px inset; }
 
    </dt>
 
-   <dd>The user agent is <span>expected</span> to treat the element as a <span>replaced
-   element</span> whose content is the text that the element represents, if any, optionally
-   alongside an icon indicating that the image is being obtained (if applicable). For
-   <code>input</code> elements, the element is <span>expected</span> to appear button-like to
-   indicate that the element is a <span data-x="concept-button">button</span>.</dd>
+   <dd>
+    <p>The user agent is <span>expected</span> to treat the element as a <span>replaced
+    element</span> whose content is the text that the element represents, if any, optionally
+    alongside an icon indicating that the image is being obtained (if applicable). For
+    <code>input</code> elements, the element is <span>expected</span> to appear button-like to
+    indicate that the element is a <span data-x="concept-button">button</span>.</p>
+
+    <p>If the element is an <code>img</code> element whose <span>current request</span>'s <span
+    data-x="img-req-state">state</span> is <span data-x="img-none">unavailable</span> and whose
+    <span>current request</span>'s <span>current source size</span> is not null, and the user agent
+    has reason to believe that the image will become <i data-x="img-available">available</i> and be
+    rendered in due course, then the <span>replaced element</span> is <span>expected</span> to have
+    a <span>natural width</span> equal to that <span>current source size</span>, and no
+    <span>natural height</span> or <span>natural aspect ratio</span>.</p>
+
+    <p class="note">For example, if CSS sets <span>'width'</span> and <span>'height'</span> to
+    'auto', the <code data-x="attr-dim-width">width</code> and <code
+    data-x="attr-dim-height">height</code> attributes still <span>map to the aspect-ratio property
+    (using dimension rules)</span>, so the element gets its dimensions before the image is
+    fetched.</p>
+   </dd>
 
 
    <!-- no-quirks and limited-quirks modes only-->
