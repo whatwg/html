@@ -129292,17 +129292,21 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
   <var>configuration</var>:</p>
 
   <ol>
+   <li><p>Let <var>pi</var> be «[ "<code
+   data-x="dom-SanitizerProcessingInstruction-target">target</code>" → <var>piTarget</var>
+   ]».</p></li>
+
    <li><p>If <var>configuration</var>["<code
    data-x="dom-SanitizerConfig-processingInstructions">processingInstructions</code>"] <span
    data-x="map exists">exists</span>, then return whether <var>configuration</var>["<code
    data-x="dom-SanitizerConfig-processingInstructions">processingInstructions</code>"] <span
-   data-x="list contains">contains</span> <var>piTarget</var>.</p></li>
+   data-x="list contains">contains</span> <var>pi</var>.</p></li>
 
    <li><p>If <var>configuration</var>["<code
    data-x="dom-SanitizerConfig-removeProcessingInstructions">removeProcessingInstructions</code>"]
    <span data-x="map exists">exists</span> and <var>configuration</var>["<code
    data-x="dom-SanitizerConfig-removeProcessingInstructions">removeProcessingInstructions</code>"]
-   <span data-x="list contains">contains</span> <var>piTarget</var>, then return false.</p></li>
+   <span data-x="list contains">contains</span> <var>pi</var>, then return false.</p></li>
 
    <li><p>Return true.</p></li>
   </ol>
@@ -129342,9 +129346,11 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
 
     <ol>
      <li>
-      <p>If <var>configuration</var>["<code data-x="dom-SanitizerConfig-elements">elements</code>"]
-      does not <span data-x="list contains">contain</span> <var>elementName</var>, then return
-      "<span data-x="sanitizer-action-remove">Remove</span>".</p>
+      <p>If there is no item in <var>configuration</var>["<code
+      data-x="dom-SanitizerConfig-elements">elements</code>"] whose <code
+      data-x="dom-SanitizerElementNamespace-name">name</code> member is <var>localName</var> and
+      whose <code data-x="dom-SanitizerElementNamespace-namespace">namespace</code> member is
+      <var>namespace</var>, then return "<span data-x="sanitizer-action-remove">Remove</span>".</p>
      </li>
     </ol>
    </li>
@@ -129370,19 +129376,16 @@ dictionary <dfn dictionary>SanitizerConfig</dfn> {
    data-x="dom-SanitizerAttributeNamespace-namespace">namespace</code>" → <var>namespace</var>
    ]».</p></li>
 
-   <li><p>Let <var>elementName</var> be «[ "<code
-   data-x="dom-SanitizerElementNamespace-name">name</code>" → <var>elementLocalName</var>, "<code
-   data-x="dom-SanitizerElementNamespace-namespace">namespace</code>" → <var>elementNamespace</var>
-   ]».</p></li>
-
    <li><p>Let <var>elementWithLocalAttributes</var> be «[ ]».</p></li>
 
    <li><p>If <var>configuration</var>["<code data-x="dom-SanitizerConfig-elements">elements</code>"]
-   <span data-x="map exists">exists</span> and <var>configuration</var>["<code
-   data-x="dom-SanitizerConfig-elements">elements</code>"] <span data-x="list
-   contains">contains</span> <var>elementName</var>, then set <var>elementWithLocalAttributes</var>
-   to <var>configuration</var>["<code
-   data-x="dom-SanitizerConfig-elements">elements</code>"][<var>elementName</var>].</p></li>
+   <span data-x="map exists">exists</span> and there is an item <var>element</var> in
+   <var>configuration</var>["<code data-x="dom-SanitizerConfig-elements">elements</code>"] whose
+   <code data-x="dom-SanitizerElementNamespace-name">name</code> member is
+   <var>elementLocalName</var> and whose <code
+   data-x="dom-SanitizerElementNamespace-namespace">namespace</code> member is
+   <var>elementNamespace</var>, then set <var>elementWithLocalAttributes</var> to
+   <var>element</var>.</p></li>
 
    <li><p>If <var>elementWithLocalAttributes</var>["<code
    data-x="dom-SanitizerElementNamespaceWithAttributes-removeAttributes">removeAttributes</code>"]
@@ -143008,8 +143011,7 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <p class="note">When elements are removed or replaced with their children as part of
   sanitization during parsing, adjacent text inserted before and after the removed element will
-  coalesce into a single <code>Text</code> node, as opposed to post-parsing sanitization where the
-  text nodes would remain split.</p>
+  coalesce into a single <code>Text</code> node.</p>
 
   <h4><dfn>Tokenization</dfn></h4>
 
@@ -145932,22 +145934,26 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    and <var>sanitizerConfig</var> is false, then set <var>is</var> to null.</p></li>
 
    <li>
-    <p>Let <var>registry</var> be null if <var>sanitizerAction</var> is not "<span
-    data-x="sanitizer-action-keep">Keep</span>"; otherwise the result of <span data-x="look up a
+    <p>Let <var>registry</var> be null if <var>sanitizerAction</var> is "<span
+    data-x="sanitizer-action-remove">Remove</span>"; otherwise the result of <span data-x="look up a
     custom element registry">looking up a custom element registry</span> given
     <var>intendedParent</var>.</p>
 
-    <p class="note">Elements that the sanitizer will remove or replace with their children are
-    created without a <span data-x="element-custom-element-registry">custom element registry</span>,
-    so no <span>custom element constructor</span> runs for them, nor for the descendants of removed
-    elements, which look up their registry from them. Likewise, an <code data-x="attr-is">is</code>
-    attribute that the sanitizer will remove does not create a <span>customized built-in
-    element</span>.</p>
+    <p class="note">Elements that the sanitizer will remove are created without a <span
+    data-x="element-custom-element-registry">custom element registry</span>, so no <span>custom
+    element constructor</span> runs for them or for their descendants, which look up their registry
+    from them. Elements that will be replaced with their children are also created without a
+    registry so no constructor runs for them, and then have their <span
+    data-x="element-custom-element-registry">custom element registry</span> set to
+    <var>registry</var> so that their children inherit it. Likewise, an <code
+    data-x="attr-is">is</code> attribute that the sanitizer will remove does not create a
+    <span>customized built-in element</span>.</p>
    </li>
 
-   <li><p>Let <var>definition</var> be the result of <span data-x="look up a custom element
-   definition">looking up a custom element definition</span> given <var>registry</var>,
-   <var>namespace</var>, <var>localName</var>, and <var>is</var>.</p></li>
+   <li><p>Let <var>definition</var> be null if <var>sanitizerAction</var> is not "<span
+   data-x="sanitizer-action-keep">Keep</span>"; otherwise the result of <span data-x="look up a
+   custom element definition">looking up a custom element definition</span> given
+   <var>registry</var>, <var>namespace</var>, <var>localName</var>, and <var>is</var>.</p></li>
 
    <li><p>Let <var>willExecuteScript</var> be true if <var>definition</var> is non-null and the
    parser's <span>fragment context element</span> is null; otherwise false.</p></li>
@@ -145970,7 +145976,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    <li>
     <p>Let <var>element</var> be the result of <span data-x="create an element">creating an
     element</span> given <var>document</var>, <var>localName</var>, <var>namespace</var>,
-    <var>prefix</var>, <var>is</var>, <var>willExecuteScript</var>, and <var>registry</var>.</p>
+    <var>prefix</var>, <var>is</var>, <var>willExecuteScript</var>, and <var>registry</var> if
+    <var>sanitizerAction</var> is "<span data-x="sanitizer-action-keep">Keep</span>" or null
+    otherwise.</p>
 
     <p class="note">This will cause <span data-x="custom element constructor">custom element
     constructors</span> to run, if <var>willExecuteScript</var> is true. However, since we
@@ -145978,6 +145986,11 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     data-x="dom-document-write">new characters to be inserted into the tokenizer</span>, or <span
     data-x="dom-document-open">the document to be blown away</span>.</p>
    </li>
+
+   <li><p>If <var>sanitizerAction</var> is "<span
+   data-x="sanitizer-action-replace-with-children">Replace with children</span>", then set
+   <var>element</var>'s <span data-x="element-custom-element-registry">custom element
+   registry</span> to <var>registry</var>.</p></li>
 
    <li>
     <p><span data-x="list iterate">For each</span> <var>attribute</var> of <var>token</var>'s
@@ -146154,16 +146167,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
       </ol>
      </li>
 
-     <li>
-      <p>If <var>action</var> is "<span data-x="sanitizer-action-replace-with-children">Replace with
-      children</span>" and <var>targetParent</var> is a <code>Document</code>, then set
-      <var>action</var> to "<span data-x="sanitizer-action-keep">Keep</span>".</p>
-
-      <p class="note">A <code>Document</code> can only have a single element child, so the
-      <span>document element</span> cannot be <span
-      data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaced with its children</span>. It
-      is kept instead (its attributes were already sanitized when it was created).</p>
-     </li>
+     <li><p><span>Assert</span>: If <var>targetParent</var> is a <code>Document</code>, then
+     <var>action</var> is not "<span data-x="sanitizer-action-replace-with-children">Replace with
+     children</span>".</p></li>
 
      <li>
       <p>Switch on <var>action</var>:</p>
