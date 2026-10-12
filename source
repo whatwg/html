@@ -1843,23 +1843,24 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
     <var>removedNode</var>:</p>
 
     <ol>
-     <li><p>If the <span>has focus steps</span> given <var>document</var> return true, then set
-     <var>document</var>'s <span>has pending focus reset</span> to true.</p></li>
-
      <li><p>Set <var>document</var>'s <span data-x="focused area of the document">focused
      area</span> to <var>document</var>'s <span>viewport</span>.</p></li>
 
      <li><p>Set <var>document</var>'s <span>relevant global object</span>'s <span
      data-x="window-navigation-api">navigation API</span>'s <span>focus changed during ongoing
      navigation</span> to false.</p></li>
+
+     <li><p>If the <span>has focus steps</span> given <var>document</var> return true, then
+     <span>signal a focus reset</span> for <var>document</var>.</p></li>
     </ol>
 
     <p class="note">This does <em>not</em> perform the <span>unfocusing steps</span>,
     <span>focusing steps</span>, or <span>focus update steps</span>, and thus no <code
     data-x="event-blur">blur</code> or <code data-x="event-change">change</code> events are fired.
-    Instead, a <code data-x="event-focusreset">focusreset</code> event is fired during the next
-    <span>update the rendering</span> steps, unless focus is explicitly moved before then. If
-    <var>document</var> does not have focus, <var>removedNode</var> already received a <code
+    Instead, a <code data-x="event-focusreset">focusreset</code> event is fired at
+    <var>document</var> the next time the user agent runs <span>notify mutation observers</span>
+    (i.e., in a microtask), unless focus is explicitly moved before then. If <var>document</var>
+    does not have focus, <var>removedNode</var> already received a <code
     data-x="event-blur">blur</code> event when focus left <var>document</var>.</p>
    </li>
 
@@ -3459,6 +3460,8 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
                       <dfn data-x="concept-element-is-value" data-x-href="https://dom.spec.whatwg.org/#concept-element-is-value"><code data-x="">is</code> value</dfn></li>
 
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#mutationobserver"><code>MutationObserver</code></dfn> interface and <dfn data-x-href="https://dom.spec.whatwg.org/#mutation-observers">mutation observers</dfn> in general</li>
+     <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#notify-mutation-observers">notify mutation observers</dfn> algorithm</li>
+     <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#signal-a-focus-reset">signal a focus reset</dfn> algorithm and <dfn data-x-href="https://dom.spec.whatwg.org/#pending-focus-reset-documents">pending focus reset documents</dfn></li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#abortcontroller"><code>AbortController</code></dfn> and its
          <dfn data-x="concept-AbortController-signal" data-x-href="https://dom.spec.whatwg.org/#abortcontroller-signal">signal</dfn></li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#abortsignal"><code>AbortSignal</code></dfn></li>
@@ -86498,14 +86501,6 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
   area of the document</dfn>. Which control is so designated changes over time, based on algorithms
   in this specification.</p>
 
-  <p>Each <code>Document</code> has a <dfn>has pending focus reset</dfn> boolean, initially false.
-  It is set to true when the <span>focused area of the document</span> is <a
-  href="#node-remove-focus-fixup">synchronously reset</a> to the <span>viewport</span> because it
-  was removed while the document had focus, so that a <code
-  data-x="event-focusreset">focusreset</code> event can be fired during the next <span>update the
-  rendering</span> steps. It is set to false when focus is explicitly moved by the <span>focus
-  update steps</span>.</p>
-
   <p class="note">Even if a document is not <span>fully active</span> and not shown to the user, it
   can still have a <span>focused area of the document</span>. If a document's <span>fully
   active</span> state changes, its <span>focused area of the document</span> will stay the same.</p>
@@ -87269,19 +87264,25 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
   follows:</p>
 
   <ol>
-   <li>
-    <p>For each <var>entry</var> of <var>old chain</var> and <var>new chain</var>, if
-    <var>entry</var> is a <code>Document</code> object, then set <var>entry</var>'s <span>has
-    pending focus reset</span> to false.</p>
-
-    <p class="note">Focus is being explicitly moved, so there is no need to fire a <code
-    data-x="event-focusreset">focusreset</code> event for an earlier reset.</p>
-   </li>
+   <li><p>Let <var>documents</var> be a <span>list</span> of all <code>Document</code> objects in
+   <var>old chain</var> and <var>new chain</var>.</p></li>
 
    <!-- focusin/focusout?: https://software.hixie.ch/utilities/js/live-dom-viewer/?saved=723 -->
 
-   <li><p>If the last entry in <var>old chain</var> and the last entry in <var>new chain</var> are the same, pop the last entry from <var>old chain</var>
-   and the last entry from <var>new chain</var> and redo this step.</p></li>
+   <li><p>If the last entry in <var>old chain</var> and the last entry in <var>new chain</var> are
+   the same, pop the last entry from <var>old chain</var> and the last entry from <var>new
+   chain</var> and redo this step.</p></li>
+
+   <li>
+    <p>If <var>new chain</var> contains an <code>Element</code> or a <code>Document</code> object,
+    then for each <var>document</var> of <var>documents</var>, <span data-x="list
+    remove">remove</span> <var>document</var> from <var>document</var>'s <span>relevant
+    agent</span>'s <span>pending focus reset documents</span>.</p>
+
+    <p class="note">Focus is being explicitly moved to a target that will receive a <code
+    data-x="event-focus">focus</code> event, so there is no need to fire a <code
+    data-x="event-focusreset">focusreset</code> event for an earlier reset.</p>
+   </li>
 
    <li>
     <p>For each entry <var>entry</var> in <var>old chain</var>, in order, run
@@ -123833,47 +123834,27 @@ import "https://example.com/foo/../module2.mjs";</code></pre>
      </li>
 
      <li id="focus-fixup-rule">
-      <p>For each <var>doc</var> of <var>docs</var>:</p>
+      <p>For each <var>doc</var> of <var>docs</var>, if the <span data-x="focused area of the
+      document">focused area</span> of <var>doc</var> is not a <span>focusable area</span>, then
+      run the <span>focusing steps</span> for <var>doc</var>'s <span>viewport</span>, and set
+      <var>doc</var>'s <span>relevant global object</span>'s <span
+      data-x="window-navigation-api">navigation API</span>'s <span>focus changed during ongoing
+      navigation</span> to false.</p>
 
-      <ol>
-       <li>
-        <p>If the <span data-x="focused area of the document">focused area</span> of <var>doc</var>
-        is not a <span>focusable area</span>, then run the <span>focusing steps</span> for
-        <var>doc</var>'s <span>viewport</span>, and set <var>doc</var>'s <span>relevant global
-        object</span>'s <span data-x="window-navigation-api">navigation API</span>'s <span>focus
-        changed during ongoing navigation</span> to false.</p>
+      <p class="example">For example, this might happen because an element has the <code
+      data-x="attr-hidden">hidden</code> attribute added, causing it to stop <span>being
+      rendered</span>. It might also happen to an <code>input</code> element when the element gets
+      <span data-x="concept-fe-disabled">disabled</span>.</p>
 
-        <p class="example">For example, this might happen because an element has the <code
-        data-x="attr-hidden">hidden</code> attribute added, causing it to stop <span>being
-        rendered</span>. It might also happen to an <code>input</code> element when the element gets
-        <span data-x="concept-fe-disabled">disabled</span>.</p>
+      <p class="note">This will <a href="#note-sometimes-no-blur-event">usually</a> fire <code
+      data-x="event-blur">blur</code> events, and possibly <code
+      data-x="event-change">change</code> events.</p>
 
-        <p class="note">This will <a href="#note-sometimes-no-blur-event">usually</a> fire <code
-        data-x="event-blur">blur</code> events, and possibly <code
-        data-x="event-change">change</code> events. If <var>doc</var> does not have focus, no events
-        are fired, but the previously focused element already received a <code
-        data-x="event-blur">blur</code> event when focus left <var>doc</var>.</p>
-       </li>
-
-       <li>
-        <p>Otherwise, if the <span data-x="focused area of the document">focused area</span> of
-        <var>doc</var> is <var>doc</var>'s <span>viewport</span> and <var>doc</var>'s <span>has
-        pending focus reset</span> is true:</p>
-
-        <ol>
-         <li><p>Set <var>doc</var>'s <span>has pending focus reset</span> to false.</p></li>
-
-         <li><p><span data-x="concept-event-fire">Fire an event</span> named <code
-         data-x="event-focusreset">focusreset</code> at <var>doc</var>.</p></li>
-        </ol>
-
-        <p class="note">This happens if the focused element was removed from the document, which
-        triggers a <a href="#node-remove-focus-fixup">synchronous fixup</a>. That one does
-        <em>not</em> fire <code data-x="event-blur">blur</code> or <code
-        data-x="event-change">change</code> events, so this gives web developers a way to find out
-        that focus was reset.</p>
-       </li>
-      </ol>
+      <p class="note">In addition to this asynchronous fixup, if the <span>focused area of the
+      document</span> is removed, there is a <a href="#node-remove-focus-fixup">synchronous
+      fixup</a>. That one will <em>not</em> fire <code data-x="event-blur">blur</code> or <code
+      data-x="event-change">change</code> events; instead, it causes a <code
+      data-x="event-focusreset">focusreset</code> event to be fired.</p>
      </li>
 
      <li><p>For each <var>doc</var> of <var>docs</var>, <span>perform pending transition
@@ -162019,7 +162000,7 @@ INSERT INTERFACES HERE
      <td> <dfn event for="Document"><code data-x="event-focusreset">focusreset</code></dfn>
      <td> <code>Event</code>
      <td> <code>Document</code>
-     <td> Fired at the <code>Document</code> during the <span>update the rendering</span> steps if its focused element was removed and focus was not explicitly moved since
+     <td> Fired at the <code>Document</code> during <span>notify mutation observers</span> if its focused element was removed and focus was not explicitly moved since
 
     <tr> <!-- formdata -->
      <td> <dfn event for="HTMLElement"><code data-x="event-formdata">formdata</code></dfn>
