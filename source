@@ -10297,6 +10297,9 @@ interface <dfn interface>DOMStringList</dfn> {
     the same agent cluster">restricted</span> to the same <span>agent cluster</span>, then it may
     also refer to data that is only accessible within that agent cluster.</p>
 
+    <p><var>serialized</var> has an [[AgentCluster]] field, which is null unless
+    <var>serialized</var> is restricted to the same agent cluster.</p>
+
     <p>These steps may throw an exception if serialization is not possible.</p>
 
     <p>These steps may perform a <span>sub-serialization</span> to serialize nested data
@@ -10428,6 +10431,9 @@ interface <dfn interface>DOMStringList</dfn> {
     the same agent cluster">restricted</span> to the same <span>agent cluster</span>, then it may
     also refer to data that is only accessible within that agent cluster.</p>
 
+    <p><var>dataHolder</var> has an [[AgentCluster]] field, which is null unless
+    <var>dataHolder</var> is restricted to the same agent cluster.</p>
+
     <p>These steps may throw an exception if transferral is not possible.</p>
    </dd>
    </div>
@@ -10472,13 +10478,13 @@ interface <dfn interface>DOMStringList</dfn> {
 
   <h4>Restricting to the same agent cluster</h4>
 
-  <p>Some <span>serializable objects</span> and <span>transferable objects</span>, such as
-  <code>SharedArrayBuffer</code> objects, are restricted to the same <span>agent cluster</span>:
-  they can only be deserialized or received in the agent cluster they were serialized or
-  transferred from. Such serializable objects also cannot be serialized for storage. For example,
-  when <code data-x="">postMessage()</code> is used to send one to a cross-site <code>iframe</code>,
-  a shared worker, or a service worker, a <code data-x="event-messageerror">messageerror</code>
-  event is fired instead of a <code data-x="event-message">message</code> event.</p>
+  <p>Some objects, such as <code>SharedArrayBuffer</code> objects, are restricted to the same
+  <span>agent cluster</span>: they can only be deserialized or received in the agent cluster they
+  were serialized or transferred from. Such objects also cannot be serialized for storage. For
+  example, when <code data-x="">postMessage()</code> is used to send one to a cross-site
+  <code>iframe</code>, a shared worker, or a service worker, a <code
+  data-x="event-messageerror">messageerror</code> event is fired instead of a <code
+  data-x="event-message">message</code> event.</p>
 
   <div w-nodev>
 
@@ -10806,10 +10812,9 @@ interface <dfn interface>DOMStringList</dfn> {
     the result will be an empty object (not an <span>immutable prototype exotic object</span>).
    </li>
 
-   <li><p>Set <var>serialized</var>.[[AgentCluster]] to null.</p></li>
-
    <li><p>If <var>sameAgentCluster</var> is true, then <span data-x="restrict to the same agent
-   cluster">restrict</span> <var>serialized</var> to the same agent cluster.</p></li>
+   cluster">restrict</span> <var>serialized</var> to the same agent cluster; otherwise, set
+   <var>serialized</var>.[[AgentCluster]] to null.</p></li>
 
    <li><p><span data-x="map set">Set</span> <var>memory</var>[<var>value</var>] to
    <var>serialized</var>.</p></li>
@@ -11449,8 +11454,25 @@ o.myself = o;</code></pre>
     </ol>
    </li>
 
-   <li><p>Return { [[Serialized]]: <var>serialized</var>, [[TransferDataHolders]]:
-   <var>transferDataHolders</var> }.</p></li>
+   <li><p>Let <var>result</var> be { [[Serialized]]: <var>serialized</var>,
+   [[TransferDataHolders]]: <var>transferDataHolders</var>, [[InterfaceNames]]: an empty <span
+   data-x="set">ordered set</span>, [[AgentCluster]]: null }.</p></li>
+
+   <li>
+    <p><span data-x="map iterate">For each</span> <var>object</var> → <var>record</var> of
+    <var>memory</var>:</p>
+
+    <ol>
+     <li><p>If <var>object</var> is a <span>platform object</span>, then <span data-x="set
+     append">append</span> <var>record</var>.[[Type]] to
+     <var>result</var>.[[InterfaceNames]].</p></li>
+
+     <li><p>If <var>record</var>.[[AgentCluster]] is not null, then <span data-x="restrict to the
+     same agent cluster">restrict</span> <var>result</var> to the same agent cluster.</p></li>
+    </ol>
+   </li>
+
+   <li><p>Return <var>result</var>.</p></li>
   </ol>
   </div>
 
@@ -11470,20 +11492,18 @@ o.myself = o;</code></pre>
     instead.</p>
    </li>
 
+   <li><p>If <var>serializeWithTransferResult</var>.[[AgentCluster]] is not null and
+   <var>targetRealm</var>'s corresponding <span>agent cluster</span> is not
+   <var>serializeWithTransferResult</var>.[[AgentCluster]], then throw a
+   <span>"<code>DataCloneError</code>"</span> <code>DOMException</code>.</p></li>
+
    <li>
-    <p><span data-x="list iterate">For each</span> <var>transferDataHolder</var> of
-    <var>serializeWithTransferResult</var>.[[TransferDataHolders]]:</p>
+    <p><span data-x="list iterate">For each</span> <var>interfaceName</var> of
+    <var>serializeWithTransferResult</var>.[[InterfaceNames]]:</p>
 
     <ol>
-     <li><p>If <var>transferDataHolder</var>.[[Type]] is neither "ArrayBuffer" nor
-     "ResizableArrayBuffer", and the interface identified by
-     <var>transferDataHolder</var>.[[Type]] is not <span data-x="idl-exposed">exposed</span> in
-     <var>targetRealm</var>, then throw a <span>"<code>DataCloneError</code>"</span>
-     <code>DOMException</code>.</p></li>
-
-     <li><p>If <var>transferDataHolder</var>.[[AgentCluster]] is not null and
-     <var>targetRealm</var>'s corresponding <span>agent cluster</span> is not
-     <var>transferDataHolder</var>.[[AgentCluster]], then throw a
+     <li><p>If the interface identified by <var>interfaceName</var> is not <span
+     data-x="idl-exposed">exposed</span> in <var>targetRealm</var>, then throw a
      <span>"<code>DataCloneError</code>"</span> <code>DOMException</code>.</p></li>
     </ol>
    </li>
