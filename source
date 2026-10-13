@@ -85366,12 +85366,10 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
    <li>
     <p>It contains all elements in <var>owner</var>'s <span>focus navigation scope</span> that
     are themselves <span data-x="focus navigation scope owner">focus navigation scope owners</span>,
-    except:</p>
-    <ul class="brief">
-     <li>the elements whose <span>tabindex value</span> is a negative integer; and</li>
-     <li><span>focus group item</span>s that are <span>excluded from sequential focus
-     navigation</span>.</li>
-    </ul>
+    except elements whose <span>tabindex value</span> is a negative integer. A <span>shadow
+    host</span> with a negative <span>tabindex value</span> is included if it is in a <span>focus
+    group scope</span>, its <span data-x="concept-element-shadow-root">shadow root</span> was not
+    created by the user agent, and that root's <span>delegates focus</span> is false.</p>
    </li>
 
    <li>
@@ -85381,7 +85379,8 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
     <ul class="brief">
      <li>the <span data-x="focusable area">focusable areas</span> whose <span>tabindex
      value</span> is a negative integer; and</li>
-     <li><span>focus group item</span>s that are <span>excluded from sequential focus
+     <li>the <span data-x="focusable area">focusable areas</span> whose <span>DOM anchor</span> is
+     a <span>focus group item</span> that is <span>excluded from sequential focus
      navigation</span>.</li>
     </ul>
    </li>
@@ -85389,7 +85388,9 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
   </div>
 
   <p>The order within a <span>tabindex-ordered focus navigation scope</span> is determined by each
-  element's <span>tabindex value</span>, as described in the section below.</p>
+  element's <span>tabindex value</span>, as described in the section below. For this ordering, a
+  shadow host included despite a negative tabindex value is treated as if its tabindex value
+  were zero.</p>
 
   <p class="note">The rules there do not give a precise ordering, as they are composed mostly of
   "<!--non-normative-->should" statements and relative orderings.</p>
@@ -85411,8 +85412,32 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
      <li><p>If <var>item</var> is not a <span>focus navigation scope owner</span>, then
      <span>continue</span>.</p></li>
 
-     <li><p>If <var>item</var> is not a <span>focusable area</span>, then replace <var>item</var>
-     with all of the items in <var>item</var>'s <span>flattened tabindex-ordered focus navigation
+     <li>
+      <p>If <var>item</var> is a <span>focus group item</span> that is <span>excluded from
+      sequential focus navigation</span>, and is neither a <span>slot</span> nor a <span>shadow
+      host</span> whose <span data-x="concept-element-shadow-root">shadow root</span> was not
+      created by the user agent, then:</p>
+
+      <ol>
+       <li><p>Let <var>focusedAnchor</var> be the <span>currently focused area of a top-level
+       traversable</span>'s <span>DOM anchor</span>.</p></li>
+
+       <li><p>Let <var>focusedOwner</var> be <var>focusedAnchor</var>'s <span>associated focus
+       navigation owner</span> if <var>focusedAnchor</var> is an element; otherwise null.</p></li>
+
+       <li><p>While <var>focusedOwner</var> is an element and is not <var>item</var>, set
+       <var>focusedOwner</var> to <var>focusedOwner</var>'s <span>associated focus navigation
+       owner</span>.</p></li>
+
+       <li><p>If <var>focusedOwner</var> is not <var>item</var>, then remove <var>item</var> from
+       <var>result</var> and <span>continue</span>.</p></li>
+      </ol>
+     </li>
+
+     <li><p>If <var>item</var> is not a <span>focusable area</span>, its <span>tabindex
+     value</span> is a negative integer, or it is a <span>focus group item</span> that is
+     <span>excluded from sequential focus navigation</span>, then replace <var>item</var> with
+     all of the items in <var>item</var>'s <span>flattened tabindex-ordered focus navigation
      scope</span>.</p></li>
 
      <li><p>Otherwise, insert the contents of <var>item</var>'s <span>flattened tabindex-ordered
@@ -85421,6 +85446,11 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
    </li>
   </ol>
   </div>
+
+  <p class="note">A focus navigation scope owner can remain a route to its scope without being
+  a sequential focus stop. In a focus group, non-entry author shadow hosts and slots retain that
+  route. Other non-entry owners, such as popover triggers, retain it when focus is already within
+  their scope; this does not make every non-entry trigger a route for entering a popover.</p>
 
   </div>
 
@@ -85548,7 +85578,9 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
 
    <dd>
     <p>The user agent must consider the element as a <span>focusable area</span>, but should omit
-    the element from any <span>tabindex-ordered focus navigation scope</span>.</p>
+    the element from any <span>tabindex-ordered focus navigation scope</span>, except for the
+    shadow-host traversal rule in that scope's definition. That exception includes the host's
+    scope, not the host's own focus stop.</p>
 
     <p class="note">One valid reason to ignore the requirement that sequential focus navigation not
     allow the author to lead to the element would be if the user's only mechanism for moving the
@@ -86860,10 +86892,11 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
      wrap apply.</p></li>
 
      <li><p><i>Axis</i>: if both <code data-x="attr-focusgroup-inline">inline</code> and <code
-     data-x="attr-focusgroup-block">block</code> are in <var>modifiers</var>, <span>Directional
+     data-x="attr-focusgroup-block">block</code> are in <var>modifiers</var>, then <span>Directional
      Navigation</span> operates on both axes. Otherwise, if exactly one is in <var>modifiers</var>,
-     <span>Directional Navigation</span> is restricted to that axis. Otherwise, the
-     <var>behavior</var>'s <span>default modifiers</span> for axis apply.</p></li>
+     then it replaces the default axis selection and <span>Directional Navigation</span> is
+     restricted to that axis. Otherwise, the <var>behavior</var>'s <span>default modifiers</span>
+     for axis apply.</p></li>
 
      <li><p><i>Memory</i>: if <code data-x="attr-focusgroup-nomemory">nomemory</code> is in
      <var>modifiers</var>, the <span>last focused item</span> memory is disabled.</p></li>
@@ -86875,113 +86908,97 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
   </ol>
   </div>
 
-  <p><dfn data-x="behavior token">Behavior tokens</dfn> define the <dfn>interaction pattern</dfn>,
-  which refers to how the directional navigation inputs are used to move focus between <span
-  data-x="focus group item">focus group items</span>.</p>
+  <p><dfn data-x="behavior token">Behavior tokens</dfn> identify the intended composite interaction
+  and determine the default axis and wrapping settings for <span>Directional Navigation</span>
+  among <span data-x="focus group item">focus group items</span>.</p>
 
-  <p>The following <span data-x="behavior token">behavior tokens</span> and
-  <dfn>modifier tokens</dfn> are recognized:</p>
+  <p class="note">A behavior token identifies the author's intended composite interaction.
+  Modifier tokens customize that interaction but do not identify one on their own. Requiring a
+  behavior token also ties the requested navigation to a recognizable widget pattern for which
+  accessibility semantics can be defined. It does not require the author to specify an explicit
+  ARIA role or guarantee a particular assistive-technology interaction mode.</p>
 
-  <ul>
-   <li><p><dfn data-x="linear interaction pattern">Linear</dfn>: Enables sequential navigation
-   forwards and backwards through a set of focusable items. In a <span data-x="linear interaction
-   pattern">linear interaction pattern</span>, even when both directional input axes are allowed
-   (such as when neither <code data-x="attr-focusgroup-inline">inline</code> nor <code
-   data-x="attr-focusgroup-block">block</code> modifiers are specified), navigation follows the
-   document order of the items rather than spatial positioning.</p></li>
-  </ul>
+  <p>The behaviors specified here use linear navigation: directional input moves forwards or
+  backwards through an ordered sequence of <span data-x="focus group item">focus group
+  items</span>. Enabling both axes does not create two-dimensional or nearest-neighbor navigation;
+  both axes navigate the same sequence.</p>
+
+  <p>The following <span data-x="behavior token">behavior tokens</span> are recognized. Their
+  <dfn>default modifiers</dfn> specify the axis and wrapping settings used when no corresponding
+  override applies. An explicit axis selection replaces the default axes. Exactly one of <code
+  data-x="attr-focusgroup-wrap">wrap</code> or <code data-x="attr-focusgroup-nowrap">nowrap</code>
+  overrides the default wrapping; if both or neither are specified, the default wrapping
+  applies. These defaults determine the <span>effective modifiers</span>; they do not add tokens
+  to the attribute's value.</p>
 
   <table>
+   <caption>Behavior tokens and defaults</caption>
    <thead>
     <tr>
-     <th>Token
-     <th>Type
-     <th><span data-x="interaction pattern">Interaction</span>
-     <th>Default modifiers
-     <th>Description
+     <th>Behavior
+     <th>Default axis
+     <th>Default wrapping
    <tbody>
     <tr>
      <td><dfn data-x="attr-focusgroup-toolbar"><code>toolbar</code></dfn>
-     <td><span data-x="behavior token">Behavior</span>
-     <td><span data-x="linear interaction pattern">Linear</span>
-     <td><code data-x="attr-focusgroup-inline">inline</code>
-     <td>
+     <td>Inline
+     <td>No wrapping
     <tr>
      <td><dfn data-x="attr-focusgroup-tablist"><code>tablist</code></dfn>
-     <td><span data-x="behavior token">Behavior</span>
-     <td><span data-x="linear interaction pattern">Linear</span>
-     <td><code data-x="attr-focusgroup-inline">inline</code>
-     <code data-x="attr-focusgroup-wrap">wrap</code>
-     <td>
+     <td>Inline
+     <td>Wrapping
     <tr>
      <td><dfn data-x="attr-focusgroup-radiogroup"><code>radiogroup</code></dfn>
-     <td><span data-x="behavior token">Behavior</span>
-     <td><span data-x="linear interaction pattern">Linear</span>
-     <td><code data-x="attr-focusgroup-wrap">wrap</code>
-     <td>
+     <td>Inline and block
+     <td>Wrapping
     <tr>
      <td><dfn data-x="attr-focusgroup-listbox"><code>listbox</code></dfn>
-     <td><span data-x="behavior token">Behavior</span>
-     <td><span data-x="linear interaction pattern">Linear</span>
-     <td><code data-x="attr-focusgroup-block">block</code>
-     <td>
+     <td>Block
+     <td>No wrapping
     <tr>
      <td><dfn data-x="attr-focusgroup-menu"><code>menu</code></dfn>
-     <td><span data-x="behavior token">Behavior</span>
-     <td><span data-x="linear interaction pattern">Linear</span>
-     <td><code data-x="attr-focusgroup-block">block</code>
-     <code data-x="attr-focusgroup-wrap">wrap</code>
-     <td>
+     <td>Block
+     <td>Wrapping
     <tr>
      <td><dfn data-x="attr-focusgroup-menubar"><code>menubar</code></dfn>
-     <td><span data-x="behavior token">Behavior</span>
-     <td><span data-x="linear interaction pattern">Linear</span>
-     <td><code data-x="attr-focusgroup-inline">inline</code>
-     <code data-x="attr-focusgroup-wrap">wrap</code>
-     <td>
-    <tr>
-     <td><dfn data-x="attr-focusgroup-wrap"><code>wrap</code></dfn>
-     <td><span data-x="modifier tokens">Modifier</span>
-     <td>
-     <td>
-     <td>Enables navigation to wrap from the last item to the first, and vice-versa.
-    <tr>
-     <td><dfn data-x="attr-focusgroup-nowrap"><code>nowrap</code></dfn>
-     <td><span data-x="modifier tokens">Modifier</span>
-     <td>
-     <td>
-     <td>Explicitly disables wrapping. Overrides a
-     <span>behavior token</span>'s default <code
-     data-x="attr-focusgroup-wrap">wrap</code> modifier.
-    <tr>
-     <td><dfn data-x="attr-focusgroup-inline"><code>inline</code></dfn>
-     <td><span data-x="modifier tokens">Modifier</span>
-     <td>
-     <td>
-     <td>Restricts <span>Directional Navigation</span> to the inline axis (e.g., left/right direction).
-    <tr>
-     <td><dfn data-x="attr-focusgroup-block"><code>block</code></dfn>
-     <td><span data-x="modifier tokens">Modifier</span>
-     <td>
-     <td>
-     <td>Restricts <span>Directional Navigation</span> to the block axis (e.g., up/down direction).
-    <tr>
-     <td><dfn data-x="attr-focusgroup-nomemory"><code>nomemory</code></dfn>
-     <td><span data-x="modifier tokens">Modifier</span>
-     <td>
-     <td>
-     <td>Disables the <span>last focused item</span> memory when re-entering the focus group.
-    <tr>
-     <td><dfn data-x="attr-focusgroup-none"><code>none</code></dfn>
-     <td>Special
-     <td>
-     <td>
-     <td>Opts the element and its descendants out of any ancestor focus group.
+     <td>Inline
+     <td>Wrapping
   </table>
 
-  <p>Certain <span data-x="behavior token">behavior tokens</span> carry <dfn>default
-  modifiers</dfn> (shown in the table above) that are applied when the author does not explicitly
-  specify a conflicting modifier.</p>
+  <p>The following <dfn>modifier tokens</dfn> customize the selected behavior according to the
+  <span>effective modifiers</span> rules above. The <span>last focused item</span> memory is
+  enabled by default for all behaviors.</p>
+
+  <table>
+   <caption>Modifier tokens and effects</caption>
+   <thead>
+    <tr>
+     <th>Modifier
+     <th>Effect
+   <tbody>
+    <tr>
+     <td><dfn data-x="attr-focusgroup-wrap"><code>wrap</code></dfn>
+     <td>Enables navigation to wrap from the last item to the first, and vice versa, unless
+     <code data-x="attr-focusgroup-nowrap">nowrap</code> is also specified.
+    <tr>
+     <td><dfn data-x="attr-focusgroup-nowrap"><code>nowrap</code></dfn>
+     <td>Disables wrapping unless <code data-x="attr-focusgroup-wrap">wrap</code> is also specified.
+    <tr>
+     <td><dfn data-x="attr-focusgroup-inline"><code>inline</code></dfn>
+     <td>Selects the inline axis. Without <code data-x="attr-focusgroup-block">block</code>,
+     replaces the default axis selection with only the inline axis.
+    <tr>
+     <td><dfn data-x="attr-focusgroup-block"><code>block</code></dfn>
+     <td>Selects the block axis. Without <code data-x="attr-focusgroup-inline">inline</code>,
+     replaces the default axis selection with only the block axis.
+    <tr>
+     <td><dfn data-x="attr-focusgroup-nomemory"><code>nomemory</code></dfn>
+     <td>Disables the <span>last focused item</span> memory when re-entering the focus group.
+  </table>
+
+  <p>The special token <dfn data-x="attr-focusgroup-none"><code>none</code></dfn> opts the element
+  and its descendants out of any ancestor focus group and prevents the element from becoming a
+  <span>focus group owner</span>.</p>
 
   <p>The following are non-conforming but are handled deterministically by the algorithm above:</p>
 
@@ -86989,8 +87006,11 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
    <li><p>Specifying more than one <span>behavior token</span> (only the first recognized is
    used).</p></li>
 
-   <li><p>Specifying both <code data-x="attr-focusgroup-wrap">wrap</code> and <code
-   data-x="attr-focusgroup-nowrap">nowrap</code> (the behavior's default for wrap is used).</p></li>
+   <li><p>The <code data-x="attr-focusgroup">focusgroup</code> attribute must not contain both
+   <code data-x="attr-focusgroup-wrap">wrap</code> and <code
+   data-x="attr-focusgroup-nowrap">nowrap</code>. If both are present, neither wrapping override
+   applies, and the selected behavior's default wrapping applies regardless of their order.
+   Other focusgroup settings are unaffected.</p></li>
 
    <li><p>Specifying <code data-x="attr-focusgroup-none">none</code> with other tokens (the element
    still opts out).</p></li>
@@ -87017,9 +87037,10 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
   data-x="shadow-including descendant">shadow-including descendants</span>, excluding any
   descendant that:</p>
   <ul>
-   <li><p>is itself a <span>focus group owner</span>;</p></li>
-
-   <li><p>is in a different <span data-x="focus group scope">focus group scope</span>;</p></li>
+   <li><p>has a <span data-x="concept-shadow-including-ancestor">shadow-including ancestor</span>
+   that is a <span>focus group owner</span> and is itself a <span data-x="shadow-including
+   descendant">shadow-including descendant</span> of the owner whose scope is being
+   defined;</p></li>
 
    <li><p>has opted out via the <code data-x="attr-focusgroup">focusgroup</code> attribute (using
    the <code data-x="attr-focusgroup-none">none</code> token); or</p></li>
@@ -87033,6 +87054,11 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
 
   <p class="note">Top-layer elements are also excluded from ancestor focus group scopes; see
   <a href="#focusgroup-top-layer-interaction">Top layer interaction</a>.</p>
+
+  <p class="note">A nested focus group owner can itself be a focus group item in the parent
+  group, if it meets the ordinary item requirements. Its descendants belong to the nested group.
+  Directional navigation from the nested owner follows the parent group; navigation from an item
+  inside the nested group follows that group.</p>
 
   <p>The <dfn data-x="focus group owner of">focus group owner of</dfn> an element is the
   nearest <span data-x="concept-shadow-including-ancestor">shadow-including
@@ -87092,9 +87118,9 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
    <li><p>it is the <span data-x="entry element of a focus group segment">entry element</span>
    of its <span>focus group segment</span>; or</p></li>
 
-   <li><p>the <span>currently focused area of a top-level traversable</span>'s <span>DOM
-   anchor</span> is a <span>key conflict element</span> in the same <span>focus group
-   scope</span>.</p></li>
+   <li><p>it is not the <span>focused key conflict element</span>, that element is a
+   <span>focusable area</span>, and the <span data-x="focus group owner of">focus group
+   owner</span> of that element is the same as the item's.</p></li>
   </ul>
 
   <p>Otherwise, the <span>focus group item</span> is <dfn>excluded from sequential focus
@@ -87276,8 +87302,9 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
     <li><p>Let <var>axis</var> be <i>inline</i> if <var>direction</var> is <i>inline-forward</i> or
     <i>inline-backward</i>; otherwise <i>block</i>.</p></li>
 
-    <li><p>If <var>currentItem</var> is a <span>key conflict element</span> whose native
-    behavior uses <var>axis</var>, then return.</p></li>
+    <li><p>If the result of <span data-x="find a key conflict element">finding a key conflict
+    element</span> given <var>currentItem</var>, <var>owner</var>, and <var>axis</var> is not null,
+    then return.</p></li>
 
     <li><p>If <var>owner</var>'s <span>effective modifiers</span> restrict <span>Directional
     Navigation</span> to an axis other than <var>axis</var>, then return.</p></li>
@@ -87493,18 +87520,64 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
 
   <h6 id="focusgroup-key-conflict-elements">Key Conflict Elements</h6>
 
-  <p>A <dfn>key conflict element</dfn> is an element that has native (built-in) arrow key behavior
-  that conflicts with <span>Directional Navigation</span>, and either:</p>
-  <ul>
-   <li><p>is a <span>focus group item</span>; or</p></li>
-
-   <li><p>is the <span>currently focused area of a top-level traversable</span>'s <span>DOM
-   anchor</span> and is a <span>focusable area</span> within a <span>focus group
-   scope</span>.</p></li>
-  </ul>
+  <p>A <dfn>key conflict element</dfn> is an element within a <span>focus group scope</span> that
+  has native (built-in) arrow key behavior that conflicts with <span>Directional
+  Navigation</span>.</p>
 
   <p>Which elements have such behavior, and on which axes, is determined by the user agent based
   on the element's built-in arrow key behavior.</p>
+
+  <div algorithm>
+  <p>To <dfn>find a key conflict element</dfn> given an element <var>element</var>, a <span>focus
+  group owner</span> <var>owner</var>, and an optional <var>axis</var> (<i>inline</i>,
+  <i>block</i>, or null; default null), run the following steps. They return an element or
+  null.</p>
+
+  <ol>
+   <li><p>Let <var>axes</var> be the axes enabled by <var>owner</var>'s <span>effective
+   modifiers</span>.</p></li>
+
+   <li><p>If <var>axis</var> is not null, then remove all axes other than <var>axis</var> from
+   <var>axes</var>.</p></li>
+
+   <li>
+    <p>While <var>element</var> is not null and is not <var>owner</var>:</p>
+
+    <ol>
+     <li><p>If <var>element</var> is a <span>key conflict element</span> whose native arrow key
+     behavior uses an axis in <var>axes</var>, then return <var>element</var>.</p></li>
+
+     <li><p>Set <var>element</var> to its parent element in the <span>flat tree</span>, or null
+     if no such element exists.</p></li>
+    </ol>
+   </li>
+
+   <li><p>Return null.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn>focused key conflict element</dfn> is the result of the following steps:</p>
+
+  <ol>
+   <li><p>Let <var>element</var> be the <span>currently focused area of a top-level
+   traversable</span>'s <span>DOM anchor</span>.</p></li>
+
+   <li><p>If <var>element</var> is not an element, then return null.</p></li>
+
+   <li><p>Let <var>owner</var> be the <span data-x="focus group owner of">focus group owner</span>
+   of <var>element</var>.</p></li>
+
+   <li><p>If <var>owner</var> is null, then return null.</p></li>
+
+   <li><p>Return the result of <span data-x="find a key conflict element">finding a key conflict
+   element</span> given <var>element</var> and <var>owner</var>.</p></li>
+  </ol>
+  </div>
+
+  <p class="note">These steps start at the actual focused area's DOM anchor, which can be inside a
+  shadow tree. The <code data-x="dom-documentorshadowroot-activeElement">activeElement</code> API
+  can instead return the shadow host.</p>
 
   <div class="example">
    <p>Examples of elements that are typically key conflict elements include:</p>
@@ -87523,37 +87596,30 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
   </div>
 
   <p>A <span>key conflict element</span> that is itself a <span>focus group item</span> can be
-  reached via <span>Directional Navigation</span>. (Other <span data-x="key conflict element">key
-  conflict elements</span>, such as those with <code data-x="attr-tabindex">tabindex="-1"</code>,
+  reached via <span>Directional Navigation</span>. (Other focusable <span data-x="key conflict
+  element">key conflict elements</span>, such as those with <code
+  data-x="attr-tabindex">tabindex="-1"</code>,
   are not reachable via <span>Directional Navigation</span>, but the user can still focus them
-  through other means such as programmatic focus or pointer interaction.) However, once a
-  <span>key conflict element</span> has focus, its native behavior takes precedence and
-  <span>Directional Navigation</span> does not occur.</p>
+  through other means such as programmatic focus or pointer interaction.) While focus is on or
+  within such an element, its native behavior takes precedence on the conflicting axes.</p>
 
-  <p>To allow users to escape a <span>key conflict element</span> via
-  <span>sequential focus navigation</span>, all <span data-x="focus group item">focus group
-  items</span> in the same <span>focus group scope</span> as the <span>currently focused area of
-  a top-level traversable</span>'s <span>DOM anchor</span> participate in <span>sequential focus
-  navigation</span> while that focused element is a <span>key conflict element</span>. Forward
-  sequential navigation moves focus to the next <span>sequentially focusable</span> element in
-  <span>order-modified document order</span>, and backward sequential navigation moves focus to
-  the previous one. Elements that are not <span data-x="focus group item">focus group items</span>
-  of the same focus group — including those inside opted-out subtrees — are not skipped during
-  this navigation. If no further <span>sequentially focusable</span> element exists in the
-  navigation direction, sequential navigation proceeds normally beyond the focus group.</p>
+  <p>While the <span>focused key conflict element</span> is a <span>focusable area</span> with a
+  <span data-x="focus group owner of">focus group owner</span>, other <span data-x="focus group
+  item">focus group items</span> with that owner participate in <span>sequential focus
+  navigation</span>. The key conflict element itself remains subject to the ordinary entry
+  selection rule. Elements outside that focus group, including those in opted-out subtrees,
+  retain their ordinary sequential focus navigation behavior.</p>
 
   <p class="note">On most desktop platforms, <span>sequential focus navigation</span> is
   triggered by <kbd>Tab</kbd> (forward) and <kbd>Shift+Tab</kbd> (backward). On other
   platforms (such as TV remotes or game controllers), the user agent determines the
   appropriate input for sequential navigation.</p>
 
-  <p>This override applies only when the <span>DOM anchor</span> of the <span>currently
-  focused area of a top-level traversable</span> is the <span>key conflict element</span>
-  itself. When focus is on a <span data-x="focusable area">focusable area</span> whose
-  <span>DOM anchor</span> is a descendant of the <span>key conflict element</span> (such as
-  a control within a <code>video</code> element's user-agent shadow tree), the override does
-  not apply, and normal <span>sequential focus navigation</span> applies within the
-  element's internal controls.</p>
+  <p class="note">This exception makes other group items available while focus is on or within
+  a native key handler. It does not skip internal focus stops or override native keyboard
+  handling. For example, forward sequential navigation from a video host first searches its
+  internal scope. If it has no eligible internal stop, navigation continues outside the video.
+  Some native controls consume sequential-navigation keys themselves.</p>
 
   <p class="note"><span data-x="key conflict element">Key conflict elements</span> are
   determined by the user agent based on native element behavior. Elements where authors
