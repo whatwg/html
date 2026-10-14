@@ -101912,8 +101912,8 @@ interface <dfn interface>NavigationHistoryEntry</dfn> : <span>EventTarget</span>
        data-x="event-navigate">navigate</code> event firing algorithm</span> took care of <span
        data-x="abort the ongoing navigation">aborting the ongoing navigation</span>, or the
        traversal was aborted before firing because the destination entry was disposed, in which case
-       <span>fire a traverse <code data-x="event-navigate">navigate</code> event</span> took care of
-       rejecting <var>apiMethodTracker</var>.</p>
+       <span data-x="checking if a traversal destination was disposed">checking if the traversal
+       destination was disposed</span> took care of rejecting <var>apiMethodTracker</var>.</p>
       </div>
      </li>
     </ol>
@@ -103457,6 +103457,56 @@ interface <dfn interface>NavigationDestination</dfn> {
   through a series of wrapper algorithms given in this section.</p>
 
   <div algorithm>
+  <p>To <dfn data-x="checking if a traversal destination was disposed">check if a traversal
+  destination was disposed</dfn> given a <code>Navigation</code> <var>navigation</var> and a
+  <span>session history entry</span> <var>destinationSHE</var>:</p>
+
+  <ol>
+   <li><p>If <var>navigation</var> <span>has entries and events disabled</span>, then return
+   false.</p></li>
+
+   <li><p>If <var>destinationSHE</var>'s <span data-x="she-document">document</span> is not
+   <var>navigation</var>'s <span>relevant global object</span>'s <span
+   data-x="concept-document-window">associated <code>Document</code></span>, then return
+   false.</p></li>
+
+   <li><p>If <var>navigation</var>'s <span data-x="navigation-entry-list">entry list</span> <span
+   data-x="list contains">contains</span> a <code>NavigationHistoryEntry</code> whose <span
+   data-x="nhe-she">session history entry</span> is <var>destinationSHE</var>, then return
+   false.</p></li>
+
+   <li><p>Let <var>destinationKey</var> be <var>destinationSHE</var>'s <span
+   data-x="she-navigation-api-key">navigation API key</span>.</p></li>
+
+   <li><p>If <var>navigation</var>'s <span>upcoming traverse API method
+   trackers</span>[<var>destinationKey</var>] <span data-x="map exists">exists</span>, then
+   <span>reject the finished promise</span> for <var>navigation</var>'s <span>upcoming traverse API
+   method trackers</span>[<var>destinationKey</var>] with a new
+   <span>"<code>AbortError</code>"</span> <code>DOMException</code> created in
+   <var>navigation</var>'s <span data-x="concept-relevant-realm">relevant realm</span>.</p></li>
+
+   <li><p>Return true.</p></li>
+  </ol>
+
+  <div class="note">
+   <p>This returns true if an intervening same-document navigation disposed of the destination entry
+   while a same-document traversal to it was in flight. In that case, the traversal is aborted
+   regardless of whether any <code data-x="event-navigate">navigate</code> event listeners exist,
+   since otherwise <var>navigation</var>'s <span data-x="navigation-entry-list">entry list</span>
+   would end up out of sync with the <span data-x="session history entry">session history
+   entries</span>.</p>
+
+   <p>The <span data-x="navigation-entry-list">entry list</span> is consulted, rather than the <span
+   data-x="session history entry">session history entries</span>, because the intervening
+   navigation's <span data-x="finalize a same-document navigation">synchronous navigation
+   steps</span> might not yet have been processed by the <span
+   data-x="tn-session-history-traversal-queue">session history traversal queue</span>, whereas the
+   <span data-x="navigation-entry-list">entry list</span> was already updated by <span>update the
+   navigation API entries for a same-document navigation</span>.</p>
+  </div>
+  </div>
+
+  <div algorithm>
   <p>To <dfn>fire a traverse <code data-x="event-navigate">navigate</code> event</dfn> at a
   <code>Navigation</code> <var>navigation</var> given a <span>session history entry</span> <dfn
   data-x="fire-navigate-traverse-destinationSHE"><var>destinationSHE</var></dfn> and an optional
@@ -103474,34 +103524,6 @@ interface <dfn interface>NavigationDestination</dfn> {
    data-x="she-document">document</span> is equal to <var>navigation</var>'s <span>relevant global
    object</span>'s <span data-x="concept-document-window">associated <code>Document</code></span>;
    otherwise false.</p></li>
-
-   <li>
-    <p>If <var>navigation</var> does not <span data-x="has entries and events disabled">have entries
-    and events disabled</span>, <var>destinationNHE</var> is null, and <var>isSameDocument</var> is
-    true:</p>
-
-    <ol>
-     <li><p>Let <var>destinationKey</var> be <var>destinationSHE</var>'s <span
-     data-x="she-navigation-api-key">navigation API key</span>.</p></li>
-
-     <li>
-      <p>If <var>navigation</var>'s <span>upcoming traverse API method
-      trackers</span>[<var>destinationKey</var>] <span data-x="map exists">exists</span>:</p>
-
-      <ol>
-       <li><p><span>Reject the finished promise</span> for <var>navigation</var>'s <span>upcoming
-       traverse API method trackers</span>[<var>destinationKey</var>] with a new
-       <span>"<code>AbortError</code>"</span> <code>DOMException</code> created in
-       <var>navigation</var>'s <span data-x="concept-relevant-realm">relevant realm</span>.</p></li>
-      </ol>
-     </li>
-
-     <li><p>Return false.</p></li>
-    </ol>
-
-    <p class="note">This occurs if an intervening same-document navigation disposed of the
-    destination entry while the traversal was in flight.</p>
-   </li>
 
    <li><p>Let <var>event</var> be the result of <span>creating an event</span> given
    <code>NavigateEvent</code>, in <var>navigation</var>'s <span
@@ -109969,12 +109991,14 @@ location.href = '#foo';</code></pre>
          data-x="nav-window">active window</span>'s <span data-x="window-navigation-api">navigation
          API</span>.</p></li>
 
-         <li><p>Let <var>navigateEventResult</var> be the result of <span data-x="fire a traverse
-         navigate event">firing a traverse <code data-x="event-navigate">navigate</code>
-         event</span> at <var>navigation</var> given <var>targetEntry</var> and
-         <var>userInvolvementForNavigateEvent</var>.</p></li>
+         <li><p>If the result of <span>checking if a traversal destination was disposed</span> given
+         <var>navigation</var> and <var>targetEntry</var> is true, then set <var>finalStatus</var>
+         to "<code data-x="">canceled-by-navigate</code>".</p></li>
 
-         <li><p>If <var>navigateEventResult</var> is false, then set <var>finalStatus</var> to
+         <li><p>Otherwise, if the result of <span data-x="fire a traverse navigate event">firing a
+         traverse <code data-x="event-navigate">navigate</code> event</span> at
+         <var>navigation</var> given <var>targetEntry</var> and
+         <var>userInvolvementForNavigateEvent</var> is false, then set <var>finalStatus</var> to
          "<code data-x="">canceled-by-navigate</code>".</p></li>
 
          <li><p>Set <var>eventsFired</var> to true.</p></li>
@@ -111989,13 +112013,17 @@ location.href = '#foo';</code></pre>
        data-x="nav-window">active window</span>'s <span
        data-x="window-navigation-api">navigation API</span>.</p></li>
 
-       <li><p>Let <var>navigateEventResult</var> be the result of <span data-x="fire a traverse
-       navigate event">firing a traverse <code data-x="event-navigate">navigate</code> event</span>
-       at <var>navigation</var> given <var>targetEntry</var> and
-       <var>userInvolvement</var>.</p></li>
+       <li><p>Let <var>traversalAborted</var> be the result of <span>checking if a traversal
+       destination was disposed</span> given <var>navigation</var> and
+       <var>targetEntry</var>.</p></li>
+
+       <li><p>If <var>traversalAborted</var> is false, and the result of <span data-x="fire a
+       traverse navigate event">firing a traverse <code data-x="event-navigate">navigate</code>
+       event</span> at <var>navigation</var> given <var>targetEntry</var> and
+       <var>userInvolvement</var> is false, then set <var>traversalAborted</var> to true.</p></li>
 
        <li>
-        <p>If <var>navigateEventResult</var> is false, then:</p>
+        <p>If <var>traversalAborted</var> is true, then:</p>
 
         <ol>
          <li><p>Set <var>changingNavigableContinuation</var>'s <span
