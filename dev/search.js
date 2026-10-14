@@ -18,23 +18,38 @@ fetch('search-index.json')
   .then(data => jsonResponses = data)
   .catch(err => console.error('Error loading search-index.json'));
 
+function escapeHTML(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function resultTemplate(result) {
-  return `<li><a href="${result.url}">${result.text} <span>Section ${result.section}</span></a></li>`;
+  const url = encodeURI(result.url);
+  const text = escapeHTML(result.text);
+  const section = escapeHTML(result.section);
+  return `<li><a href="${url}">${text} <span>Section ${section}</span></a></li>`;
 }
 
 function findSections(word, responses) {
   // If input is empty, show nothing.
   if (!word) {
-    return [];
+    return '';
+  }
+
+  const queryLower = word.toLowerCase().trim();
+  if (!queryLower) {
+    return '';
   }
 
   return responses
-    .filter((response) => {
-      const regex = new RegExp(word, 'gi');
-      return response.text.match(regex);
-    })
+    .filter(response => response && response.text && response.text.toLowerCase().includes(queryLower))
+    .slice(0, maxResults)
     .map(response => resultTemplate(response))
-    .slice(0, maxResults).join('');
+    .join('');
 }
 
 function renderResults(results) {
@@ -82,9 +97,14 @@ query.addEventListener('click', event => renderResults(query.value));
 search.addEventListener('click', event => query.focus());
 
 // Slash to search '/'
-document.addEventListener('keyup', (event) => {
-  if (event.keyCode === 191) {
-    query.focus();
+document.addEventListener('keydown', (event) => {
+  if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    const active = document.activeElement;
+    const tag = active ? active.tagName.toLowerCase() : '';
+    if (tag !== 'input' && tag !== 'textarea' && !(active && active.isContentEditable)) {
+      event.preventDefault();
+      query.focus();
+    }
   }
 });
 
@@ -116,8 +136,8 @@ function getNextNavigationElement(currentEl) {
     return resultsList.querySelector('a');
   }
 
-  const nextLI = currentEl.parentNode.nextSibling;
-  return nextLI ? nextLI.firstChild : query;
+  const nextLI = currentEl.parentNode.nextElementSibling;
+  return nextLI ? nextLI.querySelector('a') : query;
 }
 
 function getPreviousNavigationElement(currentEl) {
@@ -127,8 +147,8 @@ function getPreviousNavigationElement(currentEl) {
     return allResults.length > 0 ? allResults[allResults.length - 1] : null;
   }
 
-  const prevLI = currentEl.parentNode.previousSibling;
-  return prevLI ? prevLI.firstChild : query;
+  const prevLI = currentEl.parentNode.previousElementSibling;
+  return prevLI ? prevLI.querySelector('a') : query;
 }
 
 })();

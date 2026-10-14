@@ -24,7 +24,7 @@ function wrapX(x) {
 
 function wrapY(y) {
   if (y < 0) return wrapY(y + map.length);
-  if (y >= map[0].length) return wrapY(y - map.length);
+  if (y >= map.length) return wrapY(y - map.length);
   return y;
 }
 
@@ -42,7 +42,7 @@ function sendMapData(viewer) {
     for (var x = viewer.x-1; x <= viewer.x+1; x += 1) {
       if (data != '')
         data += ',';
-      data += map[wrap(y, 0, map[0].length-1)][wrap(x, 0, map.length-1)];
+      data += map[wrap(y, 0, map.length-1)][wrap(x, 0, map[0].length-1)];
     }
   }
   viewer.port.postMessage('map ' + data);
@@ -88,7 +88,8 @@ function getMessage(event) {
       break;
     case 'msg ':
       var party1 = event.target._data;
-      var party2 = viewers[event.data.substr(4).split(' ', 1)[0]];
+      var party2Key = event.data.substr(4).split(' ', 1)[0];
+      var party2 = Object.prototype.hasOwnProperty.call(viewers, party2Key) ? viewers[party2Key] : null;
       if (party2) {
         var channel = new MessageChannel();
         party1.port.postMessage('msg ' + party2.name, [channel.port1]);
