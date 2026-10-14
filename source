@@ -10295,7 +10295,12 @@ interface <dfn interface>DOMStringList</dfn> {
    <dd>
     <p>A set of steps that serializes the data in <var>value</var> into fields of
     <var>serialized</var>. The resulting data serialized into <var>serialized</var> must be
-    independent of any <span>realm</span>.</p>
+    independent of any <span>realm</span>. If <var>serialized</var> is <span data-x="restrict to
+    the same agent cluster">restricted</span> to the same <span>agent cluster</span>, then it may
+    also refer to data that is only accessible within that agent cluster.</p>
+
+    <p><var>serialized</var> has an [[AgentCluster]] field, which is null unless
+    <var>serialized</var> is restricted to the same agent cluster.</p>
 
     <p>These steps may throw an exception if serialization is not possible.</p>
 
@@ -10424,7 +10429,12 @@ interface <dfn interface>DOMStringList</dfn> {
    <dd>
     <p>A set of steps that transfers the data in <var>value</var> into fields of
     <var>dataHolder</var>. The resulting data held in <var>dataHolder</var> must be
-    independent of any <span>realm</span>.</p>
+    independent of any <span>realm</span>. If <var>dataHolder</var> is <span data-x="restrict to
+    the same agent cluster">restricted</span> to the same <span>agent cluster</span>, then it may
+    also refer to data that is only accessible within that agent cluster.</p>
+
+    <p><var>dataHolder</var> has an [[AgentCluster]] field, which is null unless
+    <var>dataHolder</var> is restricted to the same agent cluster.</p>
 
     <p>These steps may throw an exception if transferral is not possible.</p>
    </dd>
@@ -10466,6 +10476,49 @@ interface <dfn interface>DOMStringList</dfn> {
   <p>Objects defined in the JavaScript specification are handled by the
   <span>StructuredSerializeWithTransfer</span> abstract operation directly.</p>
 
+  </div>
+
+  <h4>Restricting to the same agent cluster</h4>
+
+  <p>Some objects, such as <code>SharedArrayBuffer</code> objects, are restricted to the same
+  <span>agent cluster</span>: they can only be deserialized or received in the agent cluster they
+  were serialized or transferred from. Such objects also cannot be serialized for storage. For
+  example, when <code data-x="">postMessage()</code> is used to send one to a cross-site
+  <code>iframe</code>, a shared worker, or a service worker, a <code
+  data-x="event-messageerror">messageerror</code> event is fired instead of a <code
+  data-x="event-message">message</code> event.</p>
+
+  <div w-nodev>
+
+  <p><span data-x="platform object">Platform objects</span> are restricted to the same <span>agent
+  cluster</span> when they are serialized or transferred if their <span>primary interface</span> is
+  decorated with the <dfn extended-attribute data-lt="SameAgentCluster"
+  data-x="SameAgentCluster"><code>[SameAgentCluster]</code></dfn> IDL <span>extended
+  attribute</span>.</p>
+
+  <p>The <code data-x="SameAgentCluster">[SameAgentCluster]</code> extended attribute must take no
+  arguments, and must only appear on an interface that is also decorated with the <code
+  data-x="Serializable">[Serializable]</code> extended attribute or the <code
+  data-x="Transferable">[Transferable]</code> extended attribute. It must not appear more than once
+  on an interface.</p>
+
+  <p>For a given <span>platform object</span>, only the object's <span>primary interface</span> is
+  considered. Thus, if inheritance is involved in defining the interface, each interface in the
+  inheritance chain whose objects are to be restricted to the same agent cluster needs to be
+  decorated with the <code data-x="SameAgentCluster">[SameAgentCluster]</code> extended
+  attribute.</p>
+
+  <p>The <span>serialization steps</span> and <span>transfer steps</span> of other interfaces can
+  restrict their result to the same agent cluster themselves, for instance when only some of their
+  objects need it:</p>
+
+  <div algorithm>
+  <p>To <dfn export data-x="restrict to the same agent cluster"
+  data-lt="restrict to the same agent cluster">restrict</dfn> a <span>Record</span>
+  <var>record</var> to the same <span>agent cluster</span>, set <var>record</var>.[[AgentCluster]]
+  to the <span>surrounding agent</span>'s <span>agent cluster</span>.</p>
+  </div>
+
   <div algorithm>
   <h4 id="structuredserializeinternal" noexport data-lt="StructuredSerializeInternal"
   abstract-op><dfn>StructuredSerializeInternal</dfn> ( <var>value</var>, <var>forStorage</var> [ ,
@@ -10492,6 +10545,8 @@ interface <dfn interface>DOMStringList</dfn> {
    return <var>memory</var>[<var>value</var>].</p></li>
 
    <li><p>Let <var>deep</var> be false.</p></li>
+
+   <li><p>Let <var>sameAgentCluster</var> be false.</p></li>
 
    <li><p>If <var>value</var> is undefined, null, <span data-x="js-Boolean">a Boolean</span>, <span
    data-x="js-Number">a Number</span>, <span data-x="js-BigInt">a BigInt</span>, or <span
@@ -10547,20 +10602,17 @@ interface <dfn interface>DOMStringList</dfn> {
         cannot leave an <span>agent cluster</span>.</p>
        </li>
 
-       <li><p>If <var>forStorage</var> is true, then throw a
-       <span>"<code>DataCloneError</code>"</span> <code>DOMException</code>.</p></li>
-
        <li><p>If <var>value</var> has an [[ArrayBufferMaxByteLength]] internal slot, then set
        <var>serialized</var> to { [[Type]]: "GrowableSharedArrayBuffer", [[ArrayBufferData]]:
        <var>value</var>.[[ArrayBufferData]], [[ArrayBufferByteLengthData]]:
        <var>value</var>.[[ArrayBufferByteLengthData]], [[ArrayBufferMaxByteLength]]:
-       <var>value</var>.[[ArrayBufferMaxByteLength]], [[AgentCluster]]: the <span>surrounding
-       agent</span>'s <span>agent cluster</span> }.</p></li>
+       <var>value</var>.[[ArrayBufferMaxByteLength]] }.</p></li>
 
        <li><p>Otherwise, set <var>serialized</var> to { [[Type]]: "SharedArrayBuffer",
        [[ArrayBufferData]]: <var>value</var>.[[ArrayBufferData]], [[ArrayBufferByteLength]]:
-       <var>value</var>.[[ArrayBufferByteLength]], [[AgentCluster]]: the <span>surrounding
-       agent</span>'s <span>agent cluster</span> }.</p></li>
+       <var>value</var>.[[ArrayBufferByteLength]] }.</p></li>
+
+       <li><p>Set <var>sameAgentCluster</var> to true.</p></li>
       </ol>
      </li>
 
@@ -10717,6 +10769,10 @@ interface <dfn interface>DOMStringList</dfn> {
 
      <li><p>Set <var>serialized</var> to { [[Type]]: <var>typeString</var> }.</p></li>
 
+     <li><p>If <var>value</var>'s <span>primary interface</span> is decorated with <code
+     data-x="SameAgentCluster">[SameAgentCluster]</code>, then set <var>sameAgentCluster</var> to
+     true.</p></li>
+
      <li><p>Set <var>deep</var> to true.</p></li>
     </ol>
    </li>
@@ -10757,6 +10813,10 @@ interface <dfn interface>DOMStringList</dfn> {
     subsequent steps. The end result is that its exoticness is ignored, and after deserialization
     the result will be an empty object (not an <span>immutable prototype exotic object</span>).
    </li>
+
+   <li><p>If <var>sameAgentCluster</var> is true, then <span data-x="restrict to the same agent
+   cluster">restrict</span> <var>serialized</var> to the same agent cluster; otherwise, set
+   <var>serialized</var>.[[AgentCluster]] to null.</p></li>
 
    <li><p><span data-x="map set">Set</span> <var>memory</var>[<var>value</var>] to
    <var>serialized</var>.</p></li>
@@ -10873,6 +10933,15 @@ interface <dfn interface>DOMStringList</dfn> {
     </ol>
    </li>
 
+   <li>
+    <p>If <var>forStorage</var> is true and <var>serialized</var>.[[AgentCluster]] is not null, then
+    throw a <span>"<code>DataCloneError</code>"</span> <code>DOMException</code>.</p>
+
+    <p class="note">This happens after the <span>serialization steps</span> have run, as they can
+    <span data-x="restrict to the same agent cluster">restrict</span> <var>serialized</var> to the
+    same agent cluster too.</p>
+   </li>
+
    <li><p>Return <var>serialized</var>.</p></li>
   </ol>
   </div>
@@ -10945,15 +11014,19 @@ o.myself = o;</code></pre>
    <li><p>If <var>memory</var>[<var>serialized</var>] <span data-x="map exists">exists</span>, then
    return <var>memory</var>[<var>serialized</var>].</p></li>
 
+   <li><p>If <var>serialized</var>.[[Type]] is "primitive", then return
+   <var>serialized</var>.[[Value]].</p></li>
+
+   <li><p>If <var>serialized</var>.[[AgentCluster]] is not null and <var>targetRealm</var>'s
+   corresponding <span>agent cluster</span> is not <var>serialized</var>.[[AgentCluster]], then
+   throw a <span>"<code>DataCloneError</code>"</span> <code>DOMException</code>.</p></li>
+
    <li><p>Let <var>deep</var> be false.</p></li>
 
    <li><p>Let <var>value</var> be an uninitialized value.</p></li>
 
-   <li><p>If <var>serialized</var>.[[Type]] is "primitive", then set <var>value</var> to
-   <var>serialized</var>.[[Value]].</p>
-
-   <li><p>Otherwise, if <var>serialized</var>.[[Type]] is "Boolean", then set <var>value</var> to a
-   new Boolean object in <var>targetRealm</var> whose [[BooleanData]] internal slot value is
+   <li><p>If <var>serialized</var>.[[Type]] is "Boolean", then set <var>value</var> to a new
+   Boolean object in <var>targetRealm</var> whose [[BooleanData]] internal slot value is
    <var>serialized</var>.[[BooleanData]].</p></li>
 
    <li><p>Otherwise, if <var>serialized</var>.[[Type]] is "Number", then set <var>value</var> to a
@@ -10978,37 +11051,18 @@ o.myself = o;</code></pre>
    <var>serialized</var>.[[OriginalSource]], and whose [[OriginalFlags]] internal slot value is
    <var>serialized</var>.[[OriginalFlags]].</p></li>
 
-   <li>
-    <p>Otherwise, if <var>serialized</var>.[[Type]] is "SharedArrayBuffer":</p>
+   <li><p>Otherwise, if <var>serialized</var>.[[Type]] is "SharedArrayBuffer", then set
+   <var>value</var> to a new SharedArrayBuffer object in <var>targetRealm</var> whose
+   [[ArrayBufferData]] internal slot value is <var>serialized</var>.[[ArrayBufferData]] and whose
+   [[ArrayBufferByteLength]] internal slot value is
+   <var>serialized</var>.[[ArrayBufferByteLength]].</p></li>
 
-    <ol>
-     <li><p>If <var>targetRealm</var>'s corresponding <span>agent cluster</span> is not
-     <var>serialized</var>.[[AgentCluster]], then throw a
-     <span>"<code>DataCloneError</code>"</span> <code>DOMException</code>.</p></li>
-
-     <li><p>Otherwise, set <var>value</var> to a new SharedArrayBuffer object in
-     <var>targetRealm</var> whose [[ArrayBufferData]] internal slot value is
-     <var>serialized</var>.[[ArrayBufferData]] and whose [[ArrayBufferByteLength]] internal slot
-     value is <var>serialized</var>.[[ArrayBufferByteLength]].</p></li>
-    </ol>
-   </li>
-
-   <li>
-    <p>Otherwise, if <var>serialized</var>.[[Type]] is "GrowableSharedArrayBuffer":</p>
-
-    <ol>
-     <li><p>If <var>targetRealm</var>'s corresponding <span>agent cluster</span> is not
-     <var>serialized</var>.[[AgentCluster]], then throw a
-     <span>"<code>DataCloneError</code>"</span> <code>DOMException</code>.</p></li>
-
-     <li><p>Otherwise, set <var>value</var> to a new SharedArrayBuffer object in
-     <var>targetRealm</var> whose [[ArrayBufferData]] internal slot value is
-     <var>serialized</var>.[[ArrayBufferData]], whose [[ArrayBufferByteLengthData]] internal slot
-     value is <var>serialized</var>.[[ArrayBufferByteLengthData]], and whose
-     [[ArrayBufferMaxByteLength]] internal slot value is
-     <var>serialized</var>.[[ArrayBufferMaxByteLength]].</p></li>
-    </ol>
-   </li>
+   <li><p>Otherwise, if <var>serialized</var>.[[Type]] is "GrowableSharedArrayBuffer", then set
+   <var>value</var> to a new SharedArrayBuffer object in <var>targetRealm</var> whose
+   [[ArrayBufferData]] internal slot value is <var>serialized</var>.[[ArrayBufferData]], whose
+   [[ArrayBufferByteLengthData]] internal slot value is
+   <var>serialized</var>.[[ArrayBufferByteLengthData]], and whose [[ArrayBufferMaxByteLength]]
+   internal slot value is <var>serialized</var>.[[ArrayBufferMaxByteLength]].</p></li>
 
    <li>
     <p>Otherwise, if <var>serialized</var>.[[Type]] is "ArrayBuffer", then set <var>value</var> to a
@@ -11299,7 +11353,7 @@ o.myself = o;</code></pre>
 
      <li>
       <p><span data-x="map set">Set</span> <var>memory</var>[<var>transferable</var>] to {
-      [[Type]]: an uninitialized value }.</p>
+      [[Type]]: an uninitialized value, [[AgentCluster]]: null }.</p>
 
       <p class="note"><var>transferable</var> is not transferred yet as transferring has side
       effects and <span>StructuredSerializeInternal</span> needs to be able to throw first.</p>
@@ -11385,6 +11439,11 @@ o.myself = o;</code></pre>
 
        <li><p>Set <var>dataHolder</var>.[[Type]] to <var>interfaceName</var>.</p></li>
 
+       <li><p>If <var>transferable</var>'s <span>primary interface</span> is decorated with <code
+       data-x="SameAgentCluster">[SameAgentCluster]</code>, then <span data-x="restrict to the
+       same agent cluster">restrict</span> <var>dataHolder</var> to the same agent
+       cluster.</p></li>
+
        <li><p>Perform the appropriate <span>transfer steps</span> for the interface identified by
        <var>interfaceName</var>, given <var>transferable</var> and <var>dataHolder</var>.</p></li>
 
@@ -11397,8 +11456,25 @@ o.myself = o;</code></pre>
     </ol>
    </li>
 
-   <li><p>Return { [[Serialized]]: <var>serialized</var>, [[TransferDataHolders]]:
-   <var>transferDataHolders</var> }.</p></li>
+   <li><p>Let <var>result</var> be { [[Serialized]]: <var>serialized</var>,
+   [[TransferDataHolders]]: <var>transferDataHolders</var>, [[InterfaceNames]]: an empty <span
+   data-x="set">ordered set</span>, [[AgentCluster]]: null }.</p></li>
+
+   <li>
+    <p><span data-x="map iterate">For each</span> <var>object</var> → <var>record</var> of
+    <var>memory</var>:</p>
+
+    <ol>
+     <li><p>If <var>object</var> is a <span>platform object</span>, then <span data-x="set
+     append">append</span> <var>record</var>.[[Type]] to
+     <var>result</var>.[[InterfaceNames]].</p></li>
+
+     <li><p>If <var>record</var>.[[AgentCluster]] is not null, then <span data-x="restrict to the
+     same agent cluster">restrict</span> <var>result</var> to the same agent cluster.</p></li>
+    </ol>
+   </li>
+
+   <li><p>Return <var>result</var>.</p></li>
   </ol>
   </div>
 
@@ -11416,6 +11492,22 @@ o.myself = o;</code></pre>
     also used to ensure that <span>StructuredDeserialize</span> ignores items in
     <var>serializeWithTransferResult</var>.[[TransferDataHolders]], and let us do our own handling
     instead.</p>
+   </li>
+
+   <li><p>If <var>serializeWithTransferResult</var>.[[AgentCluster]] is not null and
+   <var>targetRealm</var>'s corresponding <span>agent cluster</span> is not
+   <var>serializeWithTransferResult</var>.[[AgentCluster]], then throw a
+   <span>"<code>DataCloneError</code>"</span> <code>DOMException</code>.</p></li>
+
+   <li>
+    <p><span data-x="list iterate">For each</span> <var>interfaceName</var> of
+    <var>serializeWithTransferResult</var>.[[InterfaceNames]]:</p>
+
+    <ol>
+     <li><p>If the interface identified by <var>interfaceName</var> is not <span
+     data-x="idl-exposed">exposed</span> in <var>targetRealm</var>, then throw a
+     <span>"<code>DataCloneError</code>"</span> <code>DOMException</code>.</p></li>
+    </ol>
    </li>
 
    <li><p>Let <var>transferredValues</var> be a new empty <span
@@ -11459,10 +11551,6 @@ o.myself = o;</code></pre>
 
       <ol>
        <li><p>Let <var>interfaceName</var> be <var>transferDataHolder</var>.[[Type]].</p></li>
-
-       <li><p>If the interface identified by <var>interfaceName</var> is not exposed in
-       <var>targetRealm</var>, then throw a <span>"<code>DataCloneError</code>"</span>
-       <code>DOMException</code>.</p></li>
 
        <li><p>Set <var>value</var> to a new instance of the interface identified by
        <var>interfaceName</var>, created in <var>targetRealm</var>.</p></li>
@@ -11520,10 +11608,12 @@ o.myself = o;</code></pre>
 
     <p><span>StructuredSerializeForStorage</span> can be used for situations where the serialization
     is anticipated to be stored in a persistent manner, instead of passed between realms. It throws
-    when attempting to serialize <code>SharedArrayBuffer</code> objects, since storing shared memory
-    does not make sense. Similarly, it can throw or possibly have different behavior when given a
-    <span>platform object</span> with custom <span>serialization steps</span> when the
-    <var ignore>forStorage</var> argument is true.</p>
+    when attempting to serialize objects that are <span data-x="restrict to the same agent
+    cluster">restricted</span> to the same <span>agent cluster</span>, such as
+    <code>SharedArrayBuffer</code> objects, since storing shared memory or other data that cannot
+    leave an agent cluster does not make sense. Similarly, it can throw or possibly have different
+    behavior when given a <span>platform object</span> with custom <span>serialization
+    steps</span> when the <var ignore>forStorage</var> argument is true.</p>
 
     <p class="example"><code data-x="dom-history-pushState">history.pushState()</code> and <code
     data-x="dom-history-replaceState">history.replaceState()</code> use
