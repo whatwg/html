@@ -65,10 +65,9 @@ function loadReferences(id, path, specURL) {
   dfnPanel.appendChild(p);
   if (!dfnMapDone) {
     p.textContent = 'Loading cross-references…';
-    fetch('/xrefs.json')
-      .then(response => response.json())
-      .then(data => {
-        dfnMap = data;
+    import('./xrefs.json', { with: { type: 'json' } })
+      .then(module => {
+        dfnMap = module.default;
         dfnMapDone = true;
         if (dfnPanel) {
           fillInReferences(id);
@@ -189,7 +188,6 @@ function restoreOrClosePanelOnNav(event) {
   }
 }
 
-document.body.classList.add('dfnEnabled');
 document.addEventListener('click', handleClick);
 if (isMultipage) {
   document.addEventListener('DOMContentLoaded', restoreOrClosePanelOnNav);
