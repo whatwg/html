@@ -127260,8 +127260,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
 
   <p>The promise returned by writing a chunk to the stream is settled once the chunk has been parsed
   as far as possible. If parsing is blocked on a script that is being fetched, the promise does not
-  wait for it; subsequent chunks are parsed once that script has been executed. Similarly, the
-  promise returned by closing the stream does not wait for <code
+  wait for it; subsequent chunks are parsed once that script has been executed. By contrast, the
+  promise returned by closing the stream waits until all written input has been parsed, including
+  executing any parser-blocking scripts, though it does not wait for <code
   data-x="attr-script-defer">defer</code> or "<code data-x="">module</code>" scripts; they are
   executed in subsequent tasks, after the promise settles. If the node before which content is being
   inserted is moved or removed while streaming, e.g., by a script, writing a subsequent chunk errors
@@ -128079,17 +128080,22 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <p>Let <var>closeAlgorithm</var> be the following steps:</p>
 
     <ol>
+     <li><p>Set <var>parser</var>'s <span>fragment parser close promise</span> to a new promise
+     created in <var>realm</var>.</p></li>
+
      <li><p>Append an <span>explicit "EOF" character</span> to the end of <var>parser</var>'s
      <span>input stream</span>, and <span>run a fragment parser</span> given
      <var>parser</var>.</p></li>
 
      <li>
-      <p>Return a promise resolved with undefined, created in <var>realm</var>.</p>
+      <p>Return <var>parser</var>'s <span>fragment parser close promise</span>.</p>
 
-      <p class="note">The returned promise does not wait for a <span>pending parsing-blocking
-      script</span>, or for <code data-x="attr-script-defer">deferred</code> or "<code
-      data-x="">module</code>" scripts, to be executed. Once it is settled, <var>stream</var> is
-      closed and can no longer be aborted, so pending scripts are still executed.</p>
+      <p class="note">The returned promise is resolved once <var>parser</var> <span data-x="stop
+      parsing">stops parsing</span>, after any <span>pending parsing-blocking script</span> has been
+      executed and any remaining input has been parsed. It does not wait for <code
+      data-x="attr-script-defer">deferred</code> or "<code data-x="">module</code>" scripts, which
+      are executed in subsequent tasks. Once closing has started, <var>stream</var> can no longer be
+      aborted, so pending scripts are still executed.</p>
      </li>
     </ol>
    </li>
@@ -144013,6 +144019,8 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <p>A boolean <dfn>fragment parser abort requested</dfn> (initially false).</p>
 
+  <p>A promise-or-null <dfn>fragment parser close promise</dfn> (initially null).</p>
+
   <p>The <dfn>frameset-ok flag</dfn> is set to "ok" when the parser is created. It is set to "not
   ok" after certain tokens are seen, and back to "ok" when the <code>body</code> element is
   inserted implicitly.</p>
@@ -151680,6 +151688,9 @@ document.body.appendChild(text);
     case</span>):</p>
 
     <ol>
+     <li><p>If the parser's <span>fragment parser close promise</span> is non-null, then resolve
+     the parser's <span>fragment parser close promise</span> with undefined.</p></li>
+
      <li><p>If the <code>Document</code>'s <span>list of scripts that will execute when the document
      has finished parsing</span> is not empty, then <span>queue a global task</span> on the
      <span>DOM manipulation task source</span> given the parser's <span>script target
@@ -151691,12 +151702,13 @@ document.body.appendChild(text);
 
     <p class="note">This happens whenever a fragment parser reaches the end of its input, e.g., in
     the <span>HTML fragment parsing algorithm</span>, or when the stream is closed while <span
-    data-x="stream HTML">streaming HTML</span>. A task is needed since, when streaming, the parser
-    can stop parsing while script is running. The remaining steps are skipped, as they spin the
-    event loop and concern the lifecycle of the parser's <code>Document</code>, which is not
-    relevant for the inert <code>Document</code> used by a fragment parser. That
-    <code>Document</code> never <span>has a style sheet that is blocking scripts</span>, so each
-    deferred script executes once it is <span>ready to be parser-executed</span>, in its own <span
+    data-x="stream HTML">streaming HTML</span>. Queueing a task ensures that deferred scripts do not
+    execute while script is running, and that they execute after the promise returned by closing the
+    stream settles. The remaining steps are skipped, as they spin the event loop and concern the
+    lifecycle of the parser's <code>Document</code>, which is not relevant for the inert
+    <code>Document</code> used by a fragment parser. That <code>Document</code> never <span>has a
+    style sheet that is blocking scripts</span>, so each deferred script executes once it is
+    <span>ready to be parser-executed</span>, in its own <span
     data-x="concept-task">task</span>.</p>
    </li>
 
