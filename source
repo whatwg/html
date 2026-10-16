@@ -11804,6 +11804,7 @@ partial interface <dfn id="document" data-lt="">Document</dfn> {
   DOMString <span data-x="dom-document-queryCommandValue">queryCommandValue</span>(DOMString commandId);
   readonly attribute boolean <span data-x="dom-document-hidden">hidden</span>;
   readonly attribute <span>DocumentVisibilityState</span> <span data-x="dom-document-visibilityState">visibilityState</span>;
+  [SecureContext, SameObject] readonly attribute <span>SpellCheckCustomDictionary</span> <span data-x="dom-document-spellCheckCustomDictionary">spellCheckCustomDictionary</span>;
 
   // special <span>event handler IDL attributes</span> that only apply to Document objects
   [<span>LegacyLenientThis</span>] attribute <span>EventHandler</span> <span data-x="handler-onreadystatechange">onreadystatechange</span>;
@@ -88917,6 +88918,122 @@ body { display:none }
   <p class="note">This specification does not define the user interface for spelling and grammar
   checkers. A user agent could offer on-demand checking, could perform continuous checking while the
   checking is enabled, or could use other interfaces.</p>
+
+  <h4>Custom spelling dictionary</h4>
+
+  <p>Each <code>Document</code> has a <dfn data-x="concept-custom-spelling-exemptions">custom
+  spelling exemption list</dfn>, which is an <span data-x="set">ordered set</span> of strings,
+  initially empty.</p>
+
+  <p>Each <code>Document</code> object has an associated <dfn>custom spelling dictionary
+  holder</dfn>, which is null or a <code>SpellCheckCustomDictionary</code> object. It is initially
+  null.</p>
+
+  <p var-scope>When the user agent checks the spelling of a word in text associated with an element
+  <var>element</var>, and the checking is enabled for that text, then if the word matches an entry in
+  <var>element</var>'s <span>node document</span>'s <span
+  data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>, the user agent
+  should not indicate a spelling error for that word. A word matches an entry if it is <span>identical
+  to</span> that entry. In addition, Unicode normalization should be applied so that different
+  underlying Unicode code point sequences, caused by different keyboard- or input-specific
+  mechanisms, do not interfere with the matching process. For examples of these, see <cite>Character
+  Model for the World Wide Web: String Matching</cite>. <ref>CHARMODNORM</ref></p>
+
+  <p class="note">The custom spelling exemption list is not persisted, is not shared across
+  documents, frames, or browsing contexts, and is discarded when the <code>Document</code> is
+  destroyed.</p>
+
+  <p class="note">Entries are matched against individual words as identified by the user agent's
+  spell checking algorithm. Entries containing whitespace or other word separators will generally
+  not match any word and will have no effect.</p>
+
+  <p class="note">Entries are matched without case folding. Authors might need to add multiple forms
+  of a word &mdash; for example, both "anaerobe" and "anaerobes" &mdash; to exempt all variants from
+  spell checking.</p>
+
+  <p class="note">Entries apply to all text in the <code>Document</code>, regardless of the language
+  of that text or of the languages the user agent is checking it against.</p>
+
+  <dl class="domintro">
+   <dt><code data-x=""><var>document</var>.<span subdfn data-x="dom-document-spellCheckCustomDictionary">spellCheckCustomDictionary</span>.<span subdfn data-x="dom-SpellCheckCustomDictionary-addWords">addWords</span>(<var>words</var>)</code></dt>
+   <dd>
+    <p>Adds each string in <var>words</var> to <var>document</var>'s <span
+    data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>. Words that
+    are already present are ignored.</p>
+   </dd>
+
+   <dt><code data-x=""><var>document</var>.<span data-x="dom-document-spellCheckCustomDictionary">spellCheckCustomDictionary</span>.<span subdfn data-x="dom-SpellCheckCustomDictionary-removeWords">removeWords</span>(<var>words</var>)</code></dt>
+   <dd>
+    <p>Removes each string in <var>words</var> from <var>document</var>'s <span
+    data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>. Words that
+    are not present are ignored.</p>
+   </dd>
+  </dl>
+
+  <div w-nodev>
+
+  <p>User agents that do not implement spell checking should not expose the <code
+  data-x="dom-document-spellCheckCustomDictionary">spellCheckCustomDictionary</code> attribute, so
+  that authors can detect whether supplying words would have any effect. Whether the attribute is
+  exposed must not depend on whether the user has enabled or disabled spell checking.</p>
+
+  <p>A <code>SpellCheckCustomDictionary</code> object has an <dfn
+  data-x="concept-spellcheckcustomdictionary-document">associated document</dfn>, which is a
+  <code>Document</code> object.</p>
+
+  <p>The following interface is defined for the custom spelling dictionary:</p>
+
+  <pre class="idl">[Exposed=Window, SecureContext]
+interface <dfn interface>SpellCheckCustomDictionary</dfn> {
+  undefined <span data-x="dom-SpellCheckCustomDictionary-addWords">addWords</span>(sequence&lt;DOMString> words);
+  undefined <span data-x="dom-SpellCheckCustomDictionary-removeWords">removeWords</span>(sequence&lt;DOMString> words);
+};</pre>
+
+  <div algorithm>
+  <p>The <dfn attribute for="Document"><code
+  data-x="dom-document-spellCheckCustomDictionary">spellCheckCustomDictionary</code></dfn> getter
+  steps are:</p>
+  <ol>
+   <li><p>If <span>this</span>'s <span>custom spelling dictionary holder</span> is non-null, then
+   return <span>this</span>'s <span>custom spelling dictionary holder</span>.</p></li>
+   <li><p>Let <var>dictionary</var> be a new <code>SpellCheckCustomDictionary</code> object whose
+   <span data-x="concept-spellcheckcustomdictionary-document">associated document</span> is
+   <span>this</span>.</p></li>
+   <li><p>Set <span>this</span>'s <span>custom spelling dictionary holder</span> to
+   <var>dictionary</var>.</p></li>
+   <li><p>Return <var>dictionary</var>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn method for="SpellCheckCustomDictionary"><code
+  data-x="dom-SpellCheckCustomDictionary-addWords">addWords(<var>words</var>)</code></dfn> method
+  steps are:</p>
+  <ol>
+   <li><p>Let <var>document</var> be <span>this</span>'s <span
+   data-x="concept-spellcheckcustomdictionary-document">associated document</span>.</p></li>
+
+   <li><p><span data-x="list iterate">For each</span> <var>word</var> of <var>words</var>: <span
+   data-x="set append">append</span> <var>word</var> to <var>document</var>'s <span
+   data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn method for="SpellCheckCustomDictionary"><code
+  data-x="dom-SpellCheckCustomDictionary-removeWords">removeWords(<var>words</var>)</code></dfn>
+  method steps are:</p>
+  <ol>
+   <li><p>Let <var>document</var> be <span>this</span>'s <span
+   data-x="concept-spellcheckcustomdictionary-document">associated document</span>.</p></li>
+
+   <li><p><span data-x="list iterate">For each</span> <var>word</var> of <var>words</var>: <span
+   data-x="list remove">remove</span> <var>word</var> from <var>document</var>'s <span
+   data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>.</p></li>
+  </ol>
+  </div>
+
+  </div>
 
   <h4>Writing suggestions</h4>
 
