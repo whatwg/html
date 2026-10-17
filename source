@@ -128097,8 +128097,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <p>Let <var>abortAlgorithm</var> be the following steps given <var ignore>reason</var>:</p>
 
     <ol>
-     <li><p>If <var>parser</var> has not been <span data-x="abort a parser">aborted</span>, then
-     <span data-x="abort a fragment parser">abort</span> <var>parser</var>.</p></li>
+     <li><p>If <var>parser</var>'s <span data-x="parser-aborted">aborted</span> is false, then <span
+     data-x="abort a fragment parser">abort</span> <var>parser</var>.</p></li>
 
      <li><p>Return a promise resolved with undefined, created in <var>realm</var>.</p></li>
     </ol>
@@ -144010,6 +144010,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <p>A boolean <dfn>fragment parser running</dfn> (initially false).</p>
 
+  <p>A boolean <dfn data-x="parser-aborted">aborted</dfn> (initially false). It is set to true by
+  the <span>abort a parser</span> algorithm.</p>
+
   <p>A boolean <dfn>fragment parser abort requested</dfn> (initially false).</p>
 
   <p>A promise-or-null <dfn>fragment parser close promise</dfn> (initially null).</p>
@@ -150151,10 +150154,10 @@ document.body.appendChild(text);
       the following steps:</p>
 
       <ol>
-       <li><p>Act as described in the "otherwise" entry below.</p></li>
+       <li><p><span>Execute the pending parsing-blocking scripts</span> for this parser.</p></li>
 
-       <li><p>If this <span data-x="abort a parser">parser has not been aborted</span>, then
-       <span>run a fragment parser</span> given this parser.</p></li>
+       <li><p>If this parser's <span data-x="parser-aborted">aborted</span> is false, then <span>run
+       a fragment parser</span> given this parser.</p></li>
       </ol>
 
       <p>Set the <span>parser pause flag</span> to true, and abort the processing of the tokenizer,
@@ -150175,62 +150178,7 @@ document.body.appendChild(text);
 
      <dt>Otherwise:</dt>
 
-     <dd>
-      <p>While the <span>pending parsing-blocking script</span> is not null:</p>
-
-      <ol>
-       <li><p>Let <var>the script</var> be the <span>pending parsing-blocking
-       script</span>.</p></li>
-
-       <li><p><span>Start the speculative HTML parser</span> for this instance of the HTML
-       parser.</p></li>
-
-       <li><p>Block the <span data-x="tokenization">tokenizer</span> for this instance of the
-       <span>HTML parser</span>, such that the <span>event loop</span> will not run <span
-       data-x="concept-task">tasks</span> that invoke the <span
-       data-x="tokenization">tokenizer</span>.</p></li>
-
-       <li><p>If the parser's <code>Document</code> <span>has a style sheet that is blocking
-       scripts</span> or <var>the script</var>'s <span>ready to be parser-executed</span> is false:
-       <span>spin the event loop</span> until this <span data-x="abort a parser">parser has been
-       aborted</span>, or the parser's <code>Document</code> <span>has no style sheet that is
-       blocking scripts</span> and <var>the script</var>'s <span>ready to be parser-executed</span>
-       becomes true.</p></li>
-
-       <li>
-        <p>If this <span data-x="abort a parser">parser has been aborted</span> in the meantime,
-        then return.</p>
-
-        <p class="note">This could happen if, e.g., while the <span>spin the event loop</span>
-        algorithm is running, the <code>Document</code> gets <span data-x="destroy a
-        document">destroyed</span>, or the <code data-x="dom-document-open">document.open()</code>
-        method gets invoked on the <code>Document</code>.</p>
-       </li>
-
-       <li><p>Set the <span>pending parsing-blocking script</span> to null.</p></li>
-
-       <li><p><span>Stop the speculative HTML parser</span> for this instance of the HTML
-       parser.</p></li>
-
-       <li><p>Unblock the <span data-x="tokenization">tokenizer</span> for this instance of the
-       <span>HTML parser</span>, such that <span data-x="concept-task">tasks</span> that invoke the
-       <span data-x="tokenization">tokenizer</span> can again be run.</p></li>
-
-       <li><p>Let the <span>insertion point</span> be just before the <span>next input
-       character</span>.</p></li>
-
-       <li><p>Increment the parser's <span>script nesting level</span> by one (it should be zero
-       before this step, so this sets it to one).</p></li>
-
-       <li><p><span>Execute the script element</span> <var>the script</var>.</p></li>
-
-       <li><p>Decrement the parser's <span>script nesting level</span> by one. If the parser's
-       <span>script nesting level</span> is zero (which it always should be at this point), then set
-       the <span>parser pause flag</span> to false.</p>
-
-       <li><p>Let the <span>insertion point</span> be undefined again.</p></li>
-      </ol>
-     </dd>
+     <dd><p><span>Execute the pending parsing-blocking scripts</span> for this parser.</p></dd>
     </dl>
    </dd>
 
@@ -151830,9 +151778,87 @@ document.body.appendChild(text);
   </div>
 
   <div algorithm>
+  <p>To <dfn>execute the pending parsing-blocking scripts</dfn> for an <span>HTML parser</span>
+  <var>parser</var>:</p>
+
+  <ol>
+   <li>
+    <p>While <var>parser</var>'s <code>Document</code>'s <span>pending parsing-blocking
+    script</span> is not null:</p>
+
+    <ol>
+     <li><p>Let <var>the script</var> be <var>parser</var>'s <code>Document</code>'s <span>pending
+     parsing-blocking script</span>.</p></li>
+
+     <li><p>Set <var>parser</var>'s <code>Document</code>'s <span>pending parsing-blocking
+     script</span> to null.</p></li>
+
+     <li><p><span>Start the speculative HTML parser</span> for <var>parser</var>.</p></li>
+
+     <li><p>Block the <span data-x="tokenization">tokenizer</span> for <var>parser</var>, such that
+     the <span>event loop</span> will not run <span data-x="concept-task">tasks</span> that invoke
+     the <span data-x="tokenization">tokenizer</span>.</p></li>
+
+     <li><p>If <var>parser</var>'s <code>Document</code> <span>has a style sheet that is blocking
+     scripts</span> or <var>the script</var>'s <span>ready to be parser-executed</span> is false:
+     <span>spin the event loop</span> until <var>parser</var>'s <span
+     data-x="parser-aborted">aborted</span> is true, or <var>parser</var>'s <code>Document</code>
+     <span>has no style sheet that is blocking scripts</span> and <var>the script</var>'s
+     <span>ready to be parser-executed</span> becomes true.</p></li>
+
+     <li>
+      <p>If <var>parser</var>'s <span data-x="parser-aborted">aborted</span> is true:</p>
+
+      <ol>
+       <li><p>If <var>parser</var>'s <span>fragment context element</span> is non-null
+       (<span>fragment case</span>), then <span>unblock rendering</span> on <var>the
+       script</var>.</p></li>
+
+       <li><p>Return.</p></li>
+      </ol>
+
+      <p class="note">This could happen if, e.g., while the <span>spin the event loop</span>
+      algorithm is running, the <code>Document</code> gets <span data-x="destroy a
+      document">destroyed</span>, the <code data-x="dom-document-open">document.open()</code>
+      method gets invoked on the <code>Document</code>, or the stream feeding a <span
+      data-x="stream HTML">streaming</span> fragment parser is aborted. In the latter case <var>the
+      script</var> remains in the <span>node document</span> of the target, so rendering has to be
+      unblocked explicitly.</p>
+     </li>
+
+     <li><p><span>Stop the speculative HTML parser</span> for <var>parser</var>.</p></li>
+
+     <li><p>Unblock the <span data-x="tokenization">tokenizer</span> for <var>parser</var>, such
+     that <span data-x="concept-task">tasks</span> that invoke the <span
+     data-x="tokenization">tokenizer</span> can again be run.</p></li>
+
+     <li><p>Let the <span>insertion point</span> be just before the <span>next input
+     character</span>.</p></li>
+
+     <li><p>Increment <var>parser</var>'s <span>script nesting level</span> by one (it should be
+     zero before this step, so this sets it to one).</p></li>
+
+     <li><p><span>Execute the script element</span> <var>the script</var>.</p></li>
+
+     <li><p>Decrement <var>parser</var>'s <span>script nesting level</span> by one. If
+     <var>parser</var>'s <span>script nesting level</span> is zero (which it always should be at
+     this point), then set the <span>parser pause flag</span> to false.</p></li>
+
+     <li><p>Let the <span>insertion point</span> be undefined again.</p></li>
+    </ol>
+   </li>
+  </ol>
+  </div>
+
+  <div algorithm>
   <p>When the user agent is to <dfn>abort a parser</dfn>, it must run the following steps:</p>
 
   <ol>
+   <li><p><span>Assert</span>: the parser's <span data-x="parser-aborted">aborted</span> is
+   false.</p></li>
+
+   <li><p>Set the parser's <span data-x="parser-aborted">aborted</span> to true.</p></li>
+
    <li><p>Throw away any pending content in the <span>input stream</span>, and discard any future
    content that would have been added to it.</p></li>
 
