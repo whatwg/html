@@ -20,7 +20,7 @@ function encrypt(p) {
   };
 }
 
-function encrypt(p) {
+function decrypt(p) {
   p.onmessage = function (e) {
     var key = e.data;
     var decryptor = new Worker('libcrypto-v2-decryptor.js');

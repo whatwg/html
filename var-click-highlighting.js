@@ -43,8 +43,8 @@ function highlightSameAlgoVars(v) {
     }
 }
 function findAlgoContainer(el) {
-    while(el != document.body) {
-        if(el.hasAttribute("data-algorithm") || el.hasAttribute("data-var-scope")) return el;
+    while(el && el !== document.body) {
+        if(el.hasAttribute && (el.hasAttribute("data-algorithm") || el.hasAttribute("data-var-scope"))) return el;
         el = el.parentNode;
     }
     return null;
@@ -56,7 +56,9 @@ function colorCountsFromContainer(container) {
     const namesFromColor = Array.from({length:COLOR_COUNT}, x=>new Set());
     for(let v of container.querySelectorAll("var[data-var-color]")) {
         let color = +v.getAttribute("data-var-color");
-        namesFromColor[color].add(nameFromVar(v));
+        if (Number.isInteger(color) && color >= 0 && color < COLOR_COUNT) {
+            namesFromColor[color].add(nameFromVar(v));
+        }
     }
 
     return namesFromColor.map(x=>x.size);
