@@ -146980,9 +146980,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    <var>sanitizerConfig</var>.</p></li>
 
    <li>
-    <p>If <var>document</var> is <span>fully active</span> and <var>sanitizerAction</var> is not
-    "<span data-x="sanitizer-action-keep">Keep</span>", then set <var>document</var> to
-    <var>document</var>'s <span>appropriate template contents owner document</span>.</p>
+    <p>If <var>sanitizerAction</var> is not "<span data-x="sanitizer-action-keep">Keep</span>", then
+    set <var>document</var> to <var>document</var>'s <span>appropriate template contents owner
+    document</span>.</p>
 
     <p class="note">This ensures that elements removed by the sanitizer are still on the <span>stack
     of open elements</span> when streaming, but do not invoke side effects such as loading
@@ -147188,25 +147188,6 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    location</span> given <var>overrideLocation</var>.</p></li>
 
    <li>
-    <p>If any of the following are true:</p>
-
-    <ul>
-     <li><var>element</var>'s <span>parent</span> is non-null;</li>
-
-     <li><var>element</var> is a <span>host-including inclusive ancestor</span> of
-     <var>targetParent</var>;</li>
-
-     <li><var>targetParent</var> is a <code>Document</code> node that already has an element
-     child; or</li>
-
-     <li><var>referenceChild</var> is non-null and <var>referenceChild</var>'s <span>parent</span>
-     is not <var>targetParent</var>,</li>
-    </ul>
-
-    <p>then return.</p>
-   </li>
-
-   <li>
     <p>If <var>alreadySanitized</var> is false and the parser's <span>parser sanitizer
     configuration</span> is not null:</p>
 
@@ -147259,6 +147240,25 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     </ol>
    </li>
 
+   <li>
+    <p>If any of the following are true:</p>
+
+    <ul>
+     <li><var>element</var>'s <span>parent</span> is non-null;</li>
+
+     <li><var>element</var> is a <span>host-including inclusive ancestor</span> of
+     <var>targetParent</var>;</li>
+
+     <li><var>targetParent</var> is a <code>Document</code> node that already has an element
+     child; or</li>
+
+     <li><var>referenceChild</var> is non-null and <var>referenceChild</var>'s <span>parent</span>
+     is not <var>targetParent</var>,</li>
+    </ul>
+
+    <p>then return.</p>
+   </li>
+
    <li><p><span>Assert</span>: <span>ensure pre-insert validity</span> given <var>element</var>,
    <var>targetParent</var>, <var>referenceChild</var>, and « » does not throw.</p></li>
 
@@ -147270,7 +147270,11 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     HTML">streaming HTML</span> into a <span>connected</span> node, <span
     data-x="concept-upgrade-an-element">upgrades</span> and <span
     data-x="concept-custom-element-definition-lifecycle-callbacks">lifecycle callbacks</span>
-    caused by the insertion run before any subsequent <code>script</code> is executed.</p>
+    caused by the insertion run before any subsequent <code>script</code> is executed. Other <span
+    data-x="concept-custom-element-reaction">custom element reactions</span> when streaming HTML
+    (such as upgrades when <span data-x="create an element">creating an element</span> into a
+    disconnected target, or reactions from the <span>adoption agency algorithm</span>) use the
+    <span>backup element queue</span>, avoiding chunk-boundary-dependent reaction timing.</p>
    </li>
 
    <li><p><span data-x="concept-node-insert">Insert</span> <var>element</var> into
@@ -148248,14 +148252,10 @@ document.body.appendChild(text);
               registry</span>.</p>
 
               <p class="note">When the parser is sanitizing, a host that the sanitizer will remove
-              is created in a <code>Document</code> whose <span
-              data-x="document-custom-element-registry">custom element registry</span> is null: the
-              inert document created by the <span>HTML fragment parsing algorithm</span>, the new
-              <code>Document</code> passed to <span>parse HTML from a string</span>, or, when <span
-              data-x="stream HTML">streaming HTML</span> into a <span>fully active</span> document,
-              that document's <span>appropriate template contents owner document</span>. So no
-              <span>custom element constructor</span> runs for the contents of a shadow root whose
-              host the sanitizer will remove.</p>
+              is created in an <span>appropriate template contents owner document</span>, whose
+              <span data-x="document-custom-element-registry">custom element registry</span> is
+              null. So no <span>custom element constructor</span> runs for the contents of a shadow
+              root whose host the sanitizer will remove.</p>
              </li>
 
              <li>
@@ -150082,7 +150082,6 @@ document.body.appendChild(text);
 
    <dt>An end-of-file token</dt>
    <dd>
-    <!-- can't be the fragment case -->
     <p><span>Parse error</span>.</p>
 
     <p>If the <span>current node</span> is a <code>script</code> element, then set its <span>already
@@ -150147,11 +150146,19 @@ document.body.appendChild(text);
      case</span>):</dt>
 
      <dd>
+      <p><span>Queue a global task</span> on the <span>DOM manipulation task source</span> given the
+      parser's <span>script target document</span>'s <span>relevant global object</span> to perform
+      the following steps:</p>
+
+      <ol>
+       <li><p>Act as described in the "otherwise" entry below.</p></li>
+
+       <li><p>If this <span data-x="abort a parser">parser has not been aborted</span>, then
+       <span>run a fragment parser</span> given this parser.</p></li>
+      </ol>
+
       <p>Set the <span>parser pause flag</span> to true, and abort the processing of the tokenizer,
-      yielding control back to the caller. <span>Queue a global task</span> on the <span>DOM
-      manipulation task source</span> given the parser's <span>script target document</span>'s
-      <span>relevant global object</span> to act as described in the "otherwise" entry below, and
-      then <span>run a fragment parser</span> given the parser.</p>
+      yielding control back to the caller.</p>
 
       <p class="note">This can only happen when <span data-x="stream HTML">streaming HTML</span>
       into a <span>connected</span> element, as the <code>script</code> elements created by the
@@ -150175,8 +150182,6 @@ document.body.appendChild(text);
        <li><p>Let <var>the script</var> be the <span>pending parsing-blocking
        script</span>.</p></li>
 
-       <li><p>Set the <span>pending parsing-blocking script</span> to null.</p></li>
-
        <li><p><span>Start the speculative HTML parser</span> for this instance of the HTML
        parser.</p></li>
 
@@ -150187,19 +150192,22 @@ document.body.appendChild(text);
 
        <li><p>If the parser's <code>Document</code> <span>has a style sheet that is blocking
        scripts</span> or <var>the script</var>'s <span>ready to be parser-executed</span> is false:
-       <span>spin the event loop</span> until the parser's <code>Document</code> <span>has no style
-       sheet that is blocking scripts</span> and <var>the script</var>'s <span>ready to be
-       parser-executed</span> becomes true.</p></li>
+       <span>spin the event loop</span> until this <span data-x="abort a parser">parser has been
+       aborted</span>, or the parser's <code>Document</code> <span>has no style sheet that is
+       blocking scripts</span> and <var>the script</var>'s <span>ready to be parser-executed</span>
+       becomes true.</p></li>
 
        <li>
         <p>If this <span data-x="abort a parser">parser has been aborted</span> in the meantime,
-        then <span>unblock rendering</span> on <var>the script</var> and return.</p>
+        then return.</p>
 
         <p class="note">This could happen if, e.g., while the <span>spin the event loop</span>
         algorithm is running, the <code>Document</code> gets <span data-x="destroy a
         document">destroyed</span>, or the <code data-x="dom-document-open">document.open()</code>
         method gets invoked on the <code>Document</code>.</p>
        </li>
+
+       <li><p>Set the <span>pending parsing-blocking script</span> to null.</p></li>
 
        <li><p><span>Stop the speculative HTML parser</span> for this instance of the HTML
        parser.</p></li>
@@ -151895,7 +151903,8 @@ document.body.appendChild(text);
 
    <li><p>Set <var>parser</var>'s <span>fragment parser running</span> to false.</p></li>
 
-   <li><p>If <var>parser</var>'s <span>fragment parser abort requested</span> is true, then <span
+   <li><p>If <var>parser</var>'s <span>fragment parser abort requested</span> is true, then set
+   <var>parser</var>'s <span>fragment parser abort requested</span> to false and <span
    data-x="abort a parser">abort</span> <var>parser</var>.</p></li>
   </ol>
 
@@ -152026,8 +152035,8 @@ document.body.appendChild(text);
     <p>If <var>parser</var>'s <span>fragment context element</span> is non-null, then return.</p>
 
     <p class="note">Fragment parsers, including those used when <span data-x="stream
-    HTML">streaming HTML</span>, do not speculatively parse. Their output might be sanitized, and the
-    speculative parser does not consult the sanitizer configuration.</p>
+    HTML">streaming HTML</span>, do not speculatively parse. Their output might be sanitized, and
+    the speculative parser does not consult the sanitizer configuration.</p>
    </li>
 
    <li>
@@ -152938,10 +152947,11 @@ console.assert(container.firstChild instanceof SuperP);
    <span data-x="determine the parser context element">parser context element</span> given
    <var>target</var>.</p></li>
 
-   <li><p><span>Assert</span>: <var>contextElement</var> is non-null.</p></li>
+   <li><p><span>Assert</span>: <var data-x="concept-frag-parse-context">contextElement</var> is
+   non-null.</p></li>
 
-   <li><p>Let <var>contextDocument</var> be <var>contextElement</var>'s <span>node
-   document</span>.</p></li>
+   <li><p>Let <var>contextDocument</var> be <var
+   data-x="concept-frag-parse-context">contextElement</var>'s <span>node document</span>.</p></li>
 
    <li><p>If <var>contextDocument</var> is in <span>quirks mode</span>, then set
    <var>tempDocument</var>'s <span data-x="concept-document-mode">mode</span> to "<code
@@ -152954,8 +152964,8 @@ console.assert(container.firstChild instanceof SuperP);
    <li><p>Create a new <span>HTML parser</span>, and associate it with
    <var>tempDocument</var>.</p></li>
 
-   <li><p>Set the parser's <span>fragment context element</span> to
-   <var>contextElement</var>.</p></li>
+   <li><p>Set the parser's <span>fragment context element</span> to <var
+   data-x="concept-frag-parse-context">contextElement</var>.</p></li>
 
    <li><p>Set the parser's <span>parser sanitizer configuration</span> to
    <var>sanitizerConfig</var>.</p></li>
