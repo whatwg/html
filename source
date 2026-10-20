@@ -2819,7 +2819,8 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
 
     <ul class="brief">
      <li><dfn data-x="WritableStream" data-x-href="https://streams.spec.whatwg.org/#writablestream"><code>WritableStream</code></dfn></li>
-     <li><dfn data-x="writablestream-set-up" data-x-href="https://streams.spec.whatwg.org/#writablestream-set-up">Set up a WritableStream</dfn></li>
+     <li><dfn data-x="writablestream-set-up" data-x-href="https://streams.spec.whatwg.org/#writablestream-set-up">set up a <code>WritableStream</code></dfn></li>
+     <li><dfn data-x="writablestream-error" data-x-href="https://streams.spec.whatwg.org/#writablestream-error">error a <code>WritableStream</code></dfn></li>
     </ul>
    </dd>
 
@@ -69470,8 +69471,8 @@ not-slash     = %x0000-002E / %x0030-10FFFF
    <li><p>When an XSLT transformation program is triggered by an <code
    data-x="">&lt;?xml-stylesheet?></code> processing instruction and the browser implements a
    direct-to-DOM transformation, <code>script</code> elements created by the XSLT processor need to
-   have its <span>parser document</span> set correctly, and run in document order (modulo scripts
-   marked <code data-x="attr-script-defer">defer</code> or <code
+   have their <span>parser document</span> and <span>intended document</span> set correctly, and run
+   in document order (modulo scripts marked <code data-x="attr-script-defer">defer</code> or <code
    data-x="attr-script-async">async</code>), <span>immediately</span>, as the transformation is
    occurring.</p></li>
 
@@ -126037,10 +126038,11 @@ document.body.appendChild(frame)</code></pre>
    declarative shadow roots</span>, and associate it with <var>document</var>. This is a
    <dfn>script-created parser</dfn> (meaning that it can be closed by the <code
    data-x="dom-document-open">document.open()</code> and <code
-   data-x="dom-document-close">document.close()</code> methods, and that the tokenizer will wait for
-   an explicit call to <code data-x="dom-document-close">document.close()</code> before emitting an
-   end-of-file token). The encoding <span data-x="concept-encoding-confidence">confidence</span> is
-   <i>irrelevant</i>.</p></li>
+   data-x="dom-document-close">document.close()</code> methods, or by closing the stream when <span
+   data-x="stream HTML">streaming HTML</span>, and that the tokenizer will wait for an explicit call
+   to <code data-x="dom-document-close">document.close()</code> or for the stream to be closed
+   before emitting an end-of-file token). The encoding <span
+   data-x="concept-encoding-confidence">confidence</span> is <i>irrelevant</i>.</p></li>
 
    <li><p>Set the <span>insertion point</span> to point at just before the end of the <span>input
    stream</span> (which at this point will be empty).</p></li>
@@ -127248,13 +127250,15 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   chunks are written to the stream, the <span>HTML parser</span> incrementally processes the input
   and inserts the resulting DOM nodes into the target node.</p>
 
-  <p>Unlike synchronous methods such as <code data-x="dom-Element-setHTML">setHTML()</code>,
+  <p>Unlike synchronous methods such as <code data-x="dom-Element-setHTMLUnsafe">setHTMLUnsafe()</code>,
   streaming methods can parse and execute scripts incrementally when an <code
   data-x="">Unsafe</code> method (e.g. <code
   data-x="dom-Element-streamHTMLUnsafe">streamHTMLUnsafe()</code>) is used and the <code
   data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> option is set to true. Similar to
   main document parsing, <span data-x="classic script">classic scripts</span> are executed as they
-  are parsed, pausing the stream's parser while an external script is being fetched; <code
+  are parsed, pausing the stream's parser while an external script is being fetched (and performing
+  a <span data-x="perform a microtask checkpoint">microtask checkpoint</span> only when the script
+  finishes executing and the JS execution stack is empty); <code
   data-x="attr-script-defer">defer</code> and parser-inserted "<code data-x="">module</code>"
   scripts are executed once the stream is closed; and <code data-x="attr-script-async">async</code>
   scripts are executed as usual. Unlike main document parsing, no style sheet, whether streamed or
@@ -127264,7 +127268,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   <p>Streamed scripts run in the live document, not in the stream's parser. In particular, <code
   data-x="dom-document-write">document.write()</code> called from a streamed inline script writes to
   the live document, at the <span>insertion point</span> of the live document's own parser (if any);
-  it never inserts into the stream. If the live document has finished parsing, such a call implies
+  it never inserts into the stream. When the live document has no <span>insertion point</span> (e.g.,
+  after it has finished parsing, or while it is loading between parser tasks), such a call implies
   <code data-x="dom-document-open">document.open()</code>, which replaces the document's contents,
   including the streamed nodes.</p>
 
@@ -127275,20 +127280,22 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   executing any parser-blocking scripts, though it does not wait for <code
   data-x="attr-script-defer">defer</code> or "<code data-x="">module</code>" scripts; they are
   executed in subsequent tasks, after the promise settles. If the node before which content is being
-  inserted is moved or removed while streaming, e.g., by a script, writing a subsequent chunk errors
-  the stream, and nodes that would have been inserted before it in the meantime are dropped.</p>
+  inserted is moved or removed while streaming, e.g., by a script, the stream is errored and any
+  remaining nodes in the current chunk that would have been inserted before it are dropped.</p>
 
-  <p>Chunks written to the stream are converted to strings. To stream bytes, for example from a
-  <code data-x="">Response</code> body, pipe them through a <code data-x="">TextDecoderStream</code>
-  first.</p>
+  <p>Chunks written to the stream are converted to strings (for example, a <code
+  data-x="">Uint8Array</code> chunk is converted to a comma-separated list of numbers, rather than
+  decoded). To stream bytes, such as from a <code data-x="">Response</code> body, pipe them through
+  a <code data-x="">TextDecoderStream</code> first.</p>
 
   <p>Text written to the stream is appended to the <code>Text</code> node immediately preceding the
   insertion position when there is one, even if that node was not created by the stream. The stream
   keeps inserting into the target even if the target is moved, including to another document; in
-  that case, scripts in the stream no longer execute. Elements left open when the stream is neither
-  closed nor aborted remain open indefinitely, and a streamed script with <code
-  data-x="attr-script-blocking">blocking="render"</code> keeps blocking rendering until the user
-  agent gives up on it.</p>
+  that case, scripts in the stream no longer execute. When the stream is neither closed nor aborted,
+  elements left open remain open indefinitely, and a streamed <code
+  data-x="attr-script-defer">defer</code> or "<code data-x="">module</code>" script with <code
+  data-x="attr-script-blocking">blocking="render"</code> inserted before the document has a
+  <code>body</code> element keeps blocking rendering until the user agent gives up on it.</p>
 
   <dl class="domintro">
    <dt><code data-x=""><var>stream</var> = <var>element</var>.<span subdfn data-x="dom-Element-streamHTML">streamHTML</span>([<var>options</var>])</code></dt>
@@ -127344,9 +127351,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if <var>element</var>
    is an <code>html</code> element. Throws a <span>"<code>NotSupportedError</code>"</span>
    <code>DOMException</code> if <var>element</var> is an HTML or SVG <code>script</code> element.
-   While streaming, content is inserted before <var>element</var>'s <span>first child</span> (or the
-   <span>template contents</span>'s <span>first child</span>), at the time of calling the method.
-   The stream rejects with a <span>"<code>HierarchyRequestError</code>"</span>
+   While streaming, content is inserted before the node that was <var>element</var>'s <span>first
+   child</span> (or the <span>template contents</span>'s <span>first child</span>) when the method
+   was called. The stream errors with a <span>"<code>HierarchyRequestError</code>"</span>
    <code>DOMException</code> if that node is no longer a child of the target. If there is no such
    child when the method is called, streamed content is appended, so children added later by other
    means end up before it.</p></dd>
@@ -127359,8 +127366,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    markup is <span data-x="sanitize">sanitized</span> as it is parsed, based on <var>options</var>'s
    <code data-x="dom-SetHTMLOptions-sanitizer">sanitizer</code> member, and <span
    data-x="dom-Sanitizer-removeUnsafe">unsafe content is removed</span>. While streaming, content is
-   inserted before <var>shadowRoot</var>'s <span>first child</span>, at the time of calling the
-   method. The stream rejects with a <span>"<code>HierarchyRequestError</code>"</span>
+   inserted before the node that was <var>shadowRoot</var>'s <span>first child</span> when the
+   method was called. The stream errors with a <span>"<code>HierarchyRequestError</code>"</span>
    <code>DOMException</code> if that node is no longer a child of <var>shadowRoot</var>.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>node</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamBeforeHTML">streamBeforeHTML</span>([<var>options</var>])</code></dt>
@@ -127376,10 +127383,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <code>template</code> element, or a <code>DocumentFragment</code> without a <span
    data-x="concept-DocumentFragment-host">host</span>. Throws a
    <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>node</var>'s
-   <span>parent</span> is an HTML or SVG <code>script</code> element. While streaming, content is
-   inserted before <var>node</var>, at the time of calling the method. The stream rejects with a
-   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if that node is no
-   longer a child of its <span>parent</span>.</p></dd>
+   <span>parent</span> is an HTML or SVG <code>script</code> element. The stream errors with a
+   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if <var>node</var> is
+   no longer a child of its original <span>parent</span>.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>node</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamAfterHTML">streamAfterHTML</span>([<var>options</var>])</code></dt>
    <dd><p>Returns a <code>WritableStream</code> that, as strings are written to it, parses them
@@ -127395,9 +127401,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    data-x="concept-DocumentFragment-host">host</span>. Throws a
    <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>node</var>'s
    <span>parent</span> is an HTML or SVG <code>script</code> element. While streaming, content is
-   inserted before <var>node</var>'s <span>next sibling</span> (or after the last child of
-   <var>node</var>'s <span>parent</span> if it was the last child), at the time of calling the
-   method. The stream rejects with a <span>"<code>HierarchyRequestError</code>"</span>
+   inserted before the node that was <var>node</var>'s <span>next sibling</span> when the method was
+   called (or after the last child of <var>node</var>'s <span>parent</span> if it was the last
+   child). The stream errors with a <span>"<code>HierarchyRequestError</code>"</span>
    <code>DOMException</code> if that next sibling is no longer a child of <var>node</var>'s
    <span>parent</span>.</p></dd>
 
@@ -127416,9 +127422,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    data-x="concept-DocumentFragment-host">host</span>. Throws a
    <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>node</var>'s
    <span>parent</span> is an HTML or SVG <code>script</code> element. While streaming, content is
-   inserted before <var>node</var>'s <span>next sibling</span> (or after the last child of
-   <var>node</var>'s former <span>parent</span> if it was the last child), at the time of calling
-   the method. The stream rejects with a <span>"<code>HierarchyRequestError</code>"</span>
+   inserted before the node that was <var>node</var>'s <span>next sibling</span> when the method was
+   called (or after the last child of <var>node</var>'s former <span>parent</span> if it was the
+   last child). The stream errors with a <span>"<code>HierarchyRequestError</code>"</span>
    <code>DOMException</code> if that next sibling is no longer a child of <var>node</var>'s former
    <span>parent</span>.</p></dd>
 
@@ -127432,12 +127438,12 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object with a non-null
    sanitizer configuration, it is used to <span>sanitize</span> the markup as it is parsed. If
    <var>options</var>'s <code data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> is
-   true, scripts written to the stream will be executed as they are parsed (or when the stream
-   closes, for <code data-x="attr-script-defer">defer</code> and parser-inserted "<code
-   data-x="">module</code>" scripts), unless altered by a Trusted Types default policy. Throws a
-   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>element</var> is
-   an HTML or SVG <code>script</code> element. Throws a <code>TypeError</code> if Trusted Types are
-   enforced and <var>options</var> is not a <code
+   true and the target is <span>connected</span>, scripts written to the stream will be executed as
+   they are parsed (or when the stream closes, for <code data-x="attr-script-defer">defer</code> and
+   parser-inserted "<code data-x="">module</code>" scripts), unless altered by a Trusted Types
+   default policy. Throws a <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code>
+   if <var>element</var> is an HTML or SVG <code>script</code> element. Throws a
+   <code>TypeError</code> if Trusted Types are enforced and <var>options</var> is not a <code
    data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object, unless a default
    policy's <code data-x="">createParserOptions</code> returns a value other than null or undefined.
    Exceptions thrown by <code data-x="">createParserOptions</code> are rethrown.</p></dd>
@@ -127451,10 +127457,10 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    or a <code data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object with a
    non-null sanitizer configuration, it is used to <span>sanitize</span> the markup as it is parsed.
    If <var>options</var>'s <code data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> is
-   true, scripts written to the stream will be executed as they are parsed (or when the stream
-   closes, for <code data-x="attr-script-defer">defer</code> and parser-inserted "<code
-   data-x="">module</code>" scripts), unless altered by a Trusted Types default policy. Trusted
-   Types are enforced in the same way as for <code
+   true and the target is <span>connected</span>, scripts written to the stream will be executed as
+   they are parsed (or when the stream closes, for <code data-x="attr-script-defer">defer</code> and
+   parser-inserted "<code data-x="">module</code>" scripts), unless altered by a Trusted Types
+   default policy. Trusted Types are enforced in the same way as for <code
    data-x="dom-Element-streamHTMLUnsafe">element.streamHTMLUnsafe()</code>.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>element</var>.<span subdfn data-x="dom-Element-streamAppendHTMLUnsafe">streamAppendHTMLUnsafe</span>([<var>options</var>])</code></dt>
@@ -127467,14 +127473,14 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object with a non-null
    sanitizer configuration, it is used to <span>sanitize</span> the markup as it is parsed. If
    <var>options</var>'s <code data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> is
-   true, scripts written to the stream will be executed as they are parsed (or when the stream
-   closes, for <code data-x="attr-script-defer">defer</code> and parser-inserted "<code
-   data-x="">module</code>" scripts), unless altered by a Trusted Types default policy. Throws a
-   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if <var>element</var>
-   is an <code>html</code> element. Throws a <span>"<code>NotSupportedError</code>"</span>
-   <code>DOMException</code> if <var>element</var> is an HTML or SVG <code>script</code> element.
-   Trusted Types are enforced in the same way as for <code
-   data-x="dom-Element-streamHTMLUnsafe">element.streamHTMLUnsafe()</code>.</p></dd>
+   true and the target is <span>connected</span>, scripts written to the stream will be executed as
+   they are parsed (or when the stream closes, for <code data-x="attr-script-defer">defer</code> and
+   parser-inserted "<code data-x="">module</code>" scripts), unless altered by a Trusted Types
+   default policy. Throws a <span>"<code>HierarchyRequestError</code>"</span>
+   <code>DOMException</code> if <var>element</var> is an <code>html</code> element. Throws a
+   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>element</var> is
+   an HTML or SVG <code>script</code> element. Trusted Types are enforced in the same way as for
+   <code data-x="dom-Element-streamHTMLUnsafe">element.streamHTMLUnsafe()</code>.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>shadowRoot</var>.<span subdfn data-x="dom-ShadowRoot-streamAppendHTMLUnsafe">streamAppendHTMLUnsafe</span>([<var>options</var>])</code></dt>
    <dd><p>Returns a <code>WritableStream</code> that, as strings are written to it, parses them
@@ -127486,10 +127492,10 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object with a non-null
    sanitizer configuration, it is used to <span>sanitize</span> the markup as it is parsed. If
    <var>options</var>'s <code data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> is
-   true, scripts written to the stream will be executed as they are parsed (or when the stream
-   closes, for <code data-x="attr-script-defer">defer</code> and parser-inserted "<code
-   data-x="">module</code>" scripts), unless altered by a Trusted Types default policy. Trusted
-   Types are enforced in the same way as for <code
+   true and the target is <span>connected</span>, scripts written to the stream will be executed as
+   they are parsed (or when the stream closes, for <code data-x="attr-script-defer">defer</code> and
+   parser-inserted "<code data-x="">module</code>" scripts), unless altered by a Trusted Types
+   default policy. Trusted Types are enforced in the same way as for <code
    data-x="dom-Element-streamHTMLUnsafe">element.streamHTMLUnsafe()</code>.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>element</var>.<span subdfn data-x="dom-Element-streamPrependHTMLUnsafe">streamPrependHTMLUnsafe</span>([<var>options</var>])</code></dt>
@@ -127502,18 +127508,18 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object with a non-null
    sanitizer configuration, it is used to <span>sanitize</span> the markup as it is parsed. If
    <var>options</var>'s <code data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> is
-   true, scripts written to the stream will be executed as they are parsed (or when the stream
-   closes, for <code data-x="attr-script-defer">defer</code> and parser-inserted "<code
-   data-x="">module</code>" scripts), unless altered by a Trusted Types default policy. Throws a
-   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if <var>element</var>
-   is an <code>html</code> element. Throws a <span>"<code>NotSupportedError</code>"</span>
-   <code>DOMException</code> if <var>element</var> is an HTML or SVG <code>script</code> element.
-   Trusted Types are enforced in the same way as for <code
-   data-x="dom-Element-streamHTMLUnsafe">element.streamHTMLUnsafe()</code>. While streaming, content
-   is inserted before <var>element</var>'s <span>first child</span> (or the <span>template
-   contents</span>'s <span>first child</span>), at the time of calling the method. The stream
-   rejects with a <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if
-   that node is no longer a child of the target. If there is no such child when the method is
+   true and the target is <span>connected</span>, scripts written to the stream will be executed as
+   they are parsed (or when the stream closes, for <code data-x="attr-script-defer">defer</code> and
+   parser-inserted "<code data-x="">module</code>" scripts), unless altered by a Trusted Types
+   default policy. Throws a <span>"<code>HierarchyRequestError</code>"</span>
+   <code>DOMException</code> if <var>element</var> is an <code>html</code> element. Throws a
+   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>element</var> is
+   an HTML or SVG <code>script</code> element. Trusted Types are enforced in the same way as for
+   <code data-x="dom-Element-streamHTMLUnsafe">element.streamHTMLUnsafe()</code>. While streaming,
+   content is inserted before the node that was <var>element</var>'s <span>first child</span> (or
+   the <span>template contents</span>'s <span>first child</span>) when the method was called. The
+   stream errors with a <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code>
+   if that node is no longer a child of the target. If there is no such child when the method is
    called, streamed content is appended, so children added later by other means end up before
    it.</p></dd>
 
@@ -127527,13 +127533,13 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object with a non-null
    sanitizer configuration, it is used to <span>sanitize</span> the markup as it is parsed. If
    <var>options</var>'s <code data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> is
-   true, scripts written to the stream will be executed as they are parsed (or when the stream
-   closes, for <code data-x="attr-script-defer">defer</code> and parser-inserted "<code
-   data-x="">module</code>" scripts), unless altered by a Trusted Types default policy. Trusted
-   Types are enforced in the same way as for <code
+   true and the target is <span>connected</span>, scripts written to the stream will be executed as
+   they are parsed (or when the stream closes, for <code data-x="attr-script-defer">defer</code> and
+   parser-inserted "<code data-x="">module</code>" scripts), unless altered by a Trusted Types
+   default policy. Trusted Types are enforced in the same way as for <code
    data-x="dom-Element-streamHTMLUnsafe">element.streamHTMLUnsafe()</code>. While streaming, content
-   is inserted before <var>shadowRoot</var>'s <span>first child</span>, at the time of calling the
-   method. The stream rejects with a <span>"<code>HierarchyRequestError</code>"</span>
+   is inserted before the node that was <var>shadowRoot</var>'s <span>first child</span> when the
+   method was called. The stream errors with a <span>"<code>HierarchyRequestError</code>"</span>
    <code>DOMException</code> if that node is no longer a child of <var>shadowRoot</var>.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>node</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamBeforeHTMLUnsafe">streamBeforeHTMLUnsafe</span>([<var>options</var>])</code></dt>
@@ -127546,20 +127552,19 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object with a non-null
    sanitizer configuration, it is used to <span>sanitize</span> the markup as it is parsed. If
    <var>options</var>'s <code data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> is
-   true, scripts written to the stream will be executed as they are parsed (or when the stream
-   closes, for <code data-x="attr-script-defer">defer</code> and parser-inserted "<code
-   data-x="">module</code>" scripts), unless altered by a Trusted Types default policy. Throws a
-   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if <var>node</var>'s
-   <span>parent</span> is null, a <code>Document</code>, an <code>html</code> element, a
-   <code>template</code> element, or a <code>DocumentFragment</code> without a <span
-   data-x="concept-DocumentFragment-host">host</span>. Throws a
-   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>node</var>'s
-   <span>parent</span> is an HTML or SVG <code>script</code> element. Trusted Types are enforced in
-   the same way as for <code
-   data-x="dom-Element-streamHTMLUnsafe">element.streamHTMLUnsafe()</code>. While streaming, content
-   is inserted before <var>node</var>, at the time of calling the method. The stream rejects with a
-   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if that node is no
-   longer a child of its <span>parent</span>.</p></dd>
+   true and the target is <span>connected</span>, scripts written to the stream will be executed as
+   they are parsed (or when the stream closes, for <code data-x="attr-script-defer">defer</code> and
+   parser-inserted "<code data-x="">module</code>" scripts), unless altered by a Trusted Types
+   default policy. Throws a <span>"<code>HierarchyRequestError</code>"</span>
+   <code>DOMException</code> if <var>node</var>'s <span>parent</span> is null, a
+   <code>Document</code>, an <code>html</code> element, a <code>template</code> element, or a
+   <code>DocumentFragment</code> without a <span data-x="concept-DocumentFragment-host">host</span>.
+   Throws a <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if
+   <var>node</var>'s <span>parent</span> is an HTML or SVG <code>script</code> element. Trusted
+   Types are enforced in the same way as for <code
+   data-x="dom-Element-streamHTMLUnsafe">element.streamHTMLUnsafe()</code>. The stream errors with a
+   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if <var>node</var> is
+   no longer a child of its original <span>parent</span>.</p></dd>
 
    <dt><code data-x=""><var>stream</var> = <var>node</var>.<span subdfn data-x="dom-NonDocumentTypeChildNode-streamAfterHTMLUnsafe">streamAfterHTMLUnsafe</span>([<var>options</var>])</code></dt>
    <dd><p>Returns a <code>WritableStream</code> that, as strings are written to it, parses them
@@ -127571,20 +127576,20 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object with a non-null
    sanitizer configuration, it is used to <span>sanitize</span> the markup as it is parsed. If
    <var>options</var>'s <code data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> is
-   true, scripts written to the stream will be executed as they are parsed (or when the stream
-   closes, for <code data-x="attr-script-defer">defer</code> and parser-inserted "<code
-   data-x="">module</code>" scripts), unless altered by a Trusted Types default policy. Throws a
-   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if <var>node</var>'s
-   <span>parent</span> is null, a <code>Document</code>, an <code>html</code> element, a
-   <code>template</code> element, or a <code>DocumentFragment</code> without a <span
-   data-x="concept-DocumentFragment-host">host</span>. Throws a
-   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>node</var>'s
-   <span>parent</span> is an HTML or SVG <code>script</code> element. Trusted Types are enforced in
-   the same way as for <code
+   true and the target is <span>connected</span>, scripts written to the stream will be executed as
+   they are parsed (or when the stream closes, for <code data-x="attr-script-defer">defer</code> and
+   parser-inserted "<code data-x="">module</code>" scripts), unless altered by a Trusted Types
+   default policy. Throws a <span>"<code>HierarchyRequestError</code>"</span>
+   <code>DOMException</code> if <var>node</var>'s <span>parent</span> is null, a
+   <code>Document</code>, an <code>html</code> element, a <code>template</code> element, or a
+   <code>DocumentFragment</code> without a <span data-x="concept-DocumentFragment-host">host</span>.
+   Throws a <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if
+   <var>node</var>'s <span>parent</span> is an HTML or SVG <code>script</code> element. Trusted
+   Types are enforced in the same way as for <code
    data-x="dom-Element-streamHTMLUnsafe">element.streamHTMLUnsafe()</code>. While streaming, content
-   is inserted before <var>node</var>'s <span>next sibling</span> (or after the last child of
-   <var>node</var>'s <span>parent</span> if it was the last child), at the time of calling the
-   method. The stream rejects with a <span>"<code>HierarchyRequestError</code>"</span>
+   is inserted before the node that was <var>node</var>'s <span>next sibling</span> when the method
+   was called (or after the last child of <var>node</var>'s <span>parent</span> if it was the last
+   child). The stream errors with a <span>"<code>HierarchyRequestError</code>"</span>
    <code>DOMException</code> if that next sibling is no longer a child of <var>node</var>'s
    <span>parent</span>.</p></dd>
 
@@ -127599,20 +127604,20 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object with a non-null
    sanitizer configuration, it is used to <span>sanitize</span> the markup as it is parsed. If
    <var>options</var>'s <code data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> is
-   true, scripts written to the stream will be executed as they are parsed (or when the stream
-   closes, for <code data-x="attr-script-defer">defer</code> and parser-inserted "<code
-   data-x="">module</code>" scripts), unless altered by a Trusted Types default policy. Throws a
-   <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> if <var>node</var>'s
-   <span>parent</span> is null, a <code>Document</code>, an <code>html</code> element, a
-   <code>template</code> element, or a <code>DocumentFragment</code> without a <span
-   data-x="concept-DocumentFragment-host">host</span>. Throws a
-   <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if <var>node</var>'s
-   <span>parent</span> is an HTML or SVG <code>script</code> element. Trusted Types are enforced in
-   the same way as for <code
+   true and the target is <span>connected</span>, scripts written to the stream will be executed as
+   they are parsed (or when the stream closes, for <code data-x="attr-script-defer">defer</code> and
+   parser-inserted "<code data-x="">module</code>" scripts), unless altered by a Trusted Types
+   default policy. Throws a <span>"<code>HierarchyRequestError</code>"</span>
+   <code>DOMException</code> if <var>node</var>'s <span>parent</span> is null, a
+   <code>Document</code>, an <code>html</code> element, a <code>template</code> element, or a
+   <code>DocumentFragment</code> without a <span data-x="concept-DocumentFragment-host">host</span>.
+   Throws a <span>"<code>NotSupportedError</code>"</span> <code>DOMException</code> if
+   <var>node</var>'s <span>parent</span> is an HTML or SVG <code>script</code> element. Trusted
+   Types are enforced in the same way as for <code
    data-x="dom-Element-streamHTMLUnsafe">element.streamHTMLUnsafe()</code>. While streaming, content
-   is inserted before <var>node</var>'s <span>next sibling</span> (or after the last child of
-   <var>node</var>'s former <span>parent</span> if it was the last child), at the time of calling
-   the method. The stream rejects with a <span>"<code>HierarchyRequestError</code>"</span>
+   is inserted before the node that was <var>node</var>'s <span>next sibling</span> when the method
+   was called (or after the last child of <var>node</var>'s former <span>parent</span> if it was the
+   last child). The stream errors with a <span>"<code>HierarchyRequestError</code>"</span>
    <code>DOMException</code> if that next sibling is no longer a child of <var>node</var>'s former
    <span>parent</span>.</p></dd>
   </dl>
@@ -127628,8 +127633,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <span>this</span>.</p></li>
 
    <li><p>Let <var>stream</var> be the result of running <span>stream HTML</span> given
-   <var>target</var>, null, <var>options</var>, true, and <span>this</span>'s <span
-   data-x="concept-relevant-realm">relevant realm</span>.</p></li>
+   <var>target</var>, null, <var>options</var>, <span data-x="fragment-parser-mode-safe">Safe</span>,
+   and <span>this</span>'s <span data-x="concept-relevant-realm">relevant realm</span>.</p></li>
 
    <li><p><span data-x="concept-node-replace-all">Replace all</span> with null within
    <var>target</var>.</p></li>
@@ -127651,8 +127656,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Return the result of running <span>stream HTML</span> given <var>target</var>, null,
-   <var>options</var>, true, and <span>this</span>'s <span data-x="concept-relevant-realm">relevant
-   realm</span>.</p></li>
+   <var>options</var>, <span data-x="fragment-parser-mode-safe">Safe</span>, and <span>this</span>'s
+   <span data-x="concept-relevant-realm">relevant realm</span>.</p></li>
   </ol>
   </div>
 
@@ -127669,8 +127674,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Return the result of running <span>stream HTML</span> given <var>target</var>,
-   <var>target</var>'s <span>first child</span>, <var>options</var>, true, and <span>this</span>'s
-   <span data-x="concept-relevant-realm">relevant realm</span>.</p></li>
+   <var>target</var>'s <span>first child</span>, <var>options</var>, <span
+   data-x="fragment-parser-mode-safe">Safe</span>, and <span>this</span>'s <span
+   data-x="concept-relevant-realm">relevant realm</span>.</p></li>
   </ol>
   </div>
 
@@ -127689,7 +127695,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <span>this</span>.</p></li>
 
    <li><p>Let <var>stream</var> be the result of running <span>stream HTML</span> given
-   <var>target</var>, null, <var>compliantOptions</var>, false, and <span>this</span>'s <span
+   <var>target</var>, null, <var>compliantOptions</var>, <span
+   data-x="fragment-parser-mode-unsafe">Unsafe</span>, and <span>this</span>'s <span
    data-x="concept-relevant-realm">relevant realm</span>.</p></li>
 
    <li><p><span data-x="concept-node-replace-all">Replace all</span> with null within
@@ -127717,8 +127724,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Return the result of running <span>stream HTML</span> given <var>target</var>, null,
-   <var>compliantOptions</var>, false, and <span>this</span>'s <span
-   data-x="concept-relevant-realm">relevant realm</span>.</p></li>
+   <var>compliantOptions</var>, <span data-x="fragment-parser-mode-unsafe">Unsafe</span>, and
+   <span>this</span>'s <span data-x="concept-relevant-realm">relevant realm</span>.</p></li>
   </ol>
   </div>
 
@@ -127740,8 +127747,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Return the result of running <span>stream HTML</span> given <var>target</var>,
-   <var>target</var>'s <span>first child</span>, <var>compliantOptions</var>, false, and
-   <span>this</span>'s <span data-x="concept-relevant-realm">relevant realm</span>.</p></li>
+   <var>target</var>'s <span>first child</span>, <var>compliantOptions</var>, <span
+   data-x="fragment-parser-mode-unsafe">Unsafe</span>, and <span>this</span>'s <span
+   data-x="concept-relevant-realm">relevant realm</span>.</p></li>
   </ol>
   </div>
 
@@ -127752,8 +127760,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
 
   <ol>
    <li><p>Let <var>stream</var> be the result of running <span>stream HTML</span> given
-   <span>this</span>, null, <var>options</var>, true, and <span>this</span>'s <span
-   data-x="concept-relevant-realm">relevant realm</span>.</p></li>
+   <span>this</span>, null, <var>options</var>, <span data-x="fragment-parser-mode-safe">Safe</span>,
+   and <span>this</span>'s <span data-x="concept-relevant-realm">relevant realm</span>.</p></li>
 
    <li><p><span data-x="concept-node-replace-all">Replace all</span> with null within
    <span>this</span>.</p></li>
@@ -127766,16 +127774,17 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   <p><code>ShadowRoot</code>'s <dfn method for="ShadowRoot"><code
   data-x="dom-ShadowRoot-streamAppendHTML">streamAppendHTML(<var>options</var>)</code></dfn> method
   steps are to return the result of running <span>stream HTML</span> given <span>this</span>, null,
-  <var>options</var>, true, and <span>this</span>'s <span data-x="concept-relevant-realm">relevant
-  realm</span>.</p>
+  <var>options</var>, <span data-x="fragment-parser-mode-safe">Safe</span>, and <span>this</span>'s
+  <span data-x="concept-relevant-realm">relevant realm</span>.</p>
   </div>
 
   <div algorithm>
   <p><code>ShadowRoot</code>'s <dfn method for="ShadowRoot"><code
   data-x="dom-ShadowRoot-streamPrependHTML">streamPrependHTML(<var>options</var>)</code></dfn>
   method steps are to return the result of running <span>stream HTML</span> given <span>this</span>,
-  <span>this</span>'s <span>first child</span>, <var>options</var>, true, and <span>this</span>'s
-  <span data-x="concept-relevant-realm">relevant realm</span>.</p>
+  <span>this</span>'s <span>first child</span>, <var>options</var>, <span
+  data-x="fragment-parser-mode-safe">Safe</span>, and <span>this</span>'s <span
+  data-x="concept-relevant-realm">relevant realm</span>.</p>
   </div>
 
   <div algorithm>
@@ -127790,7 +127799,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    "<code data-x="">ShadowRoot streamHTMLUnsafe</code>".</p></li>
 
    <li><p>Let <var>stream</var> be the result of running <span>stream HTML</span> given
-   <span>this</span>, null, <var>compliantOptions</var>, false, and <span>this</span>'s <span
+   <span>this</span>, null, <var>compliantOptions</var>, <span
+   data-x="fragment-parser-mode-unsafe">Unsafe</span>, and <span>this</span>'s <span
    data-x="concept-relevant-realm">relevant realm</span>.</p></li>
 
    <li><p><span data-x="concept-node-replace-all">Replace all</span> with null within
@@ -127812,8 +127822,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    "<code data-x="">ShadowRoot streamAppendHTMLUnsafe</code>".</p></li>
 
    <li><p>Return the result of running <span>stream HTML</span> given <span>this</span>, null,
-   <var>compliantOptions</var>, false, and <span>this</span>'s <span
-   data-x="concept-relevant-realm">relevant realm</span>.</p></li>
+   <var>compliantOptions</var>, <span data-x="fragment-parser-mode-unsafe">Unsafe</span>, and
+   <span>this</span>'s <span data-x="concept-relevant-realm">relevant realm</span>.</p></li>
   </ol>
   </div>
 
@@ -127829,8 +127839,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    "<code data-x="">ShadowRoot streamPrependHTMLUnsafe</code>".</p></li>
 
    <li><p>Return the result of running <span>stream HTML</span> given <span>this</span>,
-   <span>this</span>'s <span>first child</span>, <var>compliantOptions</var>, false, and
-   <span>this</span>'s <span data-x="concept-relevant-realm">relevant realm</span>.</p></li>
+   <span>this</span>'s <span>first child</span>, <var>compliantOptions</var>, <span
+   data-x="fragment-parser-mode-unsafe">Unsafe</span>, and <span>this</span>'s <span
+   data-x="concept-relevant-realm">relevant realm</span>.</p></li>
   </ol>
   </div>
 
@@ -127844,8 +127855,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <span>this</span>.</p></li>
 
    <li><p>Return the result of running <span>stream HTML</span> given <var>parent</var>,
-   <span>this</span>, <var>options</var>, true, and <span>this</span>'s <span
-   data-x="concept-relevant-realm">relevant realm</span>.</p></li>
+   <span>this</span>, <var>options</var>, <span data-x="fragment-parser-mode-safe">Safe</span>, and
+   <span>this</span>'s <span data-x="concept-relevant-realm">relevant realm</span>.</p></li>
   </ol>
   </div>
 
@@ -127859,8 +127870,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <span>this</span>.</p></li>
 
    <li><p>Return the result of running <span>stream HTML</span> given <var>parent</var>,
-   <span>this</span>'s <span>next sibling</span>, <var>options</var>, true, and <span>this</span>'s
-   <span data-x="concept-relevant-realm">relevant realm</span>.</p></li>
+   <span>this</span>'s <span>next sibling</span>, <var>options</var>, <span
+   data-x="fragment-parser-mode-safe">Safe</span>, and <span>this</span>'s <span
+   data-x="concept-relevant-realm">relevant realm</span>.</p></li>
   </ol>
   </div>
 
@@ -127874,8 +127886,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <span>this</span>.</p></li>
 
    <li><p>Let <var>stream</var> be the result of running <span>stream HTML</span> given
-   <var>parent</var>, <span>this</span>'s <span>next sibling</span>, <var>options</var>, true, and
-   <span>this</span>'s <span data-x="concept-relevant-realm">relevant realm</span>.</p></li>
+   <var>parent</var>, <span>this</span>'s <span>next sibling</span>, <var>options</var>, <span
+   data-x="fragment-parser-mode-safe">Safe</span>, and <span>this</span>'s <span
+   data-x="concept-relevant-realm">relevant realm</span>.</p></li>
 
    <li><p><span data-x="concept-node-remove">Remove</span> <span>this</span>.</p></li>
 
@@ -127898,7 +127911,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <span>this</span>.</p></li>
 
    <li><p>Return the result of running <span>stream HTML</span> given <var>parent</var>,
-   <span>this</span>, <var>compliantOptions</var>, false, and <span>this</span>'s <span
+   <span>this</span>, <var>compliantOptions</var>, <span
+   data-x="fragment-parser-mode-unsafe">Unsafe</span>, and <span>this</span>'s <span
    data-x="concept-relevant-realm">relevant realm</span>.</p></li>
   </ol>
   </div>
@@ -127918,8 +127932,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <span>this</span>.</p></li>
 
    <li><p>Return the result of running <span>stream HTML</span> given <var>parent</var>,
-   <span>this</span>'s <span>next sibling</span>, <var>compliantOptions</var>, false, and
-   <span>this</span>'s <span data-x="concept-relevant-realm">relevant realm</span>.</p></li>
+   <span>this</span>'s <span>next sibling</span>, <var>compliantOptions</var>, <span
+   data-x="fragment-parser-mode-unsafe">Unsafe</span>, and <span>this</span>'s <span
+   data-x="concept-relevant-realm">relevant realm</span>.</p></li>
   </ol>
   </div>
 
@@ -127939,8 +127954,8 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
 
    <li><p>Let <var>stream</var> be the result of running <span>stream HTML</span> given
    <var>parent</var>, <span>this</span>'s <span>next sibling</span>, <var>compliantOptions</var>,
-   false, and <span>this</span>'s <span data-x="concept-relevant-realm">relevant
-   realm</span>.</p></li>
+   <span data-x="fragment-parser-mode-unsafe">Unsafe</span>, and <span>this</span>'s <span
+   data-x="concept-relevant-realm">relevant realm</span>.</p></li>
 
    <li><p><span data-x="concept-node-remove">Remove</span> <span>this</span>.</p></li>
 
@@ -127961,12 +127976,13 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <li><p>Return <var>parent</var>.</p></li>
   </ol>
 
-  <p class="note">Unlike <code data-x="dom-NonDocumentTypeChildNode-beforeHTML">beforeHTML()</code>
-  and the other non-streaming <span>HTML insertion methods</span>, which do nothing when
-  <var>node</var> has no parent, this throws: the returned <code>WritableStream</code> would
-  otherwise silently discard everything written to it. Similarly, if the node before which content
-  is being inserted is no longer a child of the parent when a chunk is written, the stream errors
-  with the same exception.</p>
+  <p class="note">Unlike <code data-x="dom-NonDocumentTypeChildNode-beforeHTML">beforeHTML()</code>,
+  <code data-x="dom-NonDocumentTypeChildNode-afterHTML">afterHTML()</code>, <code
+  data-x="dom-NonDocumentTypeChildNode-replaceWithHTML">replaceWithHTML()</code>, and their <code
+  data-x="">Unsafe</code> counterparts, which do nothing when <var>node</var> has no parent, this
+  throws: the returned <code>WritableStream</code> would otherwise silently discard everything
+  written to it. Similarly, if the node before which content is being inserted is no longer a child
+  of the parent, the stream errors with the same exception.</p>
   </div>
 
   <div algorithm>
@@ -127974,13 +127990,11 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   <var>target</var>, a <code>Node</code> or null <var>referenceChild</var>, a
   <code>SetHTMLOptions</code> or <code>SetHTMLUnsafeOptions</code> dictionary or a <code
   data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code> object <var>options</var>, a
-  boolean <var>safe</var>, and a <span>realm</span> <var>realm</var>:</p>
+  <span>fragment parser mode</span> <var>mode</var>, and a <span>realm</span> <var>realm</var>:</p>
 
   <ol>
    <li><p>Let <var>context</var> be the <span data-x="determine the parser context element">parser
    context element</span> given <var>target</var>.</p></li>
-
-   <li><p><span>Assert</span>: <var>context</var> is non-null.</p></li>
 
    <li>
     <p>If <var>context</var>'s <span data-x="concept-element-local-name">local name</span> is
@@ -127989,7 +128003,7 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <span>SVG namespace</span>, then throw a <span>"<code>NotSupportedError</code>"</span>
     <code>DOMException</code>.</p>
 
-    <p class="note">This is done regardless of <var>safe</var>, unlike <code
+    <p class="note">This is done regardless of <var>mode</var>, unlike <code
     data-x="dom-Element-setHTML">setHTML()</code>, which silently does nothing for a
     <code>script</code> element. Streaming into a <code>script</code> element would cause its
     <span>children changed steps</span> to <span data-x="prepare the script element">prepare</span>
@@ -127997,26 +128011,21 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     everything written to it would be an easy mistake to miss.</p>
    </li>
 
+   <li><p>Let <var>safe</var> be true if <var>mode</var> is <span
+   data-x="fragment-parser-mode-safe">Safe</span>; otherwise false.</p></li>
+
    <li><p>Let <var>sanitizerConfig</var> be the result of <span data-x="get a sanitizer config from
    options">getting a sanitizer config from options</span> given <var>options</var> and
    <var>safe</var>.</p></li>
 
-   <li><p>Let <var>runScripts</var> be false.</p></li>
+   <li><p>Let <var>runScripts</var> be <var>options</var>'s <span
+   data-x="tt-trustedhtmlparseroptions-runscripts">runScripts</span> if <var>options</var> is a
+   <code data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code>; otherwise
+   <var>options</var>["<code data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code>"] <span
+   data-x="map with default">with default</span> false.</p></li>
 
-   <li>
-    <p>If <var>safe</var> is false:</p>
-
-    <ol>
-     <li><p>If <var>options</var> is a <code
-     data-x="tt-trustedhtmlparseroptions">TrustedHTMLParserOptions</code>, then set
-     <var>runScripts</var> to <var>options</var>'s <span
-     data-x="tt-trustedhtmlparseroptions-runscripts">runScripts</span>.</p></li>
-
-     <li><p>Otherwise, set <var>runScripts</var> to <var>options</var>["<code
-     data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code>"] <span data-x="map with
-     default">with default</span> false.</p></li>
-    </ol>
-   </li>
+   <li><p><span>Assert</span>: <var>runScripts</var> is false or <var>mode</var> is not <span
+   data-x="fragment-parser-mode-safe">Safe</span>.</p></li>
 
    <li><p>Let <var>document</var> be a <code>Document</code> node whose <span
    data-x="concept-document-type">type</span> is "<code data-x="">html</code>".</p></li>
@@ -128039,47 +128048,67 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <li><p>Let <var>stream</var> be a <span>new</span> <code>WritableStream</code> created in
    <var>realm</var>.</p></li>
 
+   <li><p>Let <var>writeError</var> be null.</p></li>
+
+   <li>
+    <p>Set <var>parser</var>'s <span>invalid reference child steps</span> to the following
+    steps:</p>
+
+    <ol>
+     <li><p>Set <var>parser</var>'s <span>invalid reference child steps</span> to null.</p></li>
+
+     <li><p>Let <var>error</var> be a new <span>"<code>HierarchyRequestError</code>"</span>
+     <code>DOMException</code>, created in <var>realm</var>.</p></li>
+
+     <li><p>Set <var>writeError</var> to <var>error</var>.</p></li>
+
+     <li><p><span data-x="writablestream-error">Error</span> <var>stream</var> with
+     <var>error</var>.</p></li>
+
+     <li><p>If <var>parser</var>'s <span>fragment parser close promise</span> is non-null, then
+     reject <var>parser</var>'s <span>fragment parser close promise</span> with <var>error</var> and
+     set <var>parser</var>'s <span>fragment parser close promise</span> to null.</p></li>
+
+     <li><p><span data-x="abort a fragment parser">Abort</span> <var>parser</var>.</p></li>
+    </ol>
+   </li>
+
    <li>
     <p>Let <var>writeAlgorithm</var> be the following steps given <var>chunk</var>:</p>
 
     <ol>
-     <li>
-      <p>Let <var>chunkString</var> be the result of <span
-      data-x="concept-idl-convert">converting</span> <var>chunk</var> to a <code
-      data-x="idl-DOMString">DOMString</code>. If this throws an exception, then <span data-x="abort
-      a fragment parser">abort</span> <var>parser</var> and return a promise rejected with that
-      exception, created in <var>realm</var>.</p>
-
-      <p class="note">Chunks are not required to be strings, but are converted to strings. For
-      example, a <code data-x="">Uint8Array</code> chunk would be converted to a comma-separated
-      list of numbers, rather than decoded. Byte streams need to be decoded, e.g., using a <code
-      data-x="">TextDecoderStream</code>, before being piped to the returned stream.</p>
-     </li>
+     <li><p>Let <var>chunkString</var> be the result of <span
+     data-x="concept-idl-convert">converting</span> <var>chunk</var> to a <code
+     data-x="idl-DOMString">DOMString</code>. If this throws an exception, then <span data-x="abort
+     a fragment parser">abort</span> <var>parser</var> and return <span>a promise rejected
+     with</span> that exception, created in <var>realm</var>.</p></li>
 
      <li>
-      <p>If <var>referenceChild</var> is non-null and <var>referenceChild</var>'s
-      <span>parent</span> is not <var>target</var>:</p>
+      <p>If <var>referenceChild</var> is non-null, <var>referenceChild</var>'s <span>parent</span>
+      is not <var>target</var>, and <var>parser</var>'s <span>invalid reference child steps</span>
+      are non-null, then run <var>parser</var>'s <span>invalid reference child steps</span>.</p>
 
-      <ol>
-       <li><p><span data-x="abort a fragment parser">Abort</span> <var>parser</var>.</p></li>
-
-       <li><p>Return a promise rejected with a new <span>"<code>HierarchyRequestError</code>"</span>
-       <code>DOMException</code>, created in <var>realm</var>.</p></li>
-      </ol>
-
-      <p class="note">This is only checked when a chunk is written. If <var>referenceChild</var> is
-      moved or removed while <var>parser</var> is running, e.g., by a <span
-      data-x="concept-custom-element-reaction">custom element reaction</span> or by a script that
-      <var>parser</var> was blocked on, then nodes that would have been inserted before it are
-      dropped, and parsing continues. Closing the stream is not affected.</p>
+      <p class="note">If <var>referenceChild</var> is moved or removed while <var>parser</var> is
+      running, e.g., by a <span data-x="concept-custom-element-reaction">custom element
+      reaction</span> or by a script that <var>parser</var> was blocked on, then <var>parser</var>'s
+      <span>invalid reference child steps</span> are also run when <var>parser</var> next attempts
+      to insert a node before <var>referenceChild</var>. This check catches the case where
+      <var>referenceChild</var> was moved or removed before <var>parser</var> runs, or where the
+      chunk produces no nodes to insert before <var>referenceChild</var>.</p>
      </li>
+
+     <li><p>If <var>writeError</var> is non-null, then return <span>a promise rejected with</span>
+     <var>writeError</var>, created in <var>realm</var>.</p></li>
 
      <li><p>Append <var>chunkString</var> to the end of <var>parser</var>'s <span>input
      stream</span>, and <span>run a fragment parser</span> given <var>parser</var>. The encoding
      <span data-x="concept-encoding-confidence">confidence</span> is <i>irrelevant</i>.</p></li>
 
+     <li><p>If <var>writeError</var> is non-null, then return <span>a promise rejected with</span>
+     <var>writeError</var>, created in <var>realm</var>.</p></li>
+
      <li>
-      <p>Return a promise resolved with undefined, created in <var>realm</var>.</p>
+      <p>Return <span>a promise resolved with</span> undefined, created in <var>realm</var>.</p>
 
       <p class="note">The returned promise does not wait for a <span>pending parsing-blocking
       script</span> to be executed. While <var>parser</var> is blocked, subsequent input accumulates
@@ -128093,23 +128122,26 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <p>Let <var>closeAlgorithm</var> be the following steps:</p>
 
     <ol>
-     <li><p>Set <var>parser</var>'s <span>fragment parser close promise</span> to a new promise
-     created in <var>realm</var>.</p></li>
+     <li><p>Let <var>closePromise</var> be a new promise created in <var>realm</var>.</p></li>
+
+     <li><p>Set <var>parser</var>'s <span>fragment parser close promise</span> to
+     <var>closePromise</var>.</p></li>
 
      <li><p>Append an <span>explicit "EOF" character</span> to the end of <var>parser</var>'s
      <span>input stream</span>, and <span>run a fragment parser</span> given
      <var>parser</var>.</p></li>
 
      <li>
-      <p>Return <var>parser</var>'s <span>fragment parser close promise</span>.</p>
+      <p>Return <var>closePromise</var>.</p>
 
       <p class="note">The returned promise is resolved once <var>parser</var> <span data-x="stop
       parsing">stops parsing</span>, after any <span>pending parsing-blocking script</span> has been
-      executed and any remaining input has been parsed. It does not wait for <code
-      data-x="attr-script-defer">defer</code> or "<code data-x="">module</code>" scripts, which are
-      executed in subsequent tasks. Once closing has started, <var>stream</var> can no longer be
-      aborted, so pending scripts are still executed; if a parser-blocking script never finishes
-      loading, the returned promise never settles.</p>
+      executed and any remaining input has been parsed, or rejected if <var>stream</var> errors
+      while closing. It does not wait for <code data-x="attr-script-defer">defer</code> or "<code
+      data-x="">module</code>" scripts, which are executed in subsequent tasks. Once closing has
+      started, <var>stream</var> can no longer be aborted by the caller, so pending scripts are
+      still executed; if a parser-blocking script never finishes loading, the returned promise never
+      settles.</p>
      </li>
     </ol>
    </li>
@@ -128121,20 +128153,22 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
      <li><p>If <var>parser</var>'s <span data-x="parser-aborted">aborted</span> is false, then <span
      data-x="abort a fragment parser">abort</span> <var>parser</var>.</p></li>
 
-     <li><p>Return a promise resolved with undefined, created in <var>realm</var>.</p></li>
+     <li><p>Return <span>a promise resolved with</span> undefined, created in <var>realm</var>.</p></li>
     </ol>
 
     <p class="note">While a write is in progress, this only runs once it has completed. For example,
     if a script in the chunk being written aborts <var>stream</var>, the rest of that chunk is still
     parsed. If <var>stream</var> is aborted while <var>parser</var> is running from a task, e.g., by
     a <span data-x="concept-custom-element-reaction">custom element reaction</span>, the abort is
-    deferred until <var>parser</var> returns. Aborting the parser would fire a <code
-    data-x="event-readystatechange">readystatechange</code> event on the temporary inert document,
-    which is not observable.</p>
+    deferred until <var>parser</var> returns. The <code
+    data-x="event-readystatechange">readystatechange</code> events fired by <span data-x="abort a
+    parser">aborting</span> <var>parser</var> target the temporary inert <var>document</var>, so
+    they are not observable.</p>
    </li>
 
    <li><p><span data-x="writablestream-set-up">Set up</span> <var>stream</var> with
-   <var>writeAlgorithm</var>, <var>closeAlgorithm</var>, and <var>abortAlgorithm</var>.</p></li>
+   <i>writeAlgorithm</i> set to <var>writeAlgorithm</var>, <i>closeAlgorithm</i> set to
+   <var>closeAlgorithm</var>, and <i>abortAlgorithm</i> set to <var>abortAlgorithm</var>.</p></li>
 
    <li><p>Return <var>stream</var>.</p></li>
   </ol>
@@ -128397,8 +128431,6 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <ol>
      <li><p>Let <var>context</var> be the <span data-x="determine the parser context element">parser
      context element</span> given <var>target</var>.</p></li>
-
-     <li><p><span>Assert</span>: <var>context</var> is non-null.</p></li>
 
      <li>
       <p>If all of the following are true:</p>
@@ -144028,16 +144060,23 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   scripting is always disabled for the <code>Document</code> with which a fragment parser is
   associated.</p>
 
-  <p>A <code>Document</code>-or-null <dfn>script target document</dfn> (initially null).</p>
+  <p>A <code>Document</code>-or-null <dfn>script target document</dfn>, initially null. When
+  non-null, <code>script</code> elements and style sheets inserted by the parser take effect in this
+  document instead of the parser's associated <code>Document</code>.</p>
 
-  <p>A boolean <dfn>fragment parser running</dfn> (initially false).</p>
+  <p>A boolean <dfn>fragment parser running</dfn>, initially false. It is true while <span>run a
+  fragment parser</span> is on the call stack for this parser.</p>
 
-  <p>A boolean <dfn data-x="parser-aborted">aborted</dfn> (initially false). It is set to true by
-  the <span>abort a parser</span> algorithm.</p>
+  <p>A boolean <dfn data-x="parser-aborted">aborted</dfn>, initially false. It is set to true by
+  the <span>abort a parser</span> and <span>abort a fragment parser</span> algorithms.</p>
 
-  <p>A boolean <dfn>fragment parser abort requested</dfn> (initially false).</p>
+  <p>A boolean <dfn>fragment parser abort requested</dfn>, initially false. It is set to true when
+  <span>abort a fragment parser</span> is called while <span>fragment parser running</span> is true,
+  so that the parser aborts once the current invocation finishes.</p>
 
-  <p>A promise-or-null <dfn>fragment parser close promise</dfn> (initially null).</p>
+  <p>A promise-or-null <dfn>fragment parser close promise</dfn>, initially null. When non-null, it
+  is resolved when the parser <span data-x="stop parsing">stops parsing</span> or rejected if the
+  stream errors while closing.</p>
 
   <p>The <dfn>frameset-ok flag</dfn> is set to "ok" when the parser is created. It is set to "not
   ok" after certain tokens are seen, and back to "ok" when the <code>body</code> element is
@@ -144055,6 +144094,12 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   <p class="note">When an element is removed or replaced with its children as part of sanitization
   during parsing, text inserted immediately before and after that element coalesces into a single
   <code>Text</code> node.</p>
+
+  <p>An algorithm-or-null <dfn>invalid reference child steps</dfn>, initially null. When non-null, it
+  is run when the parser's <span>adjusted insertion location</span> or <span>stream HTML</span>
+  detects that the <span data-x="insertion-location-reference-child">reference child</span> is no
+  longer a <span data-x="concept-tree-child">child</span> of the <span
+  data-x="insertion-location-target-parent">target parent</span>.</p>
 
 
   <h4><dfn>Tokenization</dfn></h4>
@@ -146974,12 +147019,11 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    </li>
 
    <li>
-    <p>If the parser's <span>insertion target redirection map</span>[<var>intendedParent</var>]
-    <span data-x="map exists">exists</span>, then set <var>intendedParent</var> to the parser's
-    <span>insertion target redirection map</span>[<var>intendedParent</var>]'s <span
-    data-x="insertion-location-target-parent">target parent</span>.</p>
+    <p>Let (<var>targetParent</var>, <var>referenceChild</var>) be the <span>adjusted insertion
+    location</span> given (<var>intendedParent</var>, null).</p>
 
-    <p class="note">When <span data-x="stream HTML">streaming HTML</span>, this ensures that
+    <p class="note">In the <span>fragment case</span> and when <span
+    data-x="sanitize">sanitizing</span>, this ensures that
     elements are created in the <span>node document</span> of the node they will be inserted into,
     like their descendants, which are created after they have been inserted (and therefore <span
     data-x="concept-node-adopt">adopted</span>) into that document. Otherwise, elements whose
@@ -146988,7 +147032,7 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     only adopted when inserted.</p>
    </li>
 
-   <li><p>Let <var>document</var> be <var>intendedParent</var>'s
+   <li><p>Let <var>document</var> be <var>targetParent</var>'s
    <span>node document</span>.</p></li>
 
    <li><p>Let <var>localName</var> be <var>token</var>'s tag name.</p></li>
@@ -147005,13 +147049,20 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    <var>sanitizerConfig</var>.</p></li>
 
    <li>
-    <p>If <var>sanitizerAction</var> is not "<span data-x="sanitizer-action-keep">Keep</span>", then
-    set <var>document</var> to <var>document</var>'s <span>appropriate template contents owner
-    document</span>.</p>
+    <p>If <var>referenceChild</var> is non-null and <var>referenceChild</var>'s <span>parent</span>
+    is not <var>targetParent</var>, then set <var>registry</var> to null.</p>
+   </li>
 
-    <p class="note">This ensures that elements removed by the sanitizer are still on the <span>stack
-    of open elements</span> when streaming, but do not invoke side effects such as loading
-    images.</p>
+   <li>
+    <p>If <var>sanitizerAction</var> is not "<span data-x="sanitizer-action-keep">Keep</span>", or
+    <var>referenceChild</var> is non-null and <var>referenceChild</var>'s <span>parent</span> is not
+    <var>targetParent</var>, then set <var>document</var> to <var>document</var>'s
+    <span>appropriate template contents owner document</span>.</p>
+
+    <p class="note">This ensures that elements removed by the sanitizer, or dropped because
+    <var>referenceChild</var> is no longer a child of <var>targetParent</var>, are still on the
+    <span>stack of open elements</span> when streaming, but do not invoke side effects such as
+    loading images.</p>
    </li>
 
    <li><p>Let <var>is</var> be the value of the "<code data-x="attr-is">is</code>" attribute in
@@ -147037,10 +147088,10 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     <span>customized built-in element</span>.</p>
    </li>
 
-   <li><p>Let <var>definition</var> be null if <var>sanitizerAction</var> is not "<span
-   data-x="sanitizer-action-keep">Keep</span>"; otherwise the result of <span data-x="look up a
-   custom element definition">looking up a custom element definition</span> given
-   <var>registry</var>, <var>namespace</var>, <var>localName</var>, and <var>is</var>.</p></li>
+   <li><p>Let <var>definition</var> be null if <var>creationRegistry</var> is null; otherwise the
+   result of <span data-x="look up a custom element definition">looking up a custom element
+   definition</span> given <var>creationRegistry</var>, <var>namespace</var>, <var>localName</var>,
+   and <var>is</var>.</p></li>
 
    <li><p>Let <var>willExecuteScript</var> be true if <var>definition</var> is non-null and the
    parser's <span>fragment context element</span> is null; otherwise false.</p></li>
@@ -147148,7 +147199,7 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    <span><code data-x="">form</code> element pointer</span> is not null, the parser is not
    <span>parsing template contents</span>, the parser's <span>fragment context element</span> is
    null, <var>element</var> is either not <span data-x="category-listed">listed</span> or doesn't
-   have a <code data-x="attr-fae-form">form</code> attribute, the <var>intendedParent</var> is in
+   have a <code data-x="attr-fae-form">form</code> attribute, <var>targetParent</var> is in
    the same <span>tree</span> as the element pointed to by the <span><code data-x="">form</code>
    element pointer</span>, and the parser's <span>insertion target redirection map</span>[the
    element pointed to by the <span><code data-x="">form</code> element pointer</span>] does not
@@ -147176,27 +147227,35 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
    <li><p><span>Assert</span>: <var>refChild</var> is null.</p></li>
 
-   <li>
-    <p>Let (<var>redirectedParent</var>, <var>redirectedRefChild</var>) be the parser's
-    <span>insertion target redirection map</span>[<var>targetParent</var>].</p>
+   <li><p>Let (<var>redirectedParent</var>, <var>redirectedReferenceChild</var>) be the parser's
+   <span>insertion target redirection map</span>[<var>targetParent</var>].</p></li>
 
-    <p class="note">The <span>insertion target redirection map</span> redirects insertions into the
-    root <code>html</code> element to the target container or the <code>DocumentFragment</code>
-    created by the <span>HTML fragment parsing algorithm</span>, and insertions into elements that
-    are <span data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaced with children</span>
-    as part of <span data-x="sanitize">sanitization</span> to where those elements would have been
-    inserted.</p>
-   </li>
+   <li><p>If <var>redirectedReferenceChild</var> is non-null, <var>redirectedReferenceChild</var>'s
+   <span>parent</span> is not <var>redirectedParent</var>, and the parser's <span>invalid reference
+   child steps</span> are non-null, then run the parser's <span>invalid reference child
+   steps</span>.</p></li>
 
    <li>
-    <p>Return (<var>redirectedParent</var>, <var>redirectedRefChild</var>).</p>
+    <p>Return (<var>redirectedParent</var>, <var>redirectedReferenceChild</var>).</p>
 
-    <p class="note">When <span data-x="stream HTML">streaming HTML</span>,
-    <var>redirectedRefChild</var> might no longer be a <span
-    data-x="concept-tree-child">child</span> of
-    <var>redirectedParent</var>, e.g., because a script or a <span
-    data-x="concept-custom-element-reaction">custom element reaction</span> moved it. Nodes are then
-    not inserted.</p>
+    <div class="note">
+     <p>The <span>insertion target redirection map</span> redirects insertions into the
+     root <code>html</code> element to the fragment parser's target or the
+     <code>DocumentFragment</code> created by the <span>HTML fragment parsing algorithm</span>, and
+     insertions into elements that are <span
+     data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaced with children</span> as part
+     of <span data-x="sanitize">sanitization</span> to where those elements would have been
+     inserted.</p>
+
+     <p>When <span data-x="stream HTML">streaming HTML</span>, the returned <span
+     data-x="insertion-location-reference-child">reference child</span> might no longer be a <span
+     data-x="concept-tree-child">child</span> of the returned <span
+     data-x="insertion-location-target-parent">target parent</span>, e.g., because a script or a
+     <span data-x="concept-custom-element-reaction">custom element reaction</span> moved it. In that
+     case, the parser's <span>invalid reference child steps</span> <span
+     data-x="writablestream-error">error</span> the stream and <span data-x="abort a fragment
+     parser">abort</span> the parser, and nodes are not inserted.</p>
+    </div>
    </li>
   </ol>
   </div>
@@ -148072,10 +148131,10 @@ document.body.appendChild(text);
       <p>Set the element's <span data-x="script-force-async">force async</span> to false.</p>
 
       <div class="note">
-       <p>This ensures that, if the script is external, any <code
-       data-x="dom-document-write">document.write()</code> calls in the script will execute in-line,
-       instead of blowing the document away, as would happen in most other cases. It also prevents
-       the script from executing until the end tag is seen.</p>
+       <p>For a <code>Document</code>'s own parser, this ensures that, if the script is external,
+       any <code data-x="dom-document-write">document.write()</code> calls in the script will
+       execute in-line, instead of blowing the document away, as would happen in most other cases.
+       It also prevents the script from executing until the end tag is seen.</p>
 
        <p>A <code>script</code> element created by a fragment parser is typically not
        <span>connected</span> when its end tag is seen, e.g., when using <code
@@ -149698,7 +149757,7 @@ document.body.appendChild(text);
    "param", "script", "select", "source", "style", "table", "textarea", "title", "track",
    "wbr"</dt>-->
    <!--<dt>An end tag whose tag name is "noscript", if <span>parser scripting disabled</span> is
-    false</dt>-->
+   false</dt>-->
    <dd>
     <p><span>Parse error</span>. Ignore the token.</p>
 
@@ -150219,10 +150278,12 @@ document.body.appendChild(text);
       yielding control back to the caller.</p>
 
       <p class="note">This can only happen when <span data-x="stream HTML">streaming HTML</span>
-      into a <span>connected</span> element, as the <code>script</code> elements created by the
+      into a <span>connected</span> target, as the <code>script</code> elements created by the
       <span>HTML fragment parsing algorithm</span> are not <span>connected</span> when they are
       <span data-x="prepare the script element">prepared</span>. A task is needed since the parser
-      can be invoked while script is running. Until the script has executed, the <span>parser pause
+      can be invoked while script is running; unlike during a write, the <span>JavaScript execution
+      context stack</span> is empty when that task runs, so microtask checkpoints are performed
+      between scripts. Until the script has executed, the <span>parser pause
       flag</span> remains true, so input that is appended to the <span>input stream</span> in the
       meantime is not parsed. The parser's <code>Document</code> never <span>has a style sheet that
       is blocking scripts</span>, as style sheets inserted while <span data-x="stream
@@ -151594,7 +151655,7 @@ document.body.appendChild(text);
     <p class="note">The parser's <span>script target document</span> is the parser's
     <code>Document</code> only for a fragment parser that does not run scripts. This ensures that an
     SVG <code>script</code> element is not processed when, e.g., <span data-x="stream
-    HTML">streaming HTML</span> without running scripts into a <span>connected</span> element,
+    HTML">streaming HTML</span> without running scripts into a <span>connected</span> target,
     similar to how an HTML <code>script</code> element's <span>already started</span> is set to true
     in that case.</p>
 
@@ -151680,8 +151741,8 @@ document.body.appendChild(text);
      <li><p>If the parser's <span>fragment parser close promise</span> is non-null, then resolve
      the parser's <span>fragment parser close promise</span> with undefined.</p></li>
 
-     <li><p>If the <code>Document</code>'s <span>list of scripts that will execute when the document
-     has finished parsing</span> is not empty, then <span>queue a global task</span> on the
+     <li><p>If the parser's <code>Document</code>'s <span>list of scripts that will execute when the
+     document has finished parsing</span> is not empty, then <span>queue a global task</span> on the
      <span>DOM manipulation task source</span> given the parser's <span>script target
      document</span>'s <span>relevant global object</span> to <span>execute the deferred
      scripts</span> given the parser's <code>Document</code>.</p></li>
@@ -151691,7 +151752,7 @@ document.body.appendChild(text);
 
     <p class="note">This happens whenever a fragment parser reaches the end of its input, e.g., in
     the <span>HTML fragment parsing algorithm</span>, or when the stream is closed while <span
-    data-x="stream HTML">streaming HTML</span>. Queueing a task ensures that deferred scripts do not
+    data-x="stream HTML">streaming HTML</span>. Queuing a task ensures that deferred scripts do not
     execute while script is running, and that they execute after the promise returned by closing the
     stream settles. The remaining steps are skipped, as they spin the event loop and concern the
     lifecycle of the parser's <code>Document</code>, which is not relevant for the inert
@@ -151856,10 +151917,10 @@ document.body.appendChild(text);
 
      <li><p>If <var>parser</var>'s <code>Document</code> <span>has a style sheet that is blocking
      scripts</span> or <var>the script</var>'s <span>ready to be parser-executed</span> is false:
-     <span>spin the event loop</span> until <var>parser</var>'s <span
-     data-x="parser-aborted">aborted</span> is true, or <var>parser</var>'s <code>Document</code>
-     <span>has no style sheet that is blocking scripts</span> and <var>the script</var>'s
-     <span>ready to be parser-executed</span> becomes true.</p></li>
+     <span>spin the event loop</span> until either <var>parser</var>'s <span
+     data-x="parser-aborted">aborted</span> is true, or both <var>parser</var>'s
+     <code>Document</code> <span>has no style sheet that is blocking scripts</span> and <var>the
+     script</var>'s <span>ready to be parser-executed</span> is true.</p></li>
 
      <li>
       <p>If <var>parser</var>'s <span data-x="parser-aborted">aborted</span> is true:</p>
@@ -151876,8 +151937,9 @@ document.body.appendChild(text);
       algorithm is running, the parser's <code>Document</code> gets <span data-x="destroy a
       document">destroyed</span> or has <code data-x="dom-document-open">document.open()</code>
       invoked on it, or the stream feeding a <span data-x="stream HTML">streaming</span> fragment
-      parser is aborted. In the latter case <var>the script</var> remains in the <span>node
-      document</span> of the target, so rendering has to be unblocked explicitly.</p>
+      parser is aborted or <span data-x="writablestream-error">errored</span>. In the latter case
+      <var>the script</var> remains in the <span>node document</span> of the target, so rendering
+      has to be unblocked explicitly.</p>
      </li>
 
      <li><p><span>Stop the speculative HTML parser</span> for <var>parser</var>.</p></li>
@@ -151886,7 +151948,7 @@ document.body.appendChild(text);
      that <span data-x="concept-task">tasks</span> that invoke the <span
      data-x="tokenization">tokenizer</span> can again be run.</p></li>
 
-     <li><p>Let the <span>insertion point</span> be just before the <span>next input
+     <li><p>Set <var>parser</var>'s <span>insertion point</span> to just before the <span>next input
      character</span>.</p></li>
 
      <li><p>Increment <var>parser</var>'s <span>script nesting level</span> by one (it should be
@@ -151896,9 +151958,9 @@ document.body.appendChild(text);
 
      <li><p>Decrement <var>parser</var>'s <span>script nesting level</span> by one. If
      <var>parser</var>'s <span>script nesting level</span> is zero (which it always should be at
-     this point), then set the <span>parser pause flag</span> to false.</p></li>
+     this point), then set <var>parser</var>'s <span>parser pause flag</span> to false.</p></li>
 
-     <li><p>Let the <span>insertion point</span> be undefined again.</p></li>
+     <li><p>Set <var>parser</var>'s <span>insertion point</span> to undefined again.</p></li>
     </ol>
    </li>
   </ol>
@@ -151989,11 +152051,12 @@ document.body.appendChild(text);
    data-x="abort a parser">abort</span> <var>parser</var>.</p></li>
   </ol>
 
-  <p class="note">Step 3 does nothing if <var>parser</var>'s <span>parser pause flag</span> is true,
-  i.e., if it is waiting for a <span>pending parsing-blocking script</span>, per the tokenizer's <a
-  href="#check-parser-pause-flag">parser pause flag check</a>. Any input appended in the meantime
-  stays in the <span>input stream</span>. It also does nothing if <var>parser</var> has been <span
-  data-x="abort a parser">aborted</span>, which empties its <span>input stream</span>.</p>
+  <p class="note">The tokenizer does nothing if <var>parser</var>'s <span>parser pause flag</span>
+  is true, i.e., if it is waiting for a <span>pending parsing-blocking script</span>, per the
+  tokenizer's <a href="#check-parser-pause-flag">parser pause flag check</a>. Any input appended in
+  the meantime stays in the <span>input stream</span>. It also does nothing if <var>parser</var> has
+  been <span data-x="abort a parser">aborted</span>, which empties its <span>input
+  stream</span>.</p>
   </div>
 
   <div algorithm>
@@ -152113,7 +152176,8 @@ document.body.appendChild(text);
    </li>
 
    <li>
-    <p>If <var>parser</var>'s <span>fragment context element</span> is non-null, then return.</p>
+    <p>If <var>parser</var>'s <span>fragment context element</span> is non-null (<span>fragment
+    case</span>), then return.</p>
 
     <p class="note">Fragment parsers, including those used when <span data-x="stream
     HTML">streaming HTML</span>, do not speculatively parse. Their output might be sanitized, and
@@ -153002,13 +153066,13 @@ console.assert(container.firstChild instanceof SuperP);
     <p><span>Assert</span>: <var>target</var>'s <span
     data-x="concept-DocumentFragment-host">host</span> is not null.</p>
 
-    <p class="note"><var>target</var> will never be a disconnected <code>DocumentFragment</code>,
-    as methods operating on child nodes (such as <code
-    data-x="dom-NonDocumentTypeChildNode-beforeHTML">beforeHTML()</code>) validate the parent node
-    using <span>parent for HTML insertion</span> or <span>parent for HTML streaming</span>, which
-    throw a <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> in that
-    case. The container methods are only exposed on <code>Element</code> and
-    <code>ShadowRoot</code>.</p>
+    <p class="note"><var>target</var> will never be a <code>DocumentFragment</code> whose <span
+    data-x="concept-DocumentFragment-host">host</span> is null, as methods operating on child nodes
+    (such as <code data-x="dom-NonDocumentTypeChildNode-beforeHTML">beforeHTML()</code>) validate
+    the parent node using <span>parent for HTML insertion</span> or <span>parent for HTML
+    streaming</span>, which throw a <span>"<code>HierarchyRequestError</code>"</span>
+    <code>DOMException</code> in that case. The container methods are only exposed on
+    <code>Element</code> and <code>ShadowRoot</code>.</p>
    </li>
 
    <li><p>Return <var>target</var>'s <span
@@ -153028,9 +153092,6 @@ console.assert(container.firstChild instanceof SuperP);
    <span data-x="determine the parser context element">parser context element</span> given
    <var>target</var>.</p></li>
 
-   <li><p><span>Assert</span>: <var data-x="concept-frag-parse-context">contextElement</var> is
-   non-null.</p></li>
-
    <li><p>Let <var>contextDocument</var> be <var
    data-x="concept-frag-parse-context">contextElement</var>'s <span>node document</span>.</p></li>
 
@@ -153042,25 +153103,28 @@ console.assert(container.firstChild instanceof SuperP);
    <var>tempDocument</var>'s <span data-x="concept-document-mode">mode</span> to "<code
    data-x="">limited-quirks</code>".</p></li>
 
-   <li><p>Create a new <span>HTML parser</span>, and associate it with
+   <li><p>Let <var>parser</var> be a new <span>HTML parser</span>, associated with
    <var>tempDocument</var>.</p></li>
 
-   <li><p>Set the parser's <span>fragment context element</span> to <var
+   <li><p>Set <var>parser</var>'s <span>fragment context element</span> to <var
    data-x="concept-frag-parse-context">contextElement</var>.</p></li>
 
-   <li><p>Set the parser's <span>parser sanitizer configuration</span> to
+   <li><p>Set <var>parser</var>'s <span>allow declarative shadow roots</span> to
+   <var>allowDeclarativeShadowRoots</var>.</p></li>
+
+   <li><p>Set <var>parser</var>'s <span>parser sanitizer configuration</span> to
    <var>sanitizerConfig</var>.</p></li>
 
-   <li><p>Set the parser's <span>script target document</span> to <var>contextDocument</var> if
-   <var>runScripts</var> is true; otherwise <var>tempDocument</var>.</p></li>
+   <li><p>Set <var>parser</var>'s <span>script target document</span> to <var>contextDocument</var>
+   if <var>runScripts</var> is true; otherwise <var>tempDocument</var>.</p></li>
 
-   <li><p>Set the parser's <span>parser scripting disabled</span> to true if <span
+   <li><p>Set <var>parser</var>'s <span>parser scripting disabled</span> to true if <span
    data-x="concept-n-noscript">scripting is disabled</span> for <var>contextDocument</var>;
    otherwise false.</p></li>
 
    <li>
-    <p>Set the state of the <span>HTML parser</span>'s <span>tokenization</span> stage as
-    follows, switching on <var data-x="concept-frag-parse-context">contextElement</var>:</p>
+    <p>Set the state of <var>parser</var>'s <span>tokenization</span> stage as follows, switching on
+    <var data-x="concept-frag-parse-context">contextElement</var>:</p>
 
     <dl class="switch">
      <dt><code>title</code></dt>
@@ -153078,9 +153142,9 @@ console.assert(container.firstChild instanceof SuperP);
      <dd>Switch the tokenizer to the <span>script data state</span>.</dd>
 
      <dt><code>noscript</code></dt>
-     <dd>If the parser's <span>parser scripting disabled</span> is false, switch the tokenizer to
-     the <span>RAWTEXT state</span>. Otherwise, leave the tokenizer in the
-     <span>data state</span>.</dd>
+     <dd>If <var>parser</var>'s <span>parser scripting disabled</span> is false, switch the
+     tokenizer to the <span>RAWTEXT state</span>. Otherwise, leave the tokenizer in the <span>data
+     state</span>.</dd>
 
      <dt><code>plaintext</code></dt>
      <dd>Switch the tokenizer to the <span>PLAINTEXT state</span>.</dd>
@@ -153097,9 +153161,6 @@ console.assert(container.firstChild instanceof SuperP);
     transitions.</p>
    </li>
 
-   <li><p>If <var>allowDeclarativeShadowRoots</var> is true, then set the parser's
-   <span>allow declarative shadow roots</span> to true.</p></li>
-
    <li><p>Let <var>root</var> be the result of <span data-x="create an element">creating an
    element</span> given <var>tempDocument</var>, "<code data-x="">html</code>", the <span>HTML
    namespace</span>, null, null, false, and the result of <span data-x="look up a custom element
@@ -153108,16 +153169,16 @@ console.assert(container.firstChild instanceof SuperP);
    <li><p><span data-x="concept-node-append">Append</span> <var>root</var> to
    <var>tempDocument</var>.</p></li>
 
-   <li><p>Set up the <span>HTML parser</span>'s <span>stack of open elements</span> so that it
-   contains just the single element <var>root</var>.</p></li>
+   <li><p>Set up <var>parser</var>'s <span>stack of open elements</span> so that it contains just
+   the single element <var>root</var>.</p></li>
 
-   <li><p>Set the parser's <span>insertion target redirection map</span>[<var>root</var>] to
+   <li><p>Set <var>parser</var>'s <span>insertion target redirection map</span>[<var>root</var>] to
    <var>insertionLocation</var>.</p></li>
 
    <li><p>If <var data-x="concept-frag-parse-context">contextElement</var> is a
    <code>template</code> element, then push "<span data-x="insertion mode: in template">in
-   template</span>" onto the <span>stack of template insertion modes</span> so that it is the new
-   <span>current template insertion mode</span>.</p></li>
+   template</span>" onto <var>parser</var>'s <span>stack of template insertion modes</span> so that
+   it is the new <span>current template insertion mode</span>.</p></li>
 
    <li>
     <p>Create a start tag token whose name is the local name of
@@ -153130,18 +153191,17 @@ console.assert(container.firstChild instanceof SuperP);
    </li>
 
    <li>
-    <p><span data-x="reset the insertion mode appropriately">Reset the parser's insertion mode
-    appropriately</span>.</p>
+    <p><span data-x="reset the insertion mode appropriately">Reset <var>parser</var>'s insertion
+    mode appropriately</span>.</p>
    </li>
 
-   <li><p>Set the <span>HTML parser</span>'s <span><code>form</code> element pointer</span> to the
-   nearest node to <var data-x="concept-frag-parse-context">contextElement</var> that is a
-   <code>form</code> element (going straight up the ancestor chain, and including the element
-   itself, if it is a <code>form</code> element), if any. (If there is no such <code>form</code>
-   element, the <span><code>form</code> element pointer</span> keeps its initial value,
-   null.)</p></li>
+   <li><p>Set <var>parser</var>'s <span><code>form</code> element pointer</span> to the nearest node
+   to <var data-x="concept-frag-parse-context">contextElement</var> that is a <code>form</code>
+   element (going straight up the ancestor chain, and including the element itself, if it is a
+   <code>form</code> element), if any. (If there is no such <code>form</code> element, the
+   <span><code>form</code> element pointer</span> keeps its initial value, null.)</p></li>
 
-   <li><p>Return the <span>HTML parser</span>.</p></li>
+   <li><p>Return <var>parser</var>.</p></li>
   </ol>
   </div>
 
@@ -153545,12 +153605,9 @@ console.assert(container.firstChild instanceof SuperP);
   following steps. They return a <code>DocumentFragment</code>.</p>
 
   <ol>
-   <li><p>Let <var data-x="concept-frag-parse-context">context</var> be <var>target</var> if
-   <var>target</var> is an <code>Element</code>; otherwise <var>target</var>'s <span
-   data-x="concept-DocumentFragment-host">host</span>.</p></li>
-
-   <li><p><span>Assert</span>: <var data-x="concept-frag-parse-context">context</var> is
-   non-null.</p></li>
+   <li><p>Let <var data-x="concept-frag-parse-context">context</var> be the <span
+   data-x="determine the parser context element">parser context element</span> given
+   <var>target</var>.</p></li>
 
    <li><p>Create a new <span>XML parser</span>.</p></li>
 
