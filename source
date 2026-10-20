@@ -1860,8 +1860,16 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
     Instead, a <code data-x="event-focusreset">focusreset</code> event is fired at
     <var>document</var> the next time the user agent runs <span>notify mutation observers</span>
     (i.e., in a microtask), unless focus is explicitly moved before then. If <var>document</var>
-    does not have focus, <var>removedNode</var> already received a <code
-    data-x="event-blur">blur</code> event when focus left <var>document</var>.</p>
+    does not have focus, no <code data-x="event-focusreset">focusreset</code> event is fired:
+    either <var>removedNode</var> already received a <code data-x="event-blur">blur</code> event
+    when focus moved away from <var>document</var>, or <var>document</var>'s <span>node
+    navigable</span>'s <span data-x="nav-top">top-level traversable</span> does not have
+    <span>system focus</span>.</p>
+
+    <p class="note">The navigation API's focus reset (see <span>potentially reset the
+    focus</span>) runs the <span>focusing steps</span>, and thus fires <code
+    data-x="event-blur">blur</code> and <code data-x="event-focus">focus</code> events rather than
+    a <code data-x="event-focusreset">focusreset</code> event.</p>
    </li>
 
    <li><p>If <var>removedNode</var> is an element whose <span
@@ -3461,7 +3469,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
 
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#mutationobserver"><code>MutationObserver</code></dfn> interface and <dfn data-x-href="https://dom.spec.whatwg.org/#mutation-observers">mutation observers</dfn> in general</li>
      <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#notify-mutation-observers">notify mutation observers</dfn> algorithm</li>
-     <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#signal-a-focus-reset">signal a focus reset</dfn> algorithm, <dfn data-x-href="https://dom.spec.whatwg.org/#pending-focus-reset-documents">pending focus reset documents</dfn>, and the <dfn data-x="event-focusreset" data-x-href="https://dom.spec.whatwg.org/#eventdef-document-focusreset"><code>focusreset</code></dfn> event</li>
+     <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#signal-a-focus-reset">signal a focus reset</dfn> algorithm, <dfn data-x-href="https://dom.spec.whatwg.org/#pending-focus-reset-documents">pending focus reset documents</dfn>, the <dfn data-x-href="https://dom.spec.whatwg.org/#focus-reset-relevance-steps">focus reset relevance steps</dfn>, and the <dfn data-x="event-focusreset" data-x-href="https://dom.spec.whatwg.org/#eventdef-document-focusreset"><code>focusreset</code></dfn> event</li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#abortcontroller"><code>AbortController</code></dfn> and its
          <dfn data-x="concept-AbortController-signal" data-x-href="https://dom.spec.whatwg.org/#abortcontroller-signal">signal</dfn></li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#abortsignal"><code>AbortSignal</code></dfn></li>
@@ -11735,9 +11743,9 @@ partial interface <dfn id="document" data-lt="">Document</dfn> {
   readonly attribute <span>DocumentVisibilityState</span> <span data-x="dom-document-visibilityState">visibilityState</span>;
 
   // special <span>event handler IDL attributes</span> that only apply to Document objects
+  attribute <span>EventHandler</span> <span data-x="handler-onfocusreset">onfocusreset</span>;
   [<span>LegacyLenientThis</span>] attribute <span>EventHandler</span> <span data-x="handler-onreadystatechange">onreadystatechange</span>;
   attribute <span>EventHandler</span> <span data-x="handler-onvisibilitychange">onvisibilitychange</span>;
-  attribute <span>EventHandler</span> <span data-x="handler-onfocusreset">onfocusreset</span>;
 
   // <a href="#Document-partial">also has obsolete members</a>
 };
@@ -87264,7 +87272,7 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
   follows:</p>
 
   <ol>
-   <li><p>Let <var>documents</var> be a <span>list</span> of all <code>Document</code> objects in
+   <li><p>Let <var>documents</var> be the <span>set</span> of all <code>Document</code> objects in
    <var>old chain</var> and <var>new chain</var>.</p></li>
 
    <!-- focusin/focusout?: https://software.hixie.ch/utilities/js/live-dom-viewer/?saved=723 -->
@@ -87478,6 +87486,12 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
     </ol>
    </li>
   </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <span>focus reset relevance steps</span>, given a <code>Document</code> <var>document</var>,
+  are to return the result of running the <span>has focus steps</span> given
+  <var>document</var>.</p>
   </div>
 
 
@@ -114808,9 +114822,6 @@ new PaymentRequest(&hellip;); // Allowed to use
    <var>document</var>'s <span data-x="concept-Document-worklet-global-scopes">worklet global
    scopes</span>, <span data-x="terminate a worklet global scope">terminate</span>
    <var>workletGlobalScope</var>.</p></li>
-
-   <li><p><span data-x="list remove">Remove</span> <var>document</var> from <var>document</var>'s
-   <span>relevant agent</span>'s <span>pending focus reset documents</span>.</p></li>
   </ol>
   </div>
 
@@ -123859,7 +123870,7 @@ import "https://example.com/foo/../module2.mjs";</code></pre>
       <p class="note">In addition to this asynchronous fixup, if the <span>focused area of the
       document</span> is removed, there is a <a href="#node-remove-focus-fixup">synchronous
       fixup</a>. That one will <em>not</em> fire <code data-x="event-blur">blur</code> or <code
-      data-x="event-change">change</code> events; instead, it causes a <code
+      data-x="event-change">change</code> events; instead, it can cause a <code
       data-x="event-focusreset">focusreset</code> event to be fired.</p>
      </li>
 
@@ -162001,12 +162012,6 @@ INSERT INTERFACES HERE
      <td> <code>Event</code>
      <td> <code>Window</code>, elements
      <td> Fired at nodes <span data-x="gains focus">gaining focus</span>
-
-    <tr> <!-- focusreset -->
-     <td> <code data-x="event-focusreset">focusreset</code>
-     <td> <code>Event</code>
-     <td> <code>Document</code>
-     <td> Fired at the <code>Document</code> during <span>notify mutation observers</span> if its focused element was removed and focus was not explicitly moved since
 
     <tr> <!-- formdata -->
      <td> <dfn event for="HTMLElement"><code data-x="event-formdata">formdata</code></dfn>
