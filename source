@@ -80132,11 +80132,15 @@ customElements.define("x-foo", class extends HTMLElement {
   <ul>
    <li><p>An <dfn>upgrade reaction</dfn>, which will <span
    data-x="custom-element-upgrades">upgrade</span> the custom element and contains a <span>custom
-   element definition</span>; or</p></li>
+   element definition</span> and an <span>Async Context Mapping</span>; or</p></li>
 
    <li><p>A <dfn>callback reaction</dfn>, which will call a lifecycle callback, and contains a
-   callback function as well as a list of arguments.</p></li>
+   callback function, a list of arguments, and an <span>Async Context Mapping</span>.</p></li>
   </ul>
+
+  <p class="note">A reaction's <span>Async Context Mapping</span> is the one that was current when
+  the reaction was enqueued, so that upgrades and lifecycle callbacks can run in the context of the
+  action that caused them.</p>
 
   <p>This is all summarized in the following schematic diagram:</p>
 
@@ -80240,8 +80244,8 @@ customElements.define("x-foo", class extends HTMLElement {
    </li>
 
    <li><p>Add a new <span>callback reaction</span> to <var>element</var>'s <span>custom element
-   reaction queue</span>, with callback function <var>callback</var> and arguments
-   <var>args</var>.</p></li>
+   reaction queue</span>, with callback function <var>callback</var>, arguments <var>args</var>,
+   and <span>Async Context Mapping</span> <span>AsyncContextSnapshot</span>().</p></li>
 
    <li><p><span>Enqueue an element on the appropriate element queue</span> given
    <var>element</var>.</p></li>
@@ -80255,8 +80259,8 @@ customElements.define("x-foo", class extends HTMLElement {
 
   <ol>
    <li><p>Add a new <span>upgrade reaction</span> to <var>element</var>'s <span>custom element
-   reaction queue</span>, with <span>custom element definition</span>
-   <var>definition</var>.</p></li>
+   reaction queue</span>, with <span>custom element definition</span> <var>definition</var> and
+   <span>Async Context Mapping</span> <span>AsyncContextSnapshot</span>().</p></li>
 
    <li><p><span>Enqueue an element on the appropriate element queue</span> given
    <var>element</var>.</p></li>
@@ -80289,23 +80293,33 @@ customElements.define("x-foo", class extends HTMLElement {
         <dl class="switch">
          <dt><span>upgrade reaction</span></dt>
          <dd>
-          <p><span data-x="concept-upgrade-an-element">Upgrade</span> <var>element</var> using
-          <var>reaction</var>'s <span>custom element definition</span>.</p>
+          <p><span data-x="Async Context Mapping run">Run</span> the following steps with
+          <var>reaction</var>'s <span>Async Context Mapping</span>:</p>
 
-          <p>If this throws an exception, catch it, and <span data-x="report an
-          exception">report</span> it for <var>reaction</var>'s <span>custom element
-          definition</span>'s <span
-          data-x="concept-custom-element-definition-constructor">constructor</span>'s corresponding
-          JavaScript object's <span>associated realm</span>'s <span
-          data-x="concept-realm-global">global object</span>.</p>
+          <ol>
+           <li><p><span data-x="concept-upgrade-an-element">Upgrade</span> <var>element</var> using
+           <var>reaction</var>'s <span>custom element definition</span>.</p></li>
+
+           <li><p>If the previous step threw an exception, catch it, and <span data-x="report an
+           exception">report</span> it for <var>reaction</var>'s <span>custom element
+           definition</span>'s <span
+           data-x="concept-custom-element-definition-constructor">constructor</span>'s corresponding
+           JavaScript object's <span>associated realm</span>'s <span
+           data-x="concept-realm-global">global object</span>.</p></li>
+          </ol>
          </dd>
 
          <dt><span>callback reaction</span></dt>
          <dd>
-          <p><span data-x="es-invoking-callback-functions">Invoke</span> <var>reaction</var>'s
-          callback function with <var>reaction</var>'s arguments and "<code
-          data-x="">report</code>", and <i data-x="dfn-callback-this-value">callback this value</i>
-          set to <var>element</var>.</p>
+          <p><span data-x="Async Context Mapping run">Run</span> the following steps with
+          <var>reaction</var>'s <span>Async Context Mapping</span>:</p>
+
+          <ol>
+           <li><p><span data-x="es-invoking-callback-functions">Invoke</span> <var>reaction</var>'s
+           callback function with <var>reaction</var>'s arguments and "<code
+           data-x="">report</code>", and <i data-x="dfn-callback-this-value">callback this value</i>
+           set to <var>element</var>.</p></li>
+          </ol>
          </dd>
         </dl>
        </li>
@@ -80621,16 +80635,30 @@ dictionary <dfn dictionary>ValidityStateFlags</dfn> {
 
   <p>When the user agent believes it is a good idea to restore a <span>form-associated custom
   element</span>'s <span data-x="face-state">state</span>, for example <span data-x="restore
-  persisted state">after navigation</span> or restarting the user agent, they may <span>enqueue a
-  custom element callback reaction</span> with that element, callback name "<code
-  data-x="">formStateRestoreCallback</code>", and « the state to be restored, "<code
-  data-x="">restore</code>" ».</p>
+  persisted state">after navigation</span> or restarting the user agent, they may <span
+  data-x="Async Context Mapping run">run</span> the following steps with <span>Async Context
+  Mapping</span> « »:</p>
+
+  <ol>
+   <li><p><span>Enqueue a custom element callback reaction</span> with that element, callback name
+   "<code data-x="">formStateRestoreCallback</code>", and « the state to be restored, "<code
+   data-x="">restore</code>" ».</p></li>
+  </ol>
+
+  <p class="note">The empty mapping is used explicitly because <span>restore persisted state</span>
+  can run synchronously while author code is on the stack, but whether it runs is an user agent
+  decision.</p>
 
   <p>If the user agent has a form-filling assist feature, then when the feature is invoked, it may
-  <span>enqueue a custom element callback reaction</span> with a <span>form-associated custom
-  element</span>, callback name "<code data-x="">formStateRestoreCallback</code>", and « the state
-  value determined by history of state value and some heuristics, "<code
-  data-x="">autocomplete</code>" ».</p>
+  <span data-x="Async Context Mapping run">run</span> the following steps with <span>Async Context
+  Mapping</span> « »:</p>
+
+  <ol>
+   <li><p><span>enqueue a custom element callback reaction</span> with a <span>form-associated
+   custom element</span>, callback name "<code data-x="">formStateRestoreCallback</code>", and « the
+   state value determined by history of state value and some heuristics, "<code
+   data-x="">autocomplete</code>" ».</p></li>
+  </ol>
 
   <p>In general, the <span data-x="face-state">state</span> is information specified by a user, and
   the <span data-x="face-submission-value">submission value</span> is a value after canonicalization
