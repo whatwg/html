@@ -12343,6 +12343,13 @@ partial interface <dfn id="document" data-lt="">Document</dfn> {
   <var>el</var>.</p>
   </div>
 
+  <div algorithm>
+  <p>Whenever a <code>Document</code> <var>document</var> stops being <span>render-blocked</span>,
+  if <var>document</var>'s <span data-x="doc-container-document">container document</span>
+  <var>containerDocument</var> is non-null, then the user agent must <span>process internal resource
+  links</span> given <var>containerDocument</var>.</p>
+  </div>
+
   <h4><dfn>DOM tree accessors</dfn></h4>
 
   <div algorithm>
@@ -28382,7 +28389,9 @@ document.body.appendChild(wbr);</code></pre>
   <p>An <span>internal resource link</span> created by the <code data-x="rel-expect">expect</code>
   keyword can be used to <span data-x="render-blocked">block rendering</span> until the element that
   it <span data-x="indicated part">indicates</span> is connected to the document and fully
-  parsed.</p>
+  parsed (and, if the indicated element is an <code>iframe</code> element, until its
+  <span>content document</span> is <span>completely loaded</span> and no longer
+  <span>render-blocked</span>).</p>
 
   <p>There is no default type for resources given by the <code data-x="rel-expect">expect</code>
   keyword.</p>
@@ -28438,9 +28447,6 @@ document.body.appendChild(wbr);</code></pre>
     <p>If all of the following are true:</p>
 
     <ul>
-     <li><p><var>doc</var>'s <span>current document readiness</span> is "<code
-     data-x="">loading</code>";</p></li>
-
      <li><p><var>el</var> creates an <span>internal resource link</span>;</p></li>
 
      <li><p><var>el</var> is <span>browsing-context connected</span>;</p></li>
@@ -28453,12 +28459,40 @@ document.body.appendChild(wbr);</code></pre>
      <li><p><var>el</var>'s <code data-x="attr-link-media">media</code> attribute
      <span>matches the environment</span>; and</p></li>
 
-     <li><p><var>indicatedElement</var> is not an element, or is on a
-     <span>stack of open elements</span> of an <span>HTML parser</span> whose associated
-     <code>Document</code> is <var>doc</var>,</p></li>
-     </ul>
+     <li>
+      <p>either:</p>
 
-     <p>then <span>block rendering</span> on <var>el</var>.</p>
+      <ul>
+       <li><p><var>doc</var>'s <span>current document readiness</span> is "<code
+       data-x="">loading</code>", and <var>indicatedElement</var> is not an element or is on a
+       <span>stack of open elements</span> of an <span>HTML parser</span> whose associated
+       <code>Document</code> is <var>doc</var>; or</p></li>
+
+       <li>
+        <p><var>indicatedElement</var> is an <code>iframe</code> element, <var>doc</var>'s
+        <span>current document readiness</span> is "<code data-x="">loading</code>" or
+        <var>el</var> is in <var>doc</var>'s <span>render-blocking element set</span>, and any of
+        the following are true:</p>
+
+        <ul>
+         <li><p><var>indicatedElement</var>'s <span>content navigable</span> is null;</p></li>
+
+         <li><p><var>indicatedElement</var>'s <span>content navigable</span>'s <span>is delaying
+         <code data-x="event-load">load</code> events</span> is true;</p></li>
+
+         <li><p><var>indicatedElement</var>'s <span>content navigable</span>'s <span
+         data-x="nav-document">active document</span> is not <span>completely loaded</span>;
+         or</p></li>
+
+         <li><p><var>indicatedElement</var>'s <span>content navigable</span>'s <span
+         data-x="nav-document">active document</span> is <span>render-blocked</span>,</p></li>
+        </ul>
+       </li>
+      </ul>
+     </li>
+    </ul>
+
+    <p>then <span>block rendering</span> on <var>el</var>.</p>
    </li>
 
    <li><p>Otherwise, <span>unblock rendering</span> on <var>el</var>.</p></li>
@@ -35477,13 +35511,23 @@ interface <dfn interface>HTMLIFrameElement</dfn> : <span>HTMLElement</span> {
 
    <li><p><span>Process the <code>iframe</code> attributes</span> for <var>insertedNode</var>, with
    <i data-x="process-iframe-initial-insertion">initialInsertion</i> set to true.</p></li>
+
+   <li><p>If <var>insertedNode</var> is not on the <span>stack of open elements</span> of an
+   <span>HTML parser</span>, then <span>process internal resource links</span> given
+   <var>insertedNode</var>'s <span>node document</span>.</p></li>
   </ol>
   </div>
 
   <div algorithm>
   <p>The <code>iframe</code> <span>HTML element removing steps</span>, given
-  <var>removedNode</var>, are to <span>destroy a child navigable</span> given
-  <var>removedNode</var>.</p>
+  <var>removedNode</var>, are:</p>
+
+  <ol>
+   <li><p><span>Destroy a child navigable</span> given <var>removedNode</var>.</p></li>
+
+   <li><p><span>Process internal resource links</span> given <var>removedNode</var>'s <span>node
+   document</span>.</p></li>
+  </ol>
   </div>
 
   <p class="note">This happens without any <code data-x="event-unload">unload</code> events firing
@@ -114294,9 +114338,18 @@ new PaymentRequest(&hellip;); // Allowed to use
     </div>
    </li>
 
-   <li><p>If <var>container</var> is an <code>iframe</code> element, then <span>queue an element
-   task</span> on the <span>DOM manipulation task source</span> given <var>container</var> to run
-   the <span>iframe load event steps</span> given <var>container</var>.</p></li>
+   <li>
+    <p>If <var>container</var> is an <code>iframe</code> element, then:</p>
+
+    <ol>
+     <li><p><span>Process internal resource links</span> given <var>container</var>'s <span>node
+     document</span>.</p></li>
+
+     <li><p><span>Queue an element task</span> on the <span>DOM manipulation task source</span>
+     given <var>container</var> to run the <span>iframe load event steps</span> given
+     <var>container</var>.</p></li>
+    </ol>
+   </li>
 
    <li><p>Otherwise, if <var>container</var> is non-null, then <span>queue an element task</span> on
    the <span>DOM manipulation task source</span> given <var>container</var> to <span
