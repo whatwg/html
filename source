@@ -128055,10 +128055,13 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <li><p>Let <var>writeError</var> be null.</p></li>
 
    <li>
-    <p>Set <var>parser</var>'s <span>invalid reference child steps</span> to the following
-    steps:</p>
+    <p>If <var>referenceChild</var> is non-null, then set <var>parser</var>'s <span>invalid
+    reference child steps</span> to the following steps:</p>
 
     <ol>
+     <li><p>If <var>referenceChild</var>'s <span>parent</span> is <var>target</var>, then
+     return.</p></li>
+
      <li><p>Set <var>parser</var>'s <span>invalid reference child steps</span> to null.</p></li>
 
      <li><p>Let <var>error</var> be a new <span>"<code>HierarchyRequestError</code>"</span>
@@ -128340,12 +128343,13 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   resulting tree would be invalid, and from <code
   data-x="dom-Element-insertAdjacentHTML">insertAdjacentHTML()</code>, which allows inserting
   adjacent to a child of a <code>template</code> element or inside an <code>html</code> element. The
-  <span>HTML insertion methods</span> require an <code>Element</code> context for the fragment
-  parser, which a <code>Document</code> or hostless <code>DocumentFragment</code> cannot provide,
-  and they treat a <code>template</code> element as standing for its <span>template contents</span>
-  rather than its <span data-x="concept-tree-child">children</span>, so inserting adjacent to the
-  latter is disallowed. Similarly, <span>filter and pre-insert HTML</span>, <span>filter and replace
-  with HTML</span>, <span>parent for HTML streaming</span>, <code
+  <span>HTML insertion methods</span> and their streaming counterparts require an
+  <code>Element</code> context for the fragment parser, which a <code>Document</code> or hostless
+  <code>DocumentFragment</code> cannot provide, and they treat a <code>template</code> element as
+  standing for its <span>template contents</span> rather than its <span
+  data-x="concept-tree-child">children</span>, so inserting adjacent to the latter is disallowed.
+  Similarly, <span>filter and pre-insert HTML</span>, <span>filter and replace with HTML</span>,
+  <span>parent for HTML streaming</span>, <code
   data-x="dom-Element-streamAppendHTML">streamAppendHTML()</code>, <code
   data-x="dom-Element-streamPrependHTML">streamPrependHTML()</code>, <code
   data-x="dom-Element-streamAppendHTMLUnsafe">streamAppendHTMLUnsafe()</code>, and <code
@@ -128360,8 +128364,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   methods such as <code data-x="dom-Element-outerHTML">outerHTML</code> and <code
   data-x="dom-Element-insertAdjacentHTML">insertAdjacentHTML()</code> throw a
   <span>"<code>NoModificationAllowedError</code>"</span> <code>DOMException</code> when the parent
-  is a <code>Document</code>, the <span>HTML insertion methods</span> throw a
-  <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> instead.</p>
+  is a <code>Document</code>, the <span>HTML insertion methods</span> and their streaming
+  counterparts throw a <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code>
+  instead.</p>
   </div>
 
   <div algorithm>
@@ -144206,9 +144211,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <div algorithm>
   <p id="check-parser-pause-flag">Before each step of the tokenizer, the user agent must first check
-  the <span>parser pause flag</span>. If it is true, then the tokenizer must abort its processing,
-  including that of any nested invocations of the tokenizer, yielding control back to the
-  caller.</p>
+  the <span>parser pause flag</span> and the parser's <span>fragment parser abort requested</span>.
+  If either is true, then the tokenizer must abort its processing, including that of any nested
+  invocations of the tokenizer, yielding control back to the caller.</p>
 
   <p class="note">For a parser whose <span>fragment context element</span> is non-null, the
   <span>parser pause flag</span> is also true while the parser is waiting for a <span>pending
@@ -147001,51 +147006,59 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    attributes.</p></li>
 
    <li>
-    <p>Otherwise, if the parser's <span>fragment context element</span> is null, optionally
+    <p>Let (<var>targetParent</var>, <var>referenceChild</var>) be the <span>adjusted insertion
+    location</span> given (<var>intendedParent</var>, null).</p>
+
+    <p class="note">When <span data-x="stream HTML">streaming HTML</span>, in the non-sanitizing
+    <span>HTML fragment parsing algorithm</span>, and when an ancestor is <span
+    data-x="sanitizer-action-replace-with-children">replaced with its children</span> by the
+    sanitizer, this ensures that elements are created in the <span>node document</span> of the node
+    they will be inserted into, like their descendants, which are created after they have been
+    inserted (and therefore <span data-x="concept-node-adopt">adopted</span>) into that document.
+    Otherwise, elements whose intended parent is the parser's root <code>html</code> element, or an
+    element that the sanitizer replaces with its children, would be created in the parser's inert
+    <code>Document</code> and only adopted when inserted.</p>
+   </li>
+
+   <li><p>Let <var>isDropped</var> be true if the parser's <span>fragment parser abort
+   requested</span> is true, or if <var>referenceChild</var> is non-null and
+   <var>referenceChild</var>'s <span>parent</span> is not <var>targetParent</var>; otherwise
+   false.</p></li>
+
+   <li><p>Let <var>sanitizerConfig</var> be the parser's <span>parser sanitizer
+   configuration</span>.</p></li>
+
+   <li>
+    <p>If <var>sanitizerConfig</var> is null and <var>isDropped</var> is false, then optionally
     <span>create a speculative mock element</span> given <var>namespace</var>, <var>token</var>'s
     tag name, and <var>token</var>'s attributes.</p>
 
     <p class="note">The result is not used. This step allows for a <span>speculative fetch</span> to
     be initiated from non-speculative parsing. The fetch is still speculative at this point,
     because, for example, by the time the element is inserted, <var>intendedParent</var> might have
-    been removed from the document. No speculative fetches are started in the <span>fragment
-    case</span>, since the element or its ancestors might be removed by the sanitizer or
-    dropped.</p>
+    been removed from the document. Speculative fetches are allowed for fragment parsers, but not
+    when <span data-x="sanitize">sanitizing</span>, since the sanitizer might remove the element, an
+    ancestor, or the attribute that would be fetched, nor when <var>isDropped</var> is true, since
+    the element will not be inserted.</p>
    </li>
 
    <li>
-    <p>Let <var>registry</var> be the result of <span data-x="look up a custom element
-    registry">looking up a custom element registry</span> given <var>intendedParent</var>.</p>
+    <p>Let <var>registry</var> be null if <var>isDropped</var> is true; otherwise the result of
+    <span data-x="look up a custom element registry">looking up a custom element registry</span>
+    given <var>intendedParent</var>.</p>
 
-    <p class="note">This is done using <var>intendedParent</var> rather than <var>targetParent</var>
-    from the next step, since <var>targetParent</var> might be a <code>DocumentFragment</code>, from
-    which no registry can be looked up. The parser's root <code>html</code> element is created with
-    the registry of the fragment parser's target, and elements that the sanitizer replaces with
+    <p class="note">This is done using <var>intendedParent</var> rather than
+    <var>targetParent</var>, since <var>targetParent</var> might be a <code>DocumentFragment</code>,
+    from which no registry can be looked up. The parser's root <code>html</code> element is created
+    with the registry of the fragment parser's target, and elements that the sanitizer replaces with
     their children have their registry set below, so <var>intendedParent</var> always provides the
     appropriate registry.</p>
-   </li>
-
-   <li>
-    <p>Let (<var>targetParent</var>, <var>referenceChild</var>) be the <span>adjusted insertion
-    location</span> given (<var>intendedParent</var>, null).</p>
-
-    <p class="note">In the <span>fragment case</span> and when <span
-    data-x="sanitize">sanitizing</span>, this ensures that elements are created in the <span>node
-    document</span> of the node they will be inserted into, like their descendants, which are
-    created after they have been inserted (and therefore <span
-    data-x="concept-node-adopt">adopted</span>) into that document. Otherwise, elements whose
-    intended parent is the parser's root <code>html</code> element, or an element that the sanitizer
-    replaces with its children, would be created in the parser's inert <code>Document</code> and
-    only adopted when inserted.</p>
    </li>
 
    <li><p>Let <var>document</var> be <var>targetParent</var>'s
    <span>node document</span>.</p></li>
 
    <li><p>Let <var>localName</var> be <var>token</var>'s tag name.</p></li>
-
-   <li><p>Let <var>sanitizerConfig</var> be the parser's <span>parser sanitizer
-   configuration</span>.</p></li>
 
    <li><p>Let <var>sanitizerAction</var> be "<span
    data-x="sanitizer-action-keep">Keep</span>".</p></li>
@@ -147055,21 +147068,15 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    action for an element name</span> given <var>localName</var>, <var>namespace</var>, and
    <var>sanitizerConfig</var>.</p></li>
 
-   <li><p>Let <var>isDropped</var> be true if <var>referenceChild</var> is non-null and
-   <var>referenceChild</var>'s <span>parent</span> is not <var>targetParent</var>; otherwise
-   false.</p></li>
-
-   <li><p>If <var>isDropped</var> is true, then set <var>registry</var> to null.</p></li>
-
    <li>
     <p>If <var>sanitizerAction</var> is not "<span data-x="sanitizer-action-keep">Keep</span>" or
     <var>isDropped</var> is true, then set <var>document</var> to <var>document</var>'s
     <span>appropriate template contents owner document</span>.</p>
 
     <p class="note">This ensures that elements removed by the sanitizer, or dropped because
-    <var>referenceChild</var> is no longer a child of <var>targetParent</var>, are still on the
-    <span>stack of open elements</span> when streaming, but do not invoke side effects such as
-    loading images.</p>
+    <var>referenceChild</var> is no longer a child of <var>targetParent</var> or the fragment parser
+    is being aborted, are still on the <span>stack of open elements</span> when streaming, but do
+    not invoke side effects such as loading images.</p>
    </li>
 
    <li><p>Let <var>is</var> be the value of the "<code data-x="attr-is">is</code>" attribute in
@@ -147318,14 +147325,14 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
       <dl class="switch">
        <dt>"<span data-x="sanitizer-action-replace-with-children">Replace with children</span>"</dt>
-       <dd>Set the parser's <span>insertion target redirection map</span>[<var>element</var>] to
-       (<var>targetParent</var>, <var>referenceChild</var>), and return.</dd>
+       <dd><p>Set the parser's <span>insertion target redirection map</span>[<var>element</var>] to
+       (<var>targetParent</var>, <var>referenceChild</var>), and return.</p></dd>
 
        <dt>"<span data-x="sanitizer-action-remove">Remove</span>"</dt>
-       <dd>Return.</dd>
+       <dd><p>Return.</p></dd>
 
        <dt>"<span data-x="sanitizer-action-keep">Keep</span>"</dt>
-       <dd>Do nothing.</dd>
+       <dd><p>Do nothing.</p></dd>
       </dl>
      </li>
     </ol>
@@ -147335,6 +147342,8 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     <p>If any of the following are true:</p>
 
     <ul>
+     <li>the parser's <span>fragment parser abort requested</span> is true;</li>
+
      <li><var>element</var>'s <span>parent</span> is non-null;</li>
 
      <li><var>element</var> is a <span>host-including inclusive ancestor</span> of
@@ -149954,9 +149963,9 @@ document.body.appendChild(text);
      insertion location</span> given the <span>appropriate place for inserting a node</span> given
      <var>commonAncestor</var>.</p></li>
 
-     <li><p>If <var>initialRefNode</var> is non-null and <var>initialRefNode</var>'s
-     <span>parent</span> is not <var>initialTarget</var>, then set <var>lastNode</var> to
-     null.</p></li>
+     <li><p>If the parser's <span>fragment parser abort requested</span> is true, or if
+     <var>initialRefNode</var> is non-null and <var>initialRefNode</var>'s <span>parent</span> is
+     not <var>initialTarget</var>, then set <var>lastNode</var> to null.</p></li>
 
      <li><p>Let <var>innerLoopCounter</var> be 0.</p></li>
 
@@ -150023,19 +150032,19 @@ document.body.appendChild(text);
 
         <dl class="switch">
          <dt>"<span data-x="sanitizer-action-keep">Keep</span>"</dt>
-         <dd>If <var>lastNode</var> is non-null, then <span
+         <dd><p>If <var>lastNode</var> is non-null, then <span
          data-x="concept-node-append">append</span> <var>lastNode</var> to <var>node</var>. Set
-         <var>lastNode</var> to <var>node</var>.</dd>
+         <var>lastNode</var> to <var>node</var>.</p></dd>
 
          <dt>"<span data-x="sanitizer-action-remove">Remove</span>"</dt>
-         <dd>If <var>lastNode</var> is non-null and <var>lastNode</var>'s <span>parent</span> is
+         <dd><p>If <var>lastNode</var> is non-null and <var>lastNode</var>'s <span>parent</span> is
          non-null, then <span data-x="concept-node-remove">remove</span> <var>lastNode</var>. Set
-         <var>lastNode</var> to null.</dd>
+         <var>lastNode</var> to null.</p></dd>
 
          <dt>"<span
          data-x="sanitizer-action-replace-with-children">Replace with children</span>"</dt>
-         <dd><span data-x="list append">Append</span> <var>node</var> to
-         <var>pendingRedirects</var>.</dd>
+         <dd><p><span data-x="list append">Append</span> <var>node</var> to
+         <var>pendingRedirects</var>.</p></dd>
         </dl>
        </li>
       </ol>
@@ -150052,8 +150061,9 @@ document.body.appendChild(text);
      map</span>[<var>replacedElement</var>] to (<var>target</var>, <var>refNode</var>).</p></li>
 
      <li><p>If <var>lastNode</var> is non-null, <var>lastNode</var>'s <span>parent</span> is
-     non-null, and <var>refNode</var> is null or its <span>parent</span> is <var>target</var>, then
-     <span data-x="concept-node-remove">remove</span> <var>lastNode</var>.</p></li>
+     non-null, the parser's <span>fragment parser abort requested</span> is false, and
+     <var>refNode</var> is null or its <span>parent</span> is <var>target</var>, then <span
+     data-x="concept-node-remove">remove</span> <var>lastNode</var>.</p></li>
      <!-- XXX Removal does not currently run script: destroying an iframe element's navigable does
           not unload its document, so no pagehide event is fired. Engines do fire pagehide when an
           iframe is disconnected and we should update the spec to match. The conditions below are
@@ -150067,6 +150077,8 @@ document.body.appendChild(text);
        <li><var>lastNode</var> is non-null;</li>
 
        <li><var>lastNode</var>'s <span>parent</span> is null;</li>
+
+       <li>the parser's <span>fragment parser abort requested</span> is false;</li>
 
        <li><var>lastNode</var> is not a <span>host-including inclusive ancestor</span> of
        <var>target</var>;</li>
@@ -150111,42 +150123,36 @@ document.body.appendChild(text);
      <var>newElement</var>'s <span data-x="concept-element-namespace">namespace</span>, and the
      parser's <span>parser sanitizer configuration</span>.</p></li>
 
+     <li><p>Let (<var>newElementParent</var>, <var>newElementRefNode</var>) be the <span>adjusted
+     insertion location</span> given (<var>furthestBlock</var>, null).</p></li>
+
      <li>
       <p>Switch on <var>sanitizerAction</var>:</p>
 
       <dl class="switch">
        <dt>"<span data-x="sanitizer-action-replace-with-children">Replace with children</span>"</dt>
-       <dd>Set the parser's <span>insertion target redirection map</span>[<var>newElement</var>] to
-       the <span>adjusted insertion location</span> given (<var>furthestBlock</var>, null).</dd>
+       <dd><p>Set the parser's <span>insertion target redirection map</span>[<var>newElement</var>]
+       to (<var>newElementParent</var>, <var>newElementRefNode</var>).</p></dd>
 
        <dt>"<span data-x="sanitizer-action-remove">Remove</span>"</dt>
-       <dd>Take all of the child nodes of <var>furthestBlock</var> and <span
-       data-x="concept-node-append">append</span> them to <var>newElement</var>.</dd>
+       <dd><p>If the parser's <span>fragment parser abort requested</span> is false, then take all
+       of the child nodes of <var>furthestBlock</var> and <span
+       data-x="concept-node-append">append</span> them to <var>newElement</var>.</p></dd>
 
        <dt>"<span data-x="sanitizer-action-keep">Keep</span>"</dt>
        <dd>
+        <p>If the parser's <span>fragment parser abort requested</span> is false, and
+        <var>newElementRefNode</var> is null or its <span>parent</span> is
+        <var>newElementParent</var>:</p>
+
         <ol>
          <li><p>Take all of the child nodes of <var>furthestBlock</var> and <span
          data-x="concept-node-append">append</span> them to <var>newElement</var>.</p></li>
 
-         <li><p>Let (<var>newElementParent</var>, <var>newElementRefNode</var>) be the
-         <span>adjusted insertion location</span> given (<var>furthestBlock</var>, null).</p></li>
-
          <li>
-          <p>If all of the following are true:</p>
-
-          <ul>
-           <li><var>newElement</var> is not a <span>host-including inclusive ancestor</span> of
-           <var>newElementParent</var>;</li>
-
-           <li><var>newElementParent</var> is not a <code>Document</code> node, or it does not have
-           an element child; and</li>
-
-           <li><var>newElementRefNode</var> is null or its <span>parent</span> is
-           <var>newElementParent</var>,</li>
-          </ul>
-
-          <p>then:</p>
+          <p>If <var>newElement</var> is not a <span>host-including inclusive ancestor</span> of
+          <var>newElementParent</var>, and <var>newElementParent</var> is not a
+          <code>Document</code> node or it does not have an element child, then:</p>
 
           <ol>
            <li><p><span>Assert</span>: <span>ensure pre-insert validity</span> given
@@ -151665,16 +151671,17 @@ document.body.appendChild(text);
     flag</span> to true.</p>
 
     <p>If the <span>active speculative HTML parser</span> is null, the parser's <span>script target
-    document</span> is not the parser's <code>Document</code>, and the user agent supports SVG, then
-    <a href="https://www.w3.org/TR/SVGMobile12/script.html#ScriptContentProcessing">Process the SVG
+    document</span> is not the parser's <code>Document</code>, the <code>script</code> element is
+    <span>connected</span>, and the user agent supports SVG, then <a
+    href="https://www.w3.org/TR/SVGMobile12/script.html#ScriptContentProcessing">Process the SVG
     <code data-x="">script</code> element</a> according to the SVG rules. <ref>SVG</ref></p>
 
     <p class="note">The parser's <span>script target document</span> is the parser's
-    <code>Document</code> only for a fragment parser that does not run scripts. This ensures that an
-    SVG <code>script</code> element is not processed when, e.g., <span data-x="stream
-    HTML">streaming HTML</span> without running scripts into a <span>connected</span> target,
-    similar to how an HTML <code>script</code> element's <span>already started</span> is set to true
-    in that case.</p>
+    <code>Document</code> only for a fragment parser that does not run scripts. Together with the
+    <span>connected</span> check, this ensures that an SVG <code>script</code> element is not
+    processed when a fragment parser does not run scripts, when the target is not
+    <span>connected</span>, or when the element was not inserted into the document (for example,
+    because it was removed by the sanitizer or dropped).</p>
 
     <p class="note">Even if this causes <span data-x="dom-document-write">new characters to be
     inserted into the tokenizer</span>, the parser will not be executed reentrantly, since the
