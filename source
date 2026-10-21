@@ -128167,8 +128167,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <p class="note">While a write is in progress, this only runs once it has completed. For example,
     if a script in the chunk being written aborts <var>stream</var>, the rest of that chunk is still
     parsed. If <var>stream</var> is aborted while <var>parser</var> is running from a task, e.g., by
-    a <span data-x="concept-custom-element-reaction">custom element reaction</span>, the abort is
-    deferred until <var>parser</var> returns. The <code
+    an inline <code>script</code> or a <span data-x="concept-custom-element-reaction">custom element
+    reaction</span>, parsing stops after the current token and <span data-x="abort a
+    parser">aborting</span> <var>parser</var> is deferred until <var>parser</var> returns. The <code
     data-x="event-readystatechange">readystatechange</code> events fired by <span data-x="abort a
     parser">aborting</span> <var>parser</var> target the temporary inert <var>document</var>, so
     they are not observable.</p>
@@ -147002,8 +147003,8 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   <ol>
    <li><p>If the <span>active speculative HTML parser</span> is not null, then return the result of
    <span data-x="create a speculative mock element">creating a speculative mock element</span>
-   given <var>namespace</var>, <var>token</var>'s tag name, and <var>token</var>'s
-   attributes.</p></li>
+   given <var>namespace</var>, <var>token</var>'s tag name, <var>token</var>'s attributes, and the
+   parser's <code>Document</code>.</p></li>
 
    <li>
     <p>Let (<var>targetParent</var>, <var>referenceChild</var>) be the <span>adjusted insertion
@@ -147027,20 +147028,6 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
    <li><p>Let <var>sanitizerConfig</var> be the parser's <span>parser sanitizer
    configuration</span>.</p></li>
-
-   <li>
-    <p>If <var>sanitizerConfig</var> is null and <var>isDropped</var> is false, then optionally
-    <span>create a speculative mock element</span> given <var>namespace</var>, <var>token</var>'s
-    tag name, and <var>token</var>'s attributes.</p>
-
-    <p class="note">The result is not used. This step allows for a <span>speculative fetch</span> to
-    be initiated from non-speculative parsing. The fetch is still speculative at this point,
-    because, for example, by the time the element is inserted, <var>intendedParent</var> might have
-    been removed from the document. Speculative fetches are allowed for fragment parsers, but not
-    when <span data-x="sanitize">sanitizing</span>, since the sanitizer might remove the element, an
-    ancestor, or the attribute that would be fetched, nor when <var>isDropped</var> is true, since
-    the element will not be inserted.</p>
-   </li>
 
    <li>
     <p>Let <var>registry</var> be null if <var>isDropped</var> is true; otherwise the result of
@@ -147079,13 +147066,57 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     not invoke side effects such as loading images.</p>
    </li>
 
-   <li><p>Let <var>is</var> be the value of the "<code data-x="attr-is">is</code>" attribute in
-   <var>token</var>, if such an attribute exists; otherwise null.</p></li>
+   <li><p>Let <var>attributes</var> be a new <span>list</span>.</p></li>
 
-   <li><p>If <var>is</var> is non-null, <var>sanitizerConfig</var> is non-null, and the result of
-   checking if a <span>sanitizer config allows an attribute</span> given "<code
-   data-x="attr-is">is</code>", null, <var>is</var>, <var>localName</var>, <var>namespace</var>,
-   and <var>sanitizerConfig</var> is false, then set <var>is</var> to null.</p></li>
+   <li>
+    <p><span data-x="list iterate">For each</span> <var>attribute</var> of <var>token</var>'s
+    attributes:</p>
+
+    <ol>
+     <li>
+      <p>If <var>sanitizerConfig</var> is not null:</p>
+
+      <ol>
+       <li><p>Let <var>attrLocalName</var> be <var>attribute</var>'s <span
+       data-x="concept-attribute-local-name">local name</span> if <var>attribute</var> is a
+       namespaced attribute; otherwise <var>attribute</var>'s name.</p></li>
+
+       <li><p>Let <var>attrNamespace</var> be <var>attribute</var>'s <span
+       data-x="concept-attribute-namespace">namespace</span> if <var>attribute</var> is a
+       namespaced attribute; otherwise null.</p></li>
+
+       <li><p>If the result of checking if a <span>sanitizer config allows an attribute</span> given
+       <var>attrLocalName</var>, <var>attrNamespace</var>, <var>attribute</var>'s value,
+       <var>localName</var>, <var>namespace</var>, and <var>sanitizerConfig</var> is false, then
+       <span>continue</span>.</p></li>
+      </ol>
+     </li>
+
+     <li><p><span data-x="list append">Append</span> <var>attribute</var> to
+     <var>attributes</var>.</p></li>
+    </ol>
+   </li>
+
+   <li>
+    <p>If <var>document</var>'s <span data-x="concept-document-bc">browsing context</span> is
+    non-null, then optionally <span>create a speculative mock element</span> given
+    <var>namespace</var>, <var>localName</var>, <var>attributes</var>, and <var>document</var>.</p>
+
+    <p class="note">The result is not used. This step allows for a <span>speculative fetch</span> to
+    be initiated from non-speculative parsing, including when <span data-x="stream HTML">streaming
+    HTML</span> with a sanitizer, since <var>attributes</var> excludes those the sanitizer removes.
+    The fetch is still speculative at this point, because, for example, by the time the element is
+    inserted, <var>intendedParent</var> might have been removed from the document. Elements that the
+    sanitizer removes or replaces with their children, elements that are dropped, and their
+    descendants, as well as <span>template contents</span> that are not <code>ShadowRoot</code>
+    nodes and elements created by the non-streaming <span>HTML fragment parsing algorithm</span>
+    when sanitizing, are created in a <code>Document</code> without a <span
+    data-x="concept-document-bc">browsing context</span>, so no speculative fetch is started for
+    them.</p>
+   </li>
+
+   <li><p>Let <var>is</var> be the value of the "<code data-x="attr-is">is</code>" attribute in
+   <var>attributes</var>, if such an attribute exists; otherwise null.</p></li>
 
    <li>
     <p>Let <var>creationRegistry</var> be <var>registry</var> if <var>sanitizerAction</var> is
@@ -147097,9 +147128,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     <span>custom element definition</span> and no <span>custom element constructor</span> runs for
     them. Removed elements keep the null registry, so their descendants, which look up their
     registry from them, don't run constructors either. Replaced elements have their registry set to
-    <var>registry</var> after creation so that their children inherit it. Likewise, an <code
-    data-x="attr-is">is</code> attribute that the sanitizer will remove does not create a
-    <span>customized built-in element</span>.</p>
+    <var>registry</var> after creation so that their children inherit it. Likewise, since
+    <var>is</var> is read from <var>attributes</var>, an <code data-x="attr-is">is</code> attribute
+    that the sanitizer will remove does not create a <span>customized built-in element</span>.</p>
    </li>
 
    <li><p>Let <var>definition</var> be null if <var>creationRegistry</var> is null; otherwise the
@@ -147144,32 +147175,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    registry</span> to <var>registry</var>.</p></li>
 
    <li>
-    <p><span data-x="list iterate">For each</span> <var>attribute</var> of <var>token</var>'s
-    attributes:</p>
-
-    <ol>
-     <li>
-      <p>If <var>sanitizerConfig</var> is not null:</p>
-
-      <ol>
-       <li><p>Let <var>attrLocalName</var> be <var>attribute</var>'s <span
-       data-x="concept-attribute-local-name">local name</span> if <var>attribute</var> is a
-       namespaced attribute; otherwise <var>attribute</var>'s name.</p></li>
-
-       <li><p>Let <var>attrNamespace</var> be <var>attribute</var>'s <span
-       data-x="concept-attribute-namespace">namespace</span> if <var>attribute</var> is a
-       namespaced attribute; otherwise null.</p></li>
-
-       <li><p>If the result of checking if a <span>sanitizer config allows an attribute</span> given
-       <var>attrLocalName</var>, <var>attrNamespace</var>, <var>attribute</var>'s value,
-       <var>localName</var>, <var>namespace</var>, and <var>sanitizerConfig</var> is false, then
-       <span>continue</span>.</p></li>
-      </ol>
-     </li>
-
-     <li><p><span data-x="concept-element-attributes-append">Append</span> <var>attribute</var> to
-     <var>element</var>.</p></li>
-    </ol>
+    <p><span data-x="list iterate">For each</span> <var>attribute</var> of <var>attributes</var>,
+    <span data-x="concept-element-attributes-append">append</span> <var>attribute</var> to
+    <var>element</var>.</p>
 
     <p class="note">This can <span>enqueue a custom element callback reaction</span> for the
     <code data-x="">attributeChangedCallback</code>, which might run immediately (in the next
@@ -152151,17 +152159,16 @@ document.body.appendChild(text);
   </ul>
 
   <div algorithm>
-  <p>A <dfn>speculative fetch</dfn> for a <span>speculative mock element</span> <var>element</var>
-  must follow these rules:</p>
+  <p>A <dfn>speculative fetch</dfn> for a <span>speculative mock element</span> <var>element</var>,
+  given a <code>Document</code> <var>document</var>, must follow these rules:</p>
 
   <p class="XXX">Should some of these things be applied to the document "for real", even
   though they are found speculatively?</p>
 
   <ul>
    <li>
-    <p>If the <span>speculative HTML parser</span> encounters one of the following elements, then
-    act as if that element is processed for the purpose of its effect of subsequent speculative
-    fetches.</p>
+    <p>If <var>element</var> represents one of the following elements, then act as if that element
+    is processed for the purpose of its effect of subsequent speculative fetches.</p>
 
     <ul class="brief">
      <li>A <code>base</code> element.</li>
@@ -152181,10 +152188,11 @@ document.body.appendChild(text);
    </li>
 
    <li><p>Let <var>url</var> be the <span>URL</span> that <var>element</var> would fetch if it was
-   processed normally. If there is no such <span>URL</span> or if it is the empty string, then do
-   nothing. Otherwise, if <var>url</var> is already in the <span>list of speculative fetch
-   URLs</span>, then do nothing. Otherwise, fetch <var>url</var> as if the element was processed
-   normally, and add <var>url</var> to the <span>list of speculative fetch URLs</span>.</p></li>
+   processed normally in <var>document</var>. If there is no such <span>URL</span> or if it is the
+   empty string, then do nothing. Otherwise, if <var>url</var> is already in <var>document</var>'s
+   <span>list of speculative fetch URLs</span>, then do nothing. Otherwise, fetch <var>url</var> as
+   if the element was processed normally in <var>document</var>, and add <var>url</var> to
+   <var>document</var>'s <span>list of speculative fetch URLs</span>.</p></li>
   </ul>
   </div>
 
@@ -152280,7 +152288,7 @@ document.body.appendChild(text);
 
   <div algorithm>
   <p>To <dfn>create a speculative mock element</dfn> given a <var>namespace</var>,
-  <var>tagName</var>, and <var>attributes</var>:</p>
+  <var>tagName</var>, <var>attributes</var>, and a <code>Document</code> <var>document</var>:</p>
 
   <ol>
    <li><p>Let <var>element</var> be a new <span>speculative mock element</span>.</p></li>
@@ -152297,7 +152305,8 @@ document.body.appendChild(text);
    <li><p>Set <var>element</var>'s <span data-x="concept-mock-children">children</span> to a new
    empty <span>list</span>.</p></li>
 
-   <li><p>Optionally, perform a <span>speculative fetch</span> for <var>element</var>.</p></li>
+   <li><p>Optionally, perform a <span>speculative fetch</span> for <var>element</var> given
+   <var>document</var>.</p></li>
 
    <li><p>Return <var>element</var>.</p></li>
   </ol>
