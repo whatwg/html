@@ -1840,16 +1840,37 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
 
    <li id="node-remove-focus-fixup">
     <p>If <var>document</var>'s <span data-x="focused area of the document">focused area</span> is
-    <var>removedNode</var>, then set <var>document</var>'s <span data-x="focused area of the
-    document">focused area</span> to <var>document</var>'s <span>viewport</span>, and set
-    <var>document</var>'s <span>relevant global object</span>'s <span
-    data-x="window-navigation-api">navigation API</span>'s <span>focus changed during ongoing
-    navigation</span> to false.</p>
+    <var>removedNode</var>:</p>
+
+    <ol>
+     <li><p>Set <var>document</var>'s <span data-x="focused area of the document">focused
+     area</span> to <var>document</var>'s <span>viewport</span>.</p></li>
+
+     <li><p>Set <var>document</var>'s <span>relevant global object</span>'s <span
+     data-x="window-navigation-api">navigation API</span>'s <span>focus changed during ongoing
+     navigation</span> to false.</p></li>
+
+     <li><p>If the <span>has focus steps</span> given <var>document</var> return true, then
+     <span>signal a focus reset</span> for <var>document</var>.</p></li>
+    </ol>
 
     <p class="note">This does <em>not</em> perform the <span>unfocusing steps</span>,
     <span>focusing steps</span>, or <span>focus update steps</span>, and thus no <code
-    data-x="event-blur">blur</code> or <code data-x="event-change">change</code> events are
-    fired.</p>
+    data-x="event-blur">blur</code> or <code data-x="event-change">change</code> events are fired.
+    Instead, if the <span>has focus steps</span> given <var>document</var> return true, a <code
+    data-x="event-focusreset">focusreset</code> event is fired at <var>document</var> when the user
+    agent runs <span>notify mutation observers</span> (i.e., in a microtask), unless focus is
+    explicitly moved before then, or <var>document</var> no longer has focus by then. No <code
+    data-x="event-focusreset">focusreset</code> event is fired for a document that does not have
+    focus. For example, focus might be in another document, the <span>navigable container</span>
+    hosting <var>document</var> might have been removed, or the <span data-x="nav-top">top-level
+    traversable</span> might not have <span>system focus</span>. In some of these cases,
+    <var>removedNode</var> did not receive a <code data-x="event-blur">blur</code> event either.</p>
+
+    <p class="note">The navigation API's focus reset (see <span>potentially reset the
+    focus</span>) runs the <span>focusing steps</span>, and thus fires <code
+    data-x="event-blur">blur</code> and <code data-x="event-focus">focus</code> events as
+    appropriate, rather than a <code data-x="event-focusreset">focusreset</code> event.</p>
    </li>
 
    <li><p>If <var>removedNode</var> is an element whose <span
@@ -3450,6 +3471,8 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
                       <dfn data-x="concept-element-is-value" data-x-href="https://dom.spec.whatwg.org/#concept-element-is-value"><code data-x="">is</code> value</dfn></li>
 
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#mutationobserver"><code>MutationObserver</code></dfn> interface and <dfn data-x-href="https://dom.spec.whatwg.org/#mutation-observers">mutation observers</dfn> in general</li>
+     <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#notify-mutation-observers">notify mutation observers</dfn> algorithm</li>
+     <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#signal-a-focus-reset">signal a focus reset</dfn> algorithm, <dfn data-x-href="https://dom.spec.whatwg.org/#pending-focus-reset-documents">pending focus reset documents</dfn>, the <dfn data-x-href="https://dom.spec.whatwg.org/#focus-reset-relevance-steps">focus reset relevance steps</dfn>, and the <dfn data-x="event-focusreset" data-x-href="https://dom.spec.whatwg.org/#eventdef-document-focusreset"><code>focusreset</code></dfn> event</li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#abortcontroller"><code>AbortController</code></dfn> and its
          <dfn data-x="concept-AbortController-signal" data-x-href="https://dom.spec.whatwg.org/#abortcontroller-signal">signal</dfn></li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#abortsignal"><code>AbortSignal</code></dfn></li>
@@ -11806,6 +11829,7 @@ partial interface <dfn id="document" data-lt="">Document</dfn> {
   readonly attribute <span>DocumentVisibilityState</span> <span data-x="dom-document-visibilityState">visibilityState</span>;
 
   // special <span>event handler IDL attributes</span> that only apply to Document objects
+  attribute <span>EventHandler</span> <span data-x="handler-onfocusreset">onfocusreset</span>;
   [<span>LegacyLenientThis</span>] attribute <span>EventHandler</span> <span data-x="handler-onreadystatechange">onreadystatechange</span>;
   attribute <span>EventHandler</span> <span data-x="handler-onvisibilitychange">onvisibilitychange</span>;
 
@@ -87348,10 +87372,26 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
   follows:</p>
 
   <ol>
+   <li><p>Let <var>documents</var> be the <span>set</span> of all <code>Document</code> objects in
+   <var>old chain</var> and <var>new chain</var>.</p></li>
+
    <!-- focusin/focusout?: https://software.hixie.ch/utilities/js/live-dom-viewer/?saved=723 -->
 
-   <li><p>If the last entry in <var>old chain</var> and the last entry in <var>new chain</var> are the same, pop the last entry from <var>old chain</var>
-   and the last entry from <var>new chain</var> and redo this step.</p></li>
+   <li><p>If the last entry in <var>old chain</var> and the last entry in <var>new chain</var> are
+   the same, pop the last entry from <var>old chain</var> and the last entry from <var>new
+   chain</var> and redo this step.</p></li>
+
+   <li>
+    <p>If <var>old chain</var> or <var>new chain</var> contains an <code>Element</code> or a
+    <code>Document</code> object, then for each <var>doc</var> of <var>documents</var>, <span
+    data-x="list remove">remove</span> <var>doc</var> from <var>doc</var>'s <span>relevant
+    agent</span>'s <span>pending focus reset documents</span>.</p>
+
+    <p class="note">Focus is being explicitly moved such that a <code
+    data-x="event-blur">blur</code> or <code data-x="event-focus">focus</code> event will be fired,
+    so there is no need to fire a <code data-x="event-focusreset">focusreset</code> event for an
+    earlier reset.</p>
+   </li>
 
    <li>
     <p>For each entry <var>entry</var> in <var>old chain</var>, in order, run
@@ -87522,6 +87562,8 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
   are as follows:</p>
 
   <ol>
+   <li><p>If <var>target</var>'s <span>node navigable</span> is null, then return false.</p></li>
+
    <li><p>If <var>target</var>'s <span>node navigable</span>'s <span data-x="nav-top">top-level
    traversable</span> does not have <span>system focus</span>, then return false.</p></li>
 
@@ -87544,6 +87586,12 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
     </ol>
    </li>
   </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <span>focus reset relevance steps</span>, given a <code>Document</code> <var>document</var>,
+  are to return the result of running the <span>has focus steps</span> given
+  <var>document</var>.</p>
   </div>
 
 
@@ -123952,7 +124000,8 @@ import "https://example.com/foo/../module2.mjs";</code></pre>
       <p class="note">In addition to this asynchronous fixup, if the <span>focused area of the
       document</span> is removed, there is a <a href="#node-remove-focus-fixup">synchronous
       fixup</a>. That one will <em>not</em> fire <code data-x="event-blur">blur</code> or <code
-      data-x="event-change">change</code> events.</p>
+      data-x="event-change">change</code> events; instead, it can cause a <code
+      data-x="event-focusreset">focusreset</code> event to be fired.</p>
      </li>
 
      <li><p>For each <var>doc</var> of <var>docs</var>, <span>perform pending transition
@@ -125537,6 +125586,7 @@ typedef <span>OnBeforeUnloadEventHandlerNonNull</span>? <dfn typedef>OnBeforeUnl
    <thead>
     <tr><th><span data-x="event handlers">Event handler</span> <th><span>Event handler event type</span>
    <tbody>
+    <tr><td><dfn attribute for="Document"><code data-x="handler-onfocusreset">onfocusreset</code></dfn> <td> <code data-x="event-focusreset">focusreset</code>
     <tr><td><dfn attribute for="Document"><code data-x="handler-onreadystatechange">onreadystatechange</code></dfn> <td> <code data-x="event-readystatechange">readystatechange</code>
     <tr><td><dfn attribute for="Document"><code data-x="handler-onvisibilitychange">onvisibilitychange</code></dfn> <td> <code data-x="event-visibilitychange">visibilitychange</code>
   </table>
