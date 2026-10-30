@@ -102056,10 +102056,13 @@ interface <dfn interface>NavigationHistoryEntry</dfn> : <span>EventTarget</span>
        data-x="event-navigateerror">navigateerror</code> event without a preceding <code
        data-x="event-navigate">navigate</code> event.</p>
 
-       <p>In the "<code data-x="">canceled-by-navigate</code>" case, <code
-       data-x="event-navigate">navigate</code> <em>is</em> fired, but the <span>inner <code
-       data-x="event-navigate">navigate</code> event firing algorithm</span> will take care of
-       <span data-x="abort the ongoing navigation">aborting the ongoing navigation</span>.</p>
+       <p>In the "<code data-x="">canceled-by-navigate</code>" case, either the <code
+       data-x="event-navigate">navigate</code> event was fired and the <span>inner <code
+       data-x="event-navigate">navigate</code> event firing algorithm</span> took care of <span
+       data-x="abort the ongoing navigation">aborting the ongoing navigation</span>, or the
+       traversal was aborted before firing because the destination entry was disposed, in which case
+       <span data-x="checking if a traversal destination was disposed">checking if the traversal
+       destination was disposed</span> took care of rejecting <var>apiMethodTracker</var>.</p>
       </div>
      </li>
     </ol>
@@ -103603,6 +103606,56 @@ interface <dfn interface>NavigationDestination</dfn> {
   through a series of wrapper algorithms given in this section.</p>
 
   <div algorithm>
+  <p>To <dfn data-x="checking if a traversal destination was disposed">check if a traversal
+  destination was disposed</dfn> given a <code>Navigation</code> <var>navigation</var> and a
+  <span>session history entry</span> <var>destinationSHE</var>:</p>
+
+  <ol>
+   <li><p>If <var>navigation</var> <span>has entries and events disabled</span>, then return
+   false.</p></li>
+
+   <li><p>If <var>destinationSHE</var>'s <span data-x="she-document">document</span> is not
+   <var>navigation</var>'s <span>relevant global object</span>'s <span
+   data-x="concept-document-window">associated <code>Document</code></span>, then return
+   false.</p></li>
+
+   <li><p>If <var>navigation</var>'s <span data-x="navigation-entry-list">entry list</span> <span
+   data-x="list contains">contains</span> a <code>NavigationHistoryEntry</code> whose <span
+   data-x="nhe-she">session history entry</span> is <var>destinationSHE</var>, then return
+   false.</p></li>
+
+   <li><p>Let <var>destinationKey</var> be <var>destinationSHE</var>'s <span
+   data-x="she-navigation-api-key">navigation API key</span>.</p></li>
+
+   <li><p>If <var>navigation</var>'s <span>upcoming traverse API method
+   trackers</span>[<var>destinationKey</var>] <span data-x="map exists">exists</span>, then
+   <span>reject the finished promise</span> for <var>navigation</var>'s <span>upcoming traverse API
+   method trackers</span>[<var>destinationKey</var>] with a new
+   <span>"<code>AbortError</code>"</span> <code>DOMException</code> created in
+   <var>navigation</var>'s <span data-x="concept-relevant-realm">relevant realm</span>.</p></li>
+
+   <li><p>Return true.</p></li>
+  </ol>
+
+  <div class="note">
+   <p>This returns true if an intervening same-document navigation disposed of the destination entry
+   while a same-document traversal to it was in flight. In that case, the traversal is aborted
+   regardless of whether any <code data-x="event-navigate">navigate</code> event listeners exist,
+   since otherwise <var>navigation</var>'s <span data-x="navigation-entry-list">entry list</span>
+   would end up out of sync with the <span data-x="session history entry">session history
+   entries</span>.</p>
+
+   <p>The <span data-x="navigation-entry-list">entry list</span> is consulted, rather than the <span
+   data-x="session history entry">session history entries</span>, because the intervening
+   navigation's <span data-x="finalize a same-document navigation">synchronous navigation
+   steps</span> might not yet have been processed by the <span
+   data-x="tn-session-history-traversal-queue">session history traversal queue</span>, whereas the
+   <span data-x="navigation-entry-list">entry list</span> was already updated by <span>update the
+   navigation API entries for a same-document navigation</span>.</p>
+  </div>
+  </div>
+
+  <div algorithm>
   <p>To <dfn>fire a traverse <code data-x="event-navigate">navigate</code> event</dfn> at a
   <code>Navigation</code> <var>navigation</var> given a <span>session history entry</span> <dfn
   data-x="fire-navigate-traverse-destinationSHE"><var>destinationSHE</var></dfn> and an optional
@@ -103611,6 +103664,16 @@ interface <dfn interface>NavigationDestination</dfn> {
   data-x="uni-none">none</code>"):</p>
 
   <ol>
+   <li><p>Let <var>destinationNHE</var> be the <code>NavigationHistoryEntry</code> in
+   <var>navigation</var>'s <span data-x="navigation-entry-list">entry list</span> whose <span
+   data-x="nhe-she">session history entry</span> is <var>destinationSHE</var>, or null if no such
+   <code>NavigationHistoryEntry</code> exists.</p></li>
+
+   <li><p>Let <var>isSameDocument</var> be true if <var>destinationSHE</var>'s <span
+   data-x="she-document">document</span> is equal to <var>navigation</var>'s <span>relevant global
+   object</span>'s <span data-x="concept-document-window">associated <code>Document</code></span>;
+   otherwise false.</p></li>
+
    <li><p>Let <var>event</var> be the result of <span>creating an event</span> given
    <code>NavigateEvent</code>, in <var>navigation</var>'s <span
    data-x="concept-relevant-realm">relevant realm</span>.</p></li>
@@ -103626,13 +103689,8 @@ interface <dfn interface>NavigationDestination</dfn> {
    <li><p>Set <var>destination</var>'s <span data-x="concept-NavigationDestination-url">URL</span>
    to <var>destinationSHE</var>'s <span data-x="she-url">URL</span>.</p></li>
 
-   <li><p>Let <var>destinationNHE</var> be the <code>NavigationHistoryEntry</code> in
-   <var>navigation</var>'s <span data-x="navigation-entry-list">entry list</span> whose <span
-   data-x="nhe-she">session history entry</span> is <var>destinationSHE</var>, or null if no such
-   <code>NavigationHistoryEntry</code> exists.</p></li>
-
    <li>
-    <p>If <var>destinationNHE</var> is non-null:</p>
+    <p>If <var>destinationNHE</var> is not null:</p>
 
     <ol>
      <li><p>Set <var>destination</var>'s <span
@@ -103646,7 +103704,7 @@ interface <dfn interface>NavigationDestination</dfn> {
    </li>
 
    <li>
-    <p>Otherwise,</p>
+    <p>Otherwise:</p>
 
     <ol>
      <li><p>Set <var>destination</var>'s <span
@@ -103659,10 +103717,7 @@ interface <dfn interface>NavigationDestination</dfn> {
    </li>
 
    <li><p>Set <var>destination</var>'s <span data-x="concept-NavigationDestination-sameDocument">is
-   same document</span> to true if <var>destinationSHE</var>'s <span
-   data-x="she-document">document</span> is equal to <var>navigation</var>'s <span>relevant global
-   object</span>'s <span data-x="concept-document-window">associated <code>Document</code></span>;
-   otherwise false.</p></li>
+   same document</span> to <var>isSameDocument</var>.</p></li>
 
    <li><p>Return the result of performing the <span>inner <code
    data-x="event-navigate">navigate</code> event firing algorithm</span> given
@@ -110095,12 +110150,14 @@ location.href = '#foo';</code></pre>
          data-x="nav-window">active window</span>'s <span data-x="window-navigation-api">navigation
          API</span>.</p></li>
 
-         <li><p>Let <var>navigateEventResult</var> be the result of <span data-x="fire a traverse
-         navigate event">firing a traverse <code data-x="event-navigate">navigate</code>
-         event</span> at <var>navigation</var> given <var>targetEntry</var> and
-         <var>userInvolvementForNavigateEvent</var>.</p></li>
+         <li><p>If the result of <span>checking if a traversal destination was disposed</span> given
+         <var>navigation</var> and <var>targetEntry</var> is true, then set <var>finalStatus</var>
+         to "<code data-x="">canceled-by-navigate</code>".</p></li>
 
-         <li><p>If <var>navigateEventResult</var> is false, then set <var>finalStatus</var> to
+         <li><p>Otherwise, if the result of <span data-x="fire a traverse navigate event">firing a
+         traverse <code data-x="event-navigate">navigate</code> event</span> at
+         <var>navigation</var> given <var>targetEntry</var> and
+         <var>userInvolvementForNavigateEvent</var> is false, then set <var>finalStatus</var> to
          "<code data-x="">canceled-by-navigate</code>".</p></li>
 
          <li><p>Set <var>eventsFired</var> to true.</p></li>
@@ -111815,6 +111872,9 @@ location.href = '#foo';</code></pre>
    <dt><dfn data-x="changing-nav-continuation-update-only" for="changing navigable continuation
    state">update only</dfn></dt>
    <dd>A boolean</dd>
+
+   <dt><dfn data-x="changing-nav-continuation-aborted" for="changing navigable continuation state">aborted</dfn></dt>
+   <dd>A boolean</dd>
   </dl>
 
   <hr>
@@ -111998,6 +112058,8 @@ location.href = '#foo';</code></pre>
 
    <li><p>Let <var>completedChangeJobs</var> be 0.</p></li>
 
+   <li><p>Let <var>anyChangingNavigableApplied</var> be false.</p></li>
+
    <li>
     <p>Let <var>changingNavigableContinuations</var> be an empty <span>queue</span> of <span
     data-x="changing navigable continuation state">changing navigable continuation
@@ -112041,6 +112103,9 @@ location.href = '#foo';</code></pre>
        <dd><var>navigable</var></dd>
 
        <dt><span data-x="changing-nav-continuation-update-only">update-only</span></dt>
+       <dd>false</dd>
+
+       <dt><span data-x="changing-nav-continuation-aborted">aborted</span></dt>
        <dd>false</dd>
       </dl>
      </li>
@@ -112120,8 +112185,28 @@ location.href = '#foo';</code></pre>
        data-x="nav-window">active window</span>'s <span
        data-x="window-navigation-api">navigation API</span>.</p></li>
 
-       <li><p><span>Fire a traverse <code data-x="event-navigate">navigate</code> event</span> at
-       <var>navigation</var> given <var>targetEntry</var> and <var>userInvolvement</var>.</p></li>
+       <li><p>Let <var>traversalAborted</var> be the result of <span>checking if a traversal
+       destination was disposed</span> given <var>navigation</var> and
+       <var>targetEntry</var>.</p></li>
+
+       <li><p>If <var>traversalAborted</var> is false, and the result of <span data-x="fire a
+       traverse navigate event">firing a traverse <code data-x="event-navigate">navigate</code>
+       event</span> at <var>navigation</var> given <var>targetEntry</var> and
+       <var>userInvolvement</var> is false, then set <var>traversalAborted</var> to true.</p></li>
+
+       <li>
+        <p>If <var>traversalAborted</var> is true, then:</p>
+
+        <ol>
+         <li><p>Set <var>changingNavigableContinuation</var>'s <span
+         data-x="changing-nav-continuation-aborted">aborted</span> to true.</p></li>
+
+         <li><p><span>Enqueue</span> <var>changingNavigableContinuation</var> on
+         <var>changingNavigableContinuations</var>.</p></li>
+
+         <li><p>Abort these steps.</p></li>
+        </ol>
+       </li>
       </ol>
      </li>
 
@@ -112327,6 +112412,30 @@ location.href = '#foo';</code></pre>
      data-x="changing-nav-continuation-navigable">navigable</span>.</p></li>
 
      <li>
+      <p>If <var>changingNavigableContinuation</var>'s <span
+      data-x="changing-nav-continuation-aborted">aborted</span> is true:</p>
+
+      <ol>
+       <li><p>Set <var>navigable</var>'s <span>ongoing navigation</span> to null.</p></li>
+
+       <li><p>Increment <var>completedChangeJobs</var>.</p></li>
+
+       <li><p><span>Continue</span>.</p></li>
+      </ol>
+
+      <p class="note">There is no need to restore <var>navigable</var>'s <span
+      data-x="nav-current-history-entry">current session history entry</span> here. The traversal is
+      only aborted if a same-document navigation disposed of its destination entry, and that
+      navigation's <span data-x="finalize a same-document navigation">synchronous navigation
+      steps</span> were appended before this continuation was queued, so they will update the <span
+      data-x="nav-current-history-entry">current session history entry</span> (either by <a
+      href="#sync-navigations-jump-queue">jumping the queue</a> or after this algorithm
+      completes).</p>
+     </li>
+
+     <li><p>Set <var>anyChangingNavigableApplied</var> to true.</p></li>
+
+     <li>
       <p>Let (<var>scriptHistoryLength</var>, <var>scriptHistoryIndex</var>) be the result of
       <span>getting the history object length and index</span> given <var>traversable</var> and
       <var>targetStep</var>.</p>
@@ -112414,6 +112523,10 @@ location.href = '#foo';</code></pre>
      </li>
     </ol>
    </li>
+
+   <li><p>If <var>changingNavigables</var> <span data-x="list is empty">is not empty</span> and
+   <var>anyChangingNavigableApplied</var> is false, then return "<code
+   data-x="">canceled-by-navigate</code>".</p></li>
 
    <li>
     <p>Let <var>totalNonchangingJobs</var> be the <span data-x="list size">size</span> of
