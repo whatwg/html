@@ -4190,6 +4190,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li><dfn data-x-href="https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps">run the resize steps</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps">run the scroll steps</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes">evaluate media queries and report changes</dfn></li>
+     <li><dfn data-x-href="https://drafts.csswg.org/cssom-view/#determine-the-device-pixel-ratio">determine the device pixel ratio</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/cssom-view/#scroll-a-target-into-view">Scroll a target into view</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/cssom-view/#scroll-to-the-beginning-of-the-document">Scroll to the beginning of the document</dfn></li>
      <li>The <dfn data-x="event-resize" data-x-href="https://drafts.csswg.org/cssom-view/#eventdef-window-resize"><code>resize</code></dfn> event</li>
@@ -29789,12 +29790,27 @@ document.body.appendChild(wbr);</code></pre>
    data-x="match preload type">match</span> <var>options</var>'s <span
    data-x="link options destination">destination</span>, then return.</p></li>
 
-   <li><p>If <var>options</var>'s <span data-x="link options destination">destination</span> is
-   "<code data-x="">image</code>" and <var>options</var>'s <span data-x="link options source
-   set">source set</span> is not null, then set <var>options</var>'s <span data-x="link options
-   href">href</span> to the result of <span data-x="select an image source from a source
-   set">selecting an image source</span> from <var>options</var>'s <span data-x="link options
-   source set">source set</span>.</p></li>
+   <li>
+    <p>If <var>options</var>'s <span data-x="link options destination">destination</span> is "<code
+    data-x="">image</code>" and <var>options</var>'s <span data-x="link options source set">source
+    set</span> is not null:</p>
+
+    <ol>
+     <li><p><span>Assert</span>: <var>options</var>'s <span data-x="link options
+     document">document</span> is not null.</p></li>
+
+     <li><p>Let <var>selectedSource</var> and <var ignore>selectedPixelDensity</var> be the URL and
+     pixel density that result from <span data-x="select an image source from a source
+     set">selecting an image source from a source set</span> given <var>options</var>'s <span
+     data-x="link options source set">source set</span> and <var>options</var>'s <span data-x="link
+     options document">document</span>.</p></li>
+
+     <li><p>If <var>selectedSource</var> is null, then return.</p></li>
+
+     <li><p>Set <var>options</var>'s <span data-x="link options href">href</span> to
+     <var>selectedSource</var>.</p></li>
+    </ol>
+   </li>
 
    <li><p>Let <var>request</var> be the result of <span data-x="create a link request">creating a
    link request</span> given <var>options</var>.</p></li>
@@ -32447,8 +32463,8 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
 &lt;p>&lt;b>&lt;a href="/wiki/Marie_Lloyd">Marie Lloyd&lt;/a>&lt;/b> (1870&ndash;1922)
 was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code></pre>
 
-     <p>The user agent can choose any of the given resources depending on the user's screen's pixel
-     density, zoom level, and possibly other factors such as the user's network conditions.</p>
+     <p>The user agent chooses one of the given resources depending on the user's screen's pixel
+     density, zoom level, and possibly whether a higher-resolution image is already cached.</p>
 
      <p>For backwards compatibility with older user agents that don't yet understand the <code
      data-x="attr-img-srcset">srcset</code> attribute, one of the URLs is specified in the
@@ -32483,9 +32499,9 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
 
      <p>The user agent will calculate the effective pixel density of each image from the specified
      <code data-x="">w</code> descriptors and the specified rendered size in the <code
-     data-x="attr-img-sizes">sizes</code> attribute. It can then choose any of the given resources
-     depending on the user's screen's pixel density, zoom level, and possibly other factors such as
-     the user's network conditions.</p>
+     data-x="attr-img-sizes">sizes</code> attribute. It then chooses one of the given resources
+     depending on the user's screen's pixel density, zoom level, and possibly whether a
+     higher-resolution image is already cached.</p>
 
      <p>If the user's screen is 320 <span data-x="'px'">CSS pixels</span> wide, this is equivalent
      to specifying <code data-x="">wolf-400.jpg 1.25x, wolf-800.jpg 2.5x, wolf-1600.jpg 5x</code>.
@@ -33342,8 +33358,8 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
    </li>
 
    <li><p>Let <var>selected source</var> and <var>selected pixel density</var> be the URL and pixel
-   density that results from <span data-x="select an image source">selecting an image source</span>,
-   respectively.</p></li>
+   density that result from <span data-x="select an image source">selecting an image source</span>
+   given <var>element</var>, respectively.</p></li>
 
    <li>
     <p>If <var>selected source</var> is null:</p>
@@ -33805,28 +33821,50 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
   <ol>
    <li><p><span>Update the source set</span> for <var>el</var>.</p></li>
 
-   <li><p>If <var>el</var>'s <span>source set</span> is empty, return null as the URL and undefined
-   as the pixel density.</p></li>
-
    <li><p>Return the result of <span data-x="select an image source from a source set">selecting an
-   image</span> from <var>el</var>'s <span>source set</span>.</p></li>
+   image source from a source set</span> given <var>el</var>'s <span>source set</span> and
+   <var>el</var>'s <span>node document</span>.</p></li>
   </ol>
   </div>
 
   <div algorithm>
   <p>To <dfn>select an image source from a source set</dfn> given a <span>source set</span>
-  <var>sourceSet</var>:</p>
+  <var>sourceSet</var> and a <code>Document</code> <var>document</var>:</p>
 
   <ol>
-   <li><p>If an entry <var>b</var> in <var>sourceSet</var> has the same associated <span>pixel
-   density descriptor</span> as an earlier entry <var>a</var> in <var>sourceSet</var>, then remove
-   entry <var>b</var>. Repeat this step until none of the entries in <var>sourceSet</var> have the
-   same associated <span>pixel density descriptor</span> as an earlier entry.</p></li>
+   <li><p>If <var>sourceSet</var> is empty, then return null as the URL and undefined as the pixel
+   density.</p></li>
 
-   <li><p>In an <span>implementation-defined</span> manner, choose one <span>image source</span>
-   from <var>sourceSet</var>. Let <var>selectedSource</var> be this choice.</p></li>
+   <li><p>If an entry <var>b</var> in <var>sourceSet</var> has the same associated <span
+   data-x="pixel density descriptor value">pixel density</span> as an earlier entry <var>a</var> in
+   <var>sourceSet</var>, then remove entry <var>b</var>. Repeat this step until none of the entries
+   in <var>sourceSet</var> have the same associated <span data-x="pixel density descriptor
+   value">pixel density</span> as an earlier entry.</p></li>
 
-   <li><p>Return <var>selectedSource</var> and its associated pixel density.</p></li>
+   <li><p>Sort the entries in <var>sourceSet</var> in ascending order by their associated <span
+   data-x="pixel density descriptor value">pixel density</span>.</p></li>
+
+   <li><p>Let <var>devicePixelRatio</var> be 1.0 if <var>document</var> is not <span>fully
+   active</span>; otherwise the result of <span data-x="determine the device pixel
+   ratio">determining the device pixel ratio</span> for <var>document</var>'s <span>relevant global
+   object</span>. <ref>CSSOMVIEW</ref></p></li>
+
+   <li><p>Let <var>selectedSource</var> be the first <span>image source</span> in
+   <var>sourceSet</var> whose associated <span data-x="pixel density descriptor value">pixel
+   density</span> is greater than or equal to <var>devicePixelRatio</var>, or if no such <span>image
+   source</span> exists, the last <span>image source</span> in <var>sourceSet</var>.</p></li>
+
+   <li><p>The user agent may set <var>selectedSource</var> to an <span>image source</span> in
+   <var>sourceSet</var> whose associated <span data-x="pixel density descriptor value">pixel
+   density</span> is greater than <var>selectedSource</var>'s associated <span data-x="pixel density
+   descriptor value">pixel density</span>, if that <span>image source</span>'s image data is already
+   available without a network request (for example, in <var>document</var>'s <span>list of
+   available images</span>, in an in-memory cache, or via a <code data-x="">data:</code>
+   URL).</p></li>
+
+   <li><p>Return <var>selectedSource</var>'s URL as the URL and <var>selectedSource</var>'s
+   associated <span data-x="pixel density descriptor value">pixel density</span> as the pixel
+   density.</p></li>
   </ol>
   </div>
 
@@ -34379,9 +34417,9 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
    <!-- we don't support replacing push-JPEG images because defining what happens with
    the tasks and events and so on in that case would become implausibly complicated. -->
 
-   <li><p>&#x231B; Let <var>selected source</var> and <var>selected pixel
-   density</var> be the URL and pixel density that results from <span data-x="select an image
-   source">selecting an image source</span>, respectively.</p></li>
+   <li><p>&#x231B; Let <var>selected source</var> and <var>selected pixel density</var> be the URL
+   and pixel density that result from <span data-x="select an image source">selecting an image
+   source</span> given the <code>img</code> element, respectively.</p></li>
 
    <li><p>&#x231B; If <var>selected source</var> is null, then return.</p></li>
    <!-- not sure this can ever actually happen -->
