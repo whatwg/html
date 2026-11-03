@@ -3450,6 +3450,13 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
                       <dfn data-x="concept-element-is-value" data-x-href="https://dom.spec.whatwg.org/#concept-element-is-value"><code data-x="">is</code> value</dfn></li>
 
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#mutationobserver"><code>MutationObserver</code></dfn> interface and <dfn data-x-href="https://dom.spec.whatwg.org/#mutation-observers">mutation observers</dfn> in general</li>
+     <li><dfn data-x-href="https://dom.spec.whatwg.org/#mutationrecord"><code>MutationRecord</code></dfn> interface</li>
+     <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#enumdef-mutationrecordactivetemplatestatus"><code>MutationRecordActiveTemplateStatus</code></dfn> enumeration</li>
+     <li><dfn data-x="dom-MutationObserverInit-activeTemplateAttributeFilter" data-x-href="https://dom.spec.whatwg.org/#dom-mutationobserverinit-activetemplateattributefilter"><code>activeTemplateAttributeFilter</code></dfn> dictionary member</li>
+     <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#active-template">active template</dfn> concept, and its <dfn data-x="active template attribute map" data-x-href="https://dom.spec.whatwg.org/#active-template-attribute-map">attribute map</dfn></li>
+     <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#queue-a-tree-mutation-record">queue a tree mutation record</dfn> algorithm</li>
+     <li var-scope>The <dfn data-x="concept-node-insert-activeTemplate" data-x-href="https://dom.spec.whatwg.org/#insert-activetemplate"><var>activeTemplate</var></dfn> and <dfn data-x="concept-node-insert-activeTemplateStatus" data-x-href="https://dom.spec.whatwg.org/#insert-activetemplatestatus"><var>activeTemplateStatus</var></dfn> parameters of the <span data-x="concept-node-insert">insert</span> algorithm</li>
+     <li var-scope>The <dfn data-x="concept-node-remove-suppressObservers" data-x-href="https://dom.spec.whatwg.org/#remove-suppressobservers"><var>suppressObservers</var></dfn>, <dfn data-x="concept-node-remove-activeTemplate" data-x-href="https://dom.spec.whatwg.org/#remove-activetemplate"><var>activeTemplate</var></dfn>, and <dfn data-x="concept-node-remove-activeTemplateStatus" data-x-href="https://dom.spec.whatwg.org/#remove-activetemplatestatus"><var>activeTemplateStatus</var></dfn> parameters of the <span data-x="concept-node-remove">remove</span> algorithm</li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#abortcontroller"><code>AbortController</code></dfn> and its
          <dfn data-x="concept-AbortController-signal" data-x-href="https://dom.spec.whatwg.org/#abortcontroller-signal">signal</dfn></li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#abortsignal"><code>AbortSignal</code></dfn></li>
@@ -69906,8 +69913,34 @@ interface <dfn interface>HTMLTemplateElement</dfn> : <span>HTMLElement</span> {
   is initially null.</p>
 
   <p>Each <code>template</code> element has an associated <code>ProcessingInstruction</code>-or-null
-  <dfn>insertion start marker</dfn> and <dfn>insertion end marker</dfn>, which are initially
-  null.</p>
+  <dfn>insertion end marker</dfn>, which is initially null.</p>
+
+  <p>Each <code>template</code> element has an associated <span>active template</span>-or-null <dfn
+  data-x="template-active-template">template active template</dfn>, which is initially null.</p>
+
+  <p class="note">The <span data-x="template-active-template">template active template</span>
+  identifies the mutations that the parser makes on behalf of the <code>template</code> element in
+  the <code>MutationRecord</code> objects of observers that specified <code
+  data-x="dom-MutationObserverInit-activeTemplateAttributeFilter">activeTemplateAttributeFilter</code>.
+  [[DOM]]</p>
+
+  <div algorithm>
+  <p>To <dfn>create an active template</dfn> given a <code>template</code> element
+  <var>template</var>:</p>
+
+  <ol>
+   <li><p>Let <var>activeTemplate</var> be a new <span>active template</span>.</p></li>
+
+   <li><p>For each attribute <var>attribute</var> in <var>template</var>'s <span>attribute
+   list</span> whose <span data-x="concept-attribute-namespace">namespace</span> is null: <span
+   data-x="map set">set</span> <var>activeTemplate</var>'s <span data-x="active template attribute
+   map">attribute map</span>[<var>attribute</var>'s <span
+   data-x="concept-attribute-local-name">local name</span>] to <var>attribute</var>'s <span
+   data-x="concept-attribute-value">value</span>.</p></li>
+
+   <li><p>Return <var>activeTemplate</var>.</p></li>
+  </ol>
+  </div>
 
   <div algorithm>
   <p id="template-adopting-steps">The <span data-x="concept-node-adopt-ext">adopting steps</span>
@@ -69999,17 +70032,33 @@ interface <dfn interface>HTMLTemplateElement</dfn> : <span>HTMLElement</span> {
 
    <li><p>If <var>start</var> is null, then return false.</p></li>
 
-   <li><p>Set <var>template</var>'s <span>insertion target</span> to
-   <var>start</var>'s <span>parent</span>.</p></li>
+   <li><p>Let <var>activeTemplate</var> be <var>template</var>'s <span
+   data-x="template-active-template">template active template</span>.</p></li>
 
-   <li><p>Set <var>template</var>'s <span>insertion start marker</span> to
-   <var>start</var>.</p></li>
+   <li><p><span>Assert</span>: <var>activeTemplate</var> is not null.</p></li>
+
+   <li><p>Let <var>target</var> be <var>start</var>'s <span>parent</span>.</p></li>
+
+   <li><p>Set <var>template</var>'s <span>insertion target</span> to <var>target</var>.</p></li>
 
    <li><p>Set <var>template</var>'s <span>insertion end marker</span> to <var>end</var>.</p></li>
 
-   <li><p>If <var>start</var> is <var>end</var>, then return true.</p></li>
+   <li>
+    <p>If <var>start</var> is <var>end</var>:</p>
 
-   <li><p>Let <var>removedNodes</var> be an empty <span>list</span>.</p></li>
+    <ol>
+     <li><p><span>Queue a tree mutation record</span> for <var>target</var> with « », « »,
+     <var>start</var>'s <span>previous sibling</span>, <var>start</var>, <var>activeTemplate</var>,
+     and "<code data-x="">start</code>".</p></li>
+
+     <li><p>Return true.</p></li>
+    </ol>
+   </li>
+
+   <li><p>Let <var>previousSibling</var> be <var>start</var>'s <span>previous
+   sibling</span>.</p></li>
+
+   <li><p>Let <var>nodesToRemove</var> be « <var>start</var> ».</p></li>
 
    <li><p>Let <var>currentNode</var> be <var>start</var>'s <span>next sibling</span>.</p></li>
 
@@ -70019,30 +70068,59 @@ interface <dfn interface>HTMLTemplateElement</dfn> : <span>HTMLElement</span> {
     <ol>
      <li><p>If <var>currentNode</var> is <var>end</var>, then <span>break</span>.</p></li>
 
-     <li><p>Append <var>currentNode</var> to <var>removedNodes</var>.</p></li>
+     <li><p>Append <var>currentNode</var> to <var>nodesToRemove</var>.</p></li>
 
      <li><p>Set <var>currentNode</var> to <var>currentNode</var>'s <span>next
      sibling</span>.</p></li>
     </ol>
    </li>
 
+   <li><p>Let <var>removedNodes</var> be an empty <span>list</span>.</p></li>
+
    <li>
-    <p>For each <var>node</var> of <var>removedNodes</var>:</p>
+    <p>For each <var>node</var> of <var>nodesToRemove</var>:</p>
 
     <ol>
      <li>
-      <p>If <var>node</var>'s <span>parent</span> is not null, then <span
-      data-x="concept-node-remove">remove</span> <var>node</var>.</p>
+      <p>If <var>node</var>'s <span>parent</span> is <var>target</var>, then <span
+      data-x="concept-node-remove">remove</span> <var>node</var> with <span
+      data-x="concept-node-remove-suppressObservers"><i>suppressObservers</i></span> set to true,
+      and <span data-x="list append">append</span> <var>node</var> to <var>removedNodes</var>.</p>
 
       <p class="note">The parent might have changed because removing a node can fire events like
       the <code data-x="event-pagehide">pagehide</code> event, and an event handler can mutate the
-      DOM. The parent identity is not checked; as long as the node still has a parent, it is
-      removed.</p>
+      DOM.</p>
      </li>
+
+     <li><p>Otherwise, if <var>node</var>'s <span>parent</span> is not null, then <span
+     data-x="concept-node-remove">remove</span> <var>node</var>.</p></li>
     </ol>
    </li>
 
+   <li><p><span>Queue a tree mutation record</span> for <var>target</var> with « »,
+   <var>removedNodes</var>, <var>previousSibling</var>, <var>end</var>, <var>activeTemplate</var>,
+   and "<code data-x="">start</code>".</p></li>
+
    <li><p>Return true.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>abort content patching</dfn> given a <code>template</code> element
+  <var>template</var>:</p>
+
+  <ol>
+   <li><p><span>Assert</span>: <var>template</var>'s <span>insertion target</span> is not
+   null.</p></li>
+
+   <li><p><span>Queue a tree mutation record</span> for <var>template</var>'s <span>insertion
+   target</span> with « », « », null, null, <var>template</var>'s <span
+   data-x="template-active-template">template active template</span>, and "<code
+   data-x="">abort</code>".</p></li>
+
+   <li><p>Set <var>template</var>'s <span>insertion target</span>, <span>insertion end
+   marker</span>, and <span data-x="template-active-template">template active template</span> to
+   null.</p></li>
   </ol>
   </div>
 
@@ -146237,14 +146315,54 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   </ol>
   </div>
 
+  <div algorithm>
+  <p>The <dfn>current active template</dfn> is the result of running these steps:</p>
+
+  <ol>
+   <li><p>Let <var>template</var> be the last <code>template</code> element in the <span>stack of
+   open elements</span>, if there is one; otherwise null.</p></li>
+
+   <li><p>If <var>template</var> is null, or <var>template</var>'s <span>insertion target</span> is
+   null, then return null.</p></li>
+
+   <li><p>Return <var>template</var>'s <span data-x="template-active-template">template active
+   template</span>.</p></li>
+  </ol>
+
+  <p class="note">The <span>current active template</span> is passed to the DOM <span
+  data-x="concept-node-insert">insert</span> and <span data-x="concept-node-remove">remove</span>
+  algorithms when the parser mutates the tree, so that observers that specified <code
+  data-x="dom-MutationObserverInit-activeTemplateAttributeFilter">activeTemplateAttributeFilter</code>
+  can tell which mutations were made on behalf of a <code>template</code> element with a <code
+  data-x="attr-template-for">for</code> attribute. When <code>template</code> elements with a <code
+  data-x="attr-template-for">for</code> attribute are nested, it is the innermost one's.</p>
+  </div>
+
+  <p>When the steps below <span data-x="concept-node-insert">insert</span> or <span
+  data-x="concept-node-remove">remove</span> a node <dfn>with the current active template</dfn>,
+  that means running that algorithm with <span
+  data-x="concept-node-insert-activeTemplate"><i>activeTemplate</i></span> (respectively <span
+  data-x="concept-node-remove-activeTemplate"><i>activeTemplate</i></span>) set to the <span>current
+  active template</span> and <span
+  data-x="concept-node-insert-activeTemplateStatus"><i>activeTemplateStatus</i></span>
+  (respectively <span
+  data-x="concept-node-remove-activeTemplateStatus"><i>activeTemplateStatus</i></span>) set to
+  "<code data-x="">update</code>".</p>
+
   <hr>
 
   <div algorithm>
   <p>To <dfn>insert an element at the adjusted insertion location</dfn> with an element
   <var>element</var>, an optional <span>insertion location</span> <var>overrideLocation</var>
-  (default null), and an optional boolean <var>alreadySanitized</var> (default false):</p>
+  (default null), an optional boolean <var>alreadySanitized</var> (default false), an optional
+  <span>active template</span>-or-null <var>activeTemplate</var>, and an optional
+  <code>MutationRecordActiveTemplateStatus</code> value <var>activeTemplateStatus</var> (default
+  "<code data-x="">update</code>"):</p>
 
   <ol>
+   <li><p>If <var>activeTemplate</var> is not given, then set <var>activeTemplate</var> to the
+   <span>current active template</span>.</p></li>
+
    <li><p>Let (<var>targetParent</var>, <var>referenceChild</var>) be the <span>adjusted insertion
    location</span> given <var>overrideLocation</var>.</p></li>
 
@@ -146325,7 +146443,11 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    element reactions stack</span>.</p></li>
 
    <li><p><span data-x="concept-node-insert">Insert</span> <var>element</var> into
-   <var>targetParent</var> before <var>referenceChild</var>.</p></li>
+   <var>targetParent</var> before <var>referenceChild</var>, with <span
+   data-x="concept-node-insert-activeTemplate"><i>activeTemplate</i></span> set to
+   <var>activeTemplate</var> and <span
+   data-x="concept-node-insert-activeTemplateStatus"><i>activeTemplateStatus</i></span> set to
+   <var>activeTemplateStatus</var>.</p></li>
 
    <li><p>If the parser's <span>fragment context element</span> is null, then pop the <span>element
    queue</span> from <var>element</var>'s <span>relevant agent</span>'s <span>custom element
@@ -146507,7 +146629,8 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     <p>Otherwise, let <var>text</var> be the result of <span data-x="create a text node">creating a
     text node</span> given <var>targetParent</var>'s <span>node document</span> and <var>data</var>,
     and <span data-x="concept-node-insert">insert</span> <var>text</var> into
-    <var>targetParent</var> before <var>referenceChild</var>.</p>
+    <var>targetParent</var> before <var>referenceChild</var> <span>with the current active
+    template</span>.</p>
    </li>
   </ol>
   </div>
@@ -146577,7 +146700,8 @@ document.body.appendChild(text);
    <var>data</var>.</p></li>
 
    <li><p><span data-x="concept-node-insert">Insert</span> <var>comment</var> into
-   <var>targetParent</var> before <var>referenceChild</var>.</p></li>
+   <var>targetParent</var> before <var>referenceChild</var> <span>with the current active
+   template</span>.</p></li>
   </ol>
   </div>
 
@@ -146606,7 +146730,8 @@ document.body.appendChild(text);
    document</span>, <var>piTarget</var>, and <var>data</var>.</p></li>
 
    <li><p><span data-x="concept-node-insert">Insert</span> <var>pi</var> into
-   <var>targetParent</var> before <var>referenceChild</var>.</p></li>
+   <var>targetParent</var> before <var>referenceChild</var> <span>with the current active
+   template</span>.</p></li>
   </ol>
   </div>
 
@@ -147194,6 +147319,15 @@ document.body.appendChild(text);
       <var>template</var>'s <span>template contents</span>.</p>
      </li>
 
+     <li>
+      <p>Let <var>parentActiveTemplate</var> be the <span>current active template</span>.</p>
+
+      <p class="note">This is computed before <var>template</var> is pushed onto the <span>stack of
+      open elements</span>, so that it is the <span>active template</span> of an enclosing
+      <code>template</code> element with a <code data-x="attr-template-for">for</code> attribute,
+      if any.</p>
+     </li>
+
      <li><p>Push <var>template</var> onto the <span>stack of open elements</span> so that it is the
      new <span>current node</span>.</p></li>
 
@@ -147245,7 +147379,8 @@ document.body.appendChild(text);
             </ul>
 
             <p>then <span>insert an element at the adjusted insertion location</span> with
-            <var>template</var>, <var>insertionLocation</var>, and true, and return.</p>
+            <var>template</var>, <var>insertionLocation</var>, true, and
+            <var>parentActiveTemplate</var>, and return.</p>
 
             <p class="note">The last condition applies when
             <var>declarativeShadowHostElement</var> is <span
@@ -147280,7 +147415,8 @@ document.body.appendChild(text);
 
            <li><p>If <var>declarativeShadowHostElement</var> is a <span>shadow host</span>, then
            <span>insert an element at the adjusted insertion location</span> with
-           <var>template</var>, <var>insertionLocation</var>, and true.</p></li>
+           <var>template</var>, <var>insertionLocation</var>, true, and
+           <var>parentActiveTemplate</var>.</p></li>
 
            <li>
             <p>Otherwise:</p>
@@ -147312,7 +147448,8 @@ document.body.appendChild(text);
 
               <ol>
                <li><p><span>Insert an element at the adjusted insertion location</span> with
-               <var>template</var>, <var>insertionLocation</var>, and true.</p></li>
+               <var>template</var>, <var>insertionLocation</var>, true, and
+               <var>parentActiveTemplate</var>.</p></li>
 
                <li><p>The user agent may report an error to the developer console.</p></li>
 
@@ -147374,18 +147511,36 @@ document.body.appendChild(text);
             <code>template</code> inside <code>body</code>.</p>
            </li>
 
+           <li><p>Set <var>template</var>'s <span data-x="template-active-template">template active
+           template</span> to the result of <span data-x="create an active template">creating an
+           active template</span> given <var>template</var>.</p></li>
+
            <li><p>Let <var>success</var> be the result of <span data-x="prepare content
            patching">preparing content patching</span> given <var>scope</var> and
            <var>template</var>.</p></li>
 
-           <li><p>If <var>success</var> is false, then <span>insert an element at the
-           adjusted insertion location</span> with <var>template</var>,
-           <var>insertionLocation</var>, and true.</p></li>
+           <li>
+            <p>If <var>success</var> is false:</p>
+
+            <ol>
+             <li><p><span>Insert an element at the adjusted insertion location</span> with
+             <var>template</var>, <var>insertionLocation</var>, true, <var>template</var>'s <span
+             data-x="template-active-template">template active template</span>, and "<code
+             data-x="">abort</code>".</p></li>
+
+             <li><p>Set <var>template</var>'s <span data-x="template-active-template">template
+             active template</span> to null.</p></li>
+            </ol>
+
+            <p class="note">The <code>MutationRecord</code> for inserting <var>template</var>
+            reports that patching was aborted, since no target was found.</p>
+           </li>
           </ol>
          </li>
 
          <li><p>Otherwise, <span>insert an element at the adjusted insertion location</span> with
-         <var>template</var>, <var>insertionLocation</var>, and true.</p></li>
+         <var>template</var>, <var>insertionLocation</var>, true, and
+         <var>parentActiveTemplate</var>.</p></li>
         </ol>
        </dd>
       </dl>
@@ -147420,25 +147575,26 @@ document.body.appendChild(text);
       <p>If <var>template</var>'s <span>insertion target</span> is not null:</p>
 
       <ol>
-       <li><p>Let <var>start</var> be <var>template</var>'s <span>insertion start
-       marker</span>.</p></li>
-
        <li><p>Let <var>end</var> be <var>template</var>'s <span>insertion end
        marker</span>.</p></li>
 
-       <li><p><span>Assert</span>: <var>start</var> is not null.</p></li>
-
-       <li><p>If <var>start</var>'s <span>parent</span> is not null, then <span
-       data-x="concept-node-remove">remove</span> <var>start</var>.</p></li>
+       <li><p>Let <var>activeTemplate</var> be <var>template</var>'s <span
+       data-x="template-active-template">template active template</span>.</p></li>
 
        <li><p>If <var>end</var> is not null and <var>end</var>'s <span>parent</span> is not null,
-       then <span data-x="concept-node-remove">remove</span> <var>end</var>.</p></li>
+       then <span data-x="concept-node-remove">remove</span> <var>end</var> with <span
+       data-x="concept-node-remove-activeTemplate"><i>activeTemplate</i></span> set to
+       <var>activeTemplate</var> and <span
+       data-x="concept-node-remove-activeTemplateStatus"><i>activeTemplateStatus</i></span> set to
+       "<code data-x="">end</code>".</p></li>
 
-       <li><p>Set <var>template</var>'s <span>insertion target</span> to null.</p></li>
+       <li><p>Otherwise, <span>queue a tree mutation record</span> for <var>template</var>'s
+       <span>insertion target</span> with « », « », null, null, <var>activeTemplate</var>, and
+       "<code data-x="">end</code>".</p></li>
 
-       <li><p>Set <var>template</var>'s <span>insertion start marker</span> to null.</p></li>
-
-       <li><p>Set <var>template</var>'s <span>insertion end marker</span> to null.</p></li>
+       <li><p>Set <var>template</var>'s <span>insertion target</span>, <span>insertion end
+       marker</span>, and <span data-x="template-active-template">template active template</span>
+       to null.</p></li>
       </ol>
      </li>
 
@@ -148957,13 +149113,16 @@ document.body.appendChild(text);
         <dl class="switch">
          <dt>"<span data-x="sanitizer-action-keep">Keep</span>"</dt>
          <dd>If <var>lastNode</var> is non-null, then <span
-         data-x="concept-node-append">append</span> <var>lastNode</var> to <var>node</var>. Set
-         <var>lastNode</var> to <var>node</var>.</dd>
+         data-x="concept-node-remove">remove</span> <var>lastNode</var> <span>with the current
+         active template</span> if its <span>parent</span> is non-null, and <span
+         data-x="concept-node-insert">insert</span> <var>lastNode</var> into <var>node</var> before
+         null <span>with the current active template</span>. Set <var>lastNode</var> to
+         <var>node</var>.</dd>
 
          <dt>"<span data-x="sanitizer-action-remove">Remove</span>"</dt>
          <dd>If <var>lastNode</var> is non-null and <var>lastNode</var>'s <span>parent</span> is
-         non-null, then <span data-x="concept-node-remove">remove</span> <var>lastNode</var>. Set
-         <var>lastNode</var> to null.</dd>
+         non-null, then <span data-x="concept-node-remove">remove</span> <var>lastNode</var>
+         <span>with the current active template</span>. Set <var>lastNode</var> to null.</dd>
 
          <dt>"<span
          data-x="sanitizer-action-replace-with-children">Replace with children</span>"</dt>
@@ -148986,7 +149145,7 @@ document.body.appendChild(text);
 
      <li><p>If <var>lastNode</var> is non-null and <var>lastNode</var>'s
      <span>parent</span> is non-null, then <span data-x="concept-node-remove">remove</span>
-     <var>lastNode</var>.</p></li>
+     <var>lastNode</var> <span>with the current active template</span>.</p></li>
      <!-- XXX Removal does not currently run script: destroying an iframe element's navigable does
           not unload its document, so no pagehide event is fired. Engines do fire pagehide when an
           iframe is disconnected and we should update the spec to match. The conditions below are
@@ -149017,7 +149176,8 @@ document.body.appendChild(text);
        <var>lastNode</var>, <var>target</var>, <var>refNode</var>, and « » does not throw.</p></li>
 
        <li><p><span data-x="concept-node-insert">Insert</span> <var>lastNode</var> into
-       <var>target</var> before <var>refNode</var>.</p></li>
+       <var>target</var> before <var>refNode</var> <span>with the current active
+       template</span>.</p></li>
       </ol>
      </li>
 
@@ -149053,20 +149213,29 @@ document.body.appendChild(text);
        the <span>adjusted insertion location</span> given (<var>furthestBlock</var>, null).</dd>
 
        <dt>"<span data-x="sanitizer-action-remove">Remove</span>"</dt>
-       <dd>Take all of the child nodes of <var>furthestBlock</var> and <span
-       data-x="concept-node-append">append</span> them to <var>newElement</var>.</dd>
+       <dd><span data-x="list iterate">For each</span> <var>child</var> of a <span data-x="list
+       clone">clone</span> of <var>furthestBlock</var>'s <span
+       data-x="concept-tree-child">children</span>: <span
+       data-x="concept-node-remove">remove</span> <var>child</var> and then <span
+       data-x="concept-node-insert">insert</span> it into <var>newElement</var> before null, both
+       <span>with the current active template</span>.</dd>
 
        <dt>"<span data-x="sanitizer-action-keep">Keep</span>"</dt>
        <dd>
         <ol>
-         <li><p>Take all of the child nodes of <var>furthestBlock</var> and <span
-         data-x="concept-node-append">append</span> them to <var>newElement</var>.</p></li>
+         <li><p><span data-x="list iterate">For each</span> <var>child</var> of a <span
+         data-x="list clone">clone</span> of <var>furthestBlock</var>'s <span
+         data-x="concept-tree-child">children</span>: <span
+         data-x="concept-node-remove">remove</span> <var>child</var> and then <span
+         data-x="concept-node-insert">insert</span> it into <var>newElement</var> before null, both
+         <span>with the current active template</span>.</p></li>
 
          <li><p>Let (<var>newElementParent</var>, <var>newElementRefNode</var>) be the
          <span>adjusted insertion location</span> given (<var>furthestBlock</var>, null).</p></li>
 
          <li><p><span data-x="concept-node-insert">Insert</span> <var>newElement</var> into
-         <var>newElementParent</var> before <var>newElementRefNode</var>.</p></li>
+         <var>newElementParent</var> before <var>newElementRefNode</var> <span>with the current
+         active template</span>.</p></li>
         </ol>
        </dd>
       </dl>
@@ -150111,6 +150280,10 @@ document.body.appendChild(text);
     <p>Otherwise, this is a <span>parse error</span>.</p>
 
     <!-- fake </template> -->
+    <p>If the last <code>template</code> element in the <span>stack of open elements</span> has an
+    <span>insertion target</span> that is not null, then <span>abort content patching</span> given
+    that element.</p>
+
     <p>Pop elements from the <span>stack of open elements</span> until a <code>template</code>
     element has been popped from the stack.</p>
 
@@ -150800,6 +150973,11 @@ document.body.appendChild(text);
 
    <li><p><span>Update the current document readiness</span> to "<code
    data-x="">interactive</code>".</p></li>
+
+   <li><p>For each <code>template</code> element <var>template</var> in the <span>stack of open
+   elements</span>, starting with the <span>current node</span> and moving up the stack: if
+   <var>template</var>'s <span>insertion target</span> is not null, then <span>abort content
+   patching</span> given <var>template</var>.</p></li>
 
    <li><p>Pop <em>all</em> the nodes off the <span>stack of open elements</span>.</p></li>
 
