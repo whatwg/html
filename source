@@ -127259,64 +127259,6 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
 
   <h4 id="html-streaming-methods">HTML streaming methods</h4>
 
-  <p>The HTML streaming methods (e.g., <code data-x="dom-Element-streamHTML">streamHTML()</code>)
-  allow authors to insert chunks of HTML asynchronously using a <code>WritableStream</code>. As
-  chunks are written to the stream, the <span>HTML parser</span> incrementally processes the input
-  and inserts the resulting DOM nodes into the target node.</p>
-
-  <p>Unlike synchronous methods such as <code
-  data-x="dom-Element-setHTMLUnsafe">setHTMLUnsafe()</code>, streaming methods can parse and execute
-  scripts incrementally when an <code data-x="">Unsafe</code> method (e.g., <code
-  data-x="dom-Element-streamHTMLUnsafe">streamHTMLUnsafe()</code>) is used and the <code
-  data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> option is set to true. Similar to
-  main document parsing, <span data-x="classic script">classic scripts</span> are executed as they
-  are parsed, pausing the stream's parser while an external script is being fetched (and performing
-  a <span data-x="perform a microtask checkpoint">microtask checkpoint</span> around script
-  execution when the <span>JavaScript execution context stack</span> is empty); external <code
-  data-x="attr-script-defer">defer</code> scripts and non-<code
-  data-x="attr-script-async">async</code> "<code data-x="">module</code>" scripts are executed once
-  the stream is closed; and <code data-x="attr-script-async">async</code> scripts are executed as
-  usual. Unlike main document parsing, no style sheet, whether streamed or in the live document,
-  blocks streamed scripts. Because the tree is constructed incrementally, scripts can observe
-  partial markup and DOM elements appended before the stream is closed.</p>
-
-  <p>Streamed scripts run in the live document, not in the stream's parser. In particular, <code
-  data-x="dom-document-write">document.write()</code> called from a streamed inline script writes to
-  the live document, at the <span>insertion point</span> of the live document's own parser (if any);
-  it never inserts into the stream. When the live document has no <span>insertion point</span>
-  (e.g., after it has finished parsing, or while it is loading between parser tasks), such a call
-  implies <code data-x="dom-document-open">document.open()</code>, which replaces the document's
-  contents, including the streamed nodes.</p>
-
-  <p>The promise returned by writing a chunk to the stream is settled once the chunk has been parsed
-  as far as possible. If parsing is blocked on a script that is being fetched, the promise does not
-  wait for it; subsequent chunks are parsed once that script has been executed. Similarly, if the
-  chunk is written by script that runs during parsing, e.g., a streamed inline script, the promise
-  can settle before the chunk is parsed; the chunk is parsed once the current parsing continues or
-  resumes. By contrast, the promise returned by closing the stream waits until all written input has
-  been parsed, including executing any parser-blocking scripts, though it does not wait for external
-  <code data-x="attr-script-defer">defer</code> scripts or non-<code
-  data-x="attr-script-async">async</code> "<code data-x="">module</code>" scripts; they are executed
-  in subsequent tasks, after the promise settles. If the node before which content is being inserted
-  is no longer a child of the target when a node (including whitespace text) would be inserted
-  before it or when another chunk is written, e.g., because a script moved or removed it, the stream
-  is errored and the rest of the current chunk is not parsed.</p>
-
-  <p>Chunks written to the stream are converted to strings (for example, a <code
-  data-x="">Uint8Array</code> chunk is converted to a comma-separated list of numbers, rather than
-  decoded). To stream bytes, such as from a <code data-x="">Response</code> body, pipe them through
-  a <code data-x="">TextDecoderStream</code> first.</p>
-
-  <p>Text written to the stream is appended to the <code>Text</code> node immediately preceding the
-  insertion position when there is one, even if that node was not created by the stream. The stream
-  keeps inserting into the target even if the target is moved, including to another document; in
-  that case, scripts that the stream parses while the target is in another document do not execute.
-  When the stream is neither closed nor aborted, elements left open remain open indefinitely, and a
-  streamed external <code data-x="attr-script-defer">defer</code> script or non-<code
-  data-x="attr-script-async">async</code> "<code data-x="">module</code>" script with <code
-  data-x="attr-script-blocking">blocking="render"</code> inserted before the document has a
-  <code>body</code> element keeps blocking rendering until the user agent gives up on it.</p>
-
   <dl class="domintro">
    <dt><code data-x=""><var>stream</var> = <var>element</var>.<span subdfn data-x="dom-Element-streamHTML">streamHTML</span>([<var>options</var>])</code></dt>
    <dd><p>Removes <var>element</var>'s children (or the <span>template contents</span>'s children in
@@ -127665,11 +127607,30 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <span>parent</span>.</p></dd>
   </dl>
 
+  <p class="note">Chunks written to the stream are converted to strings; to stream bytes (such as
+  from a <code data-x="">Response</code> body), pipe them through a <code
+  data-x="">TextDecoderStream</code> first. Writing a chunk settles without waiting for
+  parser-blocking script fetches, whereas closing the stream waits until all input has been parsed
+  and parser-blocking scripts have executed. When <code
+  data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> is true, streamed scripts run in
+  the live document rather than the stream's parser (so <code
+  data-x="dom-document-write">document.write()</code> targets the live document) and are not blocked
+  by style sheets.</p>
+
   <p class="warning">By default, the methods with an <code data-x="">Unsafe</code> suffix perform no
   sanitization to remove potentially-dangerous elements and attributes like <code>script</code> or
   <span>event handler content attributes</span>.</p>
 
   <div w-nodev>
+
+  <p>The <dfn>HTML streaming methods</dfn> are <code
+  data-x="dom-Element-streamHTML">streamHTML()</code>, <code
+  data-x="dom-Element-streamAppendHTML">streamAppendHTML()</code>, <code
+  data-x="dom-Element-streamPrependHTML">streamPrependHTML()</code>, <code
+  data-x="dom-NonDocumentTypeChildNode-streamBeforeHTML">streamBeforeHTML()</code>, <code
+  data-x="dom-NonDocumentTypeChildNode-streamAfterHTML">streamAfterHTML()</code>, and <code
+  data-x="dom-NonDocumentTypeChildNode-streamReplaceWithHTML">streamReplaceWithHTML()</code>,
+  together with their <code data-x="">Unsafe</code> counterparts.</p>
 
   <div algorithm>
   <p><code>Element</code>'s <dfn method for="Element"><code
@@ -128024,14 +127985,6 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
 
    <li><p>Return <var>parent</var>.</p></li>
   </ol>
-
-  <p class="note">Unlike <code data-x="dom-NonDocumentTypeChildNode-beforeHTML">beforeHTML()</code>,
-  <code data-x="dom-NonDocumentTypeChildNode-afterHTML">afterHTML()</code>, <code
-  data-x="dom-NonDocumentTypeChildNode-replaceWithHTML">replaceWithHTML()</code>, and their <code
-  data-x="">Unsafe</code> counterparts, which do nothing when <var>node</var> has no parent, this
-  throws: the returned <code>WritableStream</code> would otherwise silently discard everything
-  written to it. Similarly, if the node before which content is being inserted is no longer a child
-  of the parent, the stream errors with the same exception.</p>
   </div>
 
   <div algorithm>
@@ -128045,20 +127998,11 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <li><p>Let <var>context</var> be the <span data-x="determine the parser context element">parser
    context element</span> given <var>target</var>.</p></li>
 
-   <li>
-    <p>If <var>context</var>'s <span data-x="concept-element-local-name">local name</span> is
-    "<code>script</code>" and <var>context</var>'s <span
-    data-x="concept-element-namespace">namespace</span> is the <span>HTML namespace</span> or the
-    <span>SVG namespace</span>, then throw a <span>"<code>NotSupportedError</code>"</span>
-    <code>DOMException</code>.</p>
-
-    <p class="note">This is done regardless of <var>mode</var>, unlike <code
-    data-x="dom-Element-setHTML">setHTML()</code>, which silently does nothing for a
-    <code>script</code> element. Streaming into a <code>script</code> element would cause its
-    <span>children changed steps</span> to <span data-x="prepare the script element">prepare</span>
-    it with only part of its source text, and a <code>WritableStream</code> that silently discards
-    everything written to it would be an easy mistake to miss.</p>
-   </li>
+   <li><p>If <var>context</var>'s <span data-x="concept-element-local-name">local name</span> is
+   "<code>script</code>" and <var>context</var>'s <span
+   data-x="concept-element-namespace">namespace</span> is the <span>HTML namespace</span> or the
+   <span>SVG namespace</span>, then throw a <span>"<code>NotSupportedError</code>"</span>
+   <code>DOMException</code>.</p></li>
 
    <li><p>Let <var>safe</var> be true if <var>mode</var> is <span
    data-x="fragment-parser-mode-safe">Safe</span>; otherwise false.</p></li>
@@ -128085,13 +128029,11 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
     <var>target</var>, (<var>target</var>, <var>referenceChild</var>), true, <var>runScripts</var>,
     and <var>sanitizerConfig</var>. <var>parser</var> is a <span>script-created parser</span>.</p>
 
-    <p class="note">This ensures that <var>parser</var> does not reach the end of its <span>input
-    stream</span> when it has consumed a chunk, but only when it consumes the <span>explicit "EOF"
-    character</span> appended when the returned stream is closed. Since <var>document</var> is not
-    exposed to script, <code data-x="dom-document-close">document.close()</code> cannot close
-    <var>parser</var>. Additionally, style sheets inserted while streaming HTML are added to
-    <var>target</var>'s <span>node document</span> rather than to <var>document</var>, so
-    <var>document</var> never <span>has a style sheet that is blocking scripts</span>.</p>
+    <p class="note">As a <span>script-created parser</span>, <var>parser</var> only reaches the end
+    of its <span>input stream</span> when the <span>explicit "EOF" character</span> is appended upon
+    closing the stream. Because style sheets are inserted into <var>target</var>'s <span>node
+    document</span> rather than <var>document</var>, <var>document</var> never <span>has a style
+    sheet that is blocking scripts</span>.</p>
    </li>
 
    <li><p>Let <var>stream</var> be a <span>new</span> <code>WritableStream</code> created in
@@ -128143,13 +128085,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
       are non-null, then run <var>parser</var>'s <span>invalid reference child steps</span> given
       <var>referenceChild</var>.</p>
 
-      <p class="note">If <var>referenceChild</var> is moved or removed while <var>parser</var> is
-      running, e.g., by a <span data-x="concept-custom-element-reaction">custom element
-      reaction</span> or by a script that <var>parser</var> was blocked on, then <var>parser</var>'s
-      <span>invalid reference child steps</span> are also run when <var>parser</var> next attempts
-      to insert a node before <var>referenceChild</var>. This check catches the case where
-      <var>referenceChild</var> was moved or removed before <var>parser</var> runs, or where the
-      chunk produces no nodes to insert before <var>referenceChild</var>.</p>
+      <p class="note">This catches <var>referenceChild</var> being moved or removed before
+      <var>parser</var> runs or when a chunk produces no nodes to insert before it; mutations during
+      parsing are caught in <span>adjusted insertion location</span>.</p>
      </li>
 
      <li><p>If <var>writeError</var> is non-null, then return <span>a promise rejected with</span>
@@ -128165,15 +128103,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
      <li>
       <p>Return <span>a promise resolved with</span> undefined in <var>realm</var>.</p>
 
-      <p class="note">The returned promise does not wait for a <span>pending parsing-blocking
-      script</span> to be executed. While <var>parser</var> is blocked, subsequent input accumulates
-      in its <span>input stream</span>, and is parsed after the script has been <a
-      href="#scriptTagParserResumes">executed</a>. Similarly, if these steps are invoked by script
-      that runs while <var>parser</var>'s <span>fragment parser running</span> is true, e.g., a
-      streamed inline script executed from a <span data-x="concept-task">task</span> after a
-      <span>pending parsing-blocking script</span> has executed, then <span>run a fragment
-      parser</span> returns immediately and the returned promise is resolved before
-      <var>chunkString</var> is parsed; the ongoing run of <var>parser</var> parses it later.</p>
+      <p class="note">The returned promise does not wait for any <span>pending parsing-blocking
+      script</span>, and resolves before <var>chunkString</var> is parsed if <var>parser</var>'s
+      <span>fragment parser running</span> is true.</p>
      </li>
     </ol>
    </li>
@@ -128194,14 +128126,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
      <li>
       <p>Return <var>closePromise</var>.</p>
 
-      <p class="note">The returned promise is resolved once <var>parser</var> <span data-x="stop
-      parsing">stops parsing</span>, after any <span>pending parsing-blocking script</span> has been
-      executed and any remaining input has been parsed, or rejected if <var>stream</var> errors
-      while closing. It does not wait for external <code data-x="attr-script-defer">defer</code>
-      scripts or non-<code data-x="attr-script-async">async</code> "<code data-x="">module</code>"
-      scripts, which are executed in subsequent tasks. Once closing has started, <var>stream</var>
-      can no longer be aborted by the caller, so pending scripts are still executed; if a
-      parser-blocking script never finishes loading, the returned promise never settles.</p>
+      <p class="note"><var>closePromise</var> settles once <var>parser</var> <span data-x="stop
+      parsing">stops parsing</span> (before any deferred scripts execute), or rejects if
+      <var>stream</var> errors while closing.</p>
      </li>
     </ol>
    </li>
@@ -128214,18 +128141,6 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
 
      <li><p>Return <span>a promise resolved with</span> undefined in <var>realm</var>.</p></li>
     </ol>
-
-    <p class="note">While a write is in progress, this only runs once it has completed. For example,
-    if a script in the chunk being written aborts <var>stream</var>, the rest of that chunk is still
-    parsed, up to any parser-blocking script in it. If <var>stream</var> is aborted while
-    <var>parser</var> is running from a task, e.g., by an inline <code>script</code> or a <span
-    data-x="concept-custom-element-reaction">custom element reaction</span>, no further nodes are
-    inserted and no further <code>script</code> elements are executed, parsing stops after the
-    current token, and <span data-x="abort a parser">aborting</span> <var>parser</var> is deferred
-    until <var>parser</var> returns. The <code
-    data-x="event-readystatechange">readystatechange</code> events fired by <span data-x="abort a
-    parser">aborting</span> <var>parser</var> target the temporary inert <var>document</var>, so
-    they are not observable.</p>
    </li>
 
    <li><p><span data-x="writablestream-set-up">Set up</span> <var>stream</var> with
@@ -128397,29 +128312,22 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   resulting tree would be invalid, and from <code
   data-x="dom-Element-insertAdjacentHTML">insertAdjacentHTML()</code>, which allows inserting
   adjacent to a child of a <code>template</code> element or inside an <code>html</code> element. The
-  <span>HTML insertion methods</span> and their streaming counterparts require an
+  <span>HTML insertion methods</span> and <span>HTML streaming methods</span> require an
   <code>Element</code> context for the fragment parser, which a <code>Document</code> or hostless
   <code>DocumentFragment</code> cannot provide, and they treat a <code>template</code> element as
   standing for its <span>template contents</span> rather than its <span
   data-x="concept-tree-child">children</span>, so inserting adjacent to the latter is disallowed.
-  Similarly, <span>filter and pre-insert HTML</span>, <span>filter and replace with HTML</span>,
-  <span>parent for HTML streaming</span>, <code
-  data-x="dom-Element-streamAppendHTML">streamAppendHTML()</code>, <code
-  data-x="dom-Element-streamPrependHTML">streamPrependHTML()</code>, <code
-  data-x="dom-Element-streamAppendHTMLUnsafe">streamAppendHTMLUnsafe()</code>, and <code
-  data-x="dom-Element-streamPrependHTMLUnsafe">streamPrependHTMLUnsafe()</code> disallow an
-  <code>html</code> element as the target or parent, because parsing a fragment with an
-  <code>html</code> context element always produces both a <code>head</code> and a <code>body</code>
-  element, which is only suitable when replacing all children via <code
+  Similarly, except when replacing all children (via <code
   data-x="dom-Element-setHTML">setHTML()</code>, <code
-  data-x="dom-Element-setHTMLUnsafe">setHTMLUnsafe()</code>, <code
-  data-x="dom-Element-streamHTML">streamHTML()</code>, or <code
-  data-x="dom-Element-streamHTMLUnsafe">streamHTMLUnsafe()</code>. Additionally, while legacy
-  methods such as <code data-x="dom-Element-outerHTML">outerHTML</code> and <code
+  data-x="dom-Element-streamHTML">streamHTML()</code>, or their <code data-x="">Unsafe</code>
+  counterparts), they disallow an <code>html</code> element as the target or parent, because parsing
+  a fragment with an <code>html</code> context element always produces both a <code>head</code> and
+  a <code>body</code> element. Additionally, while legacy methods such as <code
+  data-x="dom-Element-outerHTML">outerHTML</code> and <code
   data-x="dom-Element-insertAdjacentHTML">insertAdjacentHTML()</code> throw a
   <span>"<code>NoModificationAllowedError</code>"</span> <code>DOMException</code> when the parent
-  is a <code>Document</code>, the <span>HTML insertion methods</span> and their streaming
-  counterparts throw a <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code>
+  is a <code>Document</code>, the <span>HTML insertion methods</span> and <span>HTML streaming
+  methods</span> throw a <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code>
   instead.</p>
   </div>
 
@@ -144143,15 +144051,11 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   <span>abort a fragment parser</span> is called while <span>fragment parser running</span> is true,
   so that the parser aborts once the current invocation finishes.</p>
 
-  <p class="note">Once <span>fragment parser abort requested</span> is true, the
-  <span>tokenization</span> stage stops before its next step. A token can still be processed
-  afterwards, either because an earlier step of its own processing set the flag and the token is
-  reprocessed, or because it is a later character or end-of-file token emitted by the same
-  tokenization step. Steps of the <span>tree
-  construction</span> stage that mutate the DOM therefore check this flag first, either directly or
-  via <span>insert an element at the adjusted insertion location</span>, <span>insert a
-  character</span>, <span>insert a comment</span>, and <span>insert a processing
-  instruction</span>.</p>
+  <p class="note">Once <span>fragment parser abort requested</span> is true,
+  <span>tokenization</span> stops before its next step, so only a reprocessed token or a later
+  character or end-of-file token from the same tokenization step can still be processed.
+  <span>Tree construction</span> steps that mutate the DOM therefore check this flag first
+  (directly or via the node insertion algorithms).</p>
 
   <p>A promise-or-null <dfn>fragment parser close promise</dfn>, initially null. When non-null, it
   is resolved when the parser <span data-x="stop parsing">stops parsing</span> or rejected if the
@@ -144283,12 +144187,6 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   the <span>parser pause flag</span> and the parser's <span>fragment parser abort requested</span>.
   If either is true, then the tokenizer must abort its processing, including that of any nested
   invocations of the tokenizer, yielding control back to the caller.</p>
-
-  <p class="note">For a parser whose <span>fragment context element</span> is non-null, the
-  <span>parser pause flag</span> is also true while the parser is waiting for a <span>pending
-  parsing-blocking script</span>, so that <span data-x="run a fragment parser">running the
-  parser</span> does nothing until the script has been <a
-  href="#scriptTagParserResumes">executed</a>.</p>
   </div>
 
   <p>The tokenizer state machine consists of the states defined in the following subsections.</p>
@@ -147079,15 +146977,10 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     <p>Let (<var>targetParent</var>, <var>referenceChild</var>) be the <span>adjusted insertion
     location</span> given (<var>intendedParent</var>, null).</p>
 
-    <p class="note">When <span data-x="stream HTML">streaming HTML</span>, in the non-sanitizing
-    <span>HTML fragment parsing algorithm</span>, and when an ancestor is <span
-    data-x="sanitizer-action-replace-with-children">replaced with its children</span> by the
-    sanitizer, this ensures that elements are created in the <span>node document</span> of the node
-    they will be inserted into, like their descendants, which are created after they have been
-    inserted (and therefore <span data-x="concept-node-adopt">adopted</span>) into that document.
-    Otherwise, elements whose intended parent is the parser's root <code>html</code> element, or an
-    element that the sanitizer replaces with its children, would be created in the parser's inert
-    <code>Document</code> and only adopted when inserted.</p>
+    <p class="note">Using <var>targetParent</var> ensures that elements redirected out of the
+    parser's root <code>html</code> element or an element <span
+    data-x="sanitizer-action-replace-with-children">replaced with its children</span> are created
+    directly in the target's <span>node document</span>.</p>
    </li>
 
    <li><p>Let <var>isDropped</var> be true if the parser's <span>fragment parser abort
@@ -147105,16 +146998,11 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     <var>targetParent</var> is an <code>Element</code> or a <code>ShadowRoot</code>; otherwise given
     <var>intendedParent</var>.</p>
 
-    <p class="note">This is generally done using <var>intendedParent</var> rather than
-    <var>targetParent</var>, since <var>targetParent</var> might be a <code>DocumentFragment</code>,
-    from which no registry can be looked up. When <var>targetParent</var> is not
-    <var>intendedParent</var>, <var>intendedParent</var> is the parser's root <code>html</code>
-    element or an element that the sanitizer replaces with its children. Neither is <span
-    data-x="concept-node-adopt">adopted</span> along with the target if the target is adopted into
-    another document while <span data-x="stream HTML">streaming HTML</span>, so their registry is
-    not updated, and the registry is looked up from <var>targetParent</var> instead where
-    possible. Elements that the sanitizer replaces with their children have their registry set
-    below, so their children get the appropriate registry otherwise.</p>
+    <p class="note"><var>intendedParent</var> is used when <var>targetParent</var> is a
+    non-<code>ShadowRoot</code> <code>DocumentFragment</code>, from which no registry can be looked
+    up. Otherwise, <var>targetParent</var> is preferred when redirecting in case the target was
+    <span data-x="concept-node-adopt">adopted</span> into another document while <span
+    data-x="stream HTML">streaming HTML</span>.</p>
    </li>
 
    <li><p>Let <var>document</var> be <var>targetParent</var>'s <span>node document</span>.</p></li>
@@ -147177,16 +147065,11 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     <var>namespace</var>, <var>localName</var>, <var>attributes</var>, and <var>document</var>.</p>
 
     <p class="note">The result is not used. This step allows for a <span>speculative fetch</span> to
-    be initiated from non-speculative parsing, including when <span data-x="stream HTML">streaming
-    HTML</span> with a sanitizer, since <var>attributes</var> excludes those the sanitizer removes.
-    The fetch is still speculative at this point, because, for example, by the time the element is
-    inserted, <var>intendedParent</var> might have been removed from the document. Elements that the
-    sanitizer removes or replaces with their children, elements that are dropped, descendants of
-    removed or dropped elements, as well as <span>template contents</span> that are not
-    <code>ShadowRoot</code> nodes and elements created by the non-streaming <span>HTML fragment
-    parsing algorithm</span> when sanitizing, are created in a <code>Document</code> without a <span
-    data-x="concept-document-bc">browsing context</span>, so no speculative fetch is started for
-    them.</p>
+    be initiated from non-speculative parsing, using sanitized <var>attributes</var>. The fetch is
+    still speculative at this point, because, for example, by the time the element is inserted,
+    <var>intendedParent</var> might have been removed from the document. Elements created in an
+    inert <code>Document</code> have no <span data-x="concept-document-bc">browsing context</span>,
+    so no speculative fetch is started for them.</p>
    </li>
 
    <li><p>Let <var>is</var> be the value of the "<code data-x="attr-is">is</code>" attribute in
@@ -147334,26 +147217,13 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    <li>
     <p>Return (<var>redirectedParent</var>, <var>redirectedReferenceChild</var>).</p>
 
-    <div class="note">
-     <p>The <span>insertion target redirection map</span> redirects insertions into the
-     root <code>html</code> element to the fragment parser's target or the
-     <code>DocumentFragment</code> created by the <span>HTML fragment parsing algorithm</span>, and
-     insertions into elements that are <span
-     data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaced with children</span> as part
-     of <span data-x="sanitize">sanitization</span> to where those elements would have been
-     inserted.</p>
-
-     <p>When <span data-x="stream HTML">streaming HTML</span>, the returned <span
-     data-x="insertion-location-reference-child">reference child</span> might no longer be a <span
-     data-x="concept-tree-child">child</span> of the returned <span
-     data-x="insertion-location-target-parent">target parent</span>, e.g., because a script or a
-     <span data-x="concept-custom-element-reaction">custom element reaction</span> moved it. In that
-     case, nodes are not inserted. If it is the stream's reference child, the parser's <span>invalid
-     reference child steps</span> also <span data-x="writablestream-error">error</span> the stream
-     and <span data-x="abort a fragment parser">abort</span> the parser. If it is another node,
-     e.g., the <code>table</code> before which an element that the sanitizer replaces with its
-     children was foster parented, the nodes are dropped without erroring the stream.</p>
-    </div>
+    <p class="note">The <span>insertion target redirection map</span> redirects insertions into the
+    root <code>html</code> element to the fragment parser's target or the
+    <code>DocumentFragment</code> created by the <span>HTML fragment parsing algorithm</span>, and
+    insertions into elements that are <span
+    data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaced with children</span> as part
+    of <span data-x="sanitize">sanitization</span> to where those elements would have been
+    inserted.</p>
    </li>
   </ol>
   </div>
@@ -147449,19 +147319,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     <p>Push a new <span>element queue</span> onto <var>element</var>'s <span>relevant agent</span>'s
     <span>custom element reactions stack</span>.</p>
 
-    <p class="note">This is also done for fragment parsers, so that when <span data-x="stream
-    HTML">streaming HTML</span> into a <span>connected</span> node, <span
-    data-x="concept-upgrade-an-element">upgrades</span> and <span
-    data-x="concept-custom-element-definition-lifecycle-callbacks">lifecycle callbacks</span>
-    caused by the insertion run before any subsequent <code>script</code> is executed. Other <span
-    data-x="concept-custom-element-reaction">custom element reactions</span> when streaming HTML
-    (such as upgrades when <span data-x="create an element">creating an element</span> into a
-    disconnected target, or reactions from the <span>adoption agency algorithm</span>) use the
-    <span>backup element queue</span>, as in document parsing. No <span data-x="perform a microtask
-    checkpoint">microtask checkpoint</span> is performed while the parser runs during a write to the
-    stream, so these only run once the parser returns, e.g., after the <code>script</code> elements
-    in the written chunk have run, or when the parser is blocked by a <span>pending parsing-blocking
-    script</span>.</p>
+    <p class="note">For fragment parsers, this ensures that <span
+    data-x="concept-custom-element-reaction">custom element reactions</span> from inserting into a
+    <span>connected</span> target run before subsequent <code>script</code> elements.</p>
    </li>
 
    <li><p><span data-x="concept-node-insert">Insert</span> <var>element</var> into
@@ -148242,15 +148102,10 @@ document.body.appendChild(text);
        execute in-line, instead of blowing the document away, as would happen in most other cases.
        It also prevents the script from executing until the end tag is seen.</p>
 
-       <p>A <code>script</code> element created by a fragment parser is typically not
-       <span>connected</span> when its end tag is seen, e.g., when using <code
-       data-x="dom-Range-createContextualFragment">createContextualFragment()</code> or <code
-       data-x="dom-Element-setHTMLUnsafe">setHTMLUnsafe()</code> with <code
-       data-x="dom-SetHTMLUnsafeOptions-runScripts">runScripts</code> set to true. <span
-       data-x="prepare the script element">Preparing</span> it at that point resets its <span>parser
-       document</span> to null and its <span data-x="script-force-async">force async</span> to true,
-       so that when it is later inserted into a document, it is treated as if it were not
-       <span>parser-inserted</span> (and, if external, executes asynchronously).</p>
+       <p>In the <span>fragment case</span>, if the <code>script</code> element is not
+       <span>connected</span> when <span data-x="prepare the script element">prepared</span> at its
+       end tag, its <span>parser document</span> is reset to null and its <span
+       data-x="script-force-async">force async</span> to true.</p>
       </div>
      </li>
 
@@ -150401,19 +150256,9 @@ document.body.appendChild(text);
       <p>Set the <span>parser pause flag</span> to true, and abort the processing of the tokenizer,
       yielding control back to the caller.</p>
 
-      <p class="note">This can only happen when <span data-x="stream HTML">streaming HTML</span> and
-      the <code>script</code> element is <span>connected</span> when its end tag is seen, as the
-      <code>script</code> elements created by the <span>HTML fragment parsing algorithm</span> are
-      not <span>connected</span> when they are <span data-x="prepare the script
-      element">prepared</span>. A task is needed since the parser can be invoked while script is
-      running; unlike during a write, the <span>JavaScript execution context stack</span> is empty
-      when that task runs, so microtask checkpoints are performed between scripts. Until the script
-      has executed, the <span>parser pause flag</span> remains true, so input that is appended to
-      the <span>input stream</span> in the meantime is not parsed. The parser's
-      <code>Document</code> never <span>has a style sheet that is blocking scripts</span>, as style
-      sheets inserted while <span data-x="stream HTML">streaming HTML</span> are added to the
-      <span>node document</span> of the target node rather than to the parser's
-      <code>Document</code>.</p>
+      <p class="note">This branch is only reached when <span data-x="stream HTML">streaming
+      HTML</span> with a <span>connected</span> <code>script</code> element. Queuing a task avoids
+      spinning the event loop while script might be on the call stack.</p>
      </dd>
 
 
@@ -151794,12 +151639,8 @@ document.body.appendChild(text);
     the SVG <code data-x="">script</code> element</a> <var>script</var> according to the SVG rules.
     <ref>SVG</ref></p>
 
-    <p class="note">The parser's <span>script target document</span> is the parser's
-    <code>Document</code> only for a fragment parser that does not run scripts. Together with the
-    other checks, this ensures that an <span>SVG <code>script</code></span> element is not processed
-    when a fragment parser does not run scripts, when the element is not <span>connected</span> or
-    has been moved to another document, or when the element was not inserted into the document (for
-    example, because it was removed by the sanitizer or dropped).</p>
+    <p class="note">The parser's <span>script target document</span> equals its
+    <code>Document</code> only for a fragment parser that does not run scripts.</p>
 
     <p class="note">Even if this causes <span data-x="dom-document-write">new characters to be
     inserted into the tokenizer</span>, the parser will not be executed reentrantly, since the
@@ -151870,13 +151711,7 @@ document.body.appendChild(text);
    <li><p><span>Update the current document readiness</span> to "<code
    data-x="">interactive</code>".</p></li>
 
-   <li>
-    <p>Pop <em>all</em> the nodes off the <span>stack of open elements</span>.</p>
-
-    <p class="note">In the <span>fragment case</span>, this ensures that elements that were still
-    open, such as <code>object</code>, <span data-x="media element">media elements</span>, and
-    <code>textarea</code>, are processed.</p>
-   </li>
+   <li><p>Pop <em>all</em> the nodes off the <span>stack of open elements</span>.</p></li>
 
    <li>
     <p>If the parser's <span>fragment context element</span> is non-null (<span>fragment
@@ -151896,16 +151731,9 @@ document.body.appendChild(text);
      <li><p>Return.</p></li>
     </ol>
 
-    <p class="note">This happens whenever a fragment parser reaches the end of its input, e.g., in
-    the <span>HTML fragment parsing algorithm</span>, or when the stream is closed while <span
-    data-x="stream HTML">streaming HTML</span>. Queuing a task ensures that deferred scripts do not
-    execute while script is running, and that they execute after the promise returned by closing the
-    stream settles. The remaining steps are skipped, as they spin the event loop and concern the
-    lifecycle of the parser's <code>Document</code>, which is not relevant for the inert
-    <code>Document</code> used by a fragment parser. That <code>Document</code> never <span>has a
-    style sheet that is blocking scripts</span>, so deferred scripts execute in order, each as soon
-    as it is <span>ready to be parser-executed</span>, without waiting for style sheets that are
-    blocking scripts in the parser's <span>script target document</span>.</p>
+    <p class="note">Queuing a task ensures deferred scripts execute after closing the stream
+    settles; the remaining steps concern loading the parser's own <code>Document</code> and do not
+    apply in the <span>fragment case</span>.</p>
    </li>
 
    <li><p><span>Execute the deferred scripts</span> given the parser's
@@ -152132,16 +151960,10 @@ document.body.appendChild(text);
     case</span>):</p>
 
     <ol>
-     <li>
-      <p><span data-x="list iterate">For each</span> <code>script</code> element <var>script</var>
-      of the <span>stack of open elements</span>, set <var>script</var>'s <span>already
-      started</span> to true, its <span>parser document</span> to null, and its <span>intended
-      document</span> to null.</p>
-
-      <p class="note">This prevents a partially parsed <code>script</code> element from being
-      executed later, similar to how an end-of-file token is handled in the "<span
-      data-x="insertion mode: text">text</span>" <span>insertion mode</span>.</p>
-     </li>
+     <li><p><span data-x="list iterate">For each</span> <code>script</code> element <var>script</var>
+     of the <span>stack of open elements</span>, set <var>script</var>'s <span>already started</span>
+     to true, its <span>parser document</span> to null, and its <span>intended document</span> to
+     null.</p></li>
 
      <li><p>If the parser's <code>Document</code>'s <span>pending parsing-blocking script</span> is
      non-null, then <span>unblock rendering</span> on it, and set the parser's
@@ -152175,15 +151997,9 @@ document.body.appendChild(text);
    <li>
     <p>If <var>parser</var>'s <span>fragment parser running</span> is true, then return.</p>
 
-    <p class="note">The ongoing run of <var>parser</var> will consume any input that was appended to
-    its <span>input stream</span>. This happens when script that runs while <var>parser</var> is
-    running, e.g., a <code>script</code> element or a <span
-    data-x="concept-custom-element-reaction">custom element reaction</span>, writes to or closes the
-    stream that is feeding <var>parser</var>. While a write is in progress, the stream queues such
-    requests until that write completes; but when <var>parser</var> runs from a <span
-    data-x="concept-task">task</span> after a <span>pending parsing-blocking script</span> has
-    executed, there is no write in progress and the stream invokes its algorithms
-    synchronously.</p>
+    <p class="note">This happens when script executed during parsing (such as when
+    <var>parser</var> resumes from a <span data-x="concept-task">task</span>) writes to or closes
+    the stream; the ongoing run consumes the newly appended input.</p>
    </li>
 
    <li><p>Set <var>parser</var>'s <span>fragment parser running</span> to true.</p></li>
@@ -152198,13 +152014,6 @@ document.body.appendChild(text);
    <var>parser</var>'s <span>fragment parser abort requested</span> to false and <span
    data-x="abort a parser">abort</span> <var>parser</var>.</p></li>
   </ol>
-
-  <p class="note">The tokenizer does nothing if <var>parser</var>'s <span>parser pause flag</span>
-  is true, i.e., if it is waiting for a <span>pending parsing-blocking script</span>, per the
-  tokenizer's <a href="#check-parser-pause-flag">parser pause flag check</a>. Any input appended in
-  the meantime stays in the <span>input stream</span>. It also does nothing if <var>parser</var> has
-  been <span data-x="abort a parser">aborted</span>, which empties its <span>input
-  stream</span>.</p>
   </div>
 
   <div algorithm>
@@ -152232,14 +152041,10 @@ document.body.appendChild(text);
    <li><p><span data-x="abort a parser">Abort</span> <var>parser</var>.</p></li>
   </ol>
 
-  <p class="note">Aborting <var>parser</var> while it is running, e.g., from a <span
-  data-x="concept-custom-element-reaction">custom element reaction</span> that aborts the stream,
-  would pop the <span>stack of open elements</span> in the middle of inserting an element. The abort
-  is therefore deferred until the current run of <var>parser</var> returns. <code>script</code>
-  elements on the <span>stack of open elements</span> are marked as <span>already started</span>
-  right away, so that a <code>script</code> element whose end tag is being processed is not
-  executed, e.g., if a microtask that aborts the stream runs at the <span data-x="perform a
-  microtask checkpoint">microtask checkpoint</span> performed before the element is prepared.</p>
+  <p class="note">Deferring <span data-x="abort a parser">aborting</span> <var>parser</var> while
+  it is running avoids popping the <span>stack of open elements</span> mid-step. Open
+  <code>script</code> elements are marked <span>already started</span> immediately so a
+  <code>script</code> whose end tag is being processed does not execute.</p>
   </div>
 
   </div>
@@ -153235,13 +153040,9 @@ console.assert(container.firstChild instanceof SuperP);
     <p><span>Assert</span>: <var>target</var>'s <span
     data-x="concept-DocumentFragment-host">host</span> is not null.</p>
 
-    <p class="note"><var>target</var> will never be a <code>DocumentFragment</code> whose <span
-    data-x="concept-DocumentFragment-host">host</span> is null, as methods operating on child nodes
-    (such as <code data-x="dom-NonDocumentTypeChildNode-beforeHTML">beforeHTML()</code>) validate
-    the parent node using <span>parent for HTML insertion</span> or <span>parent for HTML
-    streaming</span>, which throw a <span>"<code>HierarchyRequestError</code>"</span>
-    <code>DOMException</code> in that case. The container methods are only exposed on
-    <code>Element</code> and <code>ShadowRoot</code>.</p>
+    <p class="note">Container methods are only exposed on <code>Element</code> and
+    <code>ShadowRoot</code>, and child-node methods validate the parent via <span>parent for HTML
+    insertion</span> or <span>parent for HTML streaming</span>.</p>
    </li>
 
    <li><p>Return <var>target</var>'s <span
