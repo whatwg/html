@@ -144143,6 +144143,16 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   <span>abort a fragment parser</span> is called while <span>fragment parser running</span> is true,
   so that the parser aborts once the current invocation finishes.</p>
 
+  <p class="note">Once <span>fragment parser abort requested</span> is true, the
+  <span>tokenization</span> stage stops before its next step. A token can still be processed
+  afterwards, either because an earlier step of its own processing set the flag and the token is
+  reprocessed, or because it is a later character or end-of-file token emitted by the same
+  tokenization step. Steps of the <span>tree
+  construction</span> stage that mutate the DOM therefore check this flag first, either directly or
+  via <span>insert an element at the adjusted insertion location</span>, <span>insert a
+  character</span>, <span>insert a comment</span>, and <span>insert a processing
+  instruction</span>.</p>
+
   <p>A promise-or-null <dfn>fragment parser close promise</dfn>, initially null. When non-null, it
   is resolved when the parser <span data-x="stop parsing">stops parsing</span> or rejected if the
   stream errors while closing.</p>
@@ -148104,8 +148114,7 @@ document.body.appendChild(text);
 
     <!-- end of fake <head> -->
 
-    <p>If the parser's <span>fragment parser abort requested</span> is false, then reprocess the
-    current token.</p>
+    <p>Reprocess the current token.</p>
    </dd>
   </dl>
   </div>
@@ -148809,8 +148818,7 @@ document.body.appendChild(text);
     body</span>".</p>
     <!-- end fake <body> -->
 
-    <p>If the parser's <span>fragment parser abort requested</span> is false, then reprocess the
-    current token.</p>
+    <p>Reprocess the current token.</p>
    </dd>
   </dl>
   </div>
@@ -150231,29 +150239,30 @@ document.body.appendChild(text);
 
        <dt>"<span data-x="sanitizer-action-keep">Keep</span>"</dt>
        <dd>
-        <p>If the parser's <span>fragment parser abort requested</span> is false, and
+        <p>If the parser's <span>fragment parser abort requested</span> is false,
         <var>newElementRefNode</var> is null or its <span>parent</span> is
-        <var>newElementParent</var>:</p>
+        <var>newElementParent</var>, and <var>newElementParent</var> is not a <code>Document</code>
+        node or it does not have an element child:</p>
 
         <ol>
          <li><p>Take all of the child nodes of <var>furthestBlock</var> and <span
          data-x="concept-node-append">append</span> them to <var>newElement</var>.</p></li>
 
-         <li>
-          <p>If <var>newElement</var> is not a <span>host-including inclusive ancestor</span> of
-          <var>newElementParent</var>, and <var>newElementParent</var> is not a
-          <code>Document</code> node or it does not have an element child:</p>
+         <li><p><span>Assert</span>: <span>ensure pre-insert validity</span> given
+         <var>newElement</var>, <var>newElementParent</var>, <var>newElementRefNode</var>, and « »
+         does not throw.</p></li>
 
-          <ol>
-           <li><p><span>Assert</span>: <span>ensure pre-insert validity</span> given
-           <var>newElement</var>, <var>newElementParent</var>, <var>newElementRefNode</var>, and
-           « » does not throw.</p></li>
-
-           <li><p><span data-x="concept-node-insert">Insert</span> <var>newElement</var> into
-           <var>newElementParent</var> before <var>newElementRefNode</var>.</p></li>
-          </ol>
-         </li>
+         <li><p><span data-x="concept-node-insert">Insert</span> <var>newElement</var> into
+         <var>newElementParent</var> before <var>newElementRefNode</var>.</p></li>
         </ol>
+
+        <p class="note"><var>newElementParent</var> differs from <var>furthestBlock</var> only if
+        <var>furthestBlock</var> was <span
+        data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaced with its children</span>, in
+        which case <var>furthestBlock</var> has no children. <var>newElementParent</var> can then be a
+        <code>Document</code> node that already has an element child, e.g., if
+        <var>furthestBlock</var>'s children were being foster parented before a <code>table</code>
+        element that a script has since made the <span>document element</span>.</p>
        </dd>
       </dl>
      </li>
@@ -150677,8 +150686,8 @@ document.body.appendChild(text);
     <!-- no need to empty the list, we're leaving the insertion mode and the list is always emptied
     before we reenter the mode -->
 
-    <p>Switch the <span>insertion mode</span> to the <span>original insertion mode</span>. If the
-    parser's <span>fragment parser abort requested</span> is false, then reprocess the token.</p>
+    <p>Switch the <span>insertion mode</span> to the <span>original insertion mode</span> and
+    reprocess the token.</p>
    </dd>
   </dl>
   </div>
