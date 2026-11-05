@@ -1839,38 +1839,59 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
    <li><p>Let <var>document</var> be <var>removedNode</var>'s <span>node document</span>.</p></li>
 
    <li id="node-remove-focus-fixup">
-    <p>If <var>document</var>'s <span data-x="focused area of the document">focused area</span> is
-    <var>removedNode</var>:</p>
+    <p>If <var>isSubtreeRoot</var> is true and <var>oldAncestor</var> is <span>connected</span>:</p>
 
     <ol>
-     <li><p>Set <var>document</var>'s <span data-x="focused area of the document">focused
-     area</span> to <var>document</var>'s <span>viewport</span>.</p></li>
+     <li><p>Let <var>focusedAnchor</var> be <var>document</var>'s <span data-x="focused area of the
+     document">focused area</span>'s <span>DOM anchor</span> if <var>document</var>'s <span
+     data-x="focused area of the document">focused area</span> is non-null; otherwise null.</p></li>
 
-     <li><p>Set <var>document</var>'s <span>relevant global object</span>'s <span
-     data-x="window-navigation-api">navigation API</span>'s <span>focus changed during ongoing
-     navigation</span> to false.</p></li>
+     <li>
+      <p>If <var>focusedAnchor</var> is non-null and <var>removedNode</var> is a
+      <span>shadow-including inclusive ancestor</span> of <var>focusedAnchor</var>:</p>
 
-     <li><p>If the <span>has focus steps</span> given <var>document</var> return true, then
-     <span>signal a focus reset</span> for <var>document</var>.</p></li>
+      <ol>
+       <li><p>Set <var>document</var>'s <span data-x="focused area of the document">focused
+       area</span> to <var>document</var>'s <span>viewport</span>.</p></li>
+
+       <li><p>Set <var>document</var>'s <span>relevant global object</span>'s <span
+       data-x="window-navigation-api">navigation API</span>'s <span>focus changed during ongoing
+       navigation</span> to false.</p></li>
+
+       <li><p>Set <var>document</var>'s <span>pending focusreset target</span> to
+       <var>oldAncestor</var>.</p></li>
+
+       <li><p>Set <var>document</var>'s <span>pending focusreset related target</span> to
+       <var>focusedAnchor</var> if <var>focusedAnchor</var> is an <code>Element</code>; otherwise
+       null.</p></li>
+      </ol>
+
+      <p class="note">This does <em>not</em> perform the <span>unfocusing steps</span>,
+      <span>focusing steps</span>, or <span>focus update steps</span>, and thus no <code
+      data-x="event-blur">blur</code> or <code data-x="event-change">change</code> events are fired.
+      Instead, a <code data-x="event-focusreset">focusreset</code> event is fired at the nearest
+      surviving connected ancestor during <span>update the rendering</span>, unless focus is moved
+      to another <span>focusable area</span> before then.</p>
+     </li>
+
+     <li>
+      <p>Otherwise, if <var>document</var>'s <span>pending focusreset target</span> is non-null and
+      <var>removedNode</var> is a <span>shadow-including inclusive ancestor</span> of
+      <var>document</var>'s <span>pending focusreset target</span>:</p>
+
+      <ol>
+       <li><p>If <var>document</var>'s <span>pending focusreset related target</span> is non-null,
+       then set <var>document</var>'s <span>pending focusreset related target</span> to the result
+       of <span data-x="retarget a focusreset related target">retargeting a <code
+       data-x="event-focusreset">focusreset</code> related target</span> given <var>document</var>'s
+       <span>pending focusreset related target</span>, <var>document</var>'s <span>pending
+       focusreset target</span>, and <var>oldAncestor</var>.</p></li>
+
+       <li><p>Set <var>document</var>'s <span>pending focusreset target</span> to
+       <var>oldAncestor</var>.</p></li>
+      </ol>
+     </li>
     </ol>
-
-    <p class="note">This does <em>not</em> perform the <span>unfocusing steps</span>,
-    <span>focusing steps</span>, or <span>focus update steps</span>, and thus no <code
-    data-x="event-blur">blur</code> or <code data-x="event-change">change</code> events are fired.
-    Instead, if the <span>has focus steps</span> given <var>document</var> return true, a <code
-    data-x="event-focusreset">focusreset</code> event is fired at <var>document</var> when the user
-    agent runs <span>notify mutation observers</span> (i.e., in a microtask), unless focus is
-    explicitly moved before then, or <var>document</var> no longer has focus by then. No <code
-    data-x="event-focusreset">focusreset</code> event is fired for a document that does not have
-    focus. For example, focus might be in another document, the <span>navigable container</span>
-    hosting <var>document</var> might have been removed, or the <span data-x="nav-top">top-level
-    traversable</span> might not have <span>system focus</span>. In some of these cases,
-    <var>removedNode</var> did not receive a <code data-x="event-blur">blur</code> event either.</p>
-
-    <p class="note">The navigation API's focus reset (see <span>potentially reset the
-    focus</span>) runs the <span>focusing steps</span>, and thus fires <code
-    data-x="event-blur">blur</code> and <code data-x="event-focus">focus</code> events as
-    appropriate, rather than a <code data-x="event-focusreset">focusreset</code> event.</p>
    </li>
 
    <li><p>If <var>removedNode</var> is an element whose <span
@@ -3469,8 +3490,6 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
                       <dfn data-x="concept-element-is-value" data-x-href="https://dom.spec.whatwg.org/#concept-element-is-value"><code data-x="">is</code> value</dfn></li>
 
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#mutationobserver"><code>MutationObserver</code></dfn> interface and <dfn data-x-href="https://dom.spec.whatwg.org/#mutation-observers">mutation observers</dfn> in general</li>
-     <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#notify-mutation-observers">notify mutation observers</dfn> algorithm</li>
-     <li>The <dfn data-x-href="https://dom.spec.whatwg.org/#signal-a-focus-reset">signal a focus reset</dfn> algorithm, <dfn data-x-href="https://dom.spec.whatwg.org/#pending-focus-reset-documents">pending focus reset documents</dfn>, the <dfn data-x-href="https://dom.spec.whatwg.org/#focus-reset-relevance-steps">focus reset relevance steps</dfn>, and the <dfn data-x="event-focusreset" data-x-href="https://dom.spec.whatwg.org/#eventdef-document-focusreset"><code>focusreset</code></dfn> event</li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#abortcontroller"><code>AbortController</code></dfn> and its
          <dfn data-x="concept-AbortController-signal" data-x-href="https://dom.spec.whatwg.org/#abortcontroller-signal">signal</dfn></li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#abortsignal"><code>AbortSignal</code></dfn></li>
@@ -11744,7 +11763,6 @@ partial interface <dfn id="document" data-lt="">Document</dfn> {
   readonly attribute <span>DocumentVisibilityState</span> <span data-x="dom-document-visibilityState">visibilityState</span>;
 
   // special <span>event handler IDL attributes</span> that only apply to Document objects
-  attribute <span>EventHandler</span> <span data-x="handler-onfocusreset">onfocusreset</span>;
   [<span>LegacyLenientThis</span>] attribute <span>EventHandler</span> <span data-x="handler-onreadystatechange">onreadystatechange</span>;
   attribute <span>EventHandler</span> <span data-x="handler-onvisibilitychange">onvisibilitychange</span>;
 
@@ -14538,6 +14556,7 @@ https://software.hixie.ch/utilities/js/live-dom-viewer/?%3C%21DOCTYPE%20HTML%3E%
    <li><code data-x="handler-onended">onended</code></li>
    <li><code data-x="handler-onerror">onerror</code>*</li>
    <li><code data-x="handler-onfocus">onfocus</code>*</li>
+   <li><code data-x="handler-onfocusreset">onfocusreset</code></li>
    <li><code data-x="handler-onformdata">onformdata</code></li>
    <li><code data-x="handler-oninput">oninput</code></li>
    <li><code data-x="handler-oninvalid">oninvalid</code></li>
@@ -86514,6 +86533,12 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
   can still have a <span>focused area of the document</span>. If a document's <span>fully
   active</span> state changes, its <span>focused area of the document</span> will stay the same.</p>
 
+  <p>Each <code>Document</code> has an associated <dfn>pending focusreset target</dfn>, which is a
+  <code>Node</code> or null, initially null.</p>
+
+  <p>Each <code>Document</code> has an associated <dfn>pending focusreset related target</dfn>,
+  which is an <code>Element</code> or null, initially null.</p>
+
   <div algorithm>
   <p id="currently-focused-area-of-a-top-level-browsing-context">The <dfn>currently focused area of
   a top-level traversable</dfn> <var>traversable</var> is the <span>focusable area</span>-or-null
@@ -87283,15 +87308,17 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
    chain</var> and redo this step.</p></li>
 
    <li>
-    <p>If <var>old chain</var> or <var>new chain</var> contains an <code>Element</code> or a
-    <code>Document</code> object, then for each <var>doc</var> of <var>documents</var>, <span
-    data-x="list remove">remove</span> <var>doc</var> from <var>doc</var>'s <span>relevant
-    agent</span>'s <span>pending focus reset documents</span>.</p>
+    <p>If <var>new focus target</var> is non-null and is not a <code>Document</code>'s
+    <span>viewport</span>, then for each <var>doc</var> of <var>documents</var>:</p>
 
-    <p class="note">Focus is being explicitly moved such that a <code
-    data-x="event-blur">blur</code> or <code data-x="event-focus">focus</code> event will be fired,
-    so there is no need to fire a <code data-x="event-focusreset">focusreset</code> event for an
-    earlier reset.</p>
+    <ol>
+     <li><p>Set <var>doc</var>'s <span>pending focusreset target</span> to null.</p></li>
+
+     <li><p>Set <var>doc</var>'s <span>pending focusreset related target</span> to null.</p></li>
+    </ol>
+
+    <p class="note">Focus is being moved to a non-viewport target, so there is no need to fire a
+    <code data-x="event-focusreset">focusreset</code> event for an earlier reset.</p>
    </li>
 
    <li>
@@ -87487,12 +87514,6 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
     </ol>
    </li>
   </ol>
-  </div>
-
-  <div algorithm>
-  <p>The <span>focus reset relevance steps</span>, given a <code>Document</code> <var>document</var>,
-  are to return the result of running the <span>has focus steps</span> given
-  <var>document</var>.</p>
   </div>
 
 
@@ -87926,6 +87947,72 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
    activation</span>, then return true.</p></li>
 
    <li><p>Return false.</p></li>
+  </ol>
+  </div>
+
+  </div>
+
+
+  <h4>The <code>FocusResetEvent</code> interface</h4>
+
+  <pre><code class="idl">[Exposed=Window]
+interface <dfn interface>FocusResetEvent</dfn> : <span>Event</span> {
+  constructor(DOMString type, optional <span>FocusResetEventInit</span> eventInitDict = {});
+  readonly attribute <span>Element</span>? <span data-x="dom-FocusResetEvent-relatedTarget">relatedTarget</span>;
+};
+
+dictionary <dfn dictionary>FocusResetEventInit</dfn> : <span>EventInit</span> {
+  <span>Element</span>? relatedTarget = null;
+};</code></pre>
+
+  <dl class="domintro">
+   <dt><code data-x=""><var>event</var>.<span subdfn data-x="dom-FocusResetEvent-relatedTarget">relatedTarget</span></code></dt>
+
+   <dd>
+    <p>Returns the <code>Element</code> that lost focus prior to this focus reset, or null if there
+    was no such element.</p>
+   </dd>
+  </dl>
+
+  <div w-nodev>
+
+  <p>A <code>FocusResetEvent</code> has an associated <dfn for="FocusResetEvent"
+  data-x="FocusResetEvent-context-target">context target</dfn>, which is a <code>Node</code> or
+  null, initially null.</p>
+
+  <div algorithm>
+  <p>The <dfn attribute for="FocusResetEvent"><code
+  data-x="dom-FocusResetEvent-relatedTarget">relatedTarget</code></dfn> getter steps are to return
+  the result of <span data-x="retarget a focusreset related target">retargeting a <code
+  data-x="event-focusreset">focusreset</code> related target</span> given <code
+  data-x="dom-FocusResetEvent-relatedTarget">relatedTarget</code>, <span>this</span>'s <span
+  data-x="FocusResetEvent-context-target">context target</span>, and <span>this</span>'s <code
+  data-x="dom-Event-currentTarget">currentTarget</code>.</p>
+  </div>
+
+  <p class="XXX"><a href="https://github.com/whatwg/dom/issues/1328">DOM standard issue #1328</a>
+  tracks how to better standardize associated event data in a way which makes sense on Events.
+  Currently an event attribute initialized to a value cannot also have a getter, and so an internal
+  slot (or map of additional fields) is required to properly specify this.</p>
+
+  <div algorithm>
+  <p>To <dfn>retarget a <code data-x="event-focusreset">focusreset</code> related target</dfn> given
+  an <code>Element</code>-or-null <var>related</var>, a <code>Node</code>-or-null
+  <var>contextTarget</var>, and an <code>EventTarget</code>-or-null <var>destination</var>:</p>
+
+  <ol>
+   <li><p>Let <var>candidate</var> be the result of <span data-x="dom-retarget">retargeting</span>
+   <var>related</var> against <var>destination</var>.</p></li>
+
+   <li><p>If <var>candidate</var> is a <code>Node</code>, <var>candidate</var> is not
+   <span>connected</span>, <var>contextTarget</var> is non-null, <var>contextTarget</var>'s
+   <span>root</span> is a <span>shadow root</span>, and (<var>destination</var> is not a
+   <code>Node</code> or <var>contextTarget</var>'s <span>root</span> is not a <span>shadow-including
+   inclusive ancestor</span> of <var>destination</var>), then return the result of <span
+   data-x="dom-retarget">retargeting</span> <var>contextTarget</var>'s <span>root</span>'s <span
+   data-x="concept-DocumentFragment-host">host</span> against <var>destination</var>.</p></li>
+
+   <li><p>Return <var>candidate</var>.</p></li>
   </ol>
   </div>
 
@@ -104442,6 +104529,10 @@ interface <dfn interface>NavigationDestination</dfn> {
 
    <li><p>Move the <span>sequential focus navigation starting point</span> to
    <var>focusTarget</var>.</p></li>
+
+   <li><p>Set <var>document</var>'s <span>pending focusreset target</span> to null.</p></li>
+
+   <li><p>Set <var>document</var>'s <span>pending focusreset related target</span> to null.</p></li>
   </ol>
   </div>
 
@@ -123853,11 +123944,24 @@ import "https://example.com/foo/../module2.mjs";</code></pre>
 
      <li id="focus-fixup-rule">
       <p>For each <var>doc</var> of <var>docs</var>, if the <span data-x="focused area of the
-      document">focused area</span> of <var>doc</var> is not a <span>focusable area</span>, then
-      run the <span>focusing steps</span> for <var>doc</var>'s <span>viewport</span>, and set
-      <var>doc</var>'s <span>relevant global object</span>'s <span
-      data-x="window-navigation-api">navigation API</span>'s <span>focus changed during ongoing
-      navigation</span> to false.</p>
+      document">focused area</span> of <var>doc</var> is not a <span>focusable area</span> and is
+      not <var>doc</var>'s <span>viewport</span>:</p>
+
+      <ol>
+       <li><p>Let <var>anchor</var> be <var>doc</var>'s <span data-x="focused area of the
+       document">focused area</span>'s <span>DOM anchor</span>.</p></li>
+
+       <li><p>Set <var>doc</var>'s <span>pending focusreset target</span> to <var>anchor</var> if
+       <var>anchor</var> is <span>connected</span>; otherwise <var>doc</var>.</p></li>
+
+       <li><p>Set <var>doc</var>'s <span>pending focusreset related target</span> to
+       <var>anchor</var> if <var>anchor</var> is an <code>Element</code>; otherwise null.</p></li>
+
+       <li><p>Run the <span>focusing steps</span> for <var>doc</var>'s <span>viewport</span>, and
+       set <var>doc</var>'s <span>relevant global object</span>'s <span
+       data-x="window-navigation-api">navigation API</span>'s <span>focus changed during ongoing
+       navigation</span> to false.</p></li>
+      </ol>
 
       <p class="example">For example, this might happen because an element has the <code
       data-x="attr-hidden">hidden</code> attribute added, causing it to stop <span>being
@@ -123867,12 +123971,44 @@ import "https://example.com/foo/../module2.mjs";</code></pre>
       <p class="note">This will <a href="#note-sometimes-no-blur-event">usually</a> fire <code
       data-x="event-blur">blur</code> events, and possibly <code
       data-x="event-change">change</code> events.</p>
+     </li>
 
-      <p class="note">In addition to this asynchronous fixup, if the <span>focused area of the
-      document</span> is removed, there is a <a href="#node-remove-focus-fixup">synchronous
-      fixup</a>. That one will <em>not</em> fire <code data-x="event-blur">blur</code> or <code
-      data-x="event-change">change</code> events; instead, it can cause a <code
-      data-x="event-focusreset">focusreset</code> event to be fired.</p>
+     <li>
+      <p>For each <var>doc</var> of <var>docs</var>:</p>
+
+      <ol>
+       <li><p>Let <var>target</var> be <var>doc</var>'s <span>pending focusreset target</span>, and
+       let <var>related</var> be <var>doc</var>'s <span>pending focusreset related
+       target</span>.</p></li>
+
+       <li><p>If <var>target</var> is null, then <span>continue</span>.</p></li>
+
+       <li><p>If the <span>has focus steps</span> given <var>doc</var> return false, then
+       <span>continue</span>.</p></li>
+
+       <li><p>Let <var>ongoingNavigateEvent</var> be <var>doc</var>'s <span>relevant global
+       object</span>'s <span data-x="window-navigation-api">navigation API</span>'s <span>ongoing
+       <code data-x="event-navigate">navigate</code> event</span>.</p></li>
+
+       <li><p>If <var>ongoingNavigateEvent</var> is non-null and <var>ongoingNavigateEvent</var>'s
+       <span data-x="concept-NavigateEvent-focusReset">focus reset behavior</span> is not "<code
+       data-x="dom-NavigationFocusReset-manual">manual</code>", then <span>continue</span>.</p></li>
+
+       <li><p>Set <var>doc</var>'s <span>pending focusreset target</span> to null and
+       <var>doc</var>'s <span>pending focusreset related target</span> to null.</p></li>
+
+       <li><p><span>Assert</span>: <var>target</var> is <span>connected</span> and
+       <var>target</var>'s <span>node document</span> is <var>doc</var>.</p></li>
+
+       <li><p><span data-x="concept-event-fire">Fire an event</span> named <code
+       data-x="event-focusreset">focusreset</code> at <var>target</var>, using
+       <code>FocusResetEvent</code>, with the <code data-x="dom-Event-bubbles">bubbles</code>
+       attribute initialized to true, the <code data-x="dom-Event-cancelable">cancelable</code>
+       attribute initialized to true, the <span>composed flag</span> set, the <code
+       data-x="dom-FocusResetEvent-relatedTarget">relatedTarget</code> attribute initialized to
+       <var>related</var>, and the <span data-x="FocusResetEvent-context-target">context
+       target</span> initialized to <var>target</var>.</p></li>
+      </ol>
      </li>
 
      <li><p>For each <var>doc</var> of <var>docs</var>, <span>perform pending transition
@@ -125322,6 +125458,7 @@ typedef <span>OnBeforeUnloadEventHandlerNonNull</span>? <dfn typedef>OnBeforeUnl
     <tr><td><dfn attribute for="HTMLElement,Document,Window,GlobalEventHandlers"><code data-x="handler-ondurationchange">ondurationchange</code></dfn> <td> <code data-x="event-media-durationchange">durationchange</code>
     <tr><td><dfn attribute for="HTMLElement,Document,Window,GlobalEventHandlers"><code data-x="handler-onemptied">onemptied</code></dfn> <td> <code data-x="event-media-emptied">emptied</code>
     <tr><td><dfn attribute for="HTMLElement,Document,Window,GlobalEventHandlers"><code data-x="handler-onended">onended</code></dfn> <td> <code data-x="event-media-ended">ended</code>
+    <tr><td><dfn attribute for="HTMLElement,Document,Window,GlobalEventHandlers"><code data-x="handler-onfocusreset">onfocusreset</code></dfn> <td> <code data-x="event-focusreset">focusreset</code>
     <tr><td><dfn attribute for="HTMLElement,Document,Window,GlobalEventHandlers"><code data-x="handler-onformdata">onformdata</code></dfn> <td> <code data-x="event-formdata">formdata</code>
     <tr><td><dfn attribute for="HTMLElement,Document,Window,GlobalEventHandlers"><code data-x="handler-oninput">oninput</code></dfn> <td> <code data-x="event-input">input</code>
     <tr><td><dfn attribute for="HTMLElement,Document,Window,GlobalEventHandlers"><code data-x="handler-oninvalid">oninvalid</code></dfn> <td> <code data-x="event-invalid">invalid</code>
@@ -125457,7 +125594,6 @@ typedef <span>OnBeforeUnloadEventHandlerNonNull</span>? <dfn typedef>OnBeforeUnl
    <thead>
     <tr><th><span data-x="event handlers">Event handler</span> <th><span>Event handler event type</span>
    <tbody>
-    <tr><td><dfn attribute for="Document"><code data-x="handler-onfocusreset">onfocusreset</code></dfn> <td> <code data-x="event-focusreset">focusreset</code>
     <tr><td><dfn attribute for="Document"><code data-x="handler-onreadystatechange">onreadystatechange</code></dfn> <td> <code data-x="event-readystatechange">readystatechange</code>
     <tr><td><dfn attribute for="Document"><code data-x="handler-onvisibilitychange">onvisibilitychange</code></dfn> <td> <code data-x="event-visibilitychange">visibilitychange</code>
   </table>
@@ -125500,6 +125636,7 @@ typedef <span>OnBeforeUnloadEventHandlerNonNull</span>? <dfn typedef>OnBeforeUnl
   attribute <span>EventHandler</span> <span data-x="handler-onended">onended</span>;
   attribute <span>OnErrorEventHandler</span> <span data-x="handler-onerror">onerror</span>;
   attribute <span>EventHandler</span> <span data-x="handler-onfocus">onfocus</span>;
+  attribute <span>EventHandler</span> <span data-x="handler-onfocusreset">onfocusreset</span>;
   attribute <span>EventHandler</span> <span data-x="handler-onformdata">onformdata</span>;
   attribute <span>EventHandler</span> <span data-x="handler-oninput">oninput</span>;
   attribute <span>EventHandler</span> <span data-x="handler-oninvalid">oninvalid</span>;
@@ -161069,6 +161206,12 @@ interface <dfn interface>External</dfn> {
      <td> <span data-x="event handler content attributes">Event handler content attribute</span>
 
     <tr>
+     <th id="ix-handler-onfocusreset"> <code data-x="">onfocusreset</code>
+     <td> <span data-x="handler-onfocusreset">HTML elements</span>
+     <td> <code data-x="event-focusreset">focusreset</code> event handler
+     <td> <span data-x="event handler content attributes">Event handler content attribute</span>
+
+    <tr>
      <th id="ix-handler-onformdata"> <code data-x="">onformdata</code>
      <td> <span data-x="handler-onformdata">HTML elements</span>
      <td> <code data-x="event-formdata">formdata</code> event handler
@@ -162013,6 +162156,12 @@ INSERT INTERFACES HERE
      <td> <code>Event</code>
      <td> <code>Window</code>, elements
      <td> Fired at nodes <span data-x="gains focus">gaining focus</span>
+
+    <tr> <!-- focusreset -->
+     <td> <dfn event for="Element,ShadowRoot,Document"><code data-x="event-focusreset">focusreset</code></dfn>
+     <td> <code>FocusResetEvent</code>
+     <td> Elements, <code>ShadowRoot</code>, <code>Document</code>
+     <td> Fired when focus is reset to the <span>viewport</span> because the <span data-x="focused area of the document">focused area</span> was removed or stopped being a <span>focusable area</span>
 
     <tr> <!-- formdata -->
      <td> <dfn event for="HTMLElement"><code data-x="event-formdata">formdata</code></dfn>
