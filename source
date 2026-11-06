@@ -93285,7 +93285,7 @@ dictionary <dfn dictionary>DragEventInit</dfn> : <span>MouseEventInit</span> {
       <p>If <var>element</var>'s <span>active interest source</span> is not null, and the
       <span>interest ready check</span> for <var>element</var>'s <span>active interest
       source</span> and <var>element</var> returns true, then <span>lose interest</span> in
-      <var>element</var>'s <span>active interest source</span> given <var>element</var>, true, and
+      <var>element</var>'s <span>active interest source</span> given <var>element</var>, false, and
       false.</p>
 
       <p class="note">Hiding the target of an active interest invoker causes that invoker to lose
@@ -93336,8 +93336,7 @@ dictionary <dfn dictionary>DragEventInit</dfn> : <span>MouseEventInit</span> {
     <p class="note">In these cases the <code data-x="event-loseinterest">loseinterest</code> event
     was not fired above, so this step clears the interest state without firing an event. This
     ensures that an interest invoker does not keep a hidden popover as its <span>active interest
-    target</span>. If the <code data-x="event-loseinterest">loseinterest</code> event was fired
-    and canceled, interest is maintained.</p>
+    target</span>.</p>
    </li>
 
    <li><p>Set <var>element</var>'s <span>popover trigger</span> to null.</p></li>
@@ -93380,6 +93379,9 @@ dictionary <dfn dictionary>DragEventInit</dfn> : <span>MouseEventInit</span> {
 
        <li><p>Run the <span>focusing steps</span> for <var>previouslyFocusedElement</var>; the
        viewport should not be scrolled by doing this step.</p></li>
+
+       <li><p>Set <var>previouslyFocusedElement</var>'s <span>suppress next focus interest</span> to
+       false.</p></li>
       </ol>
      </li>
     </ol>
@@ -94152,42 +94154,32 @@ dictionary <dfn dictionary>DragEventInit</dfn> : <span>MouseEventInit</span> {
 
       <ol>
        <li>
-        <p>If <var>node</var> has a <span>form owner</span>:</p>
+        <p>If <var>node</var> does not have a <span>form owner</span>, or <var>node</var> is not a
+        <span data-x="concept-submit-button">submit button</span> and <var>node</var>'s <code
+        data-x="attr-button-type">type</code> attribute is not in the <span
+        data-x="attr-button-type-reset-state">Reset Button</span> or <span
+        data-x="attr-button-type-auto-state">Auto</span> state:</p>
+        <!-- We check for the Auto state for compatibility and plan to remove this restriction in
+             future, see https://github.com/whatwg/html/issues/10832 -->
 
         <ol>
-         <li><p>If <var>node</var> is a <span data-x="concept-submit-button">submit button</span>,
-         then return null.</p></li>
+         <li><p>Let <var>command</var> be <var>node</var>'s <code
+         data-x="attr-button-command">command</code> attribute.</p></li>
 
-         <li><p>If <var>node</var>'s <code data-x="attr-button-type">type</code> attribute is in the
-         <span data-x="attr-button-type-reset-state">Reset Button</span> state, then return
-         null.</p></li>
-
-         <li><p>If <var>node</var>'s <code data-x="attr-button-type">type</code> attribute is in the
-         <span data-x="attr-button-type-auto-state">Auto</span> state, then return null.</p></li>
-         <!-- We do this for compatability and plan to remove this restriction in future, see
-              https://github.com/whatwg/html/issues/10832 -->
+         <li><p>If <var>command</var> is in the <span
+         data-x="attr-button-command-toggle-popover-state">Toggle Popover</span>, <span
+         data-x="attr-button-command-hide-popover-state">Hide Popover</span>, or <span
+         data-x="attr-button-command-show-popover-state">Show Popover</span> state, and
+         <var>commandTarget</var>'s <code data-x="attr-popover">popover</code> attribute is not in
+         the <span data-x="attr-popover-none-state">No Popover</span> state, then return
+         <var>commandTarget</var>.</p></li>
         </ol>
        </li>
-
-       <li><p>Let <var>command</var> be <var>node</var>'s <code
-       data-x="attr-button-command">command</code> attribute.</p></li>
-
-       <li><p>If <var>command</var> is not in the <span
-       data-x="attr-button-command-toggle-popover-state">Toggle Popover</span>, <span
-       data-x="attr-button-command-hide-popover-state">Hide Popover</span>, or <span
-       data-x="attr-button-command-show-popover-state">Show Popover</span> states, then return
-       null.</p></li>
-
-       <li><p>If <var>commandTarget</var>'s <code data-x="attr-popover">popover</code> attribute is
-       in the <span data-x="attr-popover-none-state">No Popover</span> state, then return
-       null.</p></li>
-
-       <li><p>Return <var>commandTarget</var>.</p></li>
       </ol>
      </li>
 
-     <li><p>If <var>node</var>'s <span>popover target element</span> is not null, then return
-     <var>node</var>'s <span>popover target element</span>.</p></li>
+     <li><p>Otherwise, if <var>node</var>'s <span>popover target element</span> is not null, then
+     return <var>node</var>'s <span>popover target element</span>.</p></li>
 
      <li><p>Let <var>interestTarget</var> be the result of running <var>node</var>'s <span
      data-x="get the attr-associated element">get the <code
@@ -94229,7 +94221,7 @@ dictionary <dfn dictionary>DragEventInit</dfn> : <span>MouseEventInit</span> {
 
   <h3 split-filename="interestfor">The <code data-x="attr-interestfor">interestfor</code> attribute</h3>
 
-  <p>The <dfn element-attr for="html-global"><code
+  <p>The <dfn element-attr for="a,area,button"><code
   data-x="attr-interestfor">interestfor</code></dfn> attribute allows authors to set up a
   relationship between the <span data-x="interest source">triggering element</span> and a separate
   <span data-x="interest target">target element</span> such as a popover. With this arrangement,
@@ -94238,7 +94230,7 @@ dictionary <dfn dictionary>DragEventInit</dfn> : <span>MouseEventInit</span> {
   <span data-x="interest target">target element</span> will have an <code
   data-x="event-interest">interest</code> event fired on it. If the target is a popover with a
   <span>popover visibility state</span> of <span data-x="popover-hidden-state">hidden</span>, this
-  will show the popover. When the user <span data-x="show interest">loses interest</span> (e.g., by
+  will show the popover. When the user <span data-x="lose interest">loses interest</span> (e.g., by
   no longer hovering or focusing the <span>interest source</span> or
   <span data-x="interest target">target</span>) a <code
   data-x="event-loseinterest">loseinterest</code> event is fired. If the target is a popover with a
@@ -94251,7 +94243,7 @@ dictionary <dfn dictionary>DragEventInit</dfn> : <span>MouseEventInit</span> {
 
   <span data-x="concept-element-dom">DOM interface</span>:
   <pre><code class="idl">interface mixin <dfn interface>InterestInvokerElement</dfn> {
-  [<span>CEReactions</span>, <span data-x="xattr-Reflect">Reflect</span>="<span data-x="attr-interestfor">interestfor</span>"] attribute Element? <dfn attribute for="HTMLElement" data-x="dom-interestForElement">interestForElement</dfn>;
+  [<span>CEReactions</span>, <span data-x="xattr-Reflect">Reflect</span>="<span data-x="attr-interestfor">interestfor</span>"] attribute <span>Element</span>? <dfn attribute for="InterestInvokerElement" data-x="dom-interestForElement">interestForElement</dfn>;
 };</code></pre>
 
   <div class="example">
@@ -94309,11 +94301,11 @@ dictionary <dfn dictionary>DragEventInit</dfn> : <span>MouseEventInit</span> {
   <pre><code class="idl">[Exposed=Window]
 interface <dfn interface>InterestEvent</dfn> : <span>Event</span> {
   constructor(DOMString type, optional <span>InterestEventInit</span> eventInitDict = {});
-  readonly attribute Element? <span data-x="dom-InterestEvent-source">source</span>;
+  readonly attribute <span>Element</span>? <span data-x="dom-InterestEvent-source">source</span>;
 };
 
 dictionary <dfn dictionary>InterestEventInit</dfn> : <span>EventInit</span> {
-  Element? source = null;
+  <span>Element</span>? source = null;
 };</code></pre>
 
   <dl class="domintro">
@@ -94321,7 +94313,7 @@ dictionary <dfn dictionary>InterestEventInit</dfn> : <span>EventInit</span> {
    data-x="dom-InterestEvent-source">source</span></code></dt>
 
    <dd>
-    <p>Set to the element that triggered interest.</p>
+    <p>Returns the element that triggered interest.</p>
    </dd>
   </dl>
 
@@ -94385,7 +94377,8 @@ dictionary <dfn dictionary>InterestEventInit</dfn> : <span>EventInit</span> {
 
          <li><p>If <var>suppressFocusInterest</var> is true, then continue.</p></li>
 
-         <li><p>If <var>candidate</var>'s <span>active interest target</span> is not null, then
+         <li><p>If <var>candidate</var>'s <span>active interest target</span> is not null or
+         <var>candidate</var>'s <span>pending gain interest handle</span> is not null, then
          continue.</p></li>
         </ol>
        </li>
@@ -94412,8 +94405,6 @@ dictionary <dfn dictionary>InterestEventInit</dfn> : <span>EventInit</span> {
        </li>
 
        <li><p>If <var>delay</var> is negative, infinite, or NaN, then continue.</p></li>
-
-       <li><p>Set <var>candidate</var>'s <span>pending gain interest handle</span> to null.</p></li>
 
        <li><p>Let <var>uniqueHandle</var> be null.</p></li>
 
@@ -94456,9 +94447,13 @@ dictionary <dfn dictionary>InterestEventInit</dfn> : <span>EventInit</span> {
      </li>
 
      <li>
-      <p>Otherwise (when <var>show</var> is false):</p>
+      <p>Otherwise:</p>
 
       <ol>
+       <li><p>If <var>viaFocus</var> is false and <var>candidate</var> has a <span>flat tree</span>
+       <span>inclusive descendant</span> that the user <span
+       data-x="concept-selector-hover">designates</span>, then continue.</p></li>
+
        <li>
         <p>If <var>candidate</var> is an <span data-x="HTML elements">HTML element</span>:</p>
 
@@ -94710,7 +94705,7 @@ dictionary <dfn dictionary>InterestEventInit</dfn> : <span>EventInit</span> {
 
    <li><p>Set <var>source</var>'s <span>explicit interest</span> to <var>explicit</var>.</p></li>
 
-   <li><p><span data-x="list append">Append</span> <var>source</var> to <var>source</var>'s
+   <li><p><span data-x="set append">Append</span> <var>source</var> to <var>source</var>'s
    <span>node document</span>'s <span>active interest sources set</span>.</p></li>
 
    <li><p>Set <var>target</var>'s <span>active interest source</span> to <var>source</var>.</p></li>
@@ -94741,9 +94736,11 @@ dictionary <dfn dictionary>InterestEventInit</dfn> : <span>EventInit</span> {
    <li><p><span>Assert</span>: <var>source</var> is an <code>a</code>, <code>area</code>, or
    <code>button</code> element.</p></li>
 
-   <li><p><span>Assert</span>: the result of running <var>source</var>'s <span
-   data-x="get the attr-associated element">get the <code data-x="">interestfor</code>-associated
-   element</span> is <var>target</var>.</p></li>
+   <li><p><span>Assert</span>: <var>source</var>'s <span>active interest target</span> is
+   <var>target</var>.</p></li>
+
+   <li><p><span>Assert</span>: <var>target</var>'s <span>active interest source</span> is
+   <var>source</var>.</p></li>
 
    <li><p>Let <var>continue</var> be the result of <span data-x="concept-event-fire">firing an
    event</span> named <code data-x="event-loseinterest">loseinterest</code> at <var>target</var>,
@@ -94755,13 +94752,28 @@ dictionary <dfn dictionary>InterestEventInit</dfn> : <span>EventInit</span> {
 
    <li><p>If <var>continue</var> is false, then return false.</p></li>
 
+   <li><p>If <var>source</var>'s <span>active interest target</span> is not <var>target</var>,
+   then return true.</p></li>
+
    <li><p><span>Reset interest state</span> for <var>source</var>.</p></li>
 
-   <li><p>If <var>hidePopover</var> is true, <var>target</var> is an <span data-x="HTML
-   elements">HTML element</span>, <var>target</var>'s <span>popover visibility state</span> is
-   <span data-x="popover-showing-state">showing</span>, and <var>target</var>'s <span>popover
-   shown via interest</span> is true, then run the <span>hide popover algorithm</span> given
-   <var>target</var>, true, true, false, and <var>source</var>.</p></li>
+   <li>
+    <p>If all of the following are true:</p>
+
+    <ul>
+     <li><p><var>hidePopover</var> is true;</p></li>
+
+     <li><p><var>target</var> is an <span data-x="HTML elements">HTML element</span>;</p></li>
+
+     <li><p><var>target</var>'s <span>popover visibility state</span> is <span
+     data-x="popover-showing-state">showing</span>; and</p></li>
+
+     <li><p><var>target</var>'s <span>popover shown via interest</span> is true,</p></li>
+    </ul>
+
+    <p>then run the <span>hide popover algorithm</span> given <var>target</var>, true, true, false,
+    and <var>source</var>.</p>
+   </li>
 
    <li><p>Return true.</p></li>
   </ol>
@@ -94867,8 +94879,8 @@ dictionary <dfn dictionary>InterestEventInit</dfn> : <span>EventInit</span> {
    <li><p>Let <var>showContextMenu</var> be true if <var>event</var> is not null and its
    <span>canceled flag</span> is not set.</p></li>
 
-   <li><p>Let <var>invoker</var> be the closest <span data-x="shadow-including inclusive
-   ancestor">shadow-including inclusive ancestor</span> of <var>element</var> that is an
+   <li><p>Let <var>invoker</var> be the closest <span data-x="inclusive ancestor">inclusive
+   ancestor</span> of <var>element</var> in the <span>flat tree</span> that is an
    <code>a</code>, <code>area</code>, or <code>button</code> element, and for which the result of
    running its <span data-x="get the attr-associated element">get the <code
    data-x="">interestfor</code>-associated element</span> is not null.</p></li>
@@ -94951,7 +94963,7 @@ dictionary <dfn dictionary>InterestEventInit</dfn> : <span>EventInit</span> {
 
   <p>Authors should not include content in an <span>interest target</span> that requires
   significant scrolling (such as maps or large tables), as users might accidentally move the
-  pointer outside the target while scrolling and unintentionally <span data-x="show interest">lose
+  pointer outside the target while scrolling and unintentionally <span>lose
   interest</span>. Authors also should not move focus in response to <code
   data-x="event-interest">interest</code> or <code data-x="event-loseinterest">loseinterest</code>
   events (or via the <code data-x="attr-fe-autofocus">autofocus</code> attribute on an
@@ -161596,7 +161608,8 @@ interface <dfn interface>External</dfn> {
      <td> <code data-x="attr-interestfor">a</code>;
           <code data-x="attr-interestfor">area</code>;
           <code data-x="attr-interestfor">button</code>
-     <td> Targets another element to be invoked when the user <span data-x="show interest">shows interest</span>
+     <td> Targets another element to be invoked when the user <span data-x="show interest">shows
+     interest</span>
      <td> <span data-x="concept-id">ID</span>*
     <tr>
      <th> <code data-x="">is</code>
@@ -163419,7 +163432,9 @@ INSERT INTERFACES HERE
      <td> <dfn event for="HTMLElement"><code data-x="event-interest">interest</code></dfn>
      <td> <code>InterestEvent</code>
      <td> Elements
-     <td> Fired at the target of an <code data-x="attr-interestfor">interestfor</code> attribute when the user <span data-x="show interest">shows interest</span> in the element with the <code data-x="attr-interestfor">interestfor</code> attribute, e.g., by hovering or focusing.
+     <td> Fired at the target of an <code data-x="attr-interestfor">interestfor</code> attribute
+     when the user <span data-x="show interest">shows interest</span> in the element with the <code
+     data-x="attr-interestfor">interestfor</code> attribute, e.g., by hovering or focusing.
 
     <tr> <!-- invalid -->
      <td> <dfn event for="HTMLElement"><code data-x="event-invalid">invalid</code></dfn>
@@ -163443,7 +163458,9 @@ INSERT INTERFACES HERE
      <td> <dfn event for="HTMLElement"><code data-x="event-loseinterest">loseinterest</code></dfn>
      <td> <code>InterestEvent</code>
      <td> Elements
-     <td> Fired at the target of an <code data-x="attr-interestfor">interestfor</code> attribute when the user <span data-x="show interest">loses interest</span>, e.g., by hovering or focusing something else.
+     <td> Fired at the target of an <code data-x="attr-interestfor">interestfor</code> attribute
+     when the user <span data-x="lose interest">loses interest</span>, e.g., by hovering or
+     focusing something else.
 
     <tr> <!-- message -->
      <td> <dfn event for="Window,EventSource,MessagePort,BroadcastChannel,DedicatedWorkerGlobalScope,Worker,ServiceWorkerContainer"><code data-x="event-message">message</code></dfn>
