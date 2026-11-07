@@ -1781,9 +1781,9 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
   data-x="control">controls</span> or U+0020 SPACE).</p>
 
   <p>An HTML element can have specific <dfn>HTML element insertion steps</dfn>, <dfn>HTML element
-  post-connection steps</dfn>, <dfn>HTML element removing steps</dfn>, and <dfn>HTML element moving
-  steps</dfn> all defined for the element's <span data-x="concept-element-local-name">local
-  name</span>.</p>
+  post-connection steps</dfn>, <dfn>HTML element removing steps</dfn>, <dfn>HTML element moving
+  steps</dfn>, and <dfn>HTML element attribute change steps</dfn> all defined for the element's
+  <span data-x="concept-element-local-name">local name</span>.</p>
 
   <div algorithm>
   <p id="html-insertion-steps">The <span data-x="concept-node-insert-ext">insertion steps</span>
@@ -1928,9 +1928,45 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
   <ol>
    <li><p>If <var>namespace</var> is not null, then return.</p></li>
 
+   <li><p>If <var>element</var>'s <span data-x="concept-element-namespace">namespace</span> is
+   the <span>HTML namespace</span>, and this standard defines <span>HTML element attribute
+   change steps</span> for <var>element</var>'s <span data-x="concept-element-local-name">local
+   name</span>, then run the corresponding <span>HTML element attribute change steps</span>
+   given <var>element</var>, <var>localName</var>, <var>oldValue</var>, and
+   <var>value</var>.</p></li>
+
+   <li>
+    <p>If <var>localName</var> is <code data-x="attr-nonce">nonce</code> and
+    <var>element</var> <span data-x="include">includes</span>
+    <code>HTMLOrSVGOrMathMLElement</code>:</p>
+
+    <ol>
+     <li><p>If <var>value</var> is null, then set <var>element</var>'s
+     <span>[[CryptographicNonce]]</span> to the empty string.</p></li>
+
+     <li><p>Otherwise, set <var>element</var>'s <span>[[CryptographicNonce]]</span> to
+     <var>value</var>.</p></li>
+    </ol>
+   </li>
+
+   <li><p>If <var>element</var> has an <span data-x="explicitly set attr-element">explicitly set
+   <var>localName</var>-element</span>, then set it to null.</p></li>
+
+   <li><p>If <var>element</var> has <span data-x="explicitly set attr-elements">explicitly set
+   <var>localName</var>-elements</span>, then set it to null.</p></li>
+
    <li><p>If <var>localName</var> is <code data-x="attr-fae-form">form</code> and
    <var>element</var> is a <span data-x="category-listed">listed</span> <span>form-associated
    element</span>, then <span>reset the form owner</span> of <var>element</var>.</p></li>
+
+   <li><p>If <var>localName</var> is <code data-x="attr-accesskey">accesskey</code> and
+   <var>element</var> is an <span data-x="HTML elements">HTML element</span>, then <span>update
+   the assigned access key</span> given <var>element</var>.</p></li>
+
+   <li><p>If <var>localName</var> is <code data-x="blocking attribute">blocking</code>,
+   <var>oldValue</var> is not <var>value</var>, and <var>element</var> is
+   <span>render-blocking</span> but is no longer <span>potentially render-blocking</span>, then
+   <span>unblock rendering</span> on <var>element</var>.</p></li>
 
    <li>
     <p>If all of the following are true:</p>
@@ -1946,7 +1982,51 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
     <p>then <span>reset the form owners with a form attribute</span> given <var>element</var>'s
     <span>root</span>.</p>
    </li>
+
+   <li>
+    <p>If <var>element</var> is not on a <span>stack of open elements</span> of an <span>HTML
+    parser</span>, and either of the following is true:</p>
+
+    <ul>
+     <li><p><var>localName</var> is <code data-x="attr-id">id</code>; or</p></li>
+
+     <li><p><var>localName</var> is <code data-x="attr-a-name">name</code> and <var>element</var>
+     is an <code>a</code> element,</p></li>
+    </ul>
+
+    <p>then <span>process internal resource links</span> given <var>element</var>'s <span>node
+    document</span>.</p>
+   </li>
+
+   <li>
+    <p>If all of the following are true:</p>
+
+    <ul>
+     <li><p><var>element</var> is an <span data-x="HTML elements">HTML element</span>;</p></li>
+
+     <li><p><var>localName</var> is <code data-x="attr-popover">popover</code>;</p></li>
+
+     <li><p><var>element</var>'s <span>popover visibility state</span> is <span
+     data-x="popover-showing-state">showing</span>; and</p></li>
+
+     <li><p><var>oldValue</var> and <var>value</var> are in different <span
+     data-x="attr-popover">states</span>,</p></li>
+    </ul>
+
+    <p>then run the <span>hide popover algorithm</span> given <var>element</var>, true, true,
+    false, and null.</p>
+   </li>
+
+   <li><p>If <var>localName</var> is the name of an <span data-x="event handler content
+   attributes">event handler content attribute</span> on <var>element</var>, then
+   <span>synchronize event handlers</span> given <var>element</var>, <var>localName</var>, and
+   <var>value</var>.</p></li>
   </ol>
+
+  <p class="note">Per the DOM Standard, these steps are run even if <var>oldValue</var> and
+  <var>value</var> are identical (setting an attribute to its current value), but not if
+  <var>oldValue</var> and <var>value</var> are both null (removing an attribute that does not
+  exist). Individual steps can impose additional conditions. <ref>DOM</ref></p>
   </div>
 
   <div algorithm>
@@ -8247,25 +8327,6 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
   introduced.</p>
 
   <div algorithm>
-  <p>The following <span data-x="concept-element-attributes-change-ext">attribute change
-  steps</span> are used for the <code data-x="attr-nonce">nonce</code> content attribute:
-
-  <ol>
-   <li><p>If <var>element</var> does not <span>include</span> <code>HTMLOrSVGOrMathMLElement</code>,
-   then return.</p></li>
-
-   <li><p>If <var>localName</var> is not <code data-x="attr-nonce">nonce</code> or
-   <var>namespace</var> is not null, then return.</p></li>
-
-   <li><p>If <var>value</var> is null, then set <var>element</var>'s
-   <span>[[CryptographicNonce]]</span> to the empty string.</p></li>
-
-   <li><p>Otherwise, set <var>element</var>'s <span>[[CryptographicNonce]]</span> to
-   <var>value</var>.</p></li>
-  </ol>
-  </div>
-
-  <div algorithm>
   <p>Whenever an element <span data-x="include">including</span>
   <code>HTMLOrSVGOrMathMLElement</code> <span>becomes browsing-context connected</span>, the user
   agent must execute the following steps on the <var>element</var>:</p>
@@ -9279,24 +9340,6 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
     </ol>
     </div>
    </li>
-
-   <li>
-    <div algorithm>
-    <p>For element <span data-x="reflected target">reflected targets</span> only: the following
-    <span data-x="concept-element-attributes-change-ext">attribute change steps</span>, given
-    <var>element</var>, <var>localName</var>, <var>oldValue</var>, <var>value</var>, and
-    <var>namespace</var>, are used to synchronize between the content attribute and the IDL
-    attribute:</p>
-
-    <ol>
-     <li><p>If <var>localName</var> is not <var>attr</var> or <var>namespace</var> is not null, then
-     return.</p></li>
-
-     <li><p>Set <var>element</var>'s <span>explicitly set <var>attr</var>-element</span> to
-     null.</p></li>
-    </ol>
-    </div>
-   </li>
   </ul>
   </div>
 
@@ -9463,24 +9506,6 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
 
      <li><p>Set <span>this</span>'s <span>explicitly set <var>attr</var>-elements</span> to
      <var>elements</var>.</p></li>
-    </ol>
-    </div>
-   </li>
-
-   <li>
-    <div algorithm>
-    <p>For element <span data-x="reflected target">reflected targets</span> only: the following
-    <span data-x="concept-element-attributes-change-ext">attribute change steps</span>, given
-    <var>element</var>, <var>localName</var>, <var>oldValue</var>, <var>value</var>, and
-    <var>namespace</var>, are used to synchronize between the content attribute and the IDL
-    attribute:</p>
-
-    <ol>
-     <li><p>If <var>localName</var> is not <var>attr</var> or <var>namespace</var> is not null, then
-     return.</p></li>
-
-     <li><p>Set <var>element</var>'s <span>explicitly set <var>attr</var>-elements</span> to
-     null.</p></li>
     </ol>
     </div>
    </li>
@@ -12526,9 +12551,7 @@ partial interface <dfn id="document" data-lt="">Document</dfn> {
 
   <div algorithm>
   <p>Whenever a <span>render-blocking</span> element <var>el</var>
-  <span>becomes browsing-context disconnected</span>, or <var>el</var>'s
-  <span>blocking attribute</span>'s value is changed so that <var>el</var> is no longer
-  <span>potentially render-blocking</span>, then <span>unblock rendering</span> on
+  <span>becomes browsing-context disconnected</span>, <span>unblock rendering</span> on
   <var>el</var>.</p>
   </div>
 
@@ -27372,22 +27395,20 @@ document.body.appendChild(wbr);</code></pre>
   </div>
 
   <div algorithm>
-  <p>The following <span data-x="concept-element-attributes-change-ext">attribute change
-  steps</span>, given <var>element</var>, <var>localName</var>, <var>oldValue</var>,
-  <var>value</var>, and <var>namespace</var>, are used for all <code>a</code> and <code>area</code>
-  elements:</p>
+  <p>The <span>HTML element attribute change steps</span> for <code>a</code> and
+  <code>area</code> elements, given <var>element</var>, <var>localName</var>,
+  <var>oldValue</var>, and <var>value</var>, are:</p>
 
   <ol>
-   <li><p>If <var>namespace</var> is not null, then return.</p></li>
-
-   <li><p>If <var>oldValue</var> equals <var>value</var>, then return.</p></li>
+   <li><p>If <var>oldValue</var> is <var>value</var>, then return.</p></li>
 
    <li>
     <p>If <var>localName</var> is <code data-x="attr-hyperlink-href">href</code>, then <span
     data-x="concept-hyperlink-url-set">set the url</span> given <var>element</var>.</p>
 
-    <p class="note">This is only observable for <code data-x="blob protocol">blob:</code> URLs as
-    <span data-x="url parser">parsing</span> them involves a <span>Blob URL Store</span> lookup.</p>
+    <p class="note">This is only observable for <code data-x="blob protocol">blob:</code> URLs
+    as <span data-x="url parser">parsing</span> them involves a <span>Blob URL Store</span>
+    lookup.</p>
    </li>
 
    <li><p>If <var>localName</var> is <code data-x="attr-hyperlink-href">href</code>, <code
@@ -28706,35 +28727,6 @@ document.body.appendChild(wbr);</code></pre>
    data-x="rel-expect">expect</code> <code>link</code> element <var>link</var> in
    <var>doc</var>'s <span>render-blocking element set</span>, <span
    data-x="process internal resource link">process</span> <var>link</var>.</p></li>
-  </ol>
-  </div>
-
-  <div algorithm>
-  <p>The following <span data-x="concept-element-attributes-change-ext">attribute change
-  steps</span>, given <var>element</var>, <var>localName</var>, <var>oldValue</var>,
-  <var>value</var>, and <var>namespace</var>, are used to ensure <code
-  data-x="rel-expect">expect</code> <code>link</code> elements respond to dynamic <code
-  data-x="attr-id">id</code> and <code data-x="attr-a-name">name</code> changes:</p>
-
-  <ol>
-   <li><p>If <var>namespace</var> is not null, then return.</p></li>
-
-   <li><p>If <var>element</var> is in a <span>stack of open elements</span> of an
-   <span>HTML parser</span>, then return.</p></li>
-
-   <li>
-    <p>If any of the following is true:</p>
-
-    <ul>
-     <li><p><var>localName</var> is <code data-x="attr-id">id</code>; or</p></li>
-
-     <li><p><var>localName</var> is <code
-     data-x="attr-a-name">name</code> and <var>element</var> is an <code>a</code> element,</p></li>
-    </ul>
-
-    <p>then <span>process internal resource links</span> given <var>element</var>'s
-    <span>node document</span>.</p>
-   </li>
   </ol>
   </div>
 
@@ -31284,6 +31276,19 @@ interface <dfn interface>HTMLSourceElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
+  <p>The <code>source</code> <span>HTML element removing steps</span>, given
+  <var>removedNode</var>, <var>isSubtreeRoot</var>, and <var>oldAncestor</var> are:</p>
+
+  <ol>
+   <li><p>If <var>isSubtreeRoot</var> is true and <var>oldAncestor</var> is a <code>picture</code>
+   element, then <span data-x="list iterate">for each</span> <var>child</var> of
+   <var>oldAncestor</var>'s <span data-x="concept-tree-child">children</span>: if <var>child</var>
+   is an <code>img</code> element, then count this as a <span data-x="relevant mutations">relevant
+   mutation</span> for <var>child</var>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
   <p>The <code>source</code> <span>HTML element moving steps</span>, given <var>movedNode</var>,
   <var>isSubtreeRoot</var>, and <var>oldAncestor</var> are:</p>
 
@@ -31304,15 +31309,22 @@ interface <dfn interface>HTMLSourceElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
-  <p>The <code>source</code> <span>HTML element removing steps</span>, given
-  <var>removedNode</var>, <var>isSubtreeRoot</var>, and <var>oldAncestor</var> are:</p>
+  <p>The <code>source</code> <span>HTML element attribute change steps</span>, given
+  <var>element</var>, <var>localName</var>, <var ignore>oldValue</var>, and
+  <var ignore>value</var>, are:</p>
 
   <ol>
-   <li><p>If <var>isSubtreeRoot</var> is true and <var>oldAncestor</var> is a <code>picture</code>
-   element, then <span data-x="list iterate">for each</span> <var>child</var> of
-   <var>oldAncestor</var>'s <span data-x="concept-tree-child">children</span>: if <var>child</var>
-   is an <code>img</code> element, then count this as a <span data-x="relevant mutations">relevant
-   mutation</span> for <var>child</var>.</p></li>
+   <li><p>If <var>localName</var> is not one of <code data-x="attr-source-srcset">srcset</code>,
+   <code data-x="attr-source-sizes">sizes</code>, <code data-x="attr-source-media">media</code>,
+   <code data-x="attr-source-type">type</code>, <code data-x="attr-dim-width">width</code>, or
+   <code data-x="attr-dim-height">height</code>, then return.</p></li>
+
+   <li><p>If <var>element</var>'s <span>parent</span> is not a <code>picture</code> element, then
+   return.</p></li>
+
+   <li><p>For each following sibling <var>sibling</var> of <var>element</var>, in <span>tree
+   order</span>, if <var>sibling</var> is an <code>img</code> element, then count this as a <span
+   data-x="relevant mutations">relevant mutation</span> for <var>sibling</var>.</p></li>
   </ol>
   </div>
 
@@ -31524,23 +31536,6 @@ interface <dfn interface>HTMLImageElement</dfn> : <span>HTMLElement</span> {
   loading attribute</span>. Its purpose is to indicate the policy for loading images that are
   outside the viewport.</p>
 
-  <div algorithm>
-  <p>When the <code data-x="attr-img-loading">loading</code> attribute's state is changed to the
-  <span data-x="attr-loading-eager-state">Eager</span> state, the user agent must run these
-  steps:</p>
-
-  <ol>
-   <li><p>Let <var>resumptionSteps</var> be the <code>img</code> element's <span>lazy load
-   resumption steps</span>.</p></li>
-
-   <li><p>If <var>resumptionSteps</var> is null, then return.</p></li>
-
-   <li><p>Set the <code>img</code>'s <span>lazy load resumption steps</span> to null.</p></li>
-
-   <li><p>Invoke <var>resumptionSteps</var>.</p></li>
-  </ol>
-  </div>
-
   <div class="example">
 <pre><code class="html">&lt;img src="1.jpeg" alt="1">
 &lt;img src="2.jpeg" loading=eager alt="2">
@@ -31583,6 +31578,19 @@ interface <dfn interface>HTMLImageElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
+  <p>The <code>img</code> <span>HTML element removing steps</span>, given <var>removedNode</var>,
+  <var>isSubtreeRoot</var>, and <var>oldAncestor</var> are:</p>
+
+  <ol>
+   <li><p>If <var>isSubtreeRoot</var> is true and <var>oldAncestor</var> is a <code>picture</code>
+   element, then count this as a <span data-x="relevant mutations">relevant mutation</span> for
+   <var>removedNode</var>.</p></li>
+
+   <li><p>Set <var>removedNode</var>'s <span>last auto-sizes width</span> to null.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
   <p>The <code>img</code> <span>HTML element moving steps</span>, given <var>movedNode</var>,
   <var>isSubtreeRoot</var>, and <var>oldAncestor</var> are:</p>
 
@@ -31594,15 +31602,51 @@ interface <dfn interface>HTMLImageElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
-  <p>The <code>img</code> <span>HTML element removing steps</span>, given <var>removedNode</var>,
-  <var>isSubtreeRoot</var>, and <var>oldAncestor</var> are:</p>
+  <p>The <code>img</code> <span>HTML element attribute change steps</span>, given
+  <var>element</var>, <var>localName</var>, <var>oldValue</var>, and <var>value</var>, are:</p>
 
   <ol>
-   <li><p>If <var>isSubtreeRoot</var> is true and <var>oldAncestor</var> is a <code>picture</code>
-   element, then count this as a <span data-x="relevant mutations">relevant mutation</span> for
-   <var>removedNode</var>.</p></li>
+   <li>
+    <p>If <var>localName</var> is <code data-x="attr-img-src">src</code>, <code
+    data-x="attr-img-srcset">srcset</code>, or <code data-x="attr-img-sizes">sizes</code>, then
+    count this as a <span data-x="relevant mutations">relevant mutation</span> for
+    <var>element</var>.</p>
 
-   <li><p>Set <var>removedNode</var>'s <span>last auto-sizes width</span> to null.</p></li>
+    <p>If <var>localName</var> is <code data-x="attr-img-src">src</code> and <var>oldValue</var>
+    is <var>value</var>, then this must set the <i>restart animation</i> flag for the
+    <span>update the image data</span> algorithm.</p>
+   </li>
+
+   <li>
+    <p>If either of the following is true:</p>
+
+    <ul>
+     <li><p><var>localName</var> is <code data-x="attr-img-crossorigin">crossorigin</code> and
+     <var>oldValue</var> and <var>value</var> are in different <span>CORS settings
+     attribute</span> states; or</p></li>
+
+     <li><p><var>localName</var> is <code data-x="attr-img-referrerpolicy">referrerpolicy</code>
+     and <var>oldValue</var> and <var>value</var> are in different <span>referrer policy
+     attribute</span> states,</p></li>
+    </ul>
+
+    <p>then count this as a <span data-x="relevant mutations">relevant mutation</span> for
+    <var>element</var>.</p>
+   </li>
+
+   <li><p>If <var>localName</var> is not <code data-x="attr-img-loading">loading</code>, or
+   <var>oldValue</var> and <var>value</var> are in the same <span>lazy loading attribute</span>
+   state, or <var>value</var> is not in the <span data-x="attr-loading-eager-state">Eager</span>
+   state, then return.</p></li>
+
+   <li><p>Let <var>resumptionSteps</var> be <var>element</var>'s <span>lazy load
+   resumption steps</span>.</p></li>
+
+   <li><p>If <var>resumptionSteps</var> is null, then return.</p></li>
+
+   <li><p>Set <var>element</var>'s <span>lazy load resumption steps</span> to null.</p></li>
+
+   <li><p>Invoke <var>resumptionSteps</var>.</p></li>
   </ol>
   </div>
 
@@ -33167,27 +33211,10 @@ was an English &lt;a href="/wiki/Music_hall">music hall&lt;/a> singer, ...</code
   <p>The <dfn>relevant mutations</dfn> for an <code>img</code> element are as follows:</p>
 
   <ul>
-   <li><p>The element's <code data-x="attr-img-src">src</code>, <code
-   data-x="attr-img-srcset">srcset</code>, or <code data-x="attr-img-sizes">sizes</code>
-   attributes are set, changed, or removed.</p></li>
-
-   <li><p>The element's <code data-x="attr-img-src">src</code> attribute is set to the same value as the previous value.
-   This must set the <i>restart animation</i> flag for the <span>update the image data</span> algorithm.</p></li>
-
-   <li><p>The element's <code data-x="attr-img-crossorigin">crossorigin</code> attribute's state is changed.</p></li>
-
-   <li><p>The element's <code data-x="attr-img-referrerpolicy">referrerpolicy</code> attribute's
-   state is changed.</p></li>
-
    <li><p>The <code>img</code> or <code>source</code> <span>HTML element insertion steps</span>,
-   <span>HTML element removing steps</span>, and <span>HTML element moving steps</span> count the
-   mutation as a <span data-x="relevant mutations">relevant mutation</span>.</p></li>
-
-   <li><p>The element's parent is a <code>picture</code> element and a <code>source</code> element
-   that is a previous sibling has its <code data-x="attr-source-srcset">srcset</code>, <code
-   data-x="attr-source-sizes">sizes</code>, <code data-x="attr-source-media">media</code>, <code
-   data-x="attr-source-type">type</code>, <code data-x="attr-dim-width">width</code> or <code
-   data-x="attr-dim-height">height</code> attributes set, changed, or removed.</p></li>
+   <span>HTML element removing steps</span>, <span>HTML element moving steps</span>, or
+   <span>HTML element attribute change steps</span> count the mutation as a <span
+   data-x="relevant mutations">relevant mutation</span>.</p></li>
 
    <li><p>The element's <span data-x="concept-node-adopt-ext">adopting steps</span> are run.</p></li>
 
@@ -35817,17 +35844,56 @@ interface <dfn interface>HTMLIFrameElement</dfn> : <span>HTMLElement</span> {
   <!-- START of section that's very similar to <frame> -->
 
   <div algorithm>
-  <p>Whenever an <code>iframe</code> element with a non-null <span>content navigable</span> has its
-  <code data-x="attr-iframe-srcdoc">srcdoc</code> attribute set, changed, or removed, the user
-  agent must <span>process the <code>iframe</code> attributes</span>.</p>
-  </div>
+  <p>The <code>iframe</code> <span>HTML element attribute change steps</span>, given
+  <var>element</var>, <var>localName</var>, <var>oldValue</var>, and <var>value</var>, are:</p>
 
-  <div algorithm>
-  <p>Similarly, whenever an <code>iframe</code> element with a non-null <span>content
-  navigable</span> but with no <code data-x="attr-iframe-srcdoc">srcdoc</code> attribute specified
-  has its <code data-x="attr-iframe-src">src</code> attribute set, changed, or removed, the user
-  agent must <span>process the <code>iframe</code> attributes</span>.</p> <!-- It doesn't happen
-  when the base URL is changed, though. -->
+  <ol>
+   <li>
+    <p>If <var>localName</var> is <code data-x="attr-iframe-loading">loading</code> and
+    <var>oldValue</var> and <var>value</var> are in different <span>lazy loading attribute</span>
+    states, with <var>value</var> in the <span data-x="attr-loading-eager-state">Eager</span>
+    state:</p>
+
+    <ol>
+     <li><p>Let <var>resumptionSteps</var> be <var>element</var>'s <span>lazy load resumption
+     steps</span>.</p></li>
+
+     <li><p>If <var>resumptionSteps</var> is not null, then set <var>element</var>'s <span>lazy
+     load resumption steps</span> to null and invoke <var>resumptionSteps</var>.</p></li>
+    </ol>
+   </li>
+
+   <li><p>If <var>element</var>'s <span>content navigable</span> is null, then return.</p></li>
+
+   <li>
+    <p>If <var>localName</var> is <code data-x="attr-iframe-sandbox">sandbox</code>:</p>
+
+    <ol>
+     <li><p>If <var>value</var> is null, then <span data-x="list empty">empty</span>
+     <var>element</var>'s <span><code>iframe</code> sandboxing flag set</span>.</p></li>
+
+     <li><p>Otherwise, <span data-x="parse a sandboxing directive">parse the sandboxing
+     directive</span> given <var>value</var> and <var>element</var>'s <span><code>iframe</code>
+     sandboxing flag set</span>.</p></li>
+    </ol>
+   </li>
+
+   <li>
+    <p>If either of the following is true:</p>
+
+    <ul>
+     <li><p><var>localName</var> is <code data-x="attr-iframe-srcdoc">srcdoc</code>; or</p></li>
+
+     <li><p><var>localName</var> is <code data-x="attr-iframe-src">src</code> and
+     <var>element</var> does not have a <code data-x="attr-iframe-srcdoc">srcdoc</code>
+     attribute,</p></li>
+    </ul>
+
+    <p>then <span>process the <code>iframe</code> attributes</span> for
+    <var>element</var>.</p>
+    <!-- Changes to the base URL do not trigger this processing. -->
+   </li>
+  </ol>
   </div>
 
   <div algorithm>
@@ -36233,30 +36299,12 @@ interface <dfn interface>HTMLIFrameElement</dfn> : <span>HTMLElement</span> {
   directly, without the protection of the <code data-x="attr-iframe-sandbox">sandbox</code>
   attribute.</p>
 
-  <div w-nodev>
-
   <!-- v2: Add a new attribute that enables new restrictions, e.g.:
        - disallow cross-origin loads of any kind (networking
          override that only allows same-origin URLs or about:,
          javascript:, data:)
        - block access to 'parent.frames' from sandbox
   -->
-
-  <div algorithm>
-  <p>When an <code>iframe</code> element's <code data-x="attr-iframe-sandbox">sandbox</code>
-  attribute is set or changed while it has a non-null <span>content navigable</span>, the user
-  agent must <span data-x="parse a sandboxing directive">parse the sandboxing directive</span>
-  given the attribute's value and the <code>iframe</code> element's <span><code>iframe</code>
-  sandboxing flag set</span>.</p>
-  </div>
-
-  <div algorithm>
-  <p>When an <code>iframe</code> element's <code data-x="attr-iframe-sandbox">sandbox</code>
-  attribute is removed while it has a non-null <span>content navigable</span>, the user agent must
-  empty the <code>iframe</code> element's <span><code>iframe</code> sandboxing flag set</span>.</p>
-  </div>
-
-  </div>
 
   <div class="example">
 
@@ -36429,23 +36477,6 @@ interface <dfn interface>HTMLIFrameElement</dfn> : <span>HTMLElement</span> {
   <p>The <dfn element-attr for="iframe" data-x="attr-iframe-loading"><code>loading</code></dfn> attribute is a <span>lazy
   loading attribute</span>. Its purpose is to indicate the policy for loading <code>iframe</code>
   elements that are outside the viewport.</p>
-
-  <div algorithm>
-  <p>When the <code data-x="attr-iframe-loading">loading</code> attribute's state is changed to the
-  <span data-x="attr-loading-eager-state">Eager</span> state, the user agent must run these
-  steps:</p>
-
-  <ol>
-   <li><p>Let <var>resumptionSteps</var> be the <code>iframe</code> element's <span>lazy load
-   resumption steps</span>.</p></li>
-
-   <li><p>If <var>resumptionSteps</var> is null, then return.</p></li>
-
-   <li><p>Set the <code>iframe</code>'s <span>lazy load resumption steps</span> to null.</p></li>
-
-   <li><p>Invoke <var>resumptionSteps</var>.</p></li>
-  </ol>
-  </div>
 
   <hr> <!-- FALLBACK -->
 
@@ -37459,60 +37490,66 @@ interface <dfn interface>HTMLVideoElement</dfn> : <span>HTMLMediaElement</span> 
   <div w-nodev>
 
   <div algorithm>
-  <p>If the specified resource is to be used, then, when the element is created or when the <code
-  data-x="attr-video-poster">poster</code> attribute is set, changed, or removed, the user agent must
-  run the following steps to determine the element's <dfn>poster frame</dfn> (regardless of the
-  value of the element's <span>show poster flag</span>):</p> <!-- thus it is unaffected by changes
-  to the base URL. -->
+  <p>When a <code>video</code> element is created, if the resource specified by its <code
+  data-x="attr-video-poster">poster</code> attribute is to be used, then <span>determine a video's
+  poster frame</span> given the element.</p>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>determine a video's poster frame</dfn> given a <code>video</code> element
+  <var>element</var>, run the following steps to determine its <dfn>poster frame</dfn> (regardless
+  of the value of its <span>show poster flag</span>):</p>
+  <!-- Changes to the base URL do not trigger this processing. -->
 
   <ol>
-   <li><p>If there is an existing instance of this algorithm running for this <code>video</code>
-   element, abort that instance of this algorithm without changing the <span>poster
+   <li><p>If there is an existing instance of this algorithm running for <var>element</var>, then
+   abort that instance of this algorithm without changing the <span>poster
    frame</span>.</p></li>
 
-   <li><p>If the <code data-x="attr-video-poster">poster</code> attribute's value is the empty string
-   or if the attribute is absent:</p>
+   <li>
+    <p>If <var>element</var>'s <code data-x="attr-video-poster">poster</code> attribute's value is
+    the empty string or if the attribute is absent:</p>
 
-   <ol>
-    <li><p>Set the <code>video</code> element's <span>poster lazy load resumption steps</span> to
-    null.</p></li>
+    <ol>
+     <li><p>Set <var>element</var>'s <span>poster lazy load resumption steps</span> to
+     null.</p></li>
 
-    <li><p>There is no <span>poster frame</span>; return.</p></li>
-   </ol>
+     <li><p>There is no <span>poster frame</span>; return.</p></li>
+    </ol>
    </li>
 
-   <li><p>Let <var>url</var> be the result of <span>encoding-parsing a URL</span> given the <code
-   data-x="attr-video-poster">poster</code> attribute's value, relative to the element's <span>node
-   document</span>.</p></li>
+   <li><p>Let <var>url</var> be the result of <span>encoding-parsing a URL</span> given
+   <var>element</var>'s <code data-x="attr-video-poster">poster</code> attribute's value, relative
+   to <var>element</var>'s <span>node document</span>.</p></li>
 
    <li><p>If <var>url</var> is failure, then return. <span class="note">There is no <span>poster
    frame</span>.</span></p></li>
 
    <li><p>Let <var>request</var> be a new <span data-x="concept-request">request</span> whose <span
    data-x="concept-request-url">URL</span> is <var>url</var>, <span
-   data-x="concept-request-client">client</span> is the element's <span>node document</span>'s
-   <span>relevant settings object</span>, <span
+   data-x="concept-request-client">client</span> is <var>element</var>'s <span>node
+   document</span>'s <span>relevant settings object</span>, <span
    data-x="concept-request-destination">destination</span> is "<code data-x="">image</code>", <span
    data-x="concept-request-initiator-type">initiator type</span> is "<code data-x="">video</code>",
    <span data-x="concept-request-credentials-mode">credentials mode</span> is "<code
    data-x="">include</code>", and whose <span>use-URL-credentials flag</span> is set.</p></li>
 
-   <li><p>If the <span>will lazy load element steps</span> given the <code>video</code> return
-   true:</p>
+   <li>
+    <p>If the <span>will lazy load element steps</span> given <var>element</var> return true:</p>
 
-   <ol>
-    <li><p>Let <var>posterResumptionSteps</var> be the rest of this algorithm starting with the step
-    labeled <i>Fetch</i>.</p></li>
+    <ol>
+     <li><p>Let <var>posterResumptionSteps</var> be the rest of this algorithm starting with the
+     step labeled <i>Fetch</i>.</p></li>
 
-    <li><p>Set the <code>video</code> element's <span>poster lazy load resumption steps</span> to
-    <var>posterResumptionSteps</var>.</p></li>
+     <li><p>Set <var>element</var>'s <span>poster lazy load resumption steps</span> to
+     <var>posterResumptionSteps</var>.</p></li>
 
-    <li><p>Return.</p></li>
-   </ol>
+     <li><p>Return.</p></li>
+    </ol>
    </li>
 
    <li><p><!--FETCH--><span data-x="concept-fetch">Fetch</span> <var>request</var>. This must
-   <span>delay the load event</span> of the element's <span>node document</span>.</p></li>
+   <span>delay the load event</span> of <var>element</var>'s <span>node document</span>.</p></li>
 
    <!-- could define how to sniff for an image here -->
 
@@ -38184,24 +38221,6 @@ interface <dfn interface>HTMLTrackElement</dfn> : <span>HTMLElement</span> {
 
   <p>The element has an associated <dfn>track URL</dfn> (a string), initially the empty string.</p>
 
-  <div algorithm>
-  <p>When the element's <code data-x="attr-track-src">src</code> attribute is set, run these steps:
-
-  <ol>
-   <li><p>Let <var>trackURL</var> be failure.</p></li>
-
-   <li><p>Let <var>value</var> be the element's <code data-x="attr-track-src">src</code> attribute
-   value.</p></li>
-
-   <li><p>If <var>value</var> is not the empty string, then set <var>trackURL</var> to the result of
-   <span>encoding-parsing-and-serializing a URL</span> given <var>value</var>, relative to the
-   element's <span>node document</span>.</p></li>
-
-   <li><p>Set the element's <span>track URL</span> to <var>trackURL</var> if it is not failure;
-   otherwise to the empty string.</p></li>
-  </ol>
-  </div>
-
   </div>
 
   <p>If the element's <span>track URL</span> identifies a WebVTT resource, and the element's <code
@@ -38435,40 +38454,55 @@ interface <dfn interface>HTMLMediaElement</dfn> : <span>HTMLElement</span> {
   loading media resources that are outside the viewport.</p>
 
   <div algorithm>
-  <p>When the <code data-x="attr-media-loading">loading</code> attribute's state is changed to the
-  <span data-x="attr-loading-eager-state">Eager</span> state, the user agent must run these
-  steps:</p>
+  <p>The <span>HTML element attribute change steps</span> for <code>audio</code> and
+  <code>video</code> elements, given <var>element</var>, <var>localName</var>, <var>oldValue</var>,
+  and <var>value</var>, are:</p>
 
   <ol>
-   <li><p>Let <var>resumptionSteps</var> be the <span>media element</span>'s <span>lazy load
+   <li><p>If <var>localName</var> is <code data-x="attr-media-src">src</code> and
+   <var>value</var> is not null, then invoke <var>element</var>'s <span>media element load
+   algorithm</span>.</p></li>
+
+   <li><p>If <var>element</var> is a <code>video</code> element, <var>localName</var> is <code
+   data-x="attr-video-poster">poster</code>, and the specified resource is to be used, then
+   <span>determine a video's poster frame</span> given <var>element</var>.</p></li>
+
+   <li><p>If <var>localName</var> is not <code data-x="attr-media-loading">loading</code>, or
+   <var>oldValue</var> and <var>value</var> are in the same <span>lazy loading attribute</span>
+   state, or <var>value</var> is not in the <span data-x="attr-loading-eager-state">Eager</span>
+   state, then return.</p></li>
+
+   <li><p>Let <var>resumptionSteps</var> be <var>element</var>'s <span>lazy load
    resumption steps</span>.</p></li>
 
    <li><p>Let <var>posterResumptionSteps</var> be null.</p></li>
 
-   <li><p>If the <span>media element</span> is a <code>video</code> element, then set
-   <var>posterResumptionSteps</var> to the <code>video</code> element's <span>poster lazy load
+   <li><p>If <var>element</var> is a <code>video</code> element, then set
+   <var>posterResumptionSteps</var> to <var>element</var>'s <span>poster lazy load
    resumption steps</span>.</p></li>
 
    <li><p>If <var>resumptionSteps</var> is null and <var>posterResumptionSteps</var> is null, then
    return.</p></li>
 
-   <li><p>If <var>resumptionSteps</var> is not null:</p>
+   <li>
+    <p>If <var>resumptionSteps</var> is not null:</p>
 
-   <ol>
-    <li><p>Set the <span>media element</span>'s <span>lazy load resumption steps</span> to null.</p></li>
+    <ol>
+     <li><p>Set <var>element</var>'s <span>lazy load resumption steps</span> to null.</p></li>
 
-    <li><p>Invoke <var>resumptionSteps</var>.</p></li>
-   </ol>
+     <li><p>Invoke <var>resumptionSteps</var>.</p></li>
+    </ol>
    </li>
 
-   <li><p>If <var>posterResumptionSteps</var> is not null:</p>
+   <li>
+    <p>If <var>posterResumptionSteps</var> is not null:</p>
 
-   <ol>
-    <li><p>Set the <code>video</code> element's <span>poster lazy load resumption steps</span> to
-    null.</p></li>
+    <ol>
+     <li><p>Set <var>element</var>'s <span>poster lazy load resumption steps</span> to
+     null.</p></li>
 
-    <li><p>Invoke <var>posterResumptionSteps</var>.</p></li>
-   </ol>
+     <li><p>Invoke <var>posterResumptionSteps</var>.</p></li>
+    </ol>
    </li>
   </ol>
   </div>
@@ -38701,12 +38735,9 @@ interface <dfn interface>MediaError</dfn> {
   algorithm</span>.</p>
   </div>
 
-  <div algorithm>
-  <p>If a <code data-x="attr-media-src">src</code> attribute of a <span>media element</span> is set
-  or changed, the user agent must invoke the <span>media element</span>'s <span>media element load
-  algorithm</span>. (<em>Removing</em> the <code data-x="attr-media-src">src</code> attribute does
-  not do this, even if there are <code>source</code> elements present.)</p>
-  </div>
+  <p class="note">Removing a <span>media element</span>'s <code
+  data-x="attr-media-src">src</code> attribute does not invoke its <span>media element load
+  algorithm</span>, even if there are <code>source</code> elements present.</p>
 
   <div algorithm>
   <p>The <dfn attribute for="HTMLMediaElement"><code
@@ -42939,12 +42970,52 @@ interface <dfn interface>VideoTrack</dfn> {
   attribute value, if any; otherwise the empty string.</p>
   </div>
 
-  <p>As the <code data-x="attr-track-kind">kind</code>, <code data-x="attr-track-label">label</code>,
-  <code data-x="attr-track-srclang">srclang</code>, and <code data-x="attr-id">id</code> attributes
-  are set, changed, or removed, the <span>text track</span> must update accordingly, as per the
-  definitions above.</p>
+  <div algorithm>
+  <p>The <code>track</code> <span>HTML element attribute change steps</span>, given
+  <var>element</var>, <var>localName</var>, <var ignore>oldValue</var>, and <var>value</var>,
+  are:</p>
 
-  <p class="note">Changes to the <span>track URL</span> are handled in the algorithm below.</p>
+  <ol>
+   <li><p>Let <var>track</var> be <var>element</var>'s <span>text track</span>.</p></li>
+
+   <li><p>If <var>localName</var> is <code data-x="attr-track-kind">kind</code>, then set
+   <var>track</var>'s <span>text track kind</span> to the string corresponding to
+   <var>element</var>'s <code data-x="attr-track-kind">kind</code> attribute's state in the
+   table above.</p></li>
+
+   <li><p>If <var>localName</var> is <code data-x="attr-track-label">label</code>, then set
+   <var>track</var>'s <span>text track label</span> to <var>element</var>'s <span>track
+   label</span>.</p></li>
+
+   <li><p>If <var>localName</var> is <code data-x="attr-track-srclang">srclang</code>, then set
+   <var>track</var>'s <span>text track language</span> to <var>element</var>'s <span>track
+   language</span>, if any; otherwise the empty string.</p></li>
+
+   <li><p>If <var>localName</var> is <code data-x="attr-id">id</code>, then set
+   <var>track</var>'s <span>text track identifier</span> to <var>value</var> if it is not null;
+   otherwise the empty string.</p></li>
+
+   <li><p>If <var>localName</var> is not <code data-x="attr-track-src">src</code>, then
+   return.</p></li>
+
+   <li>
+    <p>If <var>value</var> is not null:</p>
+
+    <ol>
+     <li><p>Let <var>trackURL</var> be failure.</p></li>
+
+     <li><p>If <var>value</var> is not the empty string, then set <var>trackURL</var> to the
+     result of <span>encoding-parsing-and-serializing a URL</span> given <var>value</var>, relative
+     to <var>element</var>'s <span>node document</span>.</p></li>
+
+     <li><p>Set <var>element</var>'s <span>track URL</span> to <var>trackURL</var> if it is not
+     failure; otherwise to the empty string.</p></li>
+    </ol>
+   </li>
+
+   <li><p>Empty <var>track</var>'s <span>text track list of cues</span>.</p></li>
+  </ol>
+  </div>
 
   <p>The <span>text track readiness state</span> is initially <span data-x="text track not
   loaded">not loaded</span>, and the <span>text track mode</span> is initially <span data-x="text
@@ -43222,13 +43293,6 @@ interface <dfn interface>VideoTrack</dfn> {
 
    <li><p>Jump to the step labeled <i>top</i>.</p></li>
   </ol>
-  </div>
-
-  <div algorithm>
-  <p>Whenever a <code>track</code> element has its <code data-x="attr-track-src">src</code> attribute
-  set, changed, or removed, the user agent must <span>immediately</span> empty the element's <span>text
-  track</span>'s <span>text track list of cues</span>. (This also causes the algorithm above to stop
-  adding cues from the resource being obtained using the previously given URL, if any.)</p>
   </div>
 
   </div>
@@ -51439,16 +51503,9 @@ interface <dfn interface>HTMLInputElement</dfn> : <span>HTMLElement</span> {
 
   </div>
 
-  <div algorithm>
   <p>The <dfn element-attr for="input"><code data-x="attr-input-value">value</code></dfn> content
   attribute gives the default <span data-x="concept-fe-value">value</span> of the <code>input</code>
-  element. <span w-nodev>When the <code data-x="attr-input-value">value</code> content attribute is
-  added, set, or removed, if the control's <span data-x="concept-fe-dirty">dirty value flag</span>
-  is false, the user agent must set the <span data-x="concept-fe-value">value</span> of the element
-  to the value of the <code data-x="attr-input-value">value</code> content attribute, if there is
-  one, or the empty string otherwise, and then run the current <span>value sanitization
-  algorithm</span>, if one is defined.</span></p>
-  </div>
+  element.</p>
 
   <div w-nodev>
 
@@ -51466,20 +51523,80 @@ interface <dfn interface>HTMLInputElement</dfn> : <span>HTMLElement</span> {
 
   </div>
 
-  <div algorithm>
   <p>The <dfn element-attr for="input"><code data-x="attr-input-checked">checked</code></dfn>
   content attribute is a <span>boolean attribute</span> that gives the default <span
-  data-x="concept-fe-checked">checkedness</span> of the <code>input</code> element. <span
-  w-nodev>When the <code data-x="attr-input-checked">checked</code> content attribute is added, if
-  the control does not have <i data-x="concept-input-checked-dirty">dirty checkedness</i>, the user
-  agent must set the <span data-x="concept-fe-checked">checkedness</span> of the element to true;
-  when the <code data-x="attr-input-checked">checked</code> content attribute is removed, if the
-  control does not have <i data-x="concept-input-checked-dirty">dirty checkedness</i>, the user
-  agent must set the <span data-x="concept-fe-checked">checkedness</span> of the element to
-  false.</span></p>
-  </div>
+  data-x="concept-fe-checked">checkedness</span> of the <code>input</code> element.</p>
 
   <div w-nodev>
+
+  <div algorithm>
+  <p>The <code>input</code> <span>HTML element attribute change steps</span>, given
+  <var>element</var>, <var>localName</var>, <var>oldValue</var>, and <var>value</var>, are:</p>
+
+  <ol>
+   <li>
+    <p>If <var>localName</var> is <code data-x="attr-input-value">value</code> and
+    <var>element</var>'s <span data-x="concept-fe-dirty">dirty value flag</span> is false:</p>
+
+    <ol>
+     <li><p>Set <var>element</var>'s <span data-x="concept-fe-value">value</span> to
+     <var>value</var> if it is not null; otherwise the empty string.</p></li>
+
+     <li><p>Run <var>element</var>'s current <span>value sanitization algorithm</span>, if one
+     is defined.</p></li>
+    </ol>
+   </li>
+
+   <li>
+    <p>If <var>localName</var> is <code data-x="attr-input-checked">checked</code> and
+    <var>element</var>'s <span data-x="concept-input-checked-dirty-flag">dirty checkedness
+    flag</span> is false:</p>
+
+    <ol>
+     <li><p>If <var>oldValue</var> is null and <var>value</var> is not null, then set
+     <var>element</var>'s <span data-x="concept-fe-checked">checkedness</span> to true.</p></li>
+
+     <li><p>Otherwise, if <var>oldValue</var> is not null and <var>value</var> is null, then set
+     <var>element</var>'s <span data-x="concept-fe-checked">checkedness</span> to false.</p></li>
+    </ol>
+   </li>
+
+   <li>
+    <p>If <var>localName</var> is <code data-x="attr-input-type">type</code>:</p>
+
+    <ol>
+     <li><p>Let <var>oldState</var> and <var>newState</var> be the <code
+     data-x="attr-input-type">type</code> attribute's states corresponding to <var>oldValue</var>
+     and <var>value</var>, respectively.</p></li>
+
+     <li><p>If <var>oldState</var> is not <var>newState</var>, then <span>update an input
+     element's type</span> given <var>element</var>, <var>oldState</var>, and
+     <var>newState</var>.</p></li>
+    </ol>
+   </li>
+
+   <li><p>If <var>localName</var> is <code data-x="attr-input-multiple">multiple</code> and
+   <var>element</var>'s <code data-x="attr-input-type">type</code> attribute is in the <span
+   data-x="attr-input-type-email">Email</span> state, then run <var>element</var>'s <span>value
+   sanitization algorithm</span>.</p></li>
+
+   <li>
+    <p>If all of the following are true:</p>
+
+    <ul>
+     <li><p><var>localName</var> is <code data-x="attr-input-alpha">alpha</code> or <code
+     data-x="attr-input-colorspace">colorspace</code>;</p></li>
+
+     <li><p><var>oldValue</var> is not <var>value</var>; and</p></li>
+
+     <li><p><var>element</var>'s <code data-x="attr-input-type">type</code> attribute is in the
+     <span data-x="attr-input-type-color">Color</span> state,</p></li>
+    </ul>
+
+    <p>then run <span>update a color well control color</span> given <var>element</var>.</p>
+   </li>
+  </ol>
+  </div>
 
   <div algorithm>
   <p>The <span data-x="concept-form-reset-control">reset algorithm</span> for <code>input</code>
@@ -51644,67 +51761,65 @@ interface <dfn interface>HTMLInputElement</dfn> : <span>HTMLElement</span> {
   <div id="input-type-change" w-nodev>
 
   <div algorithm>
-  <p>When an <code>input</code> element's <code data-x="attr-input-type">type</code> attribute
-  changes state, the user agent must run the following steps:</p>
+  <p>To <dfn>update an input element's type</dfn> given an <code>input</code> element
+  <var>element</var>, its previous <code data-x="attr-input-type">type</code> state
+  <var>oldState</var>, and its new <code data-x="attr-input-type">type</code> state
+  <var>newState</var>:</p>
 
   <ol>
    <!-- https://software.hixie.ch/utilities/js/live-dom-viewer/?saved=602 -->
 
-   <li><p>If the previous state of the element's <code data-x="attr-input-type">type</code> attribute
-   put the <code data-x="dom-input-value">value</code> IDL attribute in the <i
-   data-x="dom-input-value-value">value</i> mode, and the element's <span
-   data-x="concept-fe-value">value</span> is not the empty string, and the new state of the element's
-   <code data-x="attr-input-type">type</code> attribute puts the <code
-   data-x="dom-input-value">value</code> IDL attribute in either the <i
+   <li><p>If <var>oldState</var> put the <code data-x="dom-input-value">value</code> IDL attribute
+   in the <i data-x="dom-input-value-value">value</i> mode, <var>element</var>'s <span
+   data-x="concept-fe-value">value</span> is not the empty string, and <var>newState</var> puts the
+   <code data-x="dom-input-value">value</code> IDL attribute in either the <i
    data-x="dom-input-value-default">default</i> mode or the <i
-   data-x="dom-input-value-default-on">default/on</i> mode, then set the element's <code
-   data-x="attr-input-value">value</code> content attribute to the element's <span
+   data-x="dom-input-value-default-on">default/on</i> mode, then set <var>element</var>'s <code
+   data-x="attr-input-value">value</code> content attribute to <var>element</var>'s <span
    data-x="concept-fe-value">value</span>.</p></li>
 
-   <li><p>Otherwise, if the previous state of the element's <code
-   data-x="attr-input-type">type</code> attribute put the <code data-x="dom-input-value">value</code>
-   IDL attribute in any mode other than the <i data-x="dom-input-value-value">value</i> mode, and the
-   new state of the element's <code data-x="attr-input-type">type</code> attribute puts the <code
-   data-x="dom-input-value">value</code> IDL attribute in the <i
-   data-x="dom-input-value-value">value</i> mode, then set the <span
-   data-x="concept-fe-value">value</span> of the element to the value of the <code
+   <li><p>Otherwise, if <var>oldState</var> put the <code data-x="dom-input-value">value</code>
+   IDL attribute in any mode other than the <i data-x="dom-input-value-value">value</i> mode, and
+   <var>newState</var> puts the <code data-x="dom-input-value">value</code> IDL attribute in the
+   <i data-x="dom-input-value-value">value</i> mode, then set the <span
+   data-x="concept-fe-value">value</span> of <var>element</var> to the value of its <code
    data-x="attr-input-value">value</code> content attribute, if there is one, or the empty string
-   otherwise, and then set the control's <span data-x="concept-fe-dirty">dirty value flag</span> to
-   false.</p></li>
+   otherwise, and then set <var>element</var>'s <span data-x="concept-fe-dirty">dirty value
+   flag</span> to false.</p></li>
 
    <!-- This step is present for the sake of clarity and safety so that the previous internal value
    can't be accidentally referenced while we're in the type=file state. This step's effect isn't
    (or at least shouldn't be) observable by script, due to the #input-type-change and
    #dom-input-value state machines. -->
-   <li><p>Otherwise, if the previous state of the element's <code
-   data-x="attr-input-type">type</code> attribute put the <code
-   data-x="dom-input-value">value</code> IDL attribute in any mode other than the <i
-   data-x="dom-input-value-filename">filename</i> mode, and the new state of the element's <code
-   data-x="attr-input-type">type</code> attribute puts the <code
+   <li><p>Otherwise, if <var>oldState</var> put the <code data-x="dom-input-value">value</code> IDL
+   attribute in any mode other than the <i
+   data-x="dom-input-value-filename">filename</i> mode, and <var>newState</var> puts the <code
    data-x="dom-input-value">value</code> IDL attribute in the <i
    data-x="dom-input-value-filename">filename</i> mode, then set the <span
-   data-x="concept-fe-value">value</span> of the element to the empty string.</p></li>
+   data-x="concept-fe-value">value</span> of <var>element</var> to the empty string.</p></li>
 
-   <li><p>Update the element's rendering and behavior to the new state's.</p></li>
+   <li><p>Update <var>element</var>'s rendering and behavior to <var>newState</var>'s.</p></li>
 
-   <li><p><dfn>Signal a type change</dfn> for the element. (The <span
+   <li><p><dfn>Signal a type change</dfn> for <var>element</var>. (The <span
    data-x="attr-input-type-radio">Radio Button</span> state uses this, in particular.)</p></li>
 
-   <li><p>Invoke the <span>value sanitization algorithm</span>, if one is defined for the <code
-   data-x="attr-input-type">type</code> attribute's new state.</p></li>
+   <li><p>Invoke the <span>value sanitization algorithm</span> for <var>element</var>, if one is
+   defined for <var>newState</var>.</p></li>
 
    <li><p>Let <var>previouslySelectable</var> be true if <code
    data-x="dom-textarea/input-setRangeText">setRangeText()</code> previously <span
-   data-x="concept-input-apply">applied</span> to the element, and false otherwise.</p></li>
+   data-x="concept-input-apply">applied</span> to <var>element</var> in <var>oldState</var>, and
+   false otherwise.</p></li>
 
    <li><p>Let <var>nowSelectable</var> be true if <code
    data-x="dom-textarea/input-setRangeText">setRangeText()</code> now <span
-   data-x="concept-input-apply">applies</span> to the element, and false otherwise.</p></li>
+   data-x="concept-input-apply">applies</span> to <var>element</var> in <var>newState</var>, and
+   false otherwise.</p></li>
 
-   <li><p>If <var>previouslySelectable</var> is false and <var>nowSelectable</var> is true, set the
-   element's <span data-x="concept-textarea/input-cursor">text entry cursor position</span> to the
-   beginning of the text control, and <span data-x="set the selection direction">set its selection
-   direction</span> to "<code data-x="">none</code>".</p></li>
+   <li><p>If <var>previouslySelectable</var> is false and <var>nowSelectable</var> is true, then set
+   <var>element</var>'s <span data-x="concept-textarea/input-cursor">text entry cursor
+   position</span> to the beginning of the text control, and <span data-x="set the selection
+   direction">set its selection direction</span> to "<code data-x="">none</code>".</p></li>
   </ol>
   </div>
 
@@ -52424,11 +52539,6 @@ interface <dfn interface>HTMLInputElement</dfn> : <span>HTMLElement</span> {
     </div>
    </dd>
   </dl>
-
-  <div algorithm>
-  <p>When the <code data-x="attr-input-multiple">multiple</code> attribute is set or removed, the
-  user agent must run the <span>value sanitization algorithm</span>.</p>
-  </div>
 
   <div algorithm>
   <p>A <dfn id="valid-e-mail-address">valid email address</dfn> is a string that matches the <code
@@ -54010,12 +54120,6 @@ ldh-str       = &lt; as defined in <a href="https://www.rfc-editor.org/rfc/rfc10
   </div>
 
   <div w-nodev>
-
-  <p>Whenever the element's <code data-x="attr-input-alpha">alpha</code> or <code
-  data-x="attr-input-colorspace">colorspace</code> attributes are changed, the user agent must run
-  <span>update a color well control color</span> given the element.</p>
-  <!-- As per the statement earlier in this section this only applies when the type attribute is in
-       the Color state. -->
 
   <p>If the element is <span data-x="concept-fe-mutable">mutable</span>, the user agent should allow the
   user to change the color represented by its <span data-x="concept-fe-value">value</span>, as
@@ -58006,24 +58110,24 @@ interface <dfn interface>HTMLSelectElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
-  <p>Whenever a <code>select</code> element's <code data-x="attr-select-size">size</code> attribute
-  is set, changed, or removed, <span>reset a <code>select</code>'s selectedness</span> given the
-  <code>select</code> element and false.</p>
-  </div>
-
-  <div algorithm>
-  <p>Whenever a <code>select</code> element <var>select</var>'s <code
-  data-x="attr-select-multiple">multiple</code> attribute is added or removed, run these
-  steps:</p>
+  <p>The <code>select</code> <span>HTML element attribute change steps</span>, given
+  <var>element</var>, <var>localName</var>, <var>oldValue</var>, and <var>value</var>, are:</p>
 
   <ol>
-   <li><p>If the <code data-x="attr-select-multiple">multiple</code> attribute was removed, then set
-   the <span data-x="concept-option-selectedness">selectedness</span> of all but the first
-   <code>option</code> element with its <span
-   data-x="concept-option-selectedness">selectedness</span> set to true in <var>select</var>'s <span
-   data-x="concept-select-option-list">list of options</span> to false.</p></li>
+   <li><p>If <var>localName</var> is <code data-x="attr-select-size">size</code>, then
+   <span>reset a <code>select</code>'s selectedness</span> given <var>element</var> and
+   false.</p></li>
 
-   <li><p><span>Reset a <code>select</code>'s selectedness</span> given <var>select</var> and
+   <li><p>If <var>localName</var> is not <code data-x="attr-select-multiple">multiple</code>, or
+   both <var>oldValue</var> and <var>value</var> are not null, then return.</p></li>
+
+   <li><p>If <var>value</var> is null, then set the <span
+   data-x="concept-option-selectedness">selectedness</span> of all but the first
+   <code>option</code> element with its <span
+   data-x="concept-option-selectedness">selectedness</span> set to true in <var>element</var>'s
+   <span data-x="concept-select-option-list">list of options</span> to false.</p></li>
+
+   <li><p><span>Reset a <code>select</code>'s selectedness</span> given <var>element</var> and
    true.</p></li>
   </ol>
 
@@ -58660,11 +58764,14 @@ interface <dfn interface>HTMLOptGroupElement</dfn> : <span>HTMLElement</span> {
   data-x="optgroup-option-group">group of <code>option</code> elements</span> together.</p>
 
   <div algorithm>
-  <p>Whenever an <code>optgroup</code> element's <code
-  data-x="attr-optgroup-disabled">disabled</code> attribute is added or removed, then:</p>
+  <p>The <code>optgroup</code> <span>HTML element attribute change steps</span>, given
+  <var>element</var>, <var>localName</var>, <var>oldValue</var>, and <var>value</var>, are:</p>
 
   <ol>
-   <li><p>Let <var>select</var> be the <code>optgroup</code> element's <span data-x="option element
+   <li><p>If <var>localName</var> is not <code data-x="attr-optgroup-disabled">disabled</code>,
+   or both <var>oldValue</var> and <var>value</var> are not null, then return.</p></li>
+
+   <li><p>Let <var>select</var> be <var>element</var>'s <span data-x="option element
    nearest ancestor select">nearest ancestor <code>select</code></span>.</p></li>
 
    <li><p>If <var>select</var> is null, then return.</p></li>
@@ -58822,21 +58929,6 @@ interface <dfn interface>HTMLOptionElement</dfn> : <span>HTMLElement</span> {
   </ol>
   </div>
 
-  <div algorithm>
-  <p>Whenever an <code>option</code> element's <code data-x="attr-option-disabled">disabled</code>
-  attribute is added or removed, then:</p>
-
-  <ol>
-   <li><p>Let <var>select</var> be the <code>option</code> element's <span>cached nearest ancestor
-   <code>select</code> element</span>.</p></li>
-
-   <li><p>If <var>select</var> is null, then return.</p></li>
-
-   <li><p><span>Reset a <code>select</code>'s selectedness</span> given <var>select</var> and
-   false.</p></li>
-  </ol>
-  </div>
-
   <div w-nodev>
 
   <p>An <code>option</code> element that is <span data-x="attr-option-disabled">disabled</span> must
@@ -58894,46 +58986,6 @@ interface <dfn interface>HTMLOptionElement</dfn> : <span>HTMLElement</span> {
   element is a boolean state, initially false. Except where otherwise specified, when the element is
   created, its <span data-x="concept-option-selectedness">selectedness</span> must be set to true if
   the element has a <code data-x="attr-option-selected">selected</code> attribute.</p>
-  </div>
-
-  <div algorithm>
-  <p>Whenever an <code>option</code> element <var>option</var>'s <code
-  data-x="attr-option-selected">selected</code> attribute is added or removed:</p>
-
-  <ol>
-   <li><p>Let <var>hasChanged</var> be false.</p></li>
-
-   <li>
-    <p>If <var>option</var>'s <span data-x="concept-option-dirtiness">dirtiness</span> is false:</p>
-
-    <ol>
-     <li><p>If the <code data-x="attr-option-selected">selected</code> attribute was added and
-     <var>option</var>'s <span data-x="concept-option-selectedness">selectedness</span> is false,
-     then set <var>option</var>'s <span data-x="concept-option-selectedness">selectedness</span> to
-     true and set <var>hasChanged</var> to true.</p></li>
-
-     <li><p>If the <code data-x="attr-option-selected">selected</code> attribute was removed and
-     <var>option</var>'s <span data-x="concept-option-selectedness">selectedness</span> is true,
-     then set <var>option</var>'s <span data-x="concept-option-selectedness">selectedness</span> to
-     false and set <var>hasChanged</var> to true.</p></li>
-    </ol>
-   </li>
-
-   <li><p>Let <var>select</var> be <var>option</var>'s <span>cached nearest ancestor
-   <code>select</code> element</span>.</p></li>
-
-   <li><p>If <var>select</var> is null, then return.</p></li>
-
-   <li><p><span>Reset a <code>select</code>'s selectedness</span> given <var>select</var> and
-   <var>hasChanged</var>.</p></li>
-  </ol>
-
-  <p class="note">For example, in a <code>select</code> element without a <code
-  data-x="attr-select-multiple">multiple</code> attribute, adding the <code
-  data-x="attr-option-selected">selected</code> attribute to an <code>option</code> that is not
-  selected deselects the <code>option</code> that was. The <span>selectedness setting
-  algorithm</span> then has nothing left to change, so without <var>hasChanged</var> the
-  <code>selectedcontent</code> elements would not be updated.</p>
   </div>
 
   <p class="note">The <code data-x="dom-option">Option()</code> constructor, when called with three
@@ -59023,22 +59075,6 @@ interface <dfn interface>HTMLOptionElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
-  <p>To <dfn>update descendant <code>selectedcontent</code> elements for an
-  <code>option</code></dfn>, given an <code>option</code> element <var>option</var>:</p>
-
-  <ol>
-   <li><p>Let <var>select</var> be <var>option</var>'s <span>cached nearest ancestor
-   <code>select</code> element</span>.</p></li>
-
-   <li><p>If <var>select</var> is null or <var>option</var>'s <span
-   data-x="concept-option-selectedness">selectedness</span> is false, then return.</p></li>
-
-   <li><p><span>Update a <code>select</code>'s descendant <code>selectedcontent</code>
-   elements</span> given <var>select</var>.</p></li>
-  </ol>
-  </div>
-
-  <div algorithm>
   <p>The <code>option</code> <span>HTML element removing steps</span>, given
   <var>removedNode</var>, <var>isSubtreeRoot</var>, and <var>oldAncestor</var>, are:</p>
 
@@ -59063,6 +59099,73 @@ interface <dfn interface>HTMLOptionElement</dfn> : <span>HTMLElement</span> {
    <li><p>For each <var>select</var> of <var>selects</var>: <span>queue a microtask</span> to
    <span>update a <code>select</code>'s descendant <code>selectedcontent</code> elements</span>
    given <var>select</var>.</p></li>
+  </ol>
+  </div>
+
+  <div w-nodev>
+
+  <div algorithm>
+  <p>The <code>option</code> <span>HTML element attribute change steps</span>, given
+  <var>element</var>, <var>localName</var>, <var>oldValue</var>, and <var>value</var>, are:</p>
+
+  <ol>
+   <li><p>If <var>localName</var> is neither <code
+   data-x="attr-option-selected">selected</code> nor <code
+   data-x="attr-option-disabled">disabled</code>, then return.</p></li>
+
+   <li><p>If both <var>oldValue</var> and <var>value</var> are not null, then return.</p></li>
+
+   <li><p>Let <var>hasChanged</var> be false.</p></li>
+
+   <li>
+    <p>If <var>localName</var> is <code data-x="attr-option-selected">selected</code> and
+    <var>element</var>'s <span data-x="concept-option-dirtiness">dirtiness</span> is false:</p>
+
+    <ol>
+     <li><p>If <var>oldValue</var> is null and
+     <var>element</var>'s <span data-x="concept-option-selectedness">selectedness</span> is false,
+     then set <var>element</var>'s <span data-x="concept-option-selectedness">selectedness</span> to
+     true and set <var>hasChanged</var> to true.</p></li>
+
+     <li><p>If <var>value</var> is null and
+     <var>element</var>'s <span data-x="concept-option-selectedness">selectedness</span> is true,
+     then set <var>element</var>'s <span data-x="concept-option-selectedness">selectedness</span> to
+     false and set <var>hasChanged</var> to true.</p></li>
+    </ol>
+   </li>
+
+   <li><p>Let <var>select</var> be <var>element</var>'s <span>cached nearest ancestor
+   <code>select</code> element</span>.</p></li>
+
+   <li><p>If <var>select</var> is null, then return.</p></li>
+
+   <li><p><span>Reset a <code>select</code>'s selectedness</span> given <var>select</var> and
+   <var>hasChanged</var>.</p></li>
+  </ol>
+
+  <p class="note">For example, in a <code>select</code> element without a <code
+  data-x="attr-select-multiple">multiple</code> attribute, adding the <code
+  data-x="attr-option-selected">selected</code> attribute to an <code>option</code> that is not
+  selected deselects the <code>option</code> that was. The <span>selectedness setting
+  algorithm</span> then has nothing left to change, so without <var>hasChanged</var> the
+  <code>selectedcontent</code> elements would not be updated.</p>
+  </div>
+
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>update descendant <code>selectedcontent</code> elements for an
+  <code>option</code></dfn>, given an <code>option</code> element <var>option</var>:</p>
+
+  <ol>
+   <li><p>Let <var>select</var> be <var>option</var>'s <span>cached nearest ancestor
+   <code>select</code> element</span>.</p></li>
+
+   <li><p>If <var>select</var> is null or <var>option</var>'s <span
+   data-x="concept-option-selectedness">selectedness</span> is false, then return.</p></li>
+
+   <li><p><span>Update a <code>select</code>'s descendant <code>selectedcontent</code>
+   elements</span> given <var>select</var>.</p></li>
   </ol>
   </div>
 
@@ -65943,48 +66046,6 @@ interface <dfn interface>HTMLDetailsElement</dfn> : <span>HTMLElement</span> {
   <span>toggle task tracker</span> or null, initially null.</p>
 
   <div algorithm>
-  <p>The following <span data-x="concept-element-attributes-change-ext">attribute change
-  steps</span>, given <var>element</var>, <var>localName</var>, <var>oldValue</var>,
-  <var>value</var>, and <var>namespace</var>, are used for all <code>details</code> elements:</p>
-
-  <ol>
-   <li><p>If <var>namespace</var> is not null, then return.</p></li>
-
-   <li><p>If <var>localName</var> is <code data-x="attr-details-name">name</code>, then <span>ensure
-   details exclusivity by closing the given element if needed</span> given
-   <var>element</var>.</p></li>
-
-   <li><p>If <var>localName</var> is <code data-x="attr-details-open">open</code>:
-    <ol>
-     <li>
-      <p>If one of <var>oldValue</var> or <var>value</var> is null and the other is not null,
-      run the following steps, which are known as the <dfn>details notification task steps</dfn>, for
-      this <code>details</code> element:</p>
-
-      <p class="note">When the <code data-x="attr-details-open">open</code> attribute is toggled
-      several times in succession, the resulting tasks essentially get coalesced so that only one
-      event is fired.</p>
-
-      <ol>
-        <li><p>If <var>oldValue</var> is null, <span>queue a details toggle event task</span> given
-        the <code>details</code> element, "<code data-x="">closed</code>", and "<code
-        data-x="">open</code>".</p></li>
-
-        <li><p>Otherwise, <span>queue a details toggle event task</span> given the
-        <code>details</code> element, "<code data-x="">open</code>", and "<code
-        data-x="">closed</code>".</p></li>
-      </ol>
-     </li>
-
-     <li><p>If <var>oldValue</var> is null and <var>value</var> is not null, then <span>ensure
-     details exclusivity by closing other elements if needed</span> given
-     <var>element</var>.</p></li>
-    </ol>
-   </li>
-  </ol>
-  </div>
-
-  <div algorithm>
   <p>The <code>details</code> <span data-x="html element insertion steps">HTML element insertion
   steps</span>, given <var>insertedNode</var>, are:</p>
 
@@ -65994,8 +66055,45 @@ interface <dfn interface>HTMLDetailsElement</dfn> : <span>HTMLElement</span> {
   </ol>
   </div>
 
-  <p class="note">To be clear, these attribute change and insertion steps also run when an attribute
-  or element is inserted via the parser.</p>
+  <div algorithm>
+  <p>The <code>details</code> <span>HTML element attribute change steps</span>, given
+  <var>element</var>, <var>localName</var>, <var>oldValue</var>, and <var>value</var>, are:</p>
+
+  <ol>
+   <li><p>If <var>localName</var> is <code data-x="attr-details-name">name</code>, then
+   <span>ensure details exclusivity by closing the given element if needed</span> given
+   <var>element</var>.</p></li>
+
+   <li><p>If <var>localName</var> is not <code data-x="attr-details-open">open</code>, then
+   return.</p></li>
+
+   <li>
+    <p>If one of <var>oldValue</var> or <var>value</var> is null and the other is not null,
+    then run the following <dfn>details notification task steps</dfn>:</p>
+
+    <ol>
+     <li><p>If <var>oldValue</var> is null, then <span>queue a details toggle event task</span>
+     given <var>element</var>, "<code data-x="">closed</code>", and
+     "<code data-x="">open</code>".</p></li>
+
+     <li><p>Otherwise, <span>queue a details toggle event task</span> given <var>element</var>,
+     "<code data-x="">open</code>", and "<code data-x="">closed</code>".</p></li>
+    </ol>
+
+    <p class="note">When the <code data-x="attr-details-open">open</code> attribute is toggled
+    several times in succession, the resulting tasks essentially get coalesced so that only one
+    event is fired.</p>
+   </li>
+
+   <li><p>If <var>oldValue</var> is null and <var>value</var> is not null, then <span>ensure
+   details exclusivity by closing other elements if needed</span> given
+   <var>element</var>.</p></li>
+  </ol>
+  </div>
+
+  <p class="note">The <code>details</code> <span>HTML element attribute change steps</span> and
+  <span>HTML element insertion steps</span> also run when an attribute or element is inserted
+  via the parser.</p>
 
   <div algorithm>
   <p>To <dfn>queue a details toggle event task</dfn> given a <code>details</code> element
@@ -67094,33 +67192,24 @@ interface <dfn interface>HTMLDialogElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
-  <p>The following <span data-x="concept-element-attributes-change-ext">attribute change
-  steps</span>, given <var>element</var>, <var>localName</var>, <var>oldValue</var>,
-  <var>value</var>, and <var>namespace</var> are used for <code>dialog</code> elements:</p>
+  <p>The <code>dialog</code> <span>HTML element attribute change steps</span>, given
+  <var>element</var>, <var>localName</var>, <var>oldValue</var>, and <var>value</var>, are:</p>
 
   <ol>
-   <li><p>If <var>namespace</var> is not null, then return.</p></li>
-
    <li><p>If <var>localName</var> is not <code data-x="attr-dialog-open">open</code>, then
    return.</p></li>
 
    <li><p>If <var>value</var> is null and <var>oldValue</var> is not null, then run the
    <span>dialog cleanup steps</span> given <var>element</var>.</p></li>
 
-   <li><p>If <var>element</var>'s <span>node document</span> is not <span>fully active</span>, then
-   return.</p></li>
-
-   <li>
-    <p>If <var>element</var> is not <span>connected</span>, then return.</p>
-
-    <p class=note>This ensures that the dialog setup steps are not run on nodes that are
-    disconnected, which would result in a <span>close watcher</span> being established. The
-    <span>dialog cleanup steps</span> need no such guard.</p>
-   </li>
-
-   <li><p>If <var>value</var> is not null and <var>oldValue</var> is null, then run the
-   <span>dialog setup steps</span> given <var>element</var>.</p></li>
+   <li><p>If <var>value</var> is not null, <var>oldValue</var> is null, <var>element</var> is
+   <span>connected</span>, and <var>element</var>'s <span>node document</span> is <span>fully
+   active</span>, then run the <span>dialog setup steps</span> given <var>element</var>.</p></li>
   </ol>
+
+  <p class="note">The dialog setup steps establish a <span>close watcher</span>, so they only
+  run for connected elements in fully active documents. The dialog cleanup steps need no such
+  guards.</p>
   </div>
 
   <div algorithm>
@@ -68557,14 +68646,6 @@ o............A....e
   </div>
 
   <div algorithm>
-  <p>When an <code data-x="attr-script-async">async</code> attribute is added to a
-  <code>script</code> element <var>el</var>, the user agent must set <var>el</var>'s
-  <span data-x="script-force-async">force async</span> to false.</p>
-  </div>
-  <!-- There's no need to set it to true it when the attribute is removed since you can't have the
-  attribute present and force async = true at the same time. -->
-
-  <div algorithm>
   <p>Whenever a <code>script</code> element <var>el</var>'s <span
   data-x="concept-script-delay-load">delaying the load event</span> is true, the user agent must
   <span>delay the load event</span> of <var>el</var>'s <span>preparation-time document</span>.</p>
@@ -68580,6 +68661,47 @@ o............A....e
    <li><p>If <var>insertedNode</var> is <span>parser-inserted</span>, then return.</p></li>
 
    <li><p><span>Prepare the script element</span> given <var>insertedNode</var>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <code>script</code> <span>HTML element removing steps</span> given <var>removedNode</var>
+  are:</p>
+
+  <ol>
+   <li>
+    <p>If <var>removedNode</var>'s <span data-x="concept-script-result">result</span> is a
+    <span>speculation rules parse result</span>:</p>
+
+    <ol>
+     <li><p><span>Unregister speculation rules</span> given <var>removedNode</var>'s <span>relevant
+     global object</span> and <var>removedNode</var>'s <span
+     data-x="concept-script-result">result</span>.</p></li>
+
+     <li><p>Set <var>removedNode</var>'s <span>already started</span> to false.</p></li>
+
+     <li><p>Set <var>removedNode</var>'s <span data-x="concept-script-result">result</span> to
+     null.</p></li>
+    </ol>
+   </li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>The <code>script</code> <span>HTML element attribute change steps</span>, given
+  <var>element</var>, <var>localName</var>, <var>oldValue</var>, and <var>value</var>, are:</p>
+
+  <ol>
+   <li><p>If <var>localName</var> is <code data-x="attr-script-async">async</code>,
+   <var>oldValue</var> is null, and <var>value</var> is not null, then set
+   <var>element</var>'s <span data-x="script-force-async">force async</span> to false.</p></li>
+   <!-- Removing the attribute need not set force async to true: it cannot be true while the
+        attribute is present. -->
+
+   <li><p>If <var>localName</var> is <code data-x="attr-script-src">src</code>,
+   <var>value</var> is not null, and <var>element</var> is <span>connected</span>, then run the
+   <code>script</code> <span>HTML element post-connection steps</span> given
+   <var>element</var>.</p></li>
   </ol>
   </div>
 
@@ -68608,29 +68730,6 @@ document.body.append(script1, script2);
    Because the second <code>script</code> is no longer <span>connected</span>, its <span>HTML
    element post-connection steps</span> do not run, and it does not get <span data-x="prepare the
    script element">prepared</span>.</p>
-  </div>
-
-  <div algorithm>
-  <p>The <code>script</code> <span>HTML element removing steps</span> given <var>removedNode</var>
-  are:</p>
-
-  <ol>
-   <li>
-    <p>If <var>removedNode</var>'s <span data-x="concept-script-result">result</span> is a
-    <span>speculation rules parse result</span>:</p>
-
-    <ol>
-     <li><p><span>Unregister speculation rules</span> given <var>removedNode</var>'s <span>relevant
-     global object</span> and <var>removedNode</var>'s <span
-     data-x="concept-script-result">result</span>.</p></li>
-
-     <li><p>Set <var>removedNode</var>'s <span>already started</span> to false.</p></li>
-
-     <li><p>Set <var>removedNode</var>'s <span data-x="concept-script-result">result</span> to
-     null.</p></li>
-    </ol>
-   </li>
-  </ol>
   </div>
 
   <div algorithm>
@@ -68685,20 +68784,6 @@ document.body.append(script1, script2);
     <li><p>The <code>script</code> <span>HTML element post-connection steps</span> finally run for
     <code data-x="">innerScript</code>, causing its body to execute.</p></li>
    </ol>
-  </div>
-
-  <div algorithm>
-  <p>The following <span data-x="concept-element-attributes-change-ext">attribute change
-  steps</span>, given <var>element</var>, <var>localName</var>, <var>oldValue</var>,
-  <var>value</var>, and <var>namespace</var>, are used for all <code>script</code> elements:</p>
-
-  <ol>
-   <li><p>If <var>namespace</var> is not null, then return.</p></li>
-
-   <li><p>If <var>localName</var> is <code data-x="attr-script-src">src</code>, <var>value</var> is
-   not null, and <var>element</var> is <span>connected</span>, then run the <code>script</code>
-   <span>HTML element post-connection steps</span>, given <var>element</var>.</p></li>
-  </ol>
   </div>
 
   <div algorithm>
@@ -70773,64 +70858,72 @@ callback <dfn callback>BlobCallback</dfn> = undefined (<span>Blob</span>? blob);
   is the element's <span>natural height</span>, and whose appearance is the element's bitmap.</p>
 
   <div algorithm>
-  <p>Whenever the <code data-x="attr-canvas-width">width</code> and <code
-  data-x="attr-canvas-height">height</code> content attributes are set, removed, changed, or
-  redundantly set to the value they already have, then the user agent must perform the action
-  from the row of the following table that corresponds to the <code>canvas</code> element's <span
-  data-x="concept-canvas-context-mode">context mode</span>.</p>
+  <p>The <code>canvas</code> <span>HTML element attribute change steps</span>, given
+  <var>element</var>, <var>localName</var>, <var ignore>oldValue</var>, and
+  <var ignore>value</var>, are:</p>
 
-  <table>
-   <thead>
-    <tr>
-     <th>
-      <p><span data-x="concept-canvas-context-mode">Context Mode</span></p>
-     <th>
-      <p>Action</p>
+  <ol>
+   <li><p>If <var>localName</var> is neither <code data-x="attr-canvas-width">width</code> nor
+   <code data-x="attr-canvas-height">height</code>, then return.</p></li>
 
-   <tbody>
-    <tr>
-     <th>
-      <p><span data-x="concept-canvas-2d">2d</span></p>
-     <td>
-      <p>Follow the steps to <span data-x="concept-canvas-set-bitmap-dimensions">set bitmap
-      dimensions</span> to <span data-x="obtain-numeric-values">the numeric values</span>
-      of the <code data-x="attr-canvas-width">width</code> and <code
-      data-x="attr-canvas-height">height</code> content attributes.</p>
+   <li>
+    <p>Perform the action from the row of the following table that corresponds to
+    <var>element</var>'s <span data-x="concept-canvas-context-mode">context mode</span>.</p>
 
-    <tr>
-     <th>
-      <p><span data-x="concept-canvas-webgl">webgl</span> or <span
-      data-x="concept-canvas-webgl2">webgl2</span></p>
-     <td>
-      <p>Follow the behavior defined in the WebGL specifications. <ref>WEBGL</ref></p>
+    <table>
+     <thead>
+      <tr>
+       <th>
+        <p><span data-x="concept-canvas-context-mode">Context Mode</span></p>
+       <th>
+        <p>Action</p>
 
-    <tr>
-     <th>
-      <p><span data-x="concept-canvas-webgpu">webgpu</span></p>
-     <td>
-      <p>Follow the behavior defined in <cite>WebGPU</cite>. <ref>WEBGPU</ref></p>
+     <tbody>
+      <tr>
+       <th>
+        <p><span data-x="concept-canvas-2d">2d</span></p>
+       <td>
+        <p>Follow the steps to <span data-x="concept-canvas-set-bitmap-dimensions">set bitmap
+        dimensions</span> to <span data-x="obtain-numeric-values">the numeric values</span>
+        of <var>element</var>'s <code data-x="attr-canvas-width">width</code> and <code
+        data-x="attr-canvas-height">height</code> content attributes.</p>
 
-    <tr>
-     <th>
-      <p><span data-x="concept-canvas-bitmaprenderer">bitmaprenderer</span></p>
-     <td>
-      <p>If the context's <span data-x="concept-ImageBitmapRenderingContext-bitmap-mode">bitmap
-      mode</span> is set to <span data-x="concept-ImageBitmapRenderingContext-blank">blank</span>,
-      run the steps to <span>set an <code>ImageBitmapRenderingContext</code>'s output bitmap</span>,
-      passing the <code>canvas</code> element's rendering context.</p>
+      <tr>
+       <th>
+        <p><span data-x="concept-canvas-webgl">webgl</span> or <span
+        data-x="concept-canvas-webgl2">webgl2</span></p>
+       <td>
+        <p>Follow the behavior defined in the WebGL specifications. <ref>WEBGL</ref></p>
 
-    <tr>
-     <th>
-      <p><span data-x="concept-canvas-placeholder">placeholder</span></p>
-     <td>
-      <p>Do nothing.</p>
+      <tr>
+       <th>
+        <p><span data-x="concept-canvas-webgpu">webgpu</span></p>
+       <td>
+        <p>Follow the behavior defined in <cite>WebGPU</cite>. <ref>WEBGPU</ref></p>
 
-    <tr>
-     <th>
-      <p><span data-x="concept-canvas-none">none</span></p>
-     <td>
-      <p>Do nothing.</p>
-  </table>
+      <tr>
+       <th>
+        <p><span data-x="concept-canvas-bitmaprenderer">bitmaprenderer</span></p>
+       <td>
+        <p>If the context's <span data-x="concept-ImageBitmapRenderingContext-bitmap-mode">bitmap
+        mode</span> is set to <span data-x="concept-ImageBitmapRenderingContext-blank">blank</span>,
+        run the steps to <span>set an <code>ImageBitmapRenderingContext</code>'s output bitmap</span>,
+        passing <var>element</var>'s rendering context.</p>
+
+      <tr>
+       <th>
+        <p><span data-x="concept-canvas-placeholder">placeholder</span></p>
+       <td>
+        <p>Do nothing.</p>
+
+      <tr>
+       <th>
+        <p><span data-x="concept-canvas-none">none</span></p>
+       <td>
+        <p>Do nothing.</p>
+    </table>
+   </li>
+  </ol>
   </div>
 
   <div algorithm>
@@ -88494,16 +88587,16 @@ addShortcutKeyLabel(document.getElementById('c'));</code></pre>
   have an <span>assigned access key</span>.</p>
 
   <div algorithm>
-  <p>Whenever an element's <code data-x="attr-accesskey">accesskey</code> attribute is set, changed,
-  or removed, the user agent must update the element's <span>assigned access key</span> by running
-  the following steps:</p>
+  <p>To <dfn>update the assigned access key</dfn> given an <span data-x="HTML elements">HTML
+  element</span> <var>element</var>:</p>
 
   <ol>
-   <li><p>If the element has no <code data-x="attr-accesskey">accesskey</code> attribute, then skip
-   to the <i>fallback</i> step below.</p></li>
+   <li><p>If <var>element</var> has no <code data-x="attr-accesskey">accesskey</code> attribute,
+   then skip to the <i>fallback</i> step below.</p></li>
 
-   <li><p>Otherwise, <span data-x="split a string on ASCII whitespace">split the attribute's value
-   on ASCII whitespace</span>, and let <var>keys</var> be the resulting tokens.</p></li>
+   <li><p>Otherwise, let <var>keys</var> be the result of <span data-x="split a string on ASCII
+   whitespace">splitting <var>element</var>'s <code data-x="attr-accesskey">accesskey</code>
+   attribute's value on ASCII whitespace</span>.</p></li>
 
    <li>
     <p>For each value in <var>keys</var> in turn, in the order the tokens appeared in the
@@ -88520,15 +88613,16 @@ addShortcutKeyLabel(document.getElementById('c'));</code></pre>
      <!--INSERT TRACKING-->
      If the user agent can find a mix of zero or more modifier keys that, combined with the key that
      corresponds to the value given in the attribute, can be used as the access key, then the user
-     agent may assign that combination of keys as the element's <span>assigned access key</span> and
-     return.</p></li>
+     agent may assign that combination of keys as <var>element</var>'s <span>assigned access
+     key</span> and return.</p></li>
     </ol>
    </li>
 
    <li><p><i>Fallback</i>: Optionally, the user agent may assign a key combination of its choosing
-   as the element's <span>assigned access key</span> and then return.</p></li>
+   as <var>element</var>'s <span>assigned access key</span> and then return.</p></li>
 
-   <li><p>If this step is reached, the element has no <span>assigned access key</span>.</p></li>
+   <li><p>If this step is reached, <var>element</var> has no <span>assigned access
+   key</span>.</p></li>
   </ol>
   </div>
 
@@ -92819,24 +92913,6 @@ dictionary <dfn dictionary>DragEventInit</dfn> : <span>MouseEventInit</span> {
 
    <p>Therefore, when the <span>hint stack parent</span> is not null, it will have an <span>opened
    in popover mode</span> of "<code data-x="">auto</code>".</p>
-  </div>
-
-  <div algorithm>
-  <p>The following <span data-x="concept-element-attributes-change-ext">attribute change
-  steps</span>, given <var>element</var>, <var>localName</var>, <var>oldValue</var>,
-  <var>value</var>, and <var>namespace</var>, are used for all <span>HTML elements</span>:</p>
-
-  <ol>
-   <li><p>If <var>namespace</var> is not null, then return.</p></li>
-
-   <li><p>If <var>localName</var> is not <code data-x="attr-popover">popover</code>, then
-   return.</p></li>
-
-   <li><p>If <var>element</var>'s <span>popover visibility state</span> is in the <span
-   data-x="popover-showing-state">showing state</span> and <var>oldValue</var> and <var>value</var>
-   are in different <span data-x="attr-popover">states</span>, then run the <span>hide popover
-   algorithm</span> given <var>element</var>, true, true, false, and null.</p></li>
-  </ol>
   </div>
 
   <dl class="domintro">
@@ -124918,53 +124994,45 @@ import "https://example.com/foo/../module2.mjs";</code></pre>
   <div w-nodev>
 
   <div algorithm>
-  <p>The following <span data-x="concept-element-attributes-change-ext">attribute change
-  steps</span> are used to synchronize between <span>event handler content attributes</span> and
-  <span>event handlers</span>: <ref>DOM</ref></p>
+  <p>To <dfn>synchronize event handlers</dfn> given an element <var>element</var>, a string
+  <var>name</var>, and a string or null <var>value</var>:</p>
 
   <ol>
-   <li><p>If <var>namespace</var> is not null, or <var>localName</var> is not the name of an <span
-   data-x="event handler content attributes">event handler content attribute</span> on
-   <var>element</var>, then return.</p></li>
-
    <li><p>Let <var>eventTarget</var> be the result of <span>determining the target of an event
-   handler</span> given <var>element</var> and <var>localName</var>.</p></li>
+   handler</span> given <var>element</var> and <var>name</var>.</p></li>
 
    <li><p>If <var>eventTarget</var> is null, then return.</p></li>
 
-   <li><p>If <var>value</var> is null, then <span>deactivate an event handler</span> given
-   <var>eventTarget</var> and <var>localName</var>.</p></li>
-
    <li>
-    <p>Otherwise:</p>
+    <p>If <var>value</var> is null:</p>
 
     <ol>
-     <li><p>If the <span>Should element's inline behavior be blocked by Content Security
-     Policy?</span> algorithm returns "<code data-x="">Blocked</code>" when executed upon
-     <var>element</var>, "<code data-x="">script attribute</code>", and <var>value</var>, then
-     return. <ref>CSP</ref></p></li>
+     <li><p><span>Deactivate an event handler</span> given <var>eventTarget</var> and
+     <var>name</var>.</p></li>
 
-     <li><p>Let <var>handlerMap</var> be <var>eventTarget</var>'s <span>event handler
-     map</span>.</p></li>
-
-     <li><p>Let <var>eventHandler</var> be <var>handlerMap</var>[<var>localName</var>].</p></li>
-
-     <li><p>Let <var>location</var> be the script location that triggered the execution of these
-     steps.</p></li>
-
-     <li><p>Set <var>eventHandler</var>'s <span data-x="event handler value">value</span> to the
-     <span>internal raw uncompiled handler</span> <var>value</var>/<var>location</var>.</p></li>
-
-     <li><p><span>Activate an event handler</span> given <var>eventTarget</var> and
-     <var>localName</var>.</p></li>
+     <li><p>Return.</p></li>
     </ol>
    </li>
-  </ol>
 
-  <p class="note">Per the DOM Standard, these steps are run even if <var>oldValue</var> and
-  <var>value</var> are identical (setting an attribute to its current value), but <em>not</em> if
-  <var>oldValue</var> and <var>value</var> are both null (removing an attribute that doesn't
-  currently exist). <ref>DOM</ref></p>
+   <li><p>If the <span>Should element's inline behavior be blocked by Content Security
+   Policy?</span> algorithm returns "<code data-x="">Blocked</code>" when executed upon
+   <var>element</var>, "<code data-x="">script attribute</code>", and <var>value</var>, then
+   return. <ref>CSP</ref></p></li>
+
+   <li><p>Let <var>handlerMap</var> be <var>eventTarget</var>'s <span>event handler
+   map</span>.</p></li>
+
+   <li><p>Let <var>eventHandler</var> be <var>handlerMap</var>[<var>name</var>].</p></li>
+
+   <li><p>Let <var>location</var> be the script location that triggered the execution of these
+   steps.</p></li>
+
+   <li><p>Set <var>eventHandler</var>'s <span data-x="event handler value">value</span> to the
+   <span>internal raw uncompiled handler</span> (<var>value</var>, <var>location</var>).</p></li>
+
+   <li><p><span>Activate an event handler</span> given <var>eventTarget</var> and
+   <var>name</var>.</p></li>
+  </ol>
   </div>
 
   <hr>
@@ -158242,10 +158310,18 @@ interface <dfn interface>HTMLFrameSetElement</dfn> : <span>HTMLElement</span> {
   are to <span>destroy a child navigable</span> given <var>removedNode</var>.</p>
   </div>
 
-  <p>Whenever a <code>frame</code> element with a non-null <span>content navigable</span> has its
-  <code undefined data-x="attr-frame-src">src</code> attribute set, changed, or removed, the user
-  agent must <span>process the <code>frame</code> attributes</span>.</p> <!-- It doesn't happen
-  when the base URL is changed, though. -->
+  <div algorithm>
+  <p>The <code>frame</code> <span>HTML element attribute change steps</span>, given
+  <var>element</var>, <var>localName</var>, <var ignore>oldValue</var>, and
+  <var ignore>value</var>, are:</p>
+
+  <ol>
+   <li><p>If <var>localName</var> is <code undefined data-x="attr-frame-src">src</code> and
+   <var>element</var>'s <span>content navigable</span> is not null, then <span>process the
+   <code>frame</code> attributes</span> for <var>element</var>.</p></li>
+   <!-- Changes to the base URL do not trigger this processing. -->
+  </ol>
+  </div>
 
   <div algorithm>
   <p>To <dfn>process the <code>frame</code> attributes</dfn> for an element <var>element</var>, with
