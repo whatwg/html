@@ -1797,13 +1797,24 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
    run the corresponding <span>HTML element insertion steps</span> given
    <var>insertedNode</var>.</p></li>
 
-   <li>
-    <p>If <var>insertedNode</var> is a <span>form-associated element</span> or the ancestor of a
-    <span>form-associated element</span>:</p>
+   <li><p>If <var>insertedNode</var> is a <span>form-associated element</span> and its <span>parser
+   inserted flag</span> is unset, then <span>reset the form owner</span> of
+   <var>insertedNode</var>.</p></li>
 
-    <p>If the <span>form-associated element</span>'s <span>parser inserted flag</span> is not set,
-    then <span>reset the form owner</span> of the <span>form-associated element</span>.</p>
+   <li>
+    <p>If <var>insertedNode</var> is an <code>Element</code> with an <span
+    data-x="concept-id">ID</span> and is <span>connected</span>, then <span>reset the form owners
+    with a form attribute</span> given <var>insertedNode</var>'s <span>root</span> and null.</p>
+
+    <p class="note">This does not affect <span data-x="form-associated element">form-associated
+    elements</span> that are inserted along with <var>insertedNode</var> and whose insertion steps
+    have not yet run, as their <span>form attribute tracked</span> is false. They reset their own
+    <span>form owner</span> in their own insertion steps.</p>
    </li>
+
+   <li><p>If <var>insertedNode</var> is a <span>form-associated custom element</span>, then
+   <span>update a form-associated custom element's disabledness</span> given
+   <var>insertedNode</var>.</p></li>
 
    <li><p>If <var>insertedNode</var> is an <code>Element</code> that is not on the
    <span>stack of open elements</span> of an <span>HTML parser</span>, then
@@ -1855,9 +1866,50 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
    run the corresponding <span>HTML element removing steps</span> given <var>removedNode</var>,
    <var>isSubtreeRoot</var>, and <var>oldAncestor</var>.</p></li>
 
-   <li><p>If <var>removedNode</var> is a <span>form-associated element</span> with a non-null
-   <span>form owner</span> and <var>removedNode</var> and its <span>form owner</span> are no longer
-   in the same <span>tree</span>, then <span>reset the form owner</span> of
+   <li>
+    <p>If <var>removedNode</var> is a <code>form</code> element:</p>
+
+    <ol>
+     <li><p>Let <var>associatedElements</var> be the list of <span data-x="form-associated
+     element">form-associated elements</span> whose <span>form owner</span> is
+     <var>removedNode</var> and that are not in the same <span>tree</span> as
+     <var>removedNode</var>, in <span>shadow-including tree order</span>.</p></li>
+
+     <li><p>For each <var>element</var> of <var>associatedElements</var>, <span>reset the form
+     owner</span> of <var>element</var>.</p></li>
+    </ol>
+
+    <p class="note"><span data-x="form-associated element">Form-associated elements</span> that are
+    removed along with <var>removedNode</var> are handled by the next step instead.</p>
+   </li>
+
+   <li>
+    <p>If <var>removedNode</var> is a <span>form-associated element</span> and any of the following
+    are true:</p>
+
+    <ul>
+     <li><p><var>removedNode</var>'s <span>form attribute tracked</span> is true; or</p></li>
+
+     <li><p><var>removedNode</var>'s <span>form owner</span> is non-null, and <var>removedNode</var>
+     and its <span>form owner</span> are no longer in the same <span>tree</span>,</p></li>
+    </ul>
+
+    <p>then <span>reset the form owner</span> of <var>removedNode</var>.</p>
+   </li>
+
+   <li>
+    <p>If <var>removedNode</var> is an <code>Element</code> with an <span
+    data-x="concept-id">ID</span> and <var>oldAncestor</var> is <span>connected</span>, then
+    <span>reset the form owners with a form attribute</span> given <var>oldAncestor</var>'s
+    <span>root</span> and null.</p>
+
+    <p class="note"><span data-x="form-associated element">Form-associated elements</span> that are
+    removed along with <var>removedNode</var> are no longer in that <span>tree</span>. They reset
+    their own <span>form owner</span> in their own removing steps.</p>
+   </li>
+
+   <li><p>If <var>removedNode</var> is a <span>form-associated custom element</span>, then
+   <span>update a form-associated custom element's disabledness</span> given
    <var>removedNode</var>.</p></li>
 
    <li><p>If <var>removedNode</var>'s <code data-x="attr-popover">popover</code> attribute is not in
@@ -1868,8 +1920,8 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
 
   <div algorithm>
   <p>The <span data-x="concept-node-move-ext">moving steps</span> for the HTML Standard, given
-  <var>movedNode</var>, <var>isSubtreeRoot</var>, and <var>oldAncestor</var>, are defined as the
-  following:</p>
+  <var>movedNode</var>, <var>isSubtreeRoot</var>, <var>oldAncestor</var>, and
+  <var>subtreeRoot</var>, are defined as the following:</p>
 
   <ol>
    <li><p>If <var>movedNode</var> is an element whose <span
@@ -1879,10 +1931,84 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
    element moving steps</span> given <var>movedNode</var>, <var>isSubtreeRoot</var>, and
    <var>oldAncestor</var>.</p></li>
 
-   <li><p>If <var>movedNode</var> is a <span>form-associated element</span> with a non-null
-   <span>form owner</span> and <var>movedNode</var> and its <span>form owner</span> are no longer in
-   the same <span>tree</span>, then <span>reset the form owner</span> of
+   <li>
+    <p>If <var>movedNode</var> is a <code>form</code> element:</p>
+
+    <ol>
+     <li><p>Let <var>associatedElements</var> be the list of <span data-x="form-associated
+     element">form-associated elements</span> whose <span>form owner</span> is <var>movedNode</var>
+     and that are not <span data-x="shadow-including inclusive descendant">shadow-including
+     inclusive descendants</span> of <var>subtreeRoot</var>, in <span>shadow-including tree
+     order</span>.</p></li>
+
+     <li><p>For each <var>element</var> of <var>associatedElements</var>, <span>reset the form
+     owner</span> of <var>element</var>.</p></li>
+    </ol>
+
+    <p class="note"><span data-x="form-associated element">Form-associated elements</span> that are
+    moved along with <var>movedNode</var> are handled by the next step instead.</p>
+   </li>
+
+   <li>
+    <p>If <var>movedNode</var> is a <span>form-associated element</span>, and either
+    <var>movedNode</var>'s <span>parser inserted flag</span> is unset or <var>movedNode</var>'s
+    <span>form owner</span> is not a <span>shadow-including inclusive descendant</span> of
+    <var>subtreeRoot</var>, then <span>reset the form owner</span> of <var>movedNode</var>.</p>
+
+    <p class="note">This means that moving a <span>form-associated element</span>, or one of its
+    ancestors, into a different <code>form</code> element changes its <span>form owner</span>. An
+    element that the <span>HTML parser</span> associated with a <code>form</code> element that is
+    not its ancestor keeps that association if they are moved together, and loses it if only one of
+    them is moved.</p>
+
+    <p class="note">DOM runs these steps for a node after it enqueues that node's <code
+    data-x="">connectedMoveCallback</code>, so a <span>form-associated custom element</span>'s <code
+    data-x="">formAssociatedCallback</code> for a move is called after its <code
+    data-x="">connectedMoveCallback</code>.</p>
+   </li>
+
+   <li>
+    <p>If <var>movedNode</var> is an <code>Element</code> with an <span
+    data-x="concept-id">ID</span>:</p>
+
+    <ol>
+     <li><p><span>Reset the form owners with a form attribute</span> given <var>movedNode</var>'s
+     <span>root</span> and <var>subtreeRoot</var>.</p></li>
+
+     <li><p>If <var>oldAncestor</var>'s <span>root</span> is not <var>movedNode</var>'s
+     <span>root</span>, then <span>reset the form owners with a form attribute</span> given
+     <var>oldAncestor</var>'s <span>root</span> and <var>subtreeRoot</var>.</p></li>
+    </ol>
+
+    <p class="note"><span data-x="form-associated element">Form-associated elements</span> that are
+    moved along with <var>movedNode</var> are excluded, as they reset their own <span>form
+    owner</span> in their own moving steps.</p>
+   </li>
+
+   <li><p>If <var>movedNode</var> is a <span>form-associated custom element</span>, then
+   <span>update a form-associated custom element's disabledness</span> given
    <var>movedNode</var>.</p></li>
+
+   <li>
+    <p>If <var>isSubtreeRoot</var> is true and <var>movedNode</var> is a <code>legend</code>
+    element:</p>
+
+    <ol>
+     <li><p>If <var>oldAncestor</var> is a <code>fieldset</code> element, then <span>update the
+     disabledness of a fieldset's descendants</span> given <var>oldAncestor</var> and
+     <var>movedNode</var>.</p></li>
+
+     <li><p>If <var>movedNode</var>'s <span>parent</span> is a <code>fieldset</code> element, then
+     <span>update the disabledness of a fieldset's descendants</span> given <var>movedNode</var>'s
+     <span>parent</span> and <var>movedNode</var>.</p></li>
+    </ol>
+
+    <p class="note">Moving a <code>legend</code> element can change which form controls are exempt
+    from a <code>fieldset</code> element's <code data-x="attr-fieldset-disabled">disabled</code>
+    attribute, and moving does not run the <span>children changed steps</span>. The moved
+    <code>legend</code> element's descendants are excluded, as they update their own disabledness in
+    their own moving steps.</p>
+   </li>
   </ol>
   </div>
 
@@ -60677,6 +60803,26 @@ interface <dfn interface>HTMLFieldSetElement</dfn> : <span>HTMLElement</span> {
   </div>
 
   <div algorithm>
+  <p>The <span>children changed steps</span> for <code>fieldset</code> elements are to <span>update
+  the disabledness of a fieldset's descendants</span> given the <code>fieldset</code> element and
+  null.</p>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>update the disabledness of a fieldset's descendants</dfn>, given a
+  <code>fieldset</code> element <var>fieldset</var> and null or an element
+  <var>excludedSubtree</var>: for each <span>form-associated custom element</span>
+  <var>element</var> that is a <span>descendant</span> of <var>fieldset</var>, in <span>tree
+  order</span>, if <var>excludedSubtree</var> is null or <var>element</var> is not a
+  <span>descendant</span> of <var>excludedSubtree</var>, then <span>update a form-associated custom
+  element's disabledness</span> given <var>element</var>.</p>
+
+  <p class="note">These steps account for changes to which <code>legend</code> element is the
+  <code>fieldset</code> element's first <code>legend</code> element child, which can change the
+  disabledness of form controls that were not themselves inserted, removed, or moved.</p>
+  </div>
+
+  <div algorithm>
   <p>The <dfn attribute for="HTMLFieldSetElement"><code
   data-x="dom-fieldset-elements">elements</code></dfn> IDL attribute must return an
   <code>HTMLCollection</code> rooted at the <code>fieldset</code> element, whose filter matches
@@ -61128,6 +61274,15 @@ interface <dfn interface>HTMLSelectedContentElement</dfn> : <span>HTMLElement</s
 
   <p>A <span>form-associated element</span> has an associated <dfn>parser inserted flag</dfn>.</p>
 
+  <p>A <span>form-associated element</span> has a boolean <dfn>form attribute tracked</dfn>,
+  initially false.</p>
+
+  <p class="note">An element's <span>form attribute tracked</span> is true when its <span>form
+  owner</span> was last <span data-x="reset the form owner">reset</span> while it was <span
+  data-x="category-listed">listed</span>, had a <code data-x="attr-fae-form">form</code> attribute,
+  and was <span>connected</span>. Such elements need their <span>form owner</span> reset when <span
+  data-x="concept-id">IDs</span> in their <span>tree</span> change.</p>
+
   <p>A <span>form-associated element</span> is, by default, associated with its <span
   w-nodev>nearest</span> ancestor <code>form</code> element<span w-nodev> (as described
   below)</span>, but, if it is <span data-x="category-listed">listed</span>, may have a <dfn
@@ -61165,29 +61320,41 @@ interface <dfn interface>HTMLSelectedContentElement</dfn> : <span>HTMLElement</s
   </div>
 
   <div algorithm>
-  <p>When a <span data-x="category-listed">listed</span> <span>form-associated element</span>'s
-  <code data-x="attr-fae-form">form</code> attribute is set, changed, or removed, then the user
-  agent must <span>reset the form owner</span> of that element.</p>
+  <p>The following <span data-x="concept-element-attributes-change-ext">attribute change
+  steps</span>, given <var>element</var>, <var>localName</var>, <var>oldValue</var>,
+  <var>value</var>, and <var>namespace</var>, are used for the <code
+  data-x="attr-fae-form">form</code> and <code data-x="attr-id">id</code> attributes. They run after
+  the DOM Standard's <span data-x="concept-element-attributes-change-ext">attribute change
+  steps</span> that update <var>element</var>'s <span data-x="concept-id">ID</span>.</p>
+
+  <ol>
+   <li><p>If <var>namespace</var> is not null, then return.</p></li>
+
+   <li><p>If <var>localName</var> is <code data-x="attr-fae-form">form</code> and <var>element</var>
+   is a <span data-x="category-listed">listed</span> <span>form-associated element</span>, then
+   <span>reset the form owner</span> of <var>element</var>.</p></li>
+
+   <li><p>If <var>localName</var> is <code data-x="attr-id">id</code>, <var>oldValue</var> is not
+   <var>value</var>, and <var>element</var> is <span>connected</span>, then <span>reset the form
+   owners with a form attribute</span> given <var>element</var>'s <span>root</span> and
+   null.</p></li>
+  </ol>
   </div>
+
+  <p class="note">The form owner is also reset by the HTML Standard's <span
+  data-x="concept-node-insert-ext">insertion steps</span>, <span
+  data-x="concept-node-remove-ext">removing steps</span>, and <span
+  data-x="concept-node-move-ext">moving steps</span>.</p>
 
   <div algorithm>
-  <p>When a <span data-x="category-listed">listed</span> <span>form-associated element</span> has a
-  <code data-x="attr-fae-form">form</code> attribute and the <span data-x="concept-id">ID</span> of
-  any of the elements in the <span>tree</span> changes, then the user agent must <span>reset the
-  form owner</span> of that <span>form-associated element</span>.</p>
+  <p>To <dfn>reset the form owners with a form attribute</dfn>, given a node <var>root</var> and
+  null or a node <var>excludedSubtree</var>: for each <span>form-associated element</span>
+  <var>element</var> that is an <span>inclusive descendant</span> of <var>root</var> and whose
+  <span>form attribute tracked</span> is true, in <span>tree order</span>, if
+  <var>excludedSubtree</var> is null or <var>element</var> is not a <span>shadow-including inclusive
+  descendant</span> of <var>excludedSubtree</var>, then <span>reset the form owner</span> of
+  <var>element</var>.</p>
   </div>
-
-  <div algorithm>
-  <p>When a <span data-x="category-listed">listed</span> <span>form-associated element</span> has a
-  <code data-x="attr-fae-form">form</code> attribute and an element with an <span
-  data-x="concept-id">ID</span> is <span data-x="node is inserted into a document">inserted
-  into</span> or <span data-x="node is removed from a document">removed from</span> the
-  <code>Document</code>, or its <span>HTML element moving steps</span> are run, then the user agent
-  must <span>reset the form owner</span> of that <span>form-associated element</span>.</p>
-  </div>
-
-  <p class="note">The form owner is also reset by the <span>HTML element insertion steps</span>,
-  <span>HTML element removing steps</span>, and <span>HTML element moving steps</span>.</p>
 
   <div algorithm>
   <p>To <dfn>reset the form owner</dfn> of a <span>form-associated element</span>
@@ -61195,6 +61362,12 @@ interface <dfn interface>HTMLSelectedContentElement</dfn> : <span>HTMLElement</s
 
   <ol>
    <li><p>Unset <var>element</var>'s <span>parser inserted flag</span>.</p></li>
+
+   <li><p>Set <var>element</var>'s <span>form attribute tracked</span> to true if <var>element</var>
+   is <span data-x="category-listed">listed</span>, has a <code data-x="attr-fae-form">form</code>
+   content attribute, and is <span>connected</span>; otherwise false.</p></li>
+
+   <li><p>Let <var>oldFormOwner</var> be <var>element</var>'s <span>form owner</span>.</p></li>
 
    <li>
     <p>If all of the following are true:</p>
@@ -61232,6 +61405,12 @@ interface <dfn interface>HTMLSelectedContentElement</dfn> : <span>HTMLElement</s
    <li><p>Otherwise, if <var>element</var> has an ancestor <code>form</code> element, then <span
    data-x="concept-form-association">associate</span> <var>element</var> with the nearest such
    ancestor <code>form</code> element.</p></li>
+
+   <li><p>If <var>element</var> is a <span>form-associated custom element</span> and
+   <var>element</var>'s <span>form owner</span> is not <var>oldFormOwner</var>, then <span>enqueue a
+   custom element callback reaction</span> with <var>element</var>, callback name "<code
+   data-x="">formAssociatedCallback</code>", and « <var>element</var>'s <span>form owner</span>
+   ».</p></li>
   </ol>
   </div>
 
@@ -61511,6 +61690,27 @@ form.method === input; // => true</code></pre>
    descendant of that <code>fieldset</code> element's first <code>legend</code> element child, if
    any.</p></li>
   </ul>
+  </div>
+
+  <div algorithm>
+  <p>The following <span data-x="concept-element-attributes-change-ext">attribute change
+  steps</span>, given <var>element</var>, <var>localName</var>, <var>oldValue</var>,
+  <var>value</var>, and <var>namespace</var>, are used for the <code
+  data-x="attr-fe-disabled">disabled</code> attribute of <span data-x="form-associated custom
+  element">form-associated custom elements</span> and the <code
+  data-x="attr-fieldset-disabled">disabled</code> attribute of <code>fieldset</code> elements:</p>
+
+  <ol>
+   <li><p>If <var>localName</var> is not <code data-x="attr-fe-disabled">disabled</code>,
+   <var>namespace</var> is not null, or <var>oldValue</var> and <var>value</var> are both null or
+   both non-null, then return.</p></li>
+
+   <li><p>If <var>element</var> is a <span>form-associated custom element</span>, then <span>update
+   a form-associated custom element's disabledness</span> given <var>element</var>.</p></li>
+
+   <li><p>If <var>element</var> is a <code>fieldset</code> element, then <span>update the
+   disabledness of a fieldset's descendants</span> given <var>element</var> and null.</p></li>
+  </ol>
   </div>
 
   <div w-nodev>
@@ -78856,6 +79056,31 @@ document.body.append(parent);
   data-x="">formResetCallback</code>", and « ».</p>
   </div>
 
+  <p>Each <span>form-associated custom element</span> has a <dfn>last checked disabledness</dfn>, a
+  boolean, initially false.</p>
+
+  <div algorithm>
+  <p>To <dfn>update a form-associated custom element's disabledness</dfn>, given a
+  <span>form-associated custom element</span> <var>element</var>:</p>
+
+  <ol>
+   <li><p>If <var>element</var> is not <span data-x="concept-element-custom">custom</span>, then
+   return.</p></li>
+
+   <li><p>Let <var>disabled</var> be true if <var>element</var> is <span
+   data-x="concept-fe-disabled">disabled</span>; otherwise false.</p></li>
+
+   <li><p>If <var>disabled</var> is <var>element</var>'s <span>last checked disabledness</span>,
+   then return.</p></li>
+
+   <li><p>Set <var>element</var>'s <span>last checked disabledness</span> to
+   <var>disabled</var>.</p></li>
+
+   <li><p><span>Enqueue a custom element callback reaction</span> with <var>element</var>, callback
+   name "<code data-x="">formDisabledCallback</code>", and « <var>disabled</var> ».</p></li>
+  </ol>
+  </div>
+
   <hr>
 
   <div algorithm>
@@ -79743,13 +79968,13 @@ customElements.define("x-foo", class extends HTMLElement {
    <li>
     <p>If <var>element</var> is a <span>form-associated custom element</span>:</p>
     <ol>
-     <li><p><span>Reset the form owner</span> of <var>element</var>. If <var>element</var> is
-     associated with a <code>form</code> element, then
-     <span>enqueue a custom element callback reaction</span> with <var>element</var>, callback
-     name "<code data-x="">formAssociatedCallback</code>", and « the associated <code>form</code>
-     ».</p></li>
+     <li><p><span>Reset the form owner</span> of <var>element</var>.</p></li>
 
-     <li><p>If <var>element</var> is <span data-x="concept-fe-disabled">disabled</span>, then
+     <li><p>Set <var>element</var>'s <span>last checked disabledness</span> to true if
+     <var>element</var> is <span data-x="concept-fe-disabled">disabled</span>; otherwise
+     false.</p></li>
+
+     <li><p>If <var>element</var>'s <span>last checked disabledness</span> is true, then
      <span>enqueue a custom element callback reaction</span> with <var>element</var>, callback name
      "<code data-x="">formDisabledCallback</code>", and « true ».</p></li>
     </ol>
@@ -79820,10 +80045,10 @@ customElements.define("x-foo", class extends HTMLElement {
    data-x="concept-form-reset">reset</span>, its <code data-x="">formResetCallback</code> is
    called.</p></li>
 
-   <li><p>When the <span data-x="concept-fe-disabled">disabled</span> state of a
-   <span>form-associated custom element</span> is changed, its <code
-   data-x="">formDisabledCallback</code> is called, given the new state as an
-   argument.</p></li>
+   <li><p>When the user agent <span data-x="update a form-associated custom element's
+   disabledness">updates the disabledness</span> of a <span>form-associated custom element</span>
+   and its <span data-x="concept-fe-disabled">disabled</span> state has changed, its <code
+   data-x="">formDisabledCallback</code> is called, given the new state as an argument.</p></li>
 
    <li><p>When the user agent updates a <span>form-associated custom element</span>'s value on behalf of
    a user or <span data-x="restore persisted state">as part of navigation</span>, its <code
