@@ -3825,8 +3825,6 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
     <ref>CSSCOLORHDR</ref></p>
 
     <ul class="brief">
-     <li><dfn data-x-href="https://drafts.csswg.org/css-color-hdr/#standard-dynamic-range">standard dynamic range</dfn></li>
-     <li><dfn data-x-href="https://drafts.csswg.org/css-color-hdr/#high-dynamic-range">high dynamic range</dfn></li>
      <li><dfn data-x-href="https://drafts.csswg.org/css-color-hdr/#hdr-headroom">HDR headroom</dfn></li>
      <li>The <dfn data-x-href="https://drafts.csswg.org/css-color-hdr/#propdef-dynamic-range-limit">'dynamic-range-limit'</dfn> property</li>
     </ul>
@@ -76242,9 +76240,10 @@ dictionary <dfn dictionary>ImageBitmapRenderingContextSettings</dfn> {
       data-x="concept-ImageBitmapRenderingContext-output-bitmap">output bitmap</span> to refer
       to the same underlying bitmap data as <var>bitmap</var>, without making a copy.</p>
 
-      <p class="note">The <span data-x="concept-canvas-origin-clean">origin-clean</span> flag of
-      <var>bitmap</var> is included in the bitmap data to be referenced by <var>context</var>'s
-      <span data-x="concept-ImageBitmapRenderingContext-output-bitmap">output bitmap</span>.</p>
+      <p class="note">The <span data-x="concept-canvas-origin-clean">origin-clean</span> flag, color
+      space, and tone mapping of <var>bitmap</var> are included in the bitmap data to be referenced
+      by <var>context</var>'s <span
+      data-x="concept-ImageBitmapRenderingContext-output-bitmap">output bitmap</span>.</p>
      </li>
     </ol>
    </li>
@@ -77011,56 +77010,64 @@ dictionary <dfn dictionary>CanvasToneMapping</dfn> {
   to perform when rendering the context's <span>output bitmap</span> to the output device.</p>
 
   <p>The "<dfn enum-value for="CanvasToneMappingMode"><code
-  data-x="dom-CanvasToneMappingMode-standard">standard</code></dfn>" value indicates that
-  color values within the <span>standard dynamic range</span> of the output device are unchanged,
-  and all other color values are projected in an <span>implementation-defined</span> manner to the
-  standard dynamic range of the output device.</p>
+  data-x="dom-CanvasToneMappingMode-standard">standard</code></dfn>" value indicates that the
+  <span>HDR headroom</span> of the bitmap is 0, and tone mapping does not change its color
+  values.</p>
 
   <div class="example">
    <p>Suppose that the value (1.035, &minus;0.175, &minus;0.140) is written to an <span>output
-   bitmap</span> with color space <span>'srgb'</span>.</p>
+   bitmap</span> with color space <span>'srgb'</span> and tone mapping mode "<code
+   data-x="dom-CanvasToneMappingMode-standard">standard</code>", so that its <span>HDR
+   headroom</span> is 0.</p>
 
    <p>If this is presented to an output device that natively uses the <span>'srgb'</span> color
-   space, then this value will be converted to <span>'srgb'</span> (which is a no-op), then
-   projected to the [0, 1] cubed volume in that space. If the projection is implemented as
-   component-wise clamping, this would result in the <span>'srgb'</span> value (1.0, 0.0, 0.0).</p>
+   space, and whose gamut at 0 stops of <span>HDR headroom</span> is the [0, 1] cubed volume in that
+   space, then this value will be converted to <span>'srgb'</span> (which is a no-op), and it is
+   outside of that gamut. If the projection is implemented as component-wise clamping, this would
+   result in the <span>'srgb'</span> value (1.0, 0.0, 0.0).</p>
 
    <p>If this is presented to an output device that natively uses the <span>'display-p3'</span>
-   color space, then this will be converted to the value (0.948, 0.106, 0.01) in the
-   <span>'display-p3'</span> color space, and no projection will be needed.</p>
+   color space, and whose gamut at 0 stops of <span>HDR headroom</span> is the [0, 1] cubed volume
+   in that space, then this will be converted to the value (0.948, 0.106, 0.01) in the
+   <span>'display-p3'</span> color space, which is inside of that gamut, and no projection will be
+   needed.</p>
   </div>
 
   <p>The "<dfn enum-value for="CanvasToneMappingMode"><code
   data-x="dom-CanvasToneMappingMode-extended">extended</code></dfn>" value indicates that the
-  range of unchanged color values extends to the full <span>high dynamic range</span> of the output
-  device, and all other color values are projected in an <span>implementation-defined</span>
-  manner to that range.</p>
+  <span>HDR headroom</span> of the bitmap is not limited, and tone mapping does not change its
+  color values.</p>
 
   <div class="example">
    <p>Suppose that the value (2.5, &minus;0.15, &minus;0.15) is written to an <span>output
-   bitmap</span> with color space <span>'srgb'</span>.</p>
+   bitmap</span> with color space <span>'srgb-linear'</span> and tone mapping mode "<code
+   data-x="dom-CanvasToneMappingMode-extended">extended</code>".</p>
 
    <p>If this is presented to an output device that natively uses the <span>'srgb'</span> color
-   space and is capable of displaying values in the [0, 4] interval in that color space, then this
-   value will be converted to <span>'srgb'</span> (which is a no-op), then projected to the [0, 4]
-   cubed volume in that space. If the projection is implemented as component-wise clamping, this
-   would result in the <span>'srgb'</span> value (2.5, 0.0, 0.0).</p>
+   space, that has 2 stops of <span>HDR headroom</span>, and whose gamut at that <span>HDR
+   headroom</span> is the [0, 4] cubed volume in <span>'srgb-linear'</span>, then the result's
+   <span>HDR headroom</span> is 2. If the projection is implemented as component-wise clamping,
+   this would result in the <span>'srgb-linear'</span> value (2.5, 0.0, 0.0).</p>
 
    <p>If this is presented to an output device that natively uses the <span>'display-p3'</span>
-   color space and is capable of displaying values in the [0, 2] interval in that color space, then
-   this value will be converted to the value (2.3, 0.545, 0.386) in the <span>'display-p3'</span>
-   color space, and then projected to the [0, 2] cubed volume in that space. If the projection is
-   implemented as component-wise clamping, this would result in the <span>'display-p3'</span> value
-   (2.0, 0.545, 0.386).</p>
+   color space, that has 1 stop of <span>HDR headroom</span>, and whose gamut at that <span>HDR
+   headroom</span> is the [0, 2] cubed volume in <span>'display-p3-linear'</span>, then this value
+   will be converted to the value (2.030, &minus;0.062, &minus;0.105) in the
+   <span>'display-p3-linear'</span> color space, and then projected into that gamut. If the
+   projection is implemented as component-wise clamping, this would result in the
+   <span>'display-p3-linear'</span> value (2.0, 0.0, 0.0).</p>
   </div>
 
   <p>When the canvas's backing store bitmap is rendered to the output device, including when it is
   displayed through a <span data-x="offscreencanvas-placeholder">placeholder <code>canvas</code>
-  element</span> or an <code>ImageBitmapRenderingContext</code>, it must first be <span
-  data-x="concept-canvas-tone-mapping">tone mapped</span> to the output device's <span>HDR
-  headroom</span>, as limited by the <code>canvas</code> element's
-  <span>'dynamic-range-limit'</span> property, and then <span data-x="Converting
-  Colors">converted</span> to the output device's color space.</p>
+  element</span> or an <code>ImageBitmapRenderingContext</code>, it must first be tone mapped,
+  according to its tone mapping, to the output device's <span>HDR headroom</span>, as limited by the
+  <code>canvas</code> element's <span>'dynamic-range-limit'</span> property, and then <span
+  data-x="Converting Colors">converted</span> to the output device's color space. The <span>HDR
+  headroom</span> of the result is the lesser of the bitmap's <span>HDR headroom</span> and the
+  <span>HDR headroom</span> it was tone mapped to. Color values outside the output device's gamut at
+  the result's <span>HDR headroom</span> are projected into that gamut in an
+  <span>implementation-defined</span> manner.</p>
 
   <p class="note">The algorithm for converting between color spaces can be found in the
   <span>Converting Colors</span> section of <cite>CSS Color</cite>. This color space conversion is
