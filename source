@@ -119190,16 +119190,42 @@ document.querySelector("button").addEventListener("click", bound);
    <li><p>Let <var>moduleMap</var> be <var>settingsObject</var>'s <span
    data-x="concept-settings-object-module-map">module map</span>.</p></li>
 
-   <li><p>If <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)] is a <span>module
-   script</span>, run <var>onComplete</var> given <var>moduleMap</var>[(<var>url</var>,
-   <var>moduleType</var>)], and return.</p></li>
+   <li>
+    <p>If <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)] <span
+    data-x="map exists">exists</span>:</p>
 
-   <li><p>If <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)] is a <span>list</span>,
-   <span data-x="list append">append</span> <var>onComplete</var> to
-   <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)], and return.</p></li>
+    <ol>
+     <li><p>Let <var>existingEntry</var> be
+     <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)].</p></li>
+
+     <li>
+      <p>If <var>existingEntry</var>'s <span data-x="module map entry module script">module
+      script</span> is not "<code data-x="">fetching</code>":</p>
+
+      <ol>
+       <li><p><span>Assert</span>: <var>existingEntry</var>'s <span
+       data-x="module map entry module script">module script</span> is a <span>module script</span>
+       and <var>existingEntry</var>'s <span data-x="module map entry on complete callbacks">on
+       complete callbacks</span> <span data-x="list is empty">is empty</span>.</p></li>
+
+       <li><p>Run <var>onComplete</var> given <var>existingEntry</var>'s <span
+       data-x="module map entry module script">module script</span>, and return.</p></li>
+      </ol>
+     </li>
+
+     <li><p><span data-x="list append">Append</span> <var>onComplete</var> to
+     <var>existingEntry</var>'s <span data-x="module map entry on complete callbacks">on complete
+     callbacks</span>, and return.</p></li>
+    </ol>
+   </li>
+
+   <li><p>Let <var>newEntry</var> be a new <span>module map entry</span> whose <span
+   data-x="module map entry module script">module script</span> is "<code
+   data-x="">fetching</code>" and <span data-x="module map entry on complete callbacks">on complete
+   callbacks</span> is « <var>onComplete</var> ».</p></li>
 
    <li><p><span data-x="map set">Set</span> <var>moduleMap</var>[(<var>url</var>,
-   <var>moduleType</var>)] to « <var>onComplete</var> ».</p></li>
+   <var>moduleType</var>)] to <var>newEntry</var>.</p></li>
 
    <li><p>Let <var>request</var> be a new <span data-x="concept-request">request</span> whose
    <span data-x="concept-request-url">URL</span> is <var>url</var>, <span
@@ -119256,14 +119282,12 @@ document.querySelector("button").addEventListener("click", bound);
       <p>then:</p>
 
       <ol>
-       <li><p>Let <var>callbacks</var> be
-       <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)].</p></li>
-
        <li><p><span data-x="map remove">Remove</span>
        <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)].</p></li>
 
        <li><p><span data-x="list iterate">For each</span> <var>callback</var> of
-       <var>callbacks</var>: run <var>callback</var> given null.</p></li>
+       <var>newEntry</var>'s <span data-x="module map entry on complete callbacks">on complete
+       callbacks</span>: run <var>callback</var> given null.</p></li>
 
        <li><p>Return.</p></li>
       </ol>
@@ -119318,14 +119342,15 @@ document.querySelector("button").addEventListener("click", bound);
       </ol>
      </li>
 
-     <li><p>Let <var>callbacks</var> be
-     <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)].</p></li>
+     <li><p>Let <var>callbacks</var> be <var>newEntry</var>'s <span
+     data-x="module map entry on complete callbacks">on complete callbacks</span>.</p></li>
 
      <li>
       <p>If <var>moduleScript</var> is null, then <span data-x="map remove">remove</span>
-      <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)]; otherwise
-      <span data-x="map set">set</span> <var>moduleMap</var>[(<var>url</var>,
-      <var>moduleType</var>)] to <var>moduleScript</var>.</p>
+      <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)]; otherwise set
+      <var>newEntry</var>'s <span data-x="module map entry module script">module script</span> to
+      <var>moduleScript</var> and set <var>newEntry</var>'s <span
+      data-x="module map entry on complete callbacks">on complete callbacks</span> to « ».</p>
 
       <p class="note">It is intentional that the <span>module map</span> is keyed by the <span
       data-x="concept-request-url">request URL</span>, whereas the <span
@@ -122293,11 +122318,30 @@ dictionary <dfn dictionary>PromiseRejectionEventInit</dfn> : <span>EventInit</sp
   data-x="tuple">tuples</span> consisting of a <span>URL record</span> and a <span>string</span>.
   The <span>URL record</span> is the <span data-x="concept-request-url">request URL</span> at which
   the module was fetched, and the <span>string</span> indicates the type of the module (e.g. "<code
-  data-x="">javascript-or-wasm</code>"). The <span>module map</span>'s values are either a
-  <span>module script</span> or a <span>list</span> of algorithms (that are waiting for the fetch to
-  complete).</span> <span data-x="module map">Module maps</span> are used to ensure that imported
+  data-x="">javascript-or-wasm</code>"). The <span>module map</span>'s values are <span
+  data-x="module map entry">module map entries</span>.</span>
+  <span data-x="module map">Module maps</span> are used to ensure that imported
   module scripts are only fetched, parsed, and evaluated once per <code>Document</code> or <a
   href="#workers">worker</a>.</p>
+
+  <div w-nodev>
+  <p>A <dfn>module map entry</dfn> is a <span>struct</span>. It has the following <span
+  data-x="struct item">items</span>:</p>
+
+  <dl>
+   <dt><dfn data-x="module map entry module script">module script</dfn>
+   <dd>Either "<code data-x="">fetching</code>" or a <span>module script</span>
+
+   <dt><dfn data-x="module map entry on complete callbacks">on complete callbacks</dfn>
+   <dd>A <span>list</span> of algorithms, each accepting null (on failure) or a <span>module
+   script</span> (on success)
+  </dl>
+
+  <p>A <span>module map entry</span>'s <span data-x="module map entry module script">module
+  script</span> is "<code data-x="">fetching</code>" if and only if its <span
+  data-x="module map entry on complete callbacks">on complete callbacks</span> is not <span
+  data-x="list is empty">empty</span>.</p>
+  </div>
 
   <div class="example">
    <p>Since <span data-x="module map">module maps</span> are keyed by (URL, module type), the
