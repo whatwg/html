@@ -4955,6 +4955,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
     <ul class="brief">
      <li><dfn data-x-href="https://webassembly.github.io/esm-integration/js-api/index.html#webassembly-module-record">WebAssembly Module Record</dfn></li>
      <li><dfn data-x-href="https://webassembly.github.io/esm-integration/js-api/index.html#parse-a-webassembly-module">parse a WebAssembly module</dfn></li>
+     <li><dfn data-x-href="https://webassembly.github.io/esm-integration/js-api/index.html#create-a-webassembly-module-record">create a WebAssembly Module Record</dfn></li>
     </ul>
    </dd>
 
@@ -119207,8 +119208,17 @@ document.querySelector("button").addEventListener("click", bound);
   </dl>
 
   <p>A <dfn export>module script</dfn> is another type of <span
-  data-x="concept-script">script</span>. It has no additional <span data-x="struct
-  item">items</span>.</p>
+  data-x="concept-script">script</span> that has the following additional <span data-x="struct
+  item">item</span>:</p>
+
+  <dl>
+   <dt>A <dfn for="module script" export data-x="concept-module-script-realm-loaded">realm
+   loaded</dfn> boolean</dt>
+
+   <dd><p>A boolean, initially false, which is true if the script was created by <span>fetch a
+   single module script</span>, for the <span data-x="concept-settings-object-module-map">module
+   map</span> of its <span data-x="concept-script-settings-object">settings object</span>.</p></dd>
+  </dl>
 
   <p><span data-x="module script">Module scripts</span> can be classified into five types:</p>
 
@@ -120242,6 +120252,9 @@ document.querySelector("button").addEventListener("click", bound);
       </ol>
      </li>
 
+     <li><p>If <var>moduleScript</var> is not null, then set <var>moduleScript</var>'s <span
+     data-x="concept-module-script-realm-loaded">realm loaded</span> to true.</p></li>
+
      <li><p>Let <var>callbacks</var> be
      <var>moduleMap</var>[(<var>url</var>, <var>moduleType</var>)].</p></li>
 
@@ -120447,15 +120460,16 @@ document.querySelector("button").addEventListener("click", bound);
 
   <div algorithm>
   <p>To <dfn data-x="creating a WebAssembly module script">create a WebAssembly module script</dfn>,
-  given a <span>byte sequence</span> <var>bodyBytes</var>, an <span>environment settings
-  object</span> <var>settings</var>, a <span>URL</span> <var>baseURL</var>, and a <span>script fetch
-  options</span> <var>options</var>:</p>
+  given a <span>byte sequence</span> or a <code>WebAssembly.Module</code> object
+  <var>bytesOrModule</var>, an <span>environment settings object</span> <var>settings</var>, a
+  <span>URL</span> <var>baseURL</var>, and a <span>script fetch options</span>
+  <var>options</var>:</p>
 
   <ol>
    <li>
-    <p>If <span data-x="concept-environment-noscript">scripting is disabled</span> for
-    <var>settings</var>, then set <var>bodyBytes</var> to the byte sequence 0x00 0x61 0x73 0x6D 0x01
-    0x00 0x00 0x00.</p>
+    <p>If <var>bytesOrModule</var> is a <span>byte sequence</span> and <span
+    data-x="concept-environment-noscript">scripting is disabled</span> for <var>settings</var>, then
+    set <var>bytesOrModule</var> to the byte sequence 0x00 0x61 0x73 0x6D 0x01 0x00 0x00 0x00.</p>
 
     <p class="note">This byte sequence corresponds to an empty WebAssembly module with only the magic
     bytes and version number provided.</p>
@@ -120477,10 +120491,21 @@ document.querySelector("button").addEventListener("click", bound);
    <span data-x="concept-script-error-to-rethrow">error to rethrow</span> to null.</p></li>
 
    <li>
-    <p>Let <var>result</var> be the result of <span data-x="parse a WebAssembly module">parsing a
-    WebAssembly module</span> given <var>bodyBytes</var>,
-    <var>settings</var>'s <span data-x="environment settings object's realm">realm</span>, and
-    <var>script</var>.</p>
+    <p>If <var>bytesOrModule</var> is a <span>byte sequence</span>, then let <var>result</var> be
+    the result of <span data-x="parse a WebAssembly module">parsing a WebAssembly module</span>
+    given <var>bytesOrModule</var>, <var>settings</var>'s <span data-x="environment settings
+    object's realm">realm</span>, and <var>script</var>.</p>
+
+    <p>Otherwise:</p>
+
+    <ol>
+     <li><p><span>Assert</span>: <var>bytesOrModule</var>.[[ModuleRecord]] is null.</p></li>
+
+     <li><p>Let <var>result</var> be the result of <span data-x="create a WebAssembly Module
+     Record">creating a WebAssembly Module Record</span> given <var>bytesOrModule</var>,
+     <var>settings</var>'s <span data-x="environment settings object's realm">realm</span>, and
+     <var>script</var>.</p></li>
+    </ol>
 
     <p class="note">Passing <var>script</var> as the last parameter here ensures
     <var>result</var>.[[HostDefined]] will be <var>script</var>.</p>
@@ -120502,6 +120527,12 @@ document.querySelector("button").addEventListener("click", bound);
 
    <li><p>Return <var>script</var>.</p></li>
   </ol>
+
+  <p class="note">A <code>WebAssembly.Module</code> object is given when one that was loaded through
+  the module system is deserialized, to create a <span>module script</span> for it in the realm it
+  is deserialized in, with the <span data-x="concept-script-base-url">base URL</span> it was loaded
+  from. Such a <span>module script</span> is not <span
+  data-x="concept-module-script-realm-loaded">realm loaded</span>.</p>
   </div>
 
   <p class="note"><cite>WebAssembly JavaScript Interface: ESM Integration</cite> specifies the
