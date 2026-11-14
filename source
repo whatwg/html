@@ -114588,8 +114588,8 @@ new PaymentRequest(&hellip;); // Allowed to use
 
     <p>Each <span data-x="concept-task">task</span> that the <span>networking task source</span>
     places on the <span>task queue</span> while fetching runs must then fill the parser's
-    <span>input byte stream</span> with the fetched bytes and cause the <span>HTML parser</span> to
-    perform the appropriate processing of the input stream.</p>
+    <span>input byte stream</span> with the fetched bytes, cause the <span>HTML parser</span> to
+    perform the appropriate processing of the input stream, and <span>flush pending text</span>.</p>
 
     <p>The first <span data-x="concept-task">task</span> that the <span>networking task
     source</span> places on the <span>task queue</span> while fetching runs must <span>process link
@@ -114684,8 +114684,9 @@ new PaymentRequest(&hellip;); // Allowed to use
     doesn't get eaten itself-->, and switch the <span>HTML parser</span>'s tokenizer to the
     <span>PLAINTEXT state</span>. Each <span data-x="concept-task">task</span> that the
     <span>networking task source</span> places on the <span>task queue</span> while fetching runs
-    must then fill the parser's <span>input byte stream</span> with the fetched bytes and cause the
-    <span>HTML parser</span> to perform the appropriate processing of the input stream.</p>
+    must then fill the parser's <span>input byte stream</span> with the fetched bytes, cause the
+    <span>HTML parser</span> to perform the appropriate processing of the input stream, and
+    <span>flush pending text</span>.</p>
 
     <p><var>document</var>'s <span data-x="document's character encoding">encoding</span> must be
     set to the character encoding used to decode the document during parsing.</p>
@@ -126649,7 +126650,8 @@ document.body.appendChild(frame)</code></pre>
     <span>HTML parser</span> process <var>string</var>, one code point at a time, processing
     resulting tokens as they are emitted, and stopping when the tokenizer reaches the insertion
     point or when the processing of the tokenizer is aborted by the tree construction stage (this
-    can happen if a <code>script</code> end tag token is emitted by the tokenizer).
+    can happen if a <code>script</code> end tag token is emitted by the tokenizer), and then
+    <span>flush pending text</span>.</p>
 
     <p class="note">If the <code data-x="dom-document-write">document.write()</code> method was
     called from script executing inline (i.e. executing because the parser parsed a set of
@@ -144490,6 +144492,11 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   a <span data-x="concept-tree-child">child</span> of the <span
   data-x="insertion-location-target-parent">target parent</span>.</p>
 
+  <p>The <dfn>pending text</dfn> is null or a <span>tuple</span> consisting of an <dfn
+  data-x="pending-text-insertion-location">insertion location</dfn> (an <span>insertion
+  location</span>) and <dfn data-x="pending-text-data">data</dfn> (a string). It is initially
+  null.</p>
+
 
   <h4><dfn>Tokenization</dfn></h4>
 
@@ -147210,8 +147217,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   <hr>
 
   <div algorithm>
-  <p>As each token is emitted from the tokenizer, the user agent must follow the appropriate steps
-  from the following list, known as the <dfn>tree construction dispatcher</dfn>:</p>
+  <p>As each token is emitted from the tokenizer, the user agent must first <span>flush pending
+  text</span> if the token is not a character token, and then follow the appropriate steps from the
+  following list, known as the <dfn>tree construction dispatcher</dfn>:</p>
 
   <dl class="switch">
 
@@ -147747,6 +147755,8 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   <var>namespace</var>:</p>
 
   <ol>
+   <li><p><span>Flush pending text</span>.</p></li>
+
    <li><p>Let <var>element</var> be the result of <span data-x="create an element for the
    token">creating an element for the token</span> given <var>token</var>, <var>namespace</var>,
    and the <span data-x="insertion-location-target-parent">target parent</span> of the
@@ -147891,8 +147901,16 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    <li><p>Let <var>data</var> be the characters passed to the algorithm, or, if no characters were
    explicitly specified, the character of the character token being processed.</p></li>
 
-   <li><p>Let (<var>targetParent</var>, <var>referenceChild</var>) be the <span>adjusted insertion
-   location</span>.</p></li>
+   <li><p>If <var>data</var> is the empty string, then return.</p></li>
+
+   <li><p>Let <var>insertionLocation</var> be the <span>adjusted insertion location</span>.</p></li>
+
+   <li><p>If the parser's <span>pending text</span> is non-null and its <span
+   data-x="pending-text-insertion-location">insertion location</span> is not
+   <var>insertionLocation</var>, then <span>flush pending text</span>.</p></li>
+
+   <li><p>Let (<var>targetParent</var>, <var>referenceChild</var>) be
+   <var>insertionLocation</var>.</p></li>
 
    <li>
     <p>If <var>targetParent</var> is a <code>Document</code> node, then return.</p>
@@ -147905,13 +147923,36 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    <var>referenceChild</var> is non-null and <var>referenceChild</var>'s <span>parent</span> is not
    <var>targetParent</var>, then return.</p></li>
 
+   <li><p>If the parser's <span>pending text</span> is null, then set the parser's <span>pending
+   text</span> to (<var>insertionLocation</var>, <var>data</var>).</p></li>
+
+   <li><p>Otherwise, append <var>data</var> to the parser's <span>pending text</span>'s <span
+   data-x="pending-text-data">data</span>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>flush pending text</dfn>:</p>
+
+  <ol>
+   <li><p>If the parser's <span>pending text</span> is null, then return.</p></li>
+
+   <li><p>Let (<var>insertionLocation</var>, <var>data</var>) be the parser's <span>pending
+   text</span>.</p></li>
+
+   <li><p>Set the parser's <span>pending text</span> to null.</p></li>
+
+   <li><p>Let (<var>targetParent</var>, <var>referenceChild</var>) be
+   <var>insertionLocation</var>.</p></li>
+
    <li><p>Let <var>previousSibling</var> be <var>referenceChild</var>'s <span>previous
    sibling</span> if <var>referenceChild</var> is non-null; otherwise <var>targetParent</var>'s
    <span>last child</span>.</p></li>
 
    <li>
-    <p>If <var>previousSibling</var> is a <code>Text</code> node, then append <var>data</var> to
-    <var>previousSibling</var>'s <span data-x="concept-cd-data">data</span>.</p>
+    <p>If <var>previousSibling</var> is a <code>Text</code> node, then <span>replace data</span> of
+    <var>previousSibling</var> with <var>previousSibling</var>'s <span
+    data-x="concept-cd-data">data</span>'s <span>length</span>, 0, and <var>data</var>.</p>
 
     <p>Otherwise, let <var>text</var> be the result of <span data-x="create a text node">creating a
     text node</span> given <var>targetParent</var>'s <span>node document</span> and <var>data</var>,
@@ -150957,6 +150998,8 @@ document.body.appendChild(text);
     <!-- no need to empty the list, we're leaving the insertion mode and the list is always emptied
     before we reenter the mode -->
 
+    <p><span>Flush pending text</span>.</p>
+
     <p>Switch the <span>insertion mode</span> to the <span>original insertion mode</span> and
     reprocess the token.</p>
    </dd>
@@ -152384,6 +152427,8 @@ document.body.appendChild(text);
 
    <li><p><span>Stop the speculative HTML parser</span> for this HTML parser.</p></li>
 
+   <li><p><span>Flush pending text</span>.</p></li>
+
    <li>
     <p>If the parser's <span>fragment context element</span> is non-null (<span>fragment
     case</span>):</p>
@@ -152436,7 +152481,7 @@ document.body.appendChild(text);
 
    <li><p>Have <var>parser</var>'s tokenizer process the characters in its <span>input
    stream</span>, processing resulting tokens as they are emitted, until it has consumed all of them
-   or the processing of the tokenizer is aborted.</p></li>
+   or the processing of the tokenizer is aborted, and then <span>flush pending text</span>.</p></li>
 
    <li><p>Set <var>parser</var>'s <span>fragment parser running</span> to false.</p></li>
 
