@@ -12450,6 +12450,12 @@ partial interface <dfn id="document" data-lt="">Document</dfn> {
   parsing">stopped</span> or <span data-x="abort a parser">aborted</span>.</p>
   </div>
 
+  <p>A <code>Document</code> has <dfn>active streaming HTML parsers</dfn>, an <span
+  data-x="set">ordered set</span> of <span data-x="HTML parser">HTML parsers</span>, initially
+  empty.</p>
+
+  <p>A <code>Document</code> has a boolean <dfn>destroyed</dfn>, initially false.</p>
+
   <hr>
 
   <p>A <code>Document</code> has a <span>document load timing info</span> <dfn export
@@ -106609,6 +106615,31 @@ interface <dfn interface>NotRestoredReasons</dfn> {
    <li><p><span>Inform the navigation API about child navigable destruction</span> given
    <var>navigable</var>.</p></li>
 
+   <li>
+    <p><span data-x="list iterate">For each</span> <var>descendantNavigable</var> of
+    <var>navigable</var>'s <span data-x="nav-document">active document</span>'s <span>inclusive
+    descendant navigables</span>:</p>
+
+    <ol>
+     <li><p>Let <var>descendantDocument</var> be <var>descendantNavigable</var>'s <span
+     data-x="nav-document">active document</span>.</p></li>
+
+     <li>
+      <p>If <var>descendantDocument</var>'s <span>relevant agent</span> is <var>container</var>'s
+      <span>relevant agent</span>:</p>
+
+      <ol>
+       <li><p>Set <var>descendantDocument</var>'s <span>destroyed</span> to true.</p></li>
+
+       <li><p><span data-x="list iterate">For each</span> <var>parser</var> of <span data-x="list
+       clone">a clone of</span> <var>descendantDocument</var>'s <span>active streaming HTML
+       parsers</span>, if <var>parser</var>'s <span>document destroyed steps</span> are non-null,
+       then run them.</p></li>
+      </ol>
+     </li>
+    </ol>
+   </li>
+
    <li><p><span>Destroy a document and its descendants</span> given <var>navigable</var>'s <span
    data-x="nav-document">active document</span>.</p></li>
 
@@ -115278,6 +115309,12 @@ new PaymentRequest(&hellip;); // Allowed to use
    data-x="concept-agent-event-loop">event loop</span>.</p></li>
 
    <li><p><span data-x="abort a document">Abort</span> <var>document</var>.</p></li>
+
+   <li><p>Set <var>document</var>'s <span>destroyed</span> to true.</p></li>
+
+   <li><p><span data-x="list iterate">For each</span> <var>parser</var> of <span data-x="list
+   clone">a clone of</span> <var>document</var>'s <span>active streaming HTML parsers</span>, if
+   <var>parser</var>'s <span>document destroyed steps</span> are non-null, then run them.</p></li>
 
    <li><p>Set <var>document</var>'s <i data-x="concept-document-salvageable">salvageable</i> state
    to false.</p></li>
@@ -128423,19 +128460,16 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <li><p>Let <var>writeError</var> be null.</p></li>
 
    <li>
-    <p>If <var>referenceChild</var> is non-null, then set <var>parser</var>'s <span>invalid
-    reference child steps</span> to the following steps given a <code>Node</code>
-    <var>child</var>:</p>
+    <p>Let <var>errorStream</var> be the following steps given an exception name
+    <var>name</var>:</p>
 
     <ol>
-     <li><p>If <var>child</var> is not <var>referenceChild</var>, or <var>referenceChild</var>'s
-     <span>parent</span> is <var>target</var>, then return.</p></li>
-
      <li><p>Set <var>parser</var>'s <span>invalid reference child steps</span> to null.</p></li>
 
-     <li><p>Let <var>error</var> be a <span>new</span>
-     <span>"<code>HierarchyRequestError</code>"</span> <code>DOMException</code> created in
-     <var>realm</var>.</p></li>
+     <li><p>Set <var>parser</var>'s <span>document destroyed steps</span> to null.</p></li>
+
+     <li><p>Let <var>error</var> be a <span>new</span> <var>name</var> <code>DOMException</code>
+     created in <var>realm</var>.</p></li>
 
      <li><p>Set <var>writeError</var> to <var>error</var>.</p></li>
 
@@ -128449,6 +128483,26 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
      <li><p><span data-x="abort a fragment parser">Abort</span> <var>parser</var>.</p></li>
     </ol>
    </li>
+
+   <li>
+    <p>If <var>referenceChild</var> is non-null, then set <var>parser</var>'s <span>invalid
+    reference child steps</span> to the following steps given a <code>Node</code>
+    <var>child</var>:</p>
+
+    <ol>
+     <li><p>If <var>child</var> is not <var>referenceChild</var>, or <var>referenceChild</var>'s
+     <span>parent</span> is <var>target</var>, then return.</p></li>
+
+     <li><p>Run <var>errorStream</var> given
+     <span>"<code>HierarchyRequestError</code>"</span>.</p></li>
+    </ol>
+   </li>
+
+   <li><p>Set <var>parser</var>'s <span>document destroyed steps</span> to the following steps: run
+   <var>errorStream</var> given <span>"<code>InvalidStateError</code>"</span>.</p></li>
+
+   <li><p><span data-x="set append">Append</span> <var>parser</var> to <var>parser</var>'s
+   <span>fragment context document</span>'s <span>active streaming HTML parsers</span>.</p></li>
 
    <li>
     <p>Let <var>writeAlgorithm</var> be the following steps given <var>chunk</var>:</p>
@@ -128527,6 +128581,9 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
    <li><p><span data-x="writablestream-set-up">Set up</span> <var>stream</var> with
    <i>writeAlgorithm</i> set to <var>writeAlgorithm</var>, <i>closeAlgorithm</i> set to
    <var>closeAlgorithm</var>, and <i>abortAlgorithm</i> set to <var>abortAlgorithm</var>.</p></li>
+
+   <li><p>If <var>parser</var>'s <span>fragment context document</span>'s <span>destroyed</span> is
+   true, then run <var>parser</var>'s <span>document destroyed steps</span>.</p></li>
 
    <li><p>Return <var>stream</var>.</p></li>
   </ol>
@@ -144430,6 +144487,8 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <p>An <code>Element</code>-or-null <dfn>fragment context element</dfn>, initially null.</p>
 
+  <p>A <code>Document</code>-or-null <dfn>fragment context document</dfn>, initially null.</p>
+
   <p>A boolean <dfn>allow declarative shadow roots</dfn> (initially false).</p>
 
   <p>A boolean <dfn>parser scripting disabled</dfn>, initially true if <span
@@ -144489,6 +144548,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   <span>adjusted insertion location</span> or <span>stream HTML</span> detects that it is no longer
   a <span data-x="concept-tree-child">child</span> of the <span
   data-x="insertion-location-target-parent">target parent</span>.</p>
+
+  <p>An algorithm-or-null <dfn>document destroyed steps</dfn>, initially null. When non-null, they
+  are run when the <span>fragment context document</span> is <span>destroyed</span>.</p>
 
 
   <h4><dfn>Tokenization</dfn></h4>
@@ -152147,6 +152209,11 @@ document.body.appendChild(text);
     case</span>):</p>
 
     <ol>
+     <li><p>Set the parser's <span>document destroyed steps</span> to null.</p></li>
+
+     <li><p><span data-x="list remove">Remove</span> the parser from the parser's <span>fragment
+     context document</span>'s <span>active streaming HTML parsers</span>.</p></li>
+
      <li><p>If the parser's <span>fragment parser close promise</span> is non-null, then resolve
      the parser's <span>fragment parser close promise</span> with undefined and set the parser's
      <span>fragment parser close promise</span> to null.</p></li>
@@ -152450,6 +152517,11 @@ document.body.appendChild(text);
   <p>To <dfn>abort a fragment parser</dfn> given an <span>HTML parser</span> <var>parser</var>:</p>
 
   <ol>
+   <li><p>Set <var>parser</var>'s <span>document destroyed steps</span> to null.</p></li>
+
+   <li><p><span data-x="list remove">Remove</span> <var>parser</var> from <var>parser</var>'s
+   <span>fragment context document</span>'s <span>active streaming HTML parsers</span>.</p></li>
+
    <li><p>If <var>parser</var>'s <span data-x="parser-aborted">aborted</span> is true, then
    return.</p></li>
 
@@ -153508,6 +153580,9 @@ console.assert(container.firstChild instanceof SuperP);
 
    <li><p>Set <var>parser</var>'s <span>fragment context element</span> to <var
    data-x="concept-frag-parse-context">contextElement</var>.</p></li>
+
+   <li><p>Set <var>parser</var>'s <span>fragment context document</span> to
+   <var>contextDocument</var>.</p></li>
 
    <li><p>Set <var>parser</var>'s <span>allow declarative shadow roots</span> to
    <var>allowDeclarativeShadowRoots</var>.</p></li>
