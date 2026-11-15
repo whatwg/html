@@ -141369,10 +141369,11 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   element's end tag (as with other elements), and may consist of any <span
   data-x="syntax-text">text</span>, <span data-x="syntax-charref">character references</span>, <span
   data-x="syntax-cdata">CDATA sections</span> (if the <code>template</code> element's
-  <span>template contents namespace</span> is not the <span>HTML namespace</span>), <span
-  data-x="syntax-elements">elements</span>, and <span data-x="syntax-comments">comments</span>, but
-  the text must not contain the character U+003C LESS-THAN SIGN (&lt;) or an <span
-  data-x="syntax-ambiguous-ampersand">ambiguous ampersand</span>.</p>
+  <span>template contents</span> are parsed in the <span>MathML namespace</span> or the <span>SVG
+  namespace</span>), <span data-x="syntax-elements">elements</span>, and <span
+  data-x="syntax-comments">comments</span>, but the text must not contain the character U+003C
+  LESS-THAN SIGN (&lt;) or an <span data-x="syntax-ambiguous-ampersand">ambiguous
+  ampersand</span>.</p>
 
   <p><span>Raw text elements</span> can have <span data-x="syntax-text">text</span>, though it has <a
   href="#cdata-rcdata-restrictions">restrictions</a> described below.</p>
@@ -144269,10 +144270,13 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
      map</span>[<var>node</var>] <span data-x="map exists">exists</span>, then return
      <var>parser</var>'s <span>parser template namespace map</span>[<var>node</var>].</p></li>
 
+     <li><p>Let <var>fallbackNamespace</var> be the result of <span data-x="resolve a parser
+     context namespace">resolving a parser context namespace</span> given <var>node</var>'s
+     <span>parent</span> and <var>parser</var>.</p></li>
+
      <li><p>Return the result of <span data-x="resolve a template contents namespace">resolving a
-     template contents namespace</span> given <var>node</var> and the result of <span
-     data-x="resolve a parser context namespace">resolving a parser context namespace</span> given
-     <var>node</var>'s <span>parent</span> and <var>parser</var>.</p></li>
+     template contents namespace</span> given <var>node</var> and
+     <var>fallbackNamespace</var>.</p></li>
     </ol>
    </li>
 
@@ -144311,12 +144315,6 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   </div>
 
   <div algorithm>
-  <p>A <code>template</code> element <var>template</var>'s <dfn>template contents namespace</dfn> is
-  the result of <span data-x="resolve a parser context namespace">resolving a parser context
-  namespace</span> given <var>template</var> and null.</p>
-  </div>
-
-  <div algorithm>
   <p>To <dfn>push a template insertion mode</dfn> given a <code>template</code> element
   <var>template</var> and a <span>content namespace</span> <var>namespace</var>:</p>
 
@@ -144330,6 +144328,8 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
    <li><p>Push <var>mode</var> onto the <span>stack of template insertion modes</span> so that it is
    the new <span>current template insertion mode</span>.</p></li>
+
+   <li><p>Switch the <span>insertion mode</span> to <var>mode</var>.</p></li>
   </ol>
   </div>
 
@@ -148840,19 +148840,19 @@ document.body.appendChild(text);
      <li><p>Push <var>template</var> onto the <span>stack of open elements</span> so that it is the
      new <span>current node</span>.</p></li>
 
+     <li><p>Let <var>templateNamespace</var> be the result of <span data-x="resolve a template
+     contents namespace">resolving a template contents namespace</span> given <var>template</var>
+     and <var>fallbackNamespace</var>.</p></li>
+
      <li>
-      <p><span>Push a template insertion mode</span> given <var>template</var> and the result of
-      <span data-x="resolve a template contents namespace">resolving a template contents
-      namespace</span> given <var>template</var> and <var>fallbackNamespace</var>.</p>
+      <p><span>Push a template insertion mode</span> given <var>template</var> and
+      <var>templateNamespace</var>.</p>
 
       <p class="note">Changes that script makes to <var>template</var>'s attributes after this
       point, for example in a <span>customized built-in element</span>'s <code
       data-x="">connectedCallback</code> when <var>template</var> is inserted below, do not affect
       the namespace in which the parser creates <var>template</var>'s contents.</p>
      </li>
-
-     <li><p>Switch the <span>insertion mode</span> to the <span>current template insertion
-     mode</span>.</p></li>
 
      <li><p>If the parser's <span>fragment parser abort requested</span> is true, then
      return.</p></li>
@@ -149057,20 +149057,13 @@ document.body.appendChild(text);
              <li><p>Pop the <span>current template insertion mode</span> off the <span>stack of
              template insertion modes</span>.</p></li>
 
-             <li><p><span>Push a template insertion mode</span> given <var>template</var> and the
-             result of <span data-x="resolve a parser context namespace">resolving a parser context
-             namespace</span> given <var>template</var>'s <span>insertion target</span> and the
-             parser.</p></li>
+             <li><p>Set <var>templateNamespace</var> to the result of <span data-x="resolve a parser
+             context namespace">resolving a parser context namespace</span> given
+             <var>template</var>'s <span>insertion target</span> and the parser.</p></li>
 
-             <li><p>Switch the <span>insertion mode</span> to the <span>current template insertion
-             mode</span>.</p></li>
+             <li><p><span>Push a template insertion mode</span> given <var>template</var> and
+             <var>templateNamespace</var>.</p></li>
             </ol>
-
-            <p class="note">Script that runs while <span data-x="prepare content
-            patching">preparing content patching</span> can close <var>template</var> or open
-            elements inside it using <code data-x="dom-document-write">document.write()</code>, in
-            which case the namespace in which the parser creates <var>template</var>'s contents is
-            left as is.</p>
            </li>
           </ol>
          </li>
@@ -153856,11 +153849,19 @@ console.assert(container.firstChild instanceof SuperP);
    <li><p>Set <var>parser</var>'s <span>insertion target redirection map</span>[<var>root</var>] to
    <var>insertionLocation</var>.</p></li>
 
-   <li><p>If <var data-x="concept-frag-parse-context">contextElement</var> is a
-   <code>template</code> element, then <span>push a template insertion mode</span> for
-   <var>parser</var> given <var data-x="concept-frag-parse-context">contextElement</var> and <var
-   data-x="concept-frag-parse-context">contextElement</var>'s <span>template contents
-   namespace</span>.</p></li>
+   <li>
+    <p>If <var data-x="concept-frag-parse-context">contextElement</var> is a <code>template</code>
+    element:</p>
+
+    <ol>
+     <li><p>Let <var>namespace</var> be the result of <span data-x="resolve a parser context
+     namespace">resolving a parser context namespace</span> given <var
+     data-x="concept-frag-parse-context">contextElement</var> and null.</p></li>
+
+     <li><p><span>Push a template insertion mode</span> for <var>parser</var> given <var
+     data-x="concept-frag-parse-context">contextElement</var> and <var>namespace</var>.</p></li>
+    </ol>
+   </li>
 
    <li>
     <p>Create a start tag token whose name is the local name of
