@@ -87613,11 +87613,11 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
 
    <dd>
     <ol>
-     <li><p>Let <var>focusedElement</var> be the <span>currently focused area of a top-level
-     traversable</span>'s <span>DOM anchor</span>.</p></li>
+     <li><p>Let <var>focusedArea</var> be the <span>currently focused area of a top-level
+     traversable</span>.</p></li>
 
      <li><p>If <var>focus target</var> is a <span>shadow-including inclusive ancestor</span> of
-     <var>focusedElement</var>, then return <var>focusedElement</var>.</p></li>
+     <var>focusedArea</var>'s <span>DOM anchor</span>, then return <var>focusedArea</var>.</p></li>
 
      <li><p>Return the <span>focus delegate</span> for <var>focus target</var> given <var>focus
      trigger</var>.</p></li>
@@ -87735,7 +87735,8 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
   <p>The <dfn export>focusing steps</dfn> for an object <var>new focus target</var> that is either a
   <span>focusable area</span>, or an element that is not a <span>focusable area</span>, or a
   <span>navigable</span>, are as follows. They can optionally be run with a <var>fallback
-  target</var> and a string <var>focus trigger</var>.</p>
+  target</var> and a string <var>focus trigger</var>. They return a boolean indicating whether they
+  ran the <span>focus update steps</span>.</p>
 
   <ol>
    <!-- https://software.hixie.ch/utilities/js/live-dom-viewer/?saved=2816 div.focus() when it's got a scroll region -->
@@ -87750,7 +87751,7 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
     <p>If <var>new focus target</var> is null:</p>
 
     <ol>
-     <li><p>If no <var>fallback target</var> was specified, then return.</p></li>
+     <li><p>If no <var>fallback target</var> was specified, then return false.</p></li>
 
      <li><p>Otherwise, set <var>new focus target</var> to the <var>fallback
      target</var>.</p></li>
@@ -87763,10 +87764,10 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
    <!-- https://software.hixie.ch/utilities/js/live-dom-viewer/?saved=2818 -->
 
    <li><p>If <var>new focus target</var> is a <span>focusable area</span> and its <span>DOM
-   anchor</span> is <span>inert</span>, then return.</p></li>
+   anchor</span> is <span>inert</span>, then return false.</p></li>
 
    <li><p>If <var>new focus target</var> is the <span>currently focused area of a top-level
-   traversable</span>, then return.</p></li>
+   traversable</span>, then return false.</p></li>
 
    <li><p>Let <var>old chain</var> be the <span data-x="current focus chain of a top-level
    traversable">current focus chain of the top-level traversable</span> in which <var>new focus
@@ -87777,6 +87778,8 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
 
    <li><p>Run the <span>focus update steps</span> with <var>old chain</var>, <var>new chain</var>,
    and <var>new focus target</var> respectively.</p></li>
+
+   <li><p>Return true.</p></li>
   </ol>
   </div>
 
@@ -88311,14 +88314,14 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
     <p>If <var>element</var> is a <span>navigable container</span>, moves the focus to its
     <span>content navigable</span> instead.</p>
 
-    <p>By default, this method also scrolls <var>element</var> into view. Providing the <code
-    data-x="dom-focusoptions-preventscroll">preventScroll</code> option and setting it to true
-    prevents this behavior.</p>
+    <p>By default, if the focus moves, this method also scrolls <var>element</var> into view.
+    Providing the <code data-x="dom-focusoptions-preventscroll">preventScroll</code> option and
+    setting it to true prevents this behavior.</p>
 
-    <p>By default, user agents use <span>implementation-defined</span> heuristics to determine
-    whether to <span>indicate focus</span> via a focus ring. Providing the <code
-    data-x="dom-focusoptions-focusvisible">focusVisible</code> option and setting it to true will
-    ensure the focus ring is always visible.</p>
+    <p>By default, if the focus moves, user agents use <span>implementation-defined</span>
+    heuristics to determine whether to <span>indicate focus</span> via a focus ring. Providing the
+    <code data-x="dom-focusoptions-focusvisible">focusVisible</code> option and setting it to true
+    will ensure the focus ring is visible when the focus moves.</p>
    </dd>
 
    <dt><code data-x=""><var>element</var>.<span subdfn data-x="dom-blur">blur</span>()</code></dt>
@@ -88429,17 +88432,20 @@ dictionary <dfn dictionary>CommandEventInit</dfn> : <span>EventInit</span> {
    <li><p>If the <span>allow focus steps</span> given <span>this</span>'s <span>node document</span>
    return false, then return.</p></li>
 
-   <li><p>Run the <span>focusing steps</span> for <span>this</span>.</p></li>
+   <li><p>Let <var>focusUpdated</var> be the result of running the <span>focusing steps</span> for
+   <span>this</span>.</p></li>
 
-   <li><p>If <var>options</var>["<dfn dict-member for="FocusOptions"><code
-   data-x="dom-focusoptions-focusvisible">focusVisible</code></dfn>"] is true, or does not <span
-   data-x="map exists">exist</span> but in an <span>implementation-defined</span> way the user agent
-   determines it would be best to do so, then <span>indicate focus</span>.</p></li>
+   <li><p>If <var>focusUpdated</var> is true, and <var>options</var>["<dfn dict-member
+   for="FocusOptions"><code data-x="dom-focusoptions-focusvisible">focusVisible</code></dfn>"] is
+   true or does not <span data-x="map exists">exist</span> but in an
+   <span>implementation-defined</span> way the user agent determines it would be best to do so,
+   then <span>indicate focus</span>.</p></li>
 
-   <li><p>If <var>options</var>["<dfn dict-member for="FocusOptions"><code
-   data-x="dom-focusoptions-preventscroll">preventScroll</code></dfn>"] is false, then <span>scroll
-   a target into view</span> given <span>this</span>, "<code data-x="">auto</code>", "<code
-   data-x="">center</code>", and "<code data-x="">center</code>".</p></li>
+   <li><p>If <var>focusUpdated</var> is true and <var>options</var>["<dfn dict-member
+   for="FocusOptions"><code data-x="dom-focusoptions-preventscroll">preventScroll</code></dfn>"] is
+   false, then <span>scroll a target into view</span> given <span>this</span>, "<code
+   data-x="">auto</code>", "<code data-x="">center</code>", and "<code
+   data-x="">center</code>".</p></li>
   </ol>
   </div>
 
