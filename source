@@ -57930,6 +57930,16 @@ interface <dfn interface>HTMLSelectElement</dfn> : <span>HTMLElement</span> {
   elements</dfn> given a <code>select</code> element <var>select</var>:</p>
 
   <ol>
+   <li>
+    <p>If <var>select</var> has the <code data-x="attr-select-multiple">multiple</code> attribute
+    and <var>select</var> is on the <span>stack of open elements</span> of an <span>HTML
+    parser</span> or <span>XML parser</span>, then return.</p>
+
+    <p class="note">While such a <code>select</code> element is being parsed, its
+    <code>option</code> elements are not cloned and no microtasks are queued. They are all cloned
+    at once when <var>select</var> is popped off the <span>stack of open elements</span>.</p>
+   </li>
+
    <li><p>If <var>select</var>'s <span data-x="select-pending-selectedcontent-update">pending
    <code>selectedcontent</code> update</span> is true or <var>select</var> has no
    <span>descendant</span> <code>selectedcontent</code> elements, then return.</p></li>
@@ -57952,6 +57962,9 @@ interface <dfn interface>HTMLSelectElement</dfn> : <span>HTMLElement</span> {
        <li><p>Set <var>select</var>'s <span data-x="select-pending-selectedcontent-update">pending
        <code>selectedcontent</code> update</span> to false.</p></li>
 
+       <li><p>If <var>select</var> is on the <span>stack of open elements</span> of an <span>HTML
+       parser</span> or <span>XML parser</span>, then return.</p></li>
+
        <li><p><span>Clone a <code>select</code>'s <code>option</code>s into its descendant
        <code>selectedcontent</code> elements</span> given <var>select</var>.</p></li>
 
@@ -57969,7 +57982,8 @@ interface <dfn interface>HTMLSelectElement</dfn> : <span>HTMLElement</span> {
   <code>selectedcontent</code> elements are updated in the meantime, e.g., by the
   <code>option</code> <span>HTML element post-connection steps</span>. When <var>select</var> has
   the <code data-x="attr-select-multiple">multiple</code> attribute, nothing updates them in the
-  meantime, so the <code>option</code> elements are always cloned in the microtask.</p>
+  meantime, so the <code>option</code> elements are always cloned in the microtask. This means that
+  inserting several <code>option</code> elements one after another only clones them once.</p>
   </div>
 
   <div algorithm>
@@ -58009,8 +58023,8 @@ interface <dfn interface>HTMLSelectElement</dfn> : <span>HTMLElement</span> {
    true.</p></li>
 
    <li><p>If the <code data-x="attr-select-multiple">multiple</code> attribute was added, then
-   <span>clone a <code>select</code>'s <code>option</code>s into its descendant
-   <code>selectedcontent</code> elements</span> given <var>select</var>.</p></li>
+   <span>queue an update of a <code>select</code>'s descendant <code>selectedcontent</code>
+   elements</span> given <var>select</var>.</p></li>
   </ol>
 
   <p class="note">The <code>selectedcontent</code> elements of a <code>select</code> element
@@ -58025,6 +58039,10 @@ interface <dfn interface>HTMLSelectElement</dfn> : <span>HTMLElement</span> {
   has the <code data-x="attr-select-multiple">multiple</code> attribute and is
   <span>connected</span>, then <span>clone a <code>select</code>'s <code>option</code>s into its
   descendant <code>selectedcontent</code> elements</span> given <var>select</var>.</p>
+
+  <p class="note">This is the only time that the <code>option</code> elements of a
+  <code>select</code> element with the <code data-x="attr-select-multiple">multiple</code>
+  attribute are cloned without a microtask.</p>
   </div>
 
   <div algorithm>
@@ -61262,16 +61280,8 @@ interface <dfn interface>HTMLSelectedContentElement</dfn> : <span>HTMLElement</s
 
    <li><p>If <var>selectedcontent</var> is not <span>connected</span>, then return.</p></li>
 
-   <li>
-    <p>If <var>selectedcontent</var>'s <span data-x="selectedcontent-disabled">disabled</span> is
-    true, <var>select</var> is null, or <var>select</var> has the <code
-    data-x="attr-select-multiple">multiple</code> attribute, then return.</p>
-
-    <p class="note">When <var>select</var> has the <code
-    data-x="attr-select-multiple">multiple</code> attribute, <var>selectedcontent</var> is updated
-    by the <code>selectedcontent</code> <span>HTML element post-connection steps</span>
-    instead.</p>
-   </li>
+   <li><p>If <var>selectedcontent</var>'s <span data-x="selectedcontent-disabled">disabled</span> is
+   true or <var>select</var> is null, then return.</p></li>
 
    <li><p><span>Queue an update of a <code>select</code>'s descendant <code>selectedcontent</code>
    elements</span> given <var>select</var>.</p></li>
@@ -61286,25 +61296,17 @@ interface <dfn interface>HTMLSelectedContentElement</dfn> : <span>HTMLElement</s
    <li><p>Let <var>select</var> be <var>selectedcontent</var>'s <span
    data-x="selectedcontent-cached-select">cached <code>select</code></span>.</p></li>
 
-   <li><p>If <var>select</var> is null, then return.</p></li>
-
    <li>
-    <p>If <var>select</var> has the <code data-x="attr-select-multiple">multiple</code>
-    attribute:</p>
+    <p>If <var>select</var> is null, <var>select</var> has the <code
+    data-x="attr-select-multiple">multiple</code> attribute, or <var>select</var>'s <span
+    data-x="select-pending-selectedcontent-update">pending <code>selectedcontent</code>
+    update</span> is false, then return.</p>
 
-    <ol>
-     <li><p>If <var>selectedcontent</var>'s <span
-     data-x="selectedcontent-disabled">disabled</span> is false, then <span>clone multiple
-     <code>option</code>s into a <code>selectedcontent</code></span> given <var>select</var> and
-     <var>selectedcontent</var>.</p></li>
-
-     <li><p>Return.</p></li>
-    </ol>
+    <p class="note">When <var>select</var> has the <code
+    data-x="attr-select-multiple">multiple</code> attribute, its <code>option</code> elements are
+    cloned in the microtask queued by the <code>selectedcontent</code> <span>HTML element
+    insertion steps</span>.</p>
    </li>
-
-   <li><p>If <var>select</var>'s <span
-   data-x="select-pending-selectedcontent-update">pending <code>selectedcontent</code> update</span>
-   is false, then return.</p></li>
 
    <li><p><span>Update a <code>select</code>'s descendant <code>selectedcontent</code>
    elements</span> given <var>select</var>.</p></li>
