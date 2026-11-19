@@ -70045,6 +70045,11 @@ interface <dfn interface>HTMLTemplateElement</dfn> : <span>HTMLElement</span> {
   element that has a <code data-x="attr-template-shadowrootmode">shadowrootmode</code> attribute
   specified.</p>
 
+  <p class="note">The <code data-x="attr-template-contentnamespace">contentnamespace</code>
+  attribute is only consulted during parsing. Changing or removing it afterwards has no effect; use
+  the <code data-x="dom-template-contentNamespace">contentNamespace</code> IDL attribute to inspect
+  or change a <code>template</code> element's <span>template content namespace</span>.</p>
+
   <p>The <dfn element-attr for="template"><code data-x="attr-template-for">for</code></dfn> content
   attribute identifies the <code>ProcessingInstruction</code> that marks the location at which to
   insert content (<code data-x="">&lt;?marker></code>) or the start of the range to replace
@@ -70173,14 +70178,13 @@ interface <dfn interface>HTMLTemplateElement</dfn> : <span>HTMLElement</span> {
    <dt><code data-x=""><var>template</var>.<span subdfn data-x="dom-template-contentNamespace">contentNamespace</span> [ = <var>value</var> ]</code></dt>
 
    <dd>
-    <p>Returns "<code data-x="attr-template-contentnamespace-html">html</code>", "<code
-    data-x="attr-template-contentnamespace-svg">svg</code>", or "<code
-    data-x="attr-template-contentnamespace-mathml">mathml</code>" if the <code
-    data-x="attr-template-contentnamespace">contentnamespace</code> attribute is in the
-    corresponding state; otherwise the empty string.</p>
+    <p>Returns the <span>HTML namespace</span>, the <span>SVG namespace</span>, or the <span>MathML
+    namespace</span>, indicating the namespace in which <var>template</var>'s contents are
+    parsed.</p>
 
-    <p>Can be set, to change the <code
-    data-x="attr-template-contentnamespace">contentnamespace</code> attribute's value.</p>
+    <p>Can be set to one of those three namespace URLs to change <var>template</var>'s
+    <span>template content namespace</span>; throws a <code>TypeError</code> for any other
+    value.</p>
    </dd>
   </dl>
 
@@ -70291,11 +70295,27 @@ interface <dfn interface>HTMLTemplateElement</dfn> : <span>HTMLElement</span> {
   </ol>
   </div>
 
+  <p>Each <code>template</code> element has a <dfn>template content namespace</dfn>, which is the
+  <span>HTML namespace</span>, the <span>SVG namespace</span>, or the <span>MathML namespace</span>,
+  initially the <span>HTML namespace</span>.</p>
+
   <div algorithm>
   <p>The <dfn attribute for="HTMLTemplateElement"><code
-  data-x="dom-template-contentNamespace">contentNamespace</code></dfn> IDL attribute must
-  <span>reflect</span> the <code data-x="attr-template-contentnamespace">contentnamespace</code>
-  content attribute, <span>limited to only known values</span>.</p>
+  data-x="dom-template-contentNamespace">contentNamespace</code></dfn> IDL attribute getter steps
+  are to return <span>this</span>'s <span>template content namespace</span>.</p>
+  </div>
+
+  <div algorithm>
+  <p>The <code data-x="dom-template-contentNamespace">contentNamespace</code> IDL attribute setter
+  steps are:</p>
+
+  <ol>
+   <li><p>If the given value is not the <span>HTML namespace</span>, the <span>SVG namespace</span>,
+   or the <span>MathML namespace</span>, then throw a <code>TypeError</code>.</p></li>
+
+   <li><p>Set <span>this</span>'s <span>template content namespace</span> to the given
+   value.</p></li>
+  </ol>
   </div>
 
   <div algorithm>
@@ -70324,6 +70344,9 @@ interface <dfn interface>HTMLTemplateElement</dfn> : <span>HTMLElement</span> {
   elements given <var>node</var>, <var>copy</var>, and <var>subtree</var> are:</p>
 
   <ol>
+   <li><p>Set <var>copy</var>'s <span>template content namespace</span> to <var>node</var>'s
+   <span>template content namespace</span>.</p></li>
+
    <li><p>If <var>subtree</var> is false, then return.</p></li>
 
    <li><p>For each <var>child</var> of <var>node</var>'s <span>template contents</span>'s <span
@@ -70339,8 +70362,8 @@ interface <dfn interface>HTMLTemplateElement</dfn> : <span>HTMLElement</span> {
 
   <div algorithm>
   <p>To <dfn>prepare content patching</dfn> given an <code>Element</code> or
-  <code>DocumentFragment</code> <var>scope</var> and a <code>template</code> element
-  <var>template</var>:</p>
+  <code>DocumentFragment</code> <var>scope</var>, a <code>template</code> element
+  <var>template</var>, and an <span>HTML parser</span> <var>parser</var>:</p>
 
   <ol>
    <li><p><span>Assert</span>: <var>template</var>'s <code data-x="attr-template-for">for</code>
@@ -70356,6 +70379,20 @@ interface <dfn interface>HTMLTemplateElement</dfn> : <span>HTMLElement</span> {
 
    <li><p>If <var>start</var> is null, then return false.</p></li>
 
+   <li><p>Let <var>patchTarget</var> be <var>start</var>'s <span>parent</span>.</p></li>
+
+   <li><p>If <var>patchTarget</var> is a <code>DocumentFragment</code> node whose <span
+   data-x="concept-DocumentFragment-host">host</span> is null, then set <var>patchTarget</var> to
+   <var>parser</var>'s <span>fragment context element</span>.</p></li>
+
+   <li><p>Let <var>targetNamespace</var> be the result of <span data-x="resolve a parser context
+   namespace">resolving a parser context namespace</span> given <var>patchTarget</var> and
+   <var>parser</var>.</p></li>
+
+   <li><p>If <var>template</var>'s <code
+   data-x="attr-template-contentnamespace">contentnamespace</code> attribute's state is a
+   <span>content namespace</span> and is not <var>targetNamespace</var>, then return false.</p></li>
+
    <li><p>Set <var>template</var>'s <span>insertion target</span> to
    <var>start</var>'s <span>parent</span>.</p></li>
 
@@ -70364,40 +70401,47 @@ interface <dfn interface>HTMLTemplateElement</dfn> : <span>HTMLElement</span> {
 
    <li><p>Set <var>template</var>'s <span>insertion end marker</span> to <var>end</var>.</p></li>
 
-   <li><p>If <var>start</var> is <var>end</var>, then return true.</p></li>
-
-   <li><p>Let <var>removedNodes</var> be an empty <span>list</span>.</p></li>
-
-   <li><p>Let <var>currentNode</var> be <var>start</var>'s <span>next sibling</span>.</p></li>
-
    <li>
-    <p>While <var>currentNode</var> is not null:</p>
+    <p>If <var>start</var> is not <var>end</var>:</p>
 
     <ol>
-     <li><p>If <var>currentNode</var> is <var>end</var>, then <span>break</span>.</p></li>
+     <li><p>Let <var>removedNodes</var> be an empty <span>list</span>.</p></li>
 
-     <li><p>Append <var>currentNode</var> to <var>removedNodes</var>.</p></li>
+     <li><p>Let <var>currentNode</var> be <var>start</var>'s <span>next sibling</span>.</p></li>
 
-     <li><p>Set <var>currentNode</var> to <var>currentNode</var>'s <span>next
-     sibling</span>.</p></li>
-    </ol>
-   </li>
-
-   <li>
-    <p>For each <var>node</var> of <var>removedNodes</var>:</p>
-
-    <ol>
      <li>
-      <p>If <var>node</var>'s <span>parent</span> is not null, then <span
-      data-x="concept-node-remove">remove</span> <var>node</var>.</p>
+      <p>While <var>currentNode</var> is not null:</p>
 
-      <p class="note">The parent might have changed because removing a node can fire events like
-      the <code data-x="event-pagehide">pagehide</code> event, and an event handler can mutate the
-      DOM. The parent identity is not checked; as long as the node still has a parent, it is
-      removed.</p>
+      <ol>
+       <li><p>If <var>currentNode</var> is <var>end</var>, then <span>break</span>.</p></li>
+
+       <li><p>Append <var>currentNode</var> to <var>removedNodes</var>.</p></li>
+
+       <li><p>Set <var>currentNode</var> to <var>currentNode</var>'s <span>next
+       sibling</span>.</p></li>
+      </ol>
+     </li>
+
+     <li>
+      <p>For each <var>node</var> of <var>removedNodes</var>:</p>
+
+      <ol>
+       <li>
+        <p>If <var>node</var>'s <span>parent</span> is not null, then <span
+        data-x="concept-node-remove">remove</span> <var>node</var>.</p>
+
+        <p class="note">The parent might have changed because removing a node can fire events like
+        the <code data-x="event-pagehide">pagehide</code> event, and an event handler can mutate the
+        DOM. The parent identity is not checked; as long as the node still has a parent, it is
+        removed.</p>
+       </li>
+      </ol>
      </li>
     </ol>
    </li>
+
+   <li><p>Set <var>template</var>'s <span>template content namespace</span> to
+   <var>targetNamespace</var>.</p></li>
 
    <li><p>Return true.</p></li>
   </ol>
@@ -141360,8 +141404,8 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   just after the <code>template</code> element's start tag and just before the <code>template</code>
   element's end tag (as with other elements), and may consist of any <span
   data-x="syntax-text">text</span>, <span data-x="syntax-charref">character references</span>, <span
-  data-x="syntax-cdata">CDATA sections</span> (if the <code>template</code> element's
-  <span>template contents</span> are parsed in the <span>MathML namespace</span> or the <span>SVG
+  data-x="syntax-cdata">CDATA sections</span> (if the <code>template</code> element's <span>template
+  contents</span> are parsed in the <span>MathML namespace</span> or the <span>SVG
   namespace</span>), <span data-x="syntax-elements">elements</span>, and <span
   data-x="syntax-comments">comments</span>, but the text must not contain the character U+003C
   LESS-THAN SIGN (&lt;) or an <span data-x="syntax-ambiguous-ampersand">ambiguous
@@ -144194,17 +144238,8 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   returned by the following steps:</p>
 
   <ol>
-   <li>
-    <p>If <var>element</var> is a <code>template</code> element:</p>
-
-    <ol>
-     <li><p><span>Assert</span>: the parser's <span>parser template namespace
-     map</span>[<var>element</var>] <span data-x="map exists">exists</span>.</p></li>
-
-     <li><p>Return the parser's <span>parser template namespace
-     map</span>[<var>element</var>].</p></li>
-    </ol>
-   </li>
+   <li><p>If <var>element</var> is a <code>template</code> element, then return
+   <var>element</var>'s <span>template content namespace</span>.</p></li>
 
    <li><p>Return <var>element</var>'s <span
    data-x="concept-element-namespace">namespace</span>.</p></li>
@@ -144216,10 +144251,6 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   <var>template</var> and a <span>content namespace</span> <var>fallbackNamespace</var>:</p>
 
   <ol>
-   <li><p>If <var>template</var>'s <code data-x="attr-template-shadowrootmode">shadowrootmode</code>
-   attribute is not in the <span data-x="attr-shadowrootmode-none-state">None</span> state, then
-   return <var>fallbackNamespace</var>.</p></li>
-
    <li><p>If <var>template</var>'s <code
    data-x="attr-template-contentnamespace">contentnamespace</code> attribute's state is a
    <span>content namespace</span>, then return that state.</p></li>
@@ -144239,23 +144270,8 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    <li><p>If <var>node</var> is not an <code>Element</code> node, then return the <span>HTML
    namespace</span>.</p></li>
 
-   <li>
-    <p>If <var>node</var> is a <code>template</code> element:</p>
-
-    <ol>
-     <li><p>If <var>parser</var> is non-null and <var>parser</var>'s <span>parser template namespace
-     map</span>[<var>node</var>] <span data-x="map exists">exists</span>, then return
-     <var>parser</var>'s <span>parser template namespace map</span>[<var>node</var>].</p></li>
-
-     <li><p>Let <var>fallbackNamespace</var> be the result of <span data-x="resolve a parser
-     context namespace">resolving a parser context namespace</span> given <var>node</var>'s
-     <span>parent</span> and <var>parser</var>.</p></li>
-
-     <li><p>Return the result of <span data-x="resolve a template contents namespace">resolving a
-     template contents namespace</span> given <var>node</var> and
-     <var>fallbackNamespace</var>.</p></li>
-    </ol>
-   </li>
+   <li><p>If <var>node</var> is a <code>template</code> element, then return <var>node</var>'s
+   <span>template content namespace</span>.</p></li>
 
    <li><p>If <var>node</var> is a <span>MathML <code>annotation-xml</code></span> element and
    <var>parser</var> is non-null, and either <var>parser</var>'s <span>stack of open
@@ -144292,21 +144308,18 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   </div>
 
   <div algorithm>
-  <p>To <dfn>push a template insertion mode</dfn> given a <code>template</code> element
-  <var>template</var> and a <span>content namespace</span> <var>namespace</var>:</p>
+  <p>To <dfn>push a template insertion mode</dfn> given an <span>HTML parser</span> <var>parser</var>
+  and a <span>content namespace</span> <var>namespace</var>:</p>
 
   <ol>
-   <li><p>Set the parser's <span>parser template namespace map</span>[<var>template</var>] to
-   <var>namespace</var>.</p></li>
-
    <li><p>Let <var>mode</var> be "<span data-x="insertion mode: in template">in template</span>" if
    <var>namespace</var> is the <span>HTML namespace</span>; otherwise "<span data-x="insertion mode:
    in body">in body</span>".</p></li>
 
-   <li><p>Push <var>mode</var> onto the <span>stack of template insertion modes</span> so that it is
-   the new <span>current template insertion mode</span>.</p></li>
+   <li><p>Push <var>mode</var> onto <var>parser</var>'s <span>stack of template insertion
+   modes</span> so that it is the new <span>current template insertion mode</span>.</p></li>
 
-   <li><p>Switch the <span>insertion mode</span> to <var>mode</var>.</p></li>
+   <li><p>Switch <var>parser</var>'s <span>insertion mode</span> to <var>mode</var>.</p></li>
   </ol>
   </div>
 
@@ -144682,11 +144695,6 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   <p class="note">When an element is removed or replaced with its children as part of sanitization
   during parsing, text inserted immediately before and after that element coalesces into a single
   <code>Text</code> node.</p>
-
-  <p>The <dfn>parser template namespace map</dfn> (an <span>ordered map</span> whose <span
-  data-x="map key">keys</span> are <code>template</code> elements and whose <span
-  data-x="map value">values</span> are <span data-x="content namespace">content namespaces</span>,
-  initially empty).</p>
 
   <p>An algorithm-or-null <dfn>invalid reference child steps</dfn>, initially null, taking a
   <code>Node</code>. When non-null, they are run given the <span
@@ -148817,13 +148825,13 @@ document.body.appendChild(text);
      <li><p>Push <var>template</var> onto the <span>stack of open elements</span> so that it is the
      new <span>current node</span>.</p></li>
 
-     <li><p>Let <var>templateNamespace</var> be the result of <span data-x="resolve a template
-     contents namespace">resolving a template contents namespace</span> given <var>template</var>
-     and <var>fallbackNamespace</var>.</p></li>
+     <li><p>Set <var>template</var>'s <span>template content namespace</span> to the result of
+     <span data-x="resolve a template contents namespace">resolving a template contents
+     namespace</span> given <var>template</var> and <var>fallbackNamespace</var>.</p></li>
 
      <li>
-      <p><span>Push a template insertion mode</span> given <var>template</var> and
-      <var>templateNamespace</var>.</p>
+      <p><span>Push a template insertion mode</span> given the parser and <var>template</var>'s
+      <span>template content namespace</span>.</p>
 
       <p class="note">Changes that script makes to <var>template</var>'s attributes after this
       point, for example in a <span>customized built-in element</span>'s <code
@@ -148971,6 +148979,15 @@ document.body.appendChild(text);
              data-x="attr-template-shadowrootcustomelementregistry">shadowrootcustomelementregistry</code>
              attribute, then set <var>shadow</var>'s <span>keep custom element registry null</span>
              to true.</p></li>
+
+             <li><p>Pop the <span>current template insertion mode</span> off the <span>stack of
+             template insertion modes</span>.</p></li>
+
+             <li><p>Set <var>template</var>'s <span>template content namespace</span> to the
+             <span>HTML namespace</span>.</p></li>
+
+             <li><p><span>Push a template insertion mode</span> given the parser and the <span>HTML
+             namespace</span>.</p></li>
             </ol>
            </li>
           </ol>
@@ -149014,39 +149031,23 @@ document.body.appendChild(text);
             targeting <code>body</code> to patch <code>head</code>.</p>
            </li>
 
-           <li><p>Let <var>hasExplicitNamespace</var> be false if <var>template</var>'s <code
-           data-x="attr-template-contentnamespace">contentnamespace</code> attribute is in no state;
-           otherwise true.</p></li>
-
            <li><p>Let <var>success</var> be the result of <span data-x="prepare content
-           patching">preparing content patching</span> given <var>scope</var> and
-           <var>template</var>.</p></li>
+           patching">preparing content patching</span> given <var>scope</var>, <var>template</var>,
+           and the parser.</p></li>
 
            <li><p>If <var>success</var> is false, then <span>insert an element at the adjusted
            insertion location</span> with <var>template</var>, <var>insertionLocation</var>, and
            true.</p></li>
 
            <li>
-            <p>Otherwise, if <var>hasExplicitNamespace</var> is false and the <span>current
-            node</span> is <var>template</var>:</p>
+            <p>Otherwise, if the <span>current node</span> is <var>template</var>:</p>
 
             <ol>
              <li><p>Pop the <span>current template insertion mode</span> off the <span>stack of
              template insertion modes</span>.</p></li>
 
-             <li><p>Let <var>patchTarget</var> be <var>template</var>'s <span>insertion
-             target</span>.</p></li>
-
-             <li><p>If <var>patchTarget</var> is a <code>DocumentFragment</code> node whose <span
-             data-x="concept-DocumentFragment-host">host</span> is null, then set
-             <var>patchTarget</var> to the parser's <span>fragment context element</span>.</p></li>
-
-             <li><p>Set <var>templateNamespace</var> to the result of <span data-x="resolve a parser
-             context namespace">resolving a parser context namespace</span> given
-             <var>patchTarget</var> and the parser.</p></li>
-
-             <li><p><span>Push a template insertion mode</span> given <var>template</var> and
-             <var>templateNamespace</var>.</p></li>
+             <li><p><span>Push a template insertion mode</span> given the parser and
+             <var>template</var>'s <span>template content namespace</span>.</p></li>
             </ol>
            </li>
           </ol>
@@ -152195,6 +152196,13 @@ document.body.appendChild(text);
    <dd>
     <p>Process the token <span>using the rules for</span> the "<span data-x="insertion mode: in
     head">in head</span>" <span>insertion mode</span>.</p>
+
+    <p>If the token is a start tag with its <i data-x="self-closing flag">self-closing flag</i> set
+    and the <span>current node</span> is a <code>template</code> element, then <span
+    data-x="acknowledge self-closing flag">acknowledge the token's <i data-x="self-closing
+    flag">self-closing flag</i></span> and process a fake end tag token whose tag name is "<code
+    data-x="">template</code>" <span>using the rules for</span> the "<span data-x="insertion mode:
+    in head">in head</span>" <span>insertion mode</span>.</p>
    </dd>
 
    <dt>Any other start tag</dt>
@@ -153456,11 +153464,30 @@ document.body.appendChild(text);
         data-x="escaping a string">escaped as described below</span> in <i>attribute mode</i>,
         and U+0022 (").</p>
 
-        <p>For each attribute that the element has, append U+0020 SPACE, the <span
-        data-x="attribute's serialized name">attribute's serialized name as described below</span>,
-        "<code data-x="">="</code>", the attribute's value,
-        <span data-x="escaping a string">escaped as described below</span> in <i>attribute mode</i>,
-        and U+0022 (").</p>
+        <p>If <var>current node</var> is a <code>template</code> element, then:</p>
+
+        <ol>
+         <li><p>Let <var>namespaceKeyword</var> be "<code data-x="">html</code>" if <var>current
+         node</var>'s <span>template content namespace</span> is the <span>HTML namespace</span>,
+         "<code data-x="">svg</code>" if it is the <span>SVG namespace</span>, or "<code
+         data-x="">mathml</code>" if it is the <span>MathML namespace</span>.</p></li>
+
+         <li><p>Append "<code data-x=""> contentnamespace="</code>", <var>namespaceKeyword</var>, and
+         U+0022 (").</p></li>
+        </ol>
+
+        <p>For each attribute that the element has:</p>
+
+        <ol>
+         <li><p>If <var>current node</var> is a <code>template</code> element and the <span
+         data-x="attribute's serialized name">attribute's serialized name as described below</span> is
+         "<code data-x="">contentnamespace</code>", then <span>continue</span>.</p></li>
+
+         <li><p>Append U+0020 SPACE, the <span data-x="attribute's serialized name">attribute's
+         serialized name as described below</span>, "<code data-x="">="</code>", the attribute's
+         value, <span data-x="escaping a string">escaped as described below</span> in <i>attribute
+         mode</i>, and U+0022 (").</p></li>
+        </ol>
 
         <p>An <!--en-GB--><dfn id="attribute's-serialised-name">attribute's serialized name</dfn>
         for the purposes of the previous paragraph must be determined as follows:</p>
@@ -153833,19 +153860,10 @@ console.assert(container.firstChild instanceof SuperP);
    <li><p>Set <var>parser</var>'s <span>insertion target redirection map</span>[<var>root</var>] to
    <var>insertionLocation</var>.</p></li>
 
-   <li>
-    <p>If <var data-x="concept-frag-parse-context">contextElement</var> is a <code>template</code>
-    element:</p>
-
-    <ol>
-     <li><p>Let <var>namespace</var> be the result of <span data-x="resolve a parser context
-     namespace">resolving a parser context namespace</span> given <var
-     data-x="concept-frag-parse-context">contextElement</var> and null.</p></li>
-
-     <li><p><span>Push a template insertion mode</span> for <var>parser</var> given <var
-     data-x="concept-frag-parse-context">contextElement</var> and <var>namespace</var>.</p></li>
-    </ol>
-   </li>
+   <li><p>If <var data-x="concept-frag-parse-context">contextElement</var> is a
+   <code>template</code> element, then <span>push a template insertion mode</span> given
+   <var>parser</var> and <var data-x="concept-frag-parse-context">contextElement</var>'s
+   <span>template content namespace</span>.</p></li>
 
    <li>
     <p>Create a start tag token whose name is the local name of
@@ -154144,6 +154162,21 @@ console.assert(container.firstChild instanceof SuperP);
   <p class="note">This is a <span>willful violation</span> of <cite>XML</cite>; unfortunately,
   XML is not formally extensible in the manner that is needed for <code>template</code> processing.
   <ref>XML</ref></p>
+
+  <div algorithm>
+  <p>When an <span>XML parser</span> creates a <code>template</code> element <var>template</var> to
+  be inserted into <var>parent</var>:</p>
+
+  <ol>
+   <li><p>Let <var>fallbackNamespace</var> be the result of <span data-x="resolve a parser context
+   namespace">resolving a parser context namespace</span> given <var>parent</var> and
+   null.</p></li>
+
+   <li><p>Set <var>template</var>'s <span>template content namespace</span> to the result of <span
+   data-x="resolve a template contents namespace">resolving a template contents namespace</span>
+   given <var>template</var> and <var>fallbackNamespace</var>.</p></li>
+  </ol>
+  </div>
 
   <div algorithm>
   <p>When an <span>XML parser</span> creates a <code>Node</code> object, its <span>node document</span>
