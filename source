@@ -142747,9 +142747,11 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
       <p>This error occurs if the parser encounters the "<code data-x="">&lt;!</code>" <span>code
       point</span> sequence that is not immediately followed by two U+002D (-) code points and that
       is not the start of a <span data-x="syntax-doctype">DOCTYPE</span> or a <span
-      data-x="syntax-cdata">CDATA section</span>. All content that follows the "<code
-      data-x="">&lt;!</code>" code point sequence up to a U+003E (>) code point (if present) or to
-      the end of the <span>input stream</span> is treated as a comment.</p>
+      data-x="syntax-cdata">CDATA section</span> (a DOCTYPE is not recognized in SVG and MathML
+      <code>title</code>, <code>style</code>, <code>script</code>, and <code>noscript</code>
+      elements). All content that follows the "<code data-x="">&lt;!</code>" code point sequence up
+      to a U+003E (>) code point (if present) or to the end of the <span>input stream</span> is
+      treated as a comment.</p>
 
       <p class="note">One possible cause of this error is using an XML markup declaration (e.g.,
       <code data-x="">&lt;!ELEMENT br EMPTY></code>) in HTML.</p>
@@ -144777,8 +144779,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   <p var-scope>The exact behavior of certain states depends on the <span>insertion mode</span> and the
   <span>stack of open elements</span>. Certain states also use a <dfn><var data-x="temporary
   buffer">temporary buffer</var></dfn> to track progress, and the <span>character reference
-  state</span> uses a <dfn><var data-x="return state">return state</var></dfn> to return to the
-  state it was invoked from.</p>
+  state</span> and the states that end a comment, bogus comment, processing instruction, or CDATA
+  section use a <dfn><var data-x="return state">return state</var></dfn> to return to the state they
+  were invoked from.</p>
 
   <p>The output of the tokenization step is a series of zero or more of the following tokens:
   DOCTYPE, start tag, end tag, comment, character, end-of-file. DOCTYPE tokens have a name, a public
@@ -144863,22 +144866,22 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   </div>
 
   <div algorithm>
-  <p>The tokenizer has a <dfn>foreign RCDATA flag</dfn>, which is initially unset. The tree
-  construction stage sets it when it switches the tokenizer to the <span>foreign RCDATA
+  <p>The tokenizer has a boolean <dfn>foreign RCDATA flag</dfn>, initially false. The tree
+  construction stage sets it to true when it switches the tokenizer to the <span>foreign RCDATA
   state</span>.</p>
 
-  <p>While the <span>foreign RCDATA flag</span> is set, before each step of the tokenizer (after the
-  check described above), if the next few characters are U+003C LESS-THAN SIGN (&lt;), U+002F
+  <p>While the <span>foreign RCDATA flag</span> is true, before each step of the tokenizer (after
+  the check described above), if the next few characters are U+003C LESS-THAN SIGN (&lt;), U+002F
   SOLIDUS (/), an <span>ASCII case-insensitive</span> match for the tag name of the last start tag
   to have been emitted from this tokenizer, and then one of U+0009 CHARACTER TABULATION (tab),
   U+000A LINE FEED (LF), U+000C FORM FEED (FF), U+0020 SPACE, U+002F SOLIDUS (/), or U+003E
   GREATER-THAN SIGN (&gt;), then for that step the <span>next input character</span> is EOF, and
-  nothing is consumed. Where a state says to emit an end-of-file token in response, then instead:</p>
+  nothing is consumed. If a state would emit an end-of-file token in response, then instead:</p>
 
   <ol>
-   <li><p>Unset the <span>foreign RCDATA flag</span>.</p></li>
+   <li><p>Set the <span>foreign RCDATA flag</span> to false.</p></li>
 
-   <li><p>Consume the U+003C LESS-THAN SIGN, the U+002F SOLIDUS and the characters of the tag
+   <li><p>Consume the U+003C LESS-THAN SIGN, the U+002F SOLIDUS, and the characters of the tag
    name.</p></li>
 
    <li><p>Create a new end tag token whose tag name is the tag name of the last start tag to have
@@ -145053,7 +145056,7 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <p class="note">This state is like the <span>RCDATA state</span>, except that CDATA sections are
   recognized, and so are comments, bogus comments, and processing instructions if the <span>foreign
-  RCDATA flag</span> is set. The element's end tag is recognized in every state, as described
+  RCDATA flag</span> is true. The element's end tag is recognized in every state, as described
   <span data-x="foreign RCDATA flag">above</span>.</p>
   </div>
 
@@ -145070,7 +145073,7 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     <p>Set the <var data-x="return state">return state</var> to the <span>foreign RCDATA
     state</span>.</p>
 
-    <p>If the <span>foreign RCDATA flag</span> is set, or if the next few characters are
+    <p>If the <span>foreign RCDATA flag</span> is true, or if the next few characters are
     "<code data-x="">[CDATA[</code>", then switch to the <span>markup declaration open state</span>.
     Otherwise, emit a U+003C LESS-THAN SIGN character token and <span>reconsume</span> in the
     <span>foreign RCDATA state</span>.</p>
@@ -145078,7 +145081,7 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
    <dt>U+003F QUESTION MARK (?)</dt>
    <dd>
-    <p>If the <span>foreign RCDATA flag</span> is set, then set the <var data-x="return
+    <p>If the <span>foreign RCDATA flag</span> is true, then set the <var data-x="return
     state">return state</var> to the <span>foreign RCDATA state</span>, set the <var
     data-x="temporary buffer">temporary buffer</var> to the empty string, and switch to the
     <span>processing instruction open state</span>.</p>
@@ -147648,10 +147651,12 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   </ul>
   </div>
 
+  <div algorithm>
   <p>A node is a <dfn>foreign RCDATA element</dfn> if it is an element that is not in the <span>HTML
   namespace</span> and whose <span data-x="concept-element-local-name">local name</span> is
   "<code data-x="">title</code>", "<code data-x="">style</code>", "<code data-x="">script</code>", or
   "<code data-x="">noscript</code>".</p>
+  </div>
 
   <p class="note">If the node in question is the parser's <span>fragment context element</span>,
   then the start tag token for that element is the "fake" token created when <span
@@ -148046,10 +148051,10 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
     <p>then return.</p>
 
-    <p class="note">Only <code data-x="">template for</code> patching can cause the last case, since
-    the tokenizer does not emit start tags while it is in the <span>foreign RCDATA state</span>. The
-    element is left out of the tree, and the <span>stack of open elements</span> keeps it for as long
-    as the algorithm that called this one requires.</p>
+    <p class="note">Only content patching (see <span>prepare content patching</span>) can cause the
+    last case, since the tokenizer does not emit start tags while it is in the <span>foreign RCDATA
+    state</span>. The element is left out of the tree, and the <span>stack of open elements</span>
+    keeps it for as long as the algorithm that called this one requires.</p>
    </li>
 
    <li>
@@ -148415,7 +148420,7 @@ document.body.appendChild(text);
     node</span> is not <var>targetParent</var>, and <var>data</var> contains the two code points
     U+003C LESS-THAN SIGN (&lt;) and U+002F SOLIDUS (/) in sequence, then return.</p>
 
-    <p class="note">This applies to <code data-x="">template for</code> patching, and to insertions
+    <p class="note">This applies to content patching, and to insertions
     that are redirected there. When the <span>current node</span> is <var>targetParent</var>, the
     tokenizer has already ended the comment at the element's end tag.</p>
    </li>
@@ -152367,12 +152372,15 @@ document.body.appendChild(text);
    inspection-->, "br", "center", "code", "dd", "div", "dl", "dt"<!-- so that dd and dt can be
    handled uniformly throughout the parser -->, "em", "embed", "h1", "h2", "h3", "h4"<!--for
    completeness-->, "h5", "h6"<!--for completeness-->, "head"<!--by inspection-->, "hr", "i",
-   "iframe", "img", "li", "listing"<!-- so that pre and listing can be handled uniformly throughout the parser -->,
-   "menu", "meta", "nobr", "noembed", "noframes", "ol"<!-- so that dl, ul, and ol can be handled
-   uniformly throughout the parser -->, "p", "plaintext", "pre", "ruby", "s", <!--"script",--> "small", "span", "strong", "strike"<!-- so
-   that s and strike can be handled uniformly throughout the parser -->, <!--"style",--> "sub",
-   "sup", "table"<!--by inspection-->, "textarea", "tt", "u", "ul", "var", "xmp"</dt> <!-- this list was determined
-   empirically by studying over 6,000,000,000 pages that were specifically not XML pages -->
+   "iframe", "img", "li", "listing"<!-- so that pre and listing can be handled uniformly throughout
+   the parser -->, "menu", "meta", "nobr", "noembed", "noframes", "ol"<!-- so that dl, ul, and ol
+   can be handled uniformly throughout the parser -->, "p", "plaintext", "pre", "ruby", "s",
+   <!--"script",--> "small", "span", "strong", "strike"<!-- so that s and strike can be handled
+   uniformly throughout the parser -->, <!--"style",--> "sub", "sup", "table"<!--by inspection-->,
+   "textarea", "tt", "u", "ul", "var", "xmp"</dt> <!-- this list was determined empirically by
+   studying over 6,000,000,000 pages that were specifically not XML pages; iframe, noembed,
+   noframes, plaintext, textarea, and xmp were added later, so that these elements parse the same
+   in foreign content as in HTML -->
    <dt>A start tag whose tag name is "font", if the token has any attributes named "color", "face",
    or "size"</dt> <!-- the attributes here are required so that SVG <font> will go through as SVG
    but legacy <font>s won't -->
@@ -152458,7 +152466,7 @@ document.body.appendChild(text);
     new <span>current node</span>'s <span data-x="concept-element-local-name">local name</span> is
     "<code data-x="">title</code>", "<code data-x="">style</code>", "<code
     data-x="">script</code>", or "<code data-x="">noscript</code>", then switch the tokenizer to the
-    <span>foreign RCDATA state</span> and set the <span>foreign RCDATA flag</span>.</p>
+    <span>foreign RCDATA state</span> and set the <span>foreign RCDATA flag</span> to true.</p>
 
     <p>If the token has its <i data-x="self-closing flag">self-closing flag</i> set, then run the appropriate steps from the
     following list:</p>
@@ -153975,23 +153983,10 @@ console.assert(container.firstChild instanceof SuperP);
 
    <li>
     <p>Set the state of <var>parser</var>'s <span>tokenization</span> stage as follows, switching on
-    <var data-x="concept-frag-parse-context">contextElement</var>. Except for the first entry, the
-    names refer to elements in the <span>HTML namespace</span>.</p>
+    <var data-x="concept-frag-parse-context">contextElement</var>. The element names in the entries
+    below that don't say otherwise refer to elements in the <span>HTML namespace</span>.</p>
 
     <dl class="switch">
-     <dt>An element that is not in the <span>HTML namespace</span> and whose <span
-     data-x="concept-element-local-name">local name</span> is "<code data-x="">title</code>",
-     "<code data-x="">style</code>", "<code data-x="">script</code>", or "<code
-     data-x="">noscript</code>"</dt>
-     <dd>
-      <p>Switch the tokenizer to the <span>foreign RCDATA state</span>. Do not set the <span>foreign
-      RCDATA flag</span>.</p>
-
-      <p class="note">Comments and processing instructions are not recognized, because the end tag
-      of the context element cannot be recognized in the fragment case, so the resulting nodes could
-      contain it.</p>
-     </dd>
-
      <dt><code>title</code></dt>
      <dt><code>textarea</code></dt>
      <dd><p>Switch the tokenizer to the <span>RCDATA state</span>.</p></dd>
@@ -154013,6 +154008,19 @@ console.assert(container.firstChild instanceof SuperP);
 
      <dt><code>plaintext</code></dt>
      <dd><p>Switch the tokenizer to the <span>PLAINTEXT state</span>.</p></dd>
+
+     <dt>An element that is not in the <span>HTML namespace</span> and whose <span
+     data-x="concept-element-local-name">local name</span> is "<code data-x="">title</code>",
+     "<code data-x="">style</code>", "<code data-x="">script</code>", or "<code
+     data-x="">noscript</code>"</dt>
+     <dd>
+      <p>Switch the tokenizer to the <span>foreign RCDATA state</span>. Leave the <span>foreign
+      RCDATA flag</span> false.</p>
+
+      <p class="note">Comments and processing instructions are not recognized, because the end tag
+      of the context element cannot be recognized in the <span>fragment case</span>, so the
+      resulting nodes could contain it.</p>
+     </dd>
 
      <dt>Any other element</dt>
      <dd><p>Leave the tokenizer in the <span>data state</span>.</p></dd>
