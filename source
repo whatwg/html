@@ -142697,14 +142697,18 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     <tr>
      <td><dfn data-x="parse-error-eof-in-cdata">eof-in-cdata</dfn>
      <td><p>This error occurs if the parser encounters the end of the <span>input stream</span> in a
-     <span data-x="syntax-cdata">CDATA section</span>. The parser treats such CDATA sections as if
-     they are closed immediately before the end of the input stream.</p>
+     <span data-x="syntax-cdata">CDATA section</span>, or the end tag of the SVG or MathML <code
+     data-x="">title</code>, <code data-x="">style</code>, <code data-x="">script</code>, or <code
+     data-x="">noscript</code> element the CDATA section is in. The parser treats such CDATA
+     sections as if they are closed immediately before that point.</p>
 
     <tr>
      <td><dfn data-x="parse-error-eof-in-comment">eof-in-comment</dfn>
      <td><p>This error occurs if the parser encounters the end of the <span>input stream</span> in a
-     <span data-x="syntax-comments">comment</span>. The parser treats such comments as if they are
-     closed immediately before the end of the input stream.</p>
+     <span data-x="syntax-comments">comment</span>, or the end tag of the SVG or MathML <code
+     data-x="">title</code>, <code data-x="">style</code>, <code data-x="">script</code>, or <code
+     data-x="">noscript</code> element the comment is in. The parser treats such comments as if they
+     are closed immediately before that point.</p>
 
     <tr>
      <td><dfn data-x="parse-error-eof-in-doctype">eof-in-doctype</dfn>
@@ -142716,8 +142720,10 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
      <td><dfn data-x="parse-error-eof-in-processing-instruction">eof-in-processing-instruction</dfn>
      <td><p>This error occurs if the parser encounters the end of the <span>input stream</span> in a
      <span data-x="syntax-processing-instruction">processing instruction</span> (e.g., <code
-     data-x="">&lt;?</code> or <code data-x="">&lt;?marker name=</code>). Such processing
-     instructions are ignored.</p>
+     data-x="">&lt;?</code> or <code data-x="">&lt;?marker name=</code>), or the end tag of the SVG
+     or MathML <code data-x="">title</code>, <code data-x="">style</code>, <code
+     data-x="">script</code>, or <code data-x="">noscript</code> element the processing instruction
+     is in. Such processing instructions are ignored.</p>
 
     <tr>
      <td><dfn data-x="parse-error-eof-in-script-html-comment-like-text">eof-in-script-html-comment-like-text</dfn>
@@ -144786,7 +144792,7 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   buffer">temporary buffer</var></dfn> to track progress, and the <span>character reference
   state</span> and the states that end a comment, bogus comment, processing instruction, or CDATA
   section use a <dfn><var data-x="return state">return state</var></dfn> to return to the state they
-  were invoked from.</p>
+  were invoked from (the <span>markup declaration open state</span> also checks it).</p>
 
   <p>The output of the tokenization step is a series of zero or more of the following tokens:
   DOCTYPE, start tag, end tag, comment, character, end-of-file. DOCTYPE tokens have a name, a public
@@ -144882,8 +144888,10 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   SOLIDUS (/), an <span>ASCII case-insensitive</span> match for the tag name of the last start tag
   to have been emitted from this tokenizer, and then one of U+0009 CHARACTER TABULATION (tab),
   U+000A LINE FEED (LF), U+000C FORM FEED (FF), U+0020 SPACE, U+002F SOLIDUS (/), or U+003E
-  GREATER-THAN SIGN (&gt;), then for that step the <span>next input character</span> is EOF, and
-  nothing is consumed. If a state would emit an end-of-file token in response, then instead:</p>
+  GREATER-THAN SIGN (&gt;), then that step consumes EOF instead of the <span>next input
+  character</span>, without advancing in the <span>input stream</span>, so EOF becomes the
+  <span>current input character</span>. If a state then emits an end-of-file token in response to
+  that EOF, directly or after <span data-x="reconsume">reconsuming</span> it, then instead:</p>
 
   <ol>
    <li><p>Set the <span>foreign RCDATA flag</span> to false.</p></li>
@@ -145063,8 +145071,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <p class="note">This state is like the <span>RCDATA state</span>, except that CDATA sections are
   recognized, and so are comments, bogus comments, and processing instructions if the <span>foreign
-  RCDATA flag</span> is true. While the flag is true, the element's end tag is recognized in every
-  state, as described <span data-x="foreign RCDATA flag">above</span>.</p>
+  RCDATA flag</span> is true. While the flag is true, the element's end tag is recognized before
+  any step that consumes a character, in any state, as described <span data-x="foreign RCDATA
+  flag">above</span>.</p>
   </div>
 
 
@@ -148426,13 +148435,15 @@ document.body.appendChild(text);
    <var>targetParent</var>, then return.</p></li>
 
    <li>
-    <p>If <var>targetParent</var> is a <span>foreign RCDATA element</span>, the <span>current
-    node</span> is not <var>targetParent</var>, and <var>data</var> contains the two code points
+    <p>If <var>targetParent</var> is a <span>foreign RCDATA element</span>, the <span>adjusted
+    current node</span> is not <var>targetParent</var>, and <var>data</var> contains the two code
+    points
     U+003C LESS-THAN SIGN (&lt;) and U+002F SOLIDUS (/) in sequence, then return.</p>
 
     <p class="note">This applies to content patching, and to insertions
-    that are redirected there. When the <span>current node</span> is <var>targetParent</var>, the
-    tokenizer has already ended the comment at the element's end tag.</p>
+    that are redirected there. When the <span>adjusted current node</span> is
+    <var>targetParent</var>, the tokenizer has already ended the comment at the element's end
+    tag.</p>
    </li>
 
    <li><p>Let <var>comment</var> be the result of <span data-x="create a comment node">creating a
@@ -148468,8 +148479,9 @@ document.body.appendChild(text);
    <var>referenceChild</var> is non-null and <var>referenceChild</var>'s <span>parent</span> is not
    <var>targetParent</var>, then return.</p></li>
 
-   <li><p>If <var>targetParent</var> is a <span>foreign RCDATA element</span>, the <span>current
-   node</span> is not <var>targetParent</var>, and <var>data</var> contains the two code points U+003C
+   <li><p>If <var>targetParent</var> is a <span>foreign RCDATA element</span>, the <span>adjusted
+   current node</span> is not <var>targetParent</var>, and <var>data</var> contains the two code
+   points U+003C
    LESS-THAN SIGN (&lt;) and U+002F SOLIDUS (/) in sequence, then return.</p></li>
 
    <li><p>Let <var>pi</var> be the result of <span data-x="create a processing instruction
@@ -152474,10 +152486,9 @@ document.body.appendChild(text);
     node</span>'s namespace.</p>
 
     <p>If the token does not have its <i data-x="self-closing flag">self-closing flag</i> set, and the
-    new <span>current node</span>'s <span data-x="concept-element-local-name">local name</span> is
-    "<code data-x="">title</code>", "<code data-x="">style</code>", "<code
-    data-x="">script</code>", or "<code data-x="">noscript</code>", then switch the tokenizer to the
-    <span>foreign RCDATA state</span> and set the <span>foreign RCDATA flag</span> to true.</p>
+    new <span>current node</span> is a <span>foreign RCDATA element</span>, then switch the
+    tokenizer to the <span>foreign RCDATA state</span> and set the <span>foreign RCDATA flag</span>
+    to true.</p>
 
     <p>If the token has its <i data-x="self-closing flag">self-closing flag</i> set, then run the appropriate steps from the
     following list:</p>
