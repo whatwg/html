@@ -147998,8 +147998,8 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
        Not sure what we could call them instead, though... -->
 
   <div algorithm>
-  <p>To <dfn>insert a foreign element</dfn>, given a token <var>token</var> and a string
-  <var>namespace</var>:</p>
+  <p>To <dfn>insert a foreign element</dfn>, given a token <var>token</var>, a string
+  <var>namespace</var>, and an optional boolean <var>selfClosing</var> (default false):</p>
 
   <ol>
    <li><p><span>Flush pending text</span>.</p></li>
@@ -148012,23 +148012,38 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    <!-- this insertion stuff should be cleaned up: https://github.com/whatwg/html/issues/1706 -->
 
    <li>
-    <p><span>Insert an element at the adjusted insertion location</span> with
-    <var>element</var>.</p>
+    <p>Let <var>insertionLocation</var> be the <span>appropriate place for inserting a
+    node</span>.</p>
 
-    <p class="note">The location is computed anew in that algorithm, since creating
-    <var>element</var> can run script that changes the DOM.</p>
+    <p class="note">This is computed after <var>element</var> is created, since creating a
+    <span>custom element</span> can run script that changes the DOM, and before <var>element</var>
+    is pushed onto the <span>stack of open elements</span>, since afterwards the <span>appropriate
+    place for inserting a node</span> would be inside <var>element</var>.</p>
    </li>
 
-   <li><p>Push <var>element</var> onto the <span>stack of open elements</span> so that it is the new
-   <span>current node</span>.</p></li>
+   <li><p>If <var>selfClosing</var> is false, then push <var>element</var> onto the <span>stack of
+   open elements</span> so that it is the new <span>current node</span>.</p></li>
+
+   <li><p><span>Insert an element at the adjusted insertion location</span> with
+   <var>element</var> and <var>insertionLocation</var>.</p></li>
+
+   <li><p>If <var>selfClosing</var> is true, then <span>finish parsing the children</span> of
+   <var>element</var>.</p></li>
 
    <li><p>Return <var>element</var>.</p></li>
   </ol>
   </div>
 
   <div algorithm>
-  <p>To <dfn>insert an HTML element</dfn> given a token <var>token</var>: <span>insert a foreign
-  element</span> given <var>token</var> and the <span>HTML namespace</span>.</p>
+  <p>To <dfn>insert an HTML element</dfn> given a token <var>token</var>, return the result of <span
+  data-x="insert a foreign element">inserting a foreign element</span> given <var>token</var> and
+  the <span>HTML namespace</span>.</p>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>insert a void HTML element</dfn> given a token <var>token</var>, return the result of
+  <span data-x="insert a foreign element">inserting a foreign element</span> given <var>token</var>,
+  the <span>HTML namespace</span>, and true.</p>
   </div>
 
   <hr>
@@ -148559,9 +148574,9 @@ document.body.appendChild(text);
    <dt>A start tag whose tag name is "html"</dt>
    <dd>
     <p><span>Create an element for the token</span> in the <span>HTML namespace</span>, with the
-    <code>Document</code> as the intended parent. <span>Insert an element at the adjusted insertion
-    location</span> with that element and (the <code>Document</code>, null). Put this element in the
-    <span>stack of open elements</span>.</p>
+    <code>Document</code> as the intended parent. Put this element in the <span>stack of open
+    elements</span>. <span>Insert an element at the adjusted insertion location</span> with that
+    element and (the <code>Document</code>, null).</p>
 
     <p>Switch the <span>insertion mode</span> to "<span data-x="insertion mode: before head">before
     head</span>".</p>
@@ -148580,9 +148595,9 @@ document.body.appendChild(text);
    <dt>Anything else</dt>
    <dd>
     <p>Create an <code>html</code> element whose <span>node document</span> is the
-    <code>Document</code> object. <span>Insert an element at the adjusted insertion
-    location</span> with that element and (the <code>Document</code>, null). Put this
-    element in the <span>stack of open elements</span>.</p>
+    <code>Document</code> object. Put this element in the <span>stack of open elements</span>.
+    <span>Insert an element at the adjusted insertion location</span> with that element and (the
+    <code>Document</code>, null).</p>
 
     <p>Switch the <span>insertion mode</span> to "<span data-x="insertion mode: before head">before
     head</span>", then reprocess the token.</p>
@@ -148712,8 +148727,7 @@ document.body.appendChild(text);
    <dt>A start tag whose tag name is one of: "base", "basefont",
    "bgsound", "link"</dt>
    <dd>
-    <p><span>Insert an HTML element</span> for the token. Immediately <span>pop the current
-    node</span> off the <span>stack of open elements</span>.</p>
+    <p><span>Insert a void HTML element</span> for the token.</p>
 
     <p><span data-x="acknowledge self-closing flag">Acknowledge the token's <i data-x="self-closing flag">self-closing
     flag</i></span>, if it is set.</p>
@@ -148721,8 +148735,7 @@ document.body.appendChild(text);
 
    <dt>A start tag whose tag name is "meta"</dt>
    <dd>
-    <p><span>Insert an HTML element</span> for the token. Immediately <span>pop the current
-    node</span> off the <span>stack of open elements</span>.</p>
+    <p><span>Insert a void HTML element</span> for the token.</p>
 
     <p><span data-x="acknowledge self-closing flag">Acknowledge the token's <i data-x="self-closing flag">self-closing
     flag</i></span>, if it is set.</p>
@@ -148814,21 +148827,24 @@ document.body.appendChild(text);
      scripts inserted via <code data-x="dom-document-write">document.write()</code> under slow
      network conditions, or when the page has already taken a long time to load.)</p></li>
 
+     <li><p>Let <var>insertionLocation</var> be the <span>appropriate place for inserting a
+     node</span>.</p></li>
+
+     <li><p>Push the newly created element onto the <span>stack of open elements</span> so that it
+     is the new <span>current node</span>.</p></li>
+
      <li>
       <p><span>Insert an element at the adjusted insertion location</span> with the newly created
-      element.</p>
+      element and <var>insertionLocation</var>.</p>
 
       <p class="note">If the newly created element is <span
       data-x="dom-SanitizerConfig-removeElements">removed</span> or <span
       data-x="dom-SanitizerConfig-replaceWithChildrenElements">replaced with children</span> as part
-      of <span data-x="sanitize">sanitization</span>, it is still pushed onto the <span>stack of
-      open elements</span> and the tokenizer state is changed to the <span>script data state</span>.
+      of <span data-x="sanitize">sanitization</span>, it is still on the <span>stack of open
+      elements</span> and the tokenizer state is changed to the <span>script data state</span>.
       This ensures that the contents of the script element are parsed as script data rather than
       HTML, even if the script element itself is not inserted.</p>
      </li>
-
-     <li><p>Push the newly created element onto the <span>stack of open elements</span> so that it
-     is the new <span>current node</span>.</p></li>
 
      <li><p>Switch the tokenizer to the <span>script data state</span>.</p></li>
 
@@ -150142,8 +150158,7 @@ document.body.appendChild(text);
    <dd>
     <p><span>Reconstruct the active formatting elements</span>, if any.</p>
 
-    <p><span>Insert an HTML element</span> for the token. Immediately <span>pop the current
-    node</span> off the <span>stack of open elements</span>.</p>
+    <p><span>Insert a void HTML element</span> for the token.</p>
 
     <p><span data-x="acknowledge self-closing flag">Acknowledge the token's <i data-x="self-closing flag">self-closing
     flag</i></span>, if it is set.</p>
@@ -150177,8 +150192,7 @@ document.body.appendChild(text);
 
     <p><span>Reconstruct the active formatting elements</span>, if any.</p>
 
-    <p><span>Insert an HTML element</span> for the token. Immediately <span>pop the current
-    node</span> off the <span>stack of open elements</span>.</p>
+    <p><span>Insert a void HTML element</span> for the token.</p>
 
     <p><span data-x="acknowledge self-closing flag">Acknowledge the token's <i data-x="self-closing flag">self-closing
     flag</i></span>, if it is set.</p>
@@ -150190,8 +150204,7 @@ document.body.appendChild(text);
 
    <dt>A start tag whose tag name is one of: "param", "source", "track"</dt>
    <dd>
-    <p><span>Insert an HTML element</span> for the token. Immediately <span>pop the current
-    node</span> off the <span>stack of open elements</span>.</p>
+    <p><span>Insert a void HTML element</span> for the token.</p>
 
     <p><span data-x="acknowledge self-closing flag">Acknowledge the token's <i data-x="self-closing flag">self-closing
     flag</i></span>, if it is set.</p>
@@ -150215,8 +150228,7 @@ document.body.appendChild(text);
      error</span>.</p></li>
     </ol>
 
-    <p><span>Insert an HTML element</span> for the token. Immediately <span>pop the current
-    node</span> off the <span>stack of open elements</span>.</p>
+    <p><span>Insert a void HTML element</span> for the token.</p>
 
     <p><span data-x="acknowledge self-closing flag">Acknowledge the token's <i data-x="self-closing flag">self-closing
     flag</i></span>, if it is set.</p>
@@ -151139,10 +151151,7 @@ document.body.appendChild(text);
     <ol>
      <li><p><span>Parse error</span>.</p></li>
 
-     <li><p><span>Insert an HTML element</span> for the token.</p></li>
-
-     <li><p><span>Pop the current node</span> (which will be that <code>input</code> element) off
-     the <span>stack of open elements</span>.</p></li>
+     <li><p><span>Insert a void HTML element</span> for the token.</p></li>
 
      <li><p><span data-x="acknowledge self-closing flag">Acknowledge the token's <i data-x="self-closing flag">self-closing
      flag</i></span>, if it is set.</p></li>
@@ -151156,16 +151165,9 @@ document.body.appendChild(text);
     <p>If the <span><code data-x="form">form</code> element pointer</span> is not null, and the
     parser is not <span>parsing template contents</span>, then ignore the token.</p>
 
-    <p>Otherwise:</p>
-
-    <ol>
-     <li><p><span>Insert an HTML element</span> for the token, and, if the parser is not
-     <span>parsing template contents</span>, set the <span><code data-x="form">form</code> element
-     pointer</span> to point to the element created.</p></li>
-
-     <li><p><span>Pop the current node</span> (which will be that <code>form</code> element) off the
-     <span>stack of open elements</span>.</p></li>
-    </ol>
+    <p>Otherwise, <span>insert a void HTML element</span> for the token, and, if the parser is not
+    <span>parsing template contents</span>, set the <span><code data-x="form">form</code> element
+    pointer</span> to point to the element created.</p>
    </dd>
 
    <!-- "form" end tag falls through to in-body, which does the right thing -->
@@ -151368,8 +151370,7 @@ document.body.appendChild(text);
 
    <dt>A start tag whose tag name is "col"</dt>
    <dd>
-    <p><span>Insert an HTML element</span> for the token. Immediately <span>pop the current
-    node</span> off the <span>stack of open elements</span>.</p>
+    <p><span>Insert a void HTML element</span> for the token.</p>
 
     <p><span data-x="acknowledge self-closing flag">Acknowledge the token's <i data-x="self-closing flag">self-closing
     flag</i></span>, if it is set.</p>
@@ -151982,8 +151983,7 @@ document.body.appendChild(text);
 
    <dt>A start tag whose tag name is "frame"</dt>
    <dd>
-    <p><span>Insert an HTML element</span> for the token. Immediately <span>pop the current
-    node</span> off the <span>stack of open elements</span>.</p>
+    <p><span>Insert a void HTML element</span> for the token.</p>
 
     <p><span data-x="acknowledge self-closing flag">Acknowledge the token's <i data-x="self-closing flag">self-closing
     flag</i></span>, if it is set.</p>
@@ -154083,7 +154083,9 @@ console.assert(container.firstChild instanceof SuperP);
   regarding <span>mutation observers</span> mean that mutation observers <em>are</em> fired.
   <ref>XML</ref> <ref>XMLNS</ref> <ref>DOM</ref> <ref>UIEVENTS</ref></p>
 
-  <p>Between the time an element's start tag is parsed and the time either the element's end tag is
+  <p>Between the time an element's start tag is parsed (after the element is <span
+  data-x="create an element for the token">created</span> and before it is <span
+  data-x="concept-node-insert">inserted</span>) and the time either the element's end tag is
   parsed or the parser detects a well-formedness error, the user agent must act as if the element
   was in a <span>stack of open elements</span>. At the point where the element leaves that stack,
   the user agent must <span>finish parsing the children</span> of the element.</p>
