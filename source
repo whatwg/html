@@ -141565,10 +141565,12 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   "<code data-x="">noscript</code>". Like <span>escapable raw text elements</span>, they can have
   <span data-x="syntax-text">text</span> and <span data-x="syntax-charref">character
   references</span>, but the text must not contain an <span
-  data-x="syntax-ambiguous-ampersand">ambiguous ampersand</span>, and they cannot have other
-  <span data-x="syntax-elements">elements</span>. They can also have <span
-  data-x="syntax-cdata">CDATA sections</span> and <span data-x="syntax-comments">comments</span>.
-  There are <a href="#cdata-rcdata-restrictions">further restrictions</a> described below.</p>
+  data-x="syntax-ambiguous-ampersand">ambiguous ampersand</span>, or a U+003C LESS-THAN SIGN
+  (&lt;) followed by U+0021 EXCLAMATION MARK (!) or U+003F QUESTION MARK (?), and they cannot have
+  other <span data-x="syntax-elements">elements</span>. They can also have <span
+  data-x="syntax-cdata">CDATA sections</span>, <span data-x="syntax-comments">comments</span>, and
+  <span data-x="syntax-processing-instruction">processing instructions</span>. There are <a
+  href="#cdata-rcdata-restrictions">further restrictions</a> described below.</p>
 
   <div class="note">
 
@@ -142284,8 +142286,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   tag name of the element followed by one of U+0009 CHARACTER TABULATION (tab), U+000A LINE FEED
   (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), U+0020 SPACE, U+003E GREATER-THAN SIGN
   (>), or U+002F SOLIDUS (/). The same applies to the text, <span
-  data-x="syntax-comments">comments</span>, and <span data-x="syntax-cdata">CDATA sections</span> in
-  <span>foreign elements</span> whose local name is "<code data-x="">title</code>", "<code
+  data-x="syntax-comments">comments</span>, <span data-x="syntax-processing-instruction">processing
+  instructions</span>, and <span data-x="syntax-cdata">CDATA sections</span> in <span>foreign
+  elements</span> whose local name is "<code data-x="">title</code>", "<code
   data-x="">style</code>", "<code data-x="">script</code>", or "<code
   data-x="">noscript</code>".</p>
 
@@ -144871,7 +144874,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   state</span>.</p>
 
   <p>While the <span>foreign RCDATA flag</span> is true, before each step of the tokenizer (after
-  the check described above), if the next few characters are U+003C LESS-THAN SIGN (&lt;), U+002F
+  the check described above) that consumes the <span>next input character</span>, as opposed to one
+  that <span data-x="reconsume">reconsumes</span> the <span>current input character</span>, if the
+  next few characters are U+003C LESS-THAN SIGN (&lt;), U+002F
   SOLIDUS (/), an <span>ASCII case-insensitive</span> match for the tag name of the last start tag
   to have been emitted from this tokenizer, and then one of U+0009 CHARACTER TABULATION (tab),
   U+000A LINE FEED (LF), U+000C FORM FEED (FF), U+0020 SPACE, U+002F SOLIDUS (/), or U+003E
@@ -145056,8 +145061,8 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <p class="note">This state is like the <span>RCDATA state</span>, except that CDATA sections are
   recognized, and so are comments, bogus comments, and processing instructions if the <span>foreign
-  RCDATA flag</span> is true. The element's end tag is recognized in every state, as described
-  <span data-x="foreign RCDATA flag">above</span>.</p>
+  RCDATA flag</span> is true. While the flag is true, the element's end tag is recognized in every
+  state, as described <span data-x="foreign RCDATA flag">above</span>.</p>
   </div>
 
 
@@ -147652,8 +147657,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   </div>
 
   <div algorithm>
-  <p>A node is a <dfn>foreign RCDATA element</dfn> if it is an element that is not in the <span>HTML
-  namespace</span> and whose <span data-x="concept-element-local-name">local name</span> is
+  <p>A node is a <dfn>foreign RCDATA element</dfn> if it is an element in the <span>SVG
+  namespace</span> or the <span>MathML namespace</span> whose <span
+  data-x="concept-element-local-name">local name</span> is
   "<code data-x="">title</code>", "<code data-x="">style</code>", "<code data-x="">script</code>", or
   "<code data-x="">noscript</code>".</p>
   </div>
@@ -148051,10 +148057,12 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
     <p>then return.</p>
 
-    <p class="note">Only content patching (see <span>prepare content patching</span>) can cause the
-    last case, since the tokenizer does not emit start tags while it is in the <span>foreign RCDATA
-    state</span>. The element is left out of the tree, and the <span>stack of open elements</span>
-    keeps it for as long as the algorithm that called this one requires.</p>
+    <p class="note">The tokenizer does not emit start tags while it is in the <span>foreign RCDATA
+    state</span>, so the last case happens only with content patching (see <span>prepare content
+    patching</span>), or when a script has moved an element that is used as an insertion location
+    (such as a <code>table</code> for foster parenting) into a <span>foreign RCDATA element</span>.
+    The element is left out of the tree, and the <span>stack of open elements</span> keeps it for as
+    long as the algorithm that called this one requires.</p>
    </li>
 
    <li>
@@ -150966,8 +150974,9 @@ document.body.appendChild(text);
        <dd>
         <p>If the parser's <span>fragment parser abort requested</span> is false,
         <var>newElementRefNode</var> is null or its <span>parent</span> is
-        <var>newElementParent</var>, and <var>newElementParent</var> is not a <code>Document</code>
-        node or it does not have an element child:</p>
+        <var>newElementParent</var>, <var>newElementParent</var> is not a <code>Document</code>
+        node or it does not have an element child, and <var>newElementParent</var> is not a
+        <span>foreign RCDATA element</span>:</p>
 
         <ol>
          <li><p>Take all of the child nodes of <var>furthestBlock</var> and <span
@@ -154009,10 +154018,7 @@ console.assert(container.firstChild instanceof SuperP);
      <dt><code>plaintext</code></dt>
      <dd><p>Switch the tokenizer to the <span>PLAINTEXT state</span>.</p></dd>
 
-     <dt>An element that is not in the <span>HTML namespace</span> and whose <span
-     data-x="concept-element-local-name">local name</span> is "<code data-x="">title</code>",
-     "<code data-x="">style</code>", "<code data-x="">script</code>", or "<code
-     data-x="">noscript</code>"</dt>
+     <dt>A <span>foreign RCDATA element</span></dt>
      <dd>
       <p>Switch the tokenizer to the <span>foreign RCDATA state</span>. Leave the <span>foreign
       RCDATA flag</span> false.</p>
