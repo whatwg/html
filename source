@@ -4714,6 +4714,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
     <ref>SECURE-CONTEXTS</ref></p>
 
     <ul class="brief">
+     <li><dfn data-x-href="https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-origin">Is origin potentially trustworthy?</dfn></li>
      <li><dfn data-x-href="https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-url">Is url potentially trustworthy?</dfn></li>
     </ul>
    </dd>
@@ -94613,9 +94614,16 @@ dictionary <dfn dictionary>DragEventInit</dfn> : <span>MouseEventInit</span> {
 
   <dl>
    <dt>An <dfn export data-x="concept-origin-opaque">opaque origin</dfn></dt>
-   <dd><p>An internal value, with no serialization it can be recreated from (it is serialized as
-   "<code data-x="">null</code>" per <span>serialization of an origin</span>), for which the only
-   meaningful operation is testing for equality.</p></dd>
+   <dd>
+    <p>An internal value, with no serialization it can be recreated from (it is serialized as
+    "<code data-x="">null</code>" per <span>serialization of an origin</span>), for which the only
+    meaningful operations are testing for equality and obtaining its <span
+    data-x="concept-origin-precursor">precursor origin</span>.</p>
+
+    <p>An <span data-x="concept-origin-opaque">opaque origin</span> has an associated <dfn export
+    for="origin" data-x="concept-origin-precursor">precursor origin</dfn> (null or a <span
+    data-x="concept-origin-tuple">tuple origin</span>). Null unless stated otherwise.</p>
+   </dd>
 
    <dt>A <dfn export data-x="concept-origin-tuple">tuple origin</dfn></dt>
    <dd>
@@ -94641,6 +94649,24 @@ dictionary <dfn dictionary>DragEventInit</dfn> : <span>MouseEventInit</span> {
   data-x="dom-document-domain">document.domain</code> API.</p>
 
   <div w-nodev>
+
+  <div algorithm>
+  <p>To <dfn export>create an opaque origin</dfn> given an <span>origin</span>-or-null
+  <var>source</var>:</p>
+
+  <ol>
+   <li><p>Let <var>precursor</var> be null.</p></li>
+
+   <li><p>If <var>source</var> is a <span data-x="concept-origin-tuple">tuple origin</span>, then
+   set <var>precursor</var> to <var>source</var>.</p></li>
+
+   <li><p>Otherwise, if <var>source</var> is non-null, then set <var>precursor</var> to
+   <var>source</var>'s <span data-x="concept-origin-precursor">precursor origin</span>.</p></li>
+
+   <li><p>Return a new <span data-x="concept-origin-opaque">opaque origin</span> whose <span
+   data-x="concept-origin-precursor">precursor origin</span> is <var>precursor</var>.</p></li>
+  </ol>
+  </div>
 
   <div algorithm>
   <p>An <span>origin</span>'s <span>equality</span>, given <span data-x="origin">origins</span>
@@ -107459,19 +107485,9 @@ interface <dfn interface>NotRestoredReasons</dfn> {
     </ul>
    </li>
 
-   <li>
-    <p>Let <var>topLevelCreationURL</var> be the return value of running these steps:</p>
-
-    <ol>
-     <li><p>If <var>embedder</var> is non-null, then return <var>embedder</var>'s <span>relevant
-     settings object</span>'s <span>top-level creation URL</span>.</p></li>
-
-     <li><p>If <var>creator</var> is non-null, then return <var>creator</var>'s <span>relevant
-     settings object</span>'s <span>top-level creation URL</span>.</p></li>
-
-     <li><p>Return <code>about:blank</code>.</p></li>
-    </ol>
-   </li>
+   <li><p>Let <var>topLevelCreationURL</var> be <code>about:blank</code> if <var>embedder</var> is
+   null; otherwise <var>embedder</var>'s <span>relevant settings object</span>'s <span>top-level
+   creation URL</span>.</p></li>
 
    <li><p>Let <var>topLevelOrigin</var> be <var>origin</var> if <var>embedder</var> is null;
    otherwise <var>embedder</var>'s <span>relevant settings object</span>'s <span>top-level
@@ -107642,27 +107658,39 @@ interface <dfn interface>NotRestoredReasons</dfn> {
   <span>origin</span>-or-null <var>sourceOrigin</var>:</p>
 
   <ol>
-   <li id="sandboxOrigin"><p>If <var>sandboxFlags</var> has its <span>sandboxed origin browsing
-   context flag</span> set, then return a new <span data-x="concept-origin-opaque">opaque
-   origin</span>.</p></li>
-
-   <li><p>If <var>url</var> is null, then return a new <span data-x="concept-origin-opaque">opaque
-   origin</span>.</p></li>
-
    <li>
-    <p>If <var>url</var> is <code>about:srcdoc</code>:</p>
+    <p>Let <var>origin</var> be the result of running these steps:</p>
 
     <ol>
-     <li><p><span>Assert</span>: <var>sourceOrigin</var> is non-null.</p></li>
+     <li><p>If <var>url</var> is null, then return a new <span
+     data-x="concept-origin-opaque">opaque origin</span>.</p></li>
 
-     <li><p>Return <var>sourceOrigin</var>.</p></li>
+     <li>
+      <p>If <var>url</var> is <code>about:srcdoc</code>:</p>
+
+      <ol>
+       <li><p><span>Assert</span>: <var>sourceOrigin</var> is non-null.</p></li>
+
+       <li><p>Return <var>sourceOrigin</var>.</p></li>
+      </ol>
+     </li>
+
+     <li><p>If <var>url</var> <span>matches <code>about:blank</code></span> and
+     <var>sourceOrigin</var> is non-null, then return <var>sourceOrigin</var>.</p></li>
+
+     <li><p>If <var>url</var>'s <span data-x="concept-url-scheme">scheme</span> is "<code
+     data-x="">data</code>", then return the result of <span data-x="create an opaque
+     origin">creating an opaque origin</span> given <var>sourceOrigin</var>.</p></li>
+
+     <li><p>Return <var>url</var>'s <span data-x="concept-url-origin">origin</span>.</p></li>
     </ol>
    </li>
 
-   <li><p>If <var>url</var> <span>matches <code>about:blank</code></span> and
-   <var>sourceOrigin</var> is non-null, then return <var>sourceOrigin</var>.</p></li>
+   <li id="sandboxOrigin"><p>If <var>sandboxFlags</var> has its <span>sandboxed origin browsing
+   context flag</span> set, then set <var>origin</var> to the result of <span data-x="create an
+   opaque origin">creating an opaque origin</span> given <var>origin</var>.</p></li>
 
-   <li><p>Return <var>url</var>'s <span data-x="concept-url-origin">origin</span>.</p></li>
+   <li><p>Return <var>origin</var>.</p></li>
   </ol>
 
   <p class="note">The cases that return <var>sourceOrigin</var> result in two
@@ -119348,6 +119376,32 @@ document.querySelector("button").addEventListener("click", bound);
    <li><p>If <var>environment</var>'s <span>top-level creation URL</span>'s <span
    data-x="concept-url-scheme">scheme</span> is "<code data-x="">data</code>", then return
    false.</p></li>
+
+   <li>
+    <p>If <var>environment</var>'s <span>top-level creation URL</span> <span>matches
+    <code>about:blank</code></span> and <var>environment</var>'s <span>top-level origin</span> is
+    non-null:</p>
+
+    <ol>
+     <li><p>Let <var>origin</var> be <var>environment</var>'s <span>top-level
+     origin</span>.</p></li>
+
+     <li><p>If <var>origin</var> is an <span data-x="concept-origin-opaque">opaque origin</span>
+     whose <span data-x="concept-origin-precursor">precursor origin</span> is non-null, then set
+     <var>origin</var> to <var>origin</var>'s <span data-x="concept-origin-precursor">precursor
+     origin</span>.</p></li>
+
+     <li><p>Return true if the result of <span>Is origin potentially trustworthy?</span> given
+     <var>origin</var> is "<code data-x="">Potentially Trustworthy</code>"; otherwise
+     false.</p></li>
+    </ol>
+
+    <p class="note">A top-level <code>Document</code> whose <span
+    data-x="concept-document-url">URL</span> <span>matches <code>about:blank</code></span>, such as
+    a popup's initial <code>about:blank</code> <code>Document</code> or one created by navigating to
+    <code>about:blank</code>, inherits its <span data-x="concept-document-origin">origin</span> but
+    has <code>about:blank</code> as its <span>top-level creation URL</span>.</p>
+   </li>
 
    <li><p>If the result of <span>Is url potentially trustworthy?</span> given
    <var>environment</var>'s <span>top-level creation URL</span> is "<code data-x="">Potentially
