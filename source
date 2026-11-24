@@ -87532,26 +87532,81 @@ body { display:none }
   null.</p>
 
   <p var-scope>When the user agent checks the spelling of a word in text associated with an element
-  <var>element</var>, and the checking is enabled for that text, then if the word matches an entry in
-  <var>element</var>'s <span>node document</span>'s <span
+  <var>element</var>, and the checking is enabled for that text, then if the word matches an entry
+  in <var>element</var>'s <span>node document</span>'s <span
   data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>, the user agent
-  should not indicate a spelling error for that word. A word matches an entry if it is <span>identical
-  to</span> that entry. In addition, Unicode normalization should be applied so that different
-  underlying Unicode code point sequences, caused by different keyboard- or input-specific
-  mechanisms, do not interfere with the matching process. For examples of these, see <cite>Character
-  Model for the World Wide Web: String Matching</cite>. <ref>CHARMODNORM</ref></p>
+  should not indicate a spelling error for that word. A word <var>word</var> matches an entry if
+  <var>word</var> is a <span>scalar value string</span> and the result of <span>normalizing a custom
+  spelling word</span> given <var>word</var> is <span>identical to</span> that entry.</p>
+
+  <div algorithm>
+  <p>To <dfn data-x="normalizing a custom spelling word">normalize a custom spelling word</dfn>
+  given a string <var>word</var>:</p>
+
+  <ol>
+   <li><p>Let <var>result</var> be the result of <span data-x="convert">converting</span>
+   <var>word</var> into a <span>scalar value string</span>.</p></li>
+
+   <li><p>Remove from <var>result</var> every <span>code point</span> whose
+   Default_Ignorable_Code_Point property is Yes, other than U+200C ZERO WIDTH NON-JOINER and U+200D
+   ZERO WIDTH JOINER. <ref>UNICODE</ref></p></li>
+
+   <li><p>Replace each <span>code point</span> in <var>result</var> whose decomposition mapping has
+   the tag &lt;wide> or &lt;narrow> with the code point of that mapping. <ref>UNICODE</ref></p></li>
+
+   <li><p>Return the result of converting <var>result</var> to Unicode Normalization Form C.
+   <ref>UAX15</ref></p></li>
+  </ol>
+  </div>
+
+  <div class="note">
+   <p>Normalization removes differences that typically come from the keyboard, input method, or
+   tool used rather than from the choice of word:</p>
+
+   <ul>
+    <li><p>Default ignorable code points, such as U+00AD SOFT HYPHEN, U+200E LEFT-TO-RIGHT MARK, and
+    variation selectors, are not displayed and do not change how a word is spelled, but tools often
+    insert them and copy and paste carries them along. U+200C ZERO WIDTH NON-JOINER and U+200D ZERO
+    WIDTH JOINER are kept, because they are part of the correct spelling of words in some languages,
+    such as Persian and languages written in Indic scripts.</p></li>
+
+    <li><p>Width mapping makes full-width
+    "&#xFF31;&#xFF55;&#xFF45;&#xFF45;&#xFF51;&#xFF55;&#xFF45;&#xFF47;" match "Queequeg" and
+    half-width "&#xFF76;&#xFF9E;&#xFF72;&#xFF84;&#xFF9E;" match "&#x30AC;&#x30A4;&#x30C9;", since
+    which width appears usually depends on the mode of the input method. Other compatibility
+    mappings are not applied, because ligatures, superscripts, and mathematical letters can be
+    deliberate, and hiragana and katakana are not mapped to each other, because writing a word in
+    one or the other is a choice of spelling.</p></li>
+
+    <li><p>Normalization Form C makes "caf&eacute;" written with U+00E9 (&eacute;) match the same
+    word written with U+0065 (e) followed by U+0301 COMBINING ACUTE ACCENT.</p></li>
+   </ul>
+
+   <p>This follows the guidance for filtering the suggestions of a <span
+   data-x="concept-input-list">suggestions source element</span>, which also asks for Unicode
+   normalization. For more examples, see <cite>Character Model for the World Wide Web: String
+   Matching</cite>. <ref>CHARMODNORM</ref></p>
+  </div>
 
   <p class="note">The custom spelling exemption list is not persisted, is not shared across
   documents, frames, or browsing contexts, and is discarded when the <code>Document</code> is
   destroyed.</p>
 
   <p class="note">Entries are matched against individual words as identified by the user agent's
-  spell checking algorithm. Entries containing whitespace or other word separators will generally
-  not match any word and will have no effect.</p>
+  spell checking algorithm. How text is divided into words is <span>implementation-defined</span>,
+  and can differ between user agents and languages; for example, whether "don't" or "e-mail" is one
+  word or two. Text is divided into words before normalization, so normalization never joins two
+  words or moves a word boundary. Entries containing whitespace or other word separators, such as
+  "New York", will generally not match any word and will have no effect. Some default ignorable code
+  points, such as U+200B ZERO WIDTH SPACE, separate words, so text in which one appears inside a
+  word is generally checked as two words, neither of which matches an entry for the whole word.</p>
 
-  <p class="note">Entries are matched without case folding. Authors might need to add multiple forms
-  of a word &mdash; for example, both "anaerobe" and "anaerobes" &mdash; to exempt all variants from
-  spell checking.</p>
+  <p class="note">Apart from normalization, matching is exact. It is case-sensitive: adding
+  "Queequeg" does not exempt "QUEEQUEG" or "queequeg". It does not account for inflection: adding
+  "anaerobe" does not exempt "anaerobes". It does not treat U+2019 RIGHT SINGLE QUOTATION MARK and
+  U+0027 APOSTROPHE as equivalent. Authors might need to add each form of a word. Unlike the
+  filtering of suggestions from a <code>datalist</code> element, which ignores case, an incorrect
+  match here hides a misspelling, such as a missing capital letter in "paris".</p>
 
   <p class="note">Entries apply to all text in the <code>Document</code>, regardless of the language
   of that text or of the languages the user agent is checking it against.</p>
@@ -87559,16 +87614,18 @@ body { display:none }
   <dl class="domintro">
    <dt><code data-x=""><var>document</var>.<span subdfn data-x="dom-document-spellCheckCustomDictionary">spellCheckCustomDictionary</span>.<span subdfn data-x="dom-SpellCheckCustomDictionary-addWords">addWords</span>(<var>words</var>)</code></dt>
    <dd>
-    <p>Adds each string in <var>words</var> to <var>document</var>'s <span
-    data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>. Words that
-    are already present are ignored.</p>
+    <p>Normalizes each string in <var>words</var> and adds it to <var>document</var>'s <span
+    data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>. Strings that
+    are empty or begin or end with whitespace after normalization, or that are already present, are
+    ignored.</p>
    </dd>
 
    <dt><code data-x=""><var>document</var>.<span data-x="dom-document-spellCheckCustomDictionary">spellCheckCustomDictionary</span>.<span subdfn data-x="dom-SpellCheckCustomDictionary-removeWords">removeWords</span>(<var>words</var>)</code></dt>
    <dd>
-    <p>Removes each string in <var>words</var> from <var>document</var>'s <span
-    data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>. Words that
-    are not present are ignored.</p>
+    <p>Normalizes each string in <var>words</var> and removes it from <var>document</var>'s <span
+    data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>, so that a
+    string removes the entry added for any string that normalizes the same way. Strings that are not
+    present are ignored.</p>
    </dd>
   </dl>
 
@@ -87615,9 +87672,22 @@ interface <dfn interface>SpellCheckCustomDictionary</dfn> {
    <li><p>Let <var>document</var> be <span>this</span>'s <span
    data-x="concept-spellcheckcustomdictionary-document">associated document</span>.</p></li>
 
-   <li><p><span data-x="list iterate">For each</span> <var>word</var> of <var>words</var>: <span
-   data-x="set append">append</span> <var>word</var> to <var>document</var>'s <span
-   data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>.</p></li>
+   <li>
+    <p><span data-x="list iterate">For each</span> <var>word</var> of <var>words</var>:</p>
+
+    <ol>
+     <li><p>Let <var>normalized</var> be the result of <span>normalizing a custom spelling
+     word</span> given <var>word</var>.</p></li>
+
+     <li><p>If <var>normalized</var> is the empty string or its first or last <span>code
+     point</span> has the White_Space property, then <span>continue</span>.
+     <ref>UNICODE</ref></p></li>
+
+     <li><p><span data-x="set append">Append</span> <var>normalized</var> to <var>document</var>'s
+     <span data-x="concept-custom-spelling-exemptions">custom spelling exemption
+     list</span>.</p></li>
+    </ol>
+   </li>
   </ol>
   </div>
 
@@ -87630,7 +87700,8 @@ interface <dfn interface>SpellCheckCustomDictionary</dfn> {
    data-x="concept-spellcheckcustomdictionary-document">associated document</span>.</p></li>
 
    <li><p><span data-x="list iterate">For each</span> <var>word</var> of <var>words</var>: <span
-   data-x="list remove">remove</span> <var>word</var> from <var>document</var>'s <span
+   data-x="list remove">remove</span> the result of <span>normalizing a custom spelling word</span>
+   given <var>word</var> from <var>document</var>'s <span
    data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>.</p></li>
   </ol>
   </div>
@@ -157283,6 +157354,9 @@ INSERT INTERFACES HERE
 
    <dt id="refsUAAG">[UAAG]</dt>
    <dd>(Non-normative) <cite><a href="https://www.w3.org/TR/UAAG20/">User Agent Accessibility Guidelines (UAAG) 2.0</a></cite>, J. Allan, K. Ford, J. Richards, J. Spellman. W3C.</dd>
+
+   <dt id="refsUAX15">[UAX15]</dt>
+   <dd><cite><a href="https://www.unicode.org/reports/tr15/">UAX #15: Unicode Normalization Forms</a></cite>, K. Whistler. Unicode Consortium.</dd>
 
    <dt id="refsUIEVENTS">[UIEVENTS]</dt>
    <dd><cite><a href="https://w3c.github.io/uievents/">UI Events Specification</a></cite>, G. Kacmarcik, T. Leithead. W3C.</dd>
