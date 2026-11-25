@@ -87541,15 +87541,14 @@ body { display:none }
 
   <div algorithm>
   <p>To <dfn data-x="normalizing a custom spelling word">normalize a custom spelling word</dfn>
-  given a string <var>word</var>:</p>
+  given a <span>scalar value string</span> <var>word</var>:</p>
 
   <ol>
-   <li><p>Let <var>result</var> be the result of <span data-x="convert">converting</span>
-   <var>word</var> into a <span>scalar value string</span>.</p></li>
+   <li><p>Let <var>result</var> be <var>word</var>.</p></li>
 
    <li><p>Remove from <var>result</var> every <span>code point</span> whose
-   Default_Ignorable_Code_Point property is Yes, other than U+200C ZERO WIDTH NON-JOINER and U+200D
-   ZERO WIDTH JOINER. <ref>UNICODE</ref></p></li>
+   Default_Ignorable_Code_Point property is Yes, other than U+034F COMBINING GRAPHEME JOINER, U+200C
+   ZERO WIDTH NON-JOINER, and U+200D ZERO WIDTH JOINER. <ref>UNICODE</ref></p></li>
 
    <li><p>Replace each <span>code point</span> in <var>result</var> whose decomposition mapping has
    the tag &lt;wide> or &lt;narrow> with the code point of that mapping. <ref>UNICODE</ref></p></li>
@@ -87568,7 +87567,10 @@ body { display:none }
     variation selectors, are not displayed and do not change how a word is spelled, but tools often
     insert them and copy and paste carries them along. U+200C ZERO WIDTH NON-JOINER and U+200D ZERO
     WIDTH JOINER are kept, because they are part of the correct spelling of words in some languages,
-    such as Persian and languages written in Indic scripts.</p></li>
+    such as Persian and languages written in Indic scripts. U+034F COMBINING GRAPHEME JOINER is
+    kept, because it is used to keep combining marks in an order that Normalization Form C would
+    otherwise change, for example in Hebrew, so removing it would change the result of
+    normalization.</p></li>
 
     <li><p>Width mapping makes full-width
     "&#xFF31;&#xFF55;&#xFF45;&#xFF45;&#xFF51;&#xFF55;&#xFF45;&#xFF47;" match "Queequeg" and
@@ -87616,16 +87618,16 @@ body { display:none }
    <dd>
     <p>Normalizes each string in <var>words</var> and adds it to <var>document</var>'s <span
     data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>. Strings that
-    are empty or begin or end with whitespace after normalization, or that are already present, are
-    ignored.</p>
+    contain unpaired surrogates, that are empty or begin or end with whitespace after normalization,
+    or that are already present, are ignored.</p>
    </dd>
 
    <dt><code data-x=""><var>document</var>.<span data-x="dom-document-spellCheckCustomDictionary">spellCheckCustomDictionary</span>.<span subdfn data-x="dom-SpellCheckCustomDictionary-removeWords">removeWords</span>(<var>words</var>)</code></dt>
    <dd>
     <p>Normalizes each string in <var>words</var> and removes it from <var>document</var>'s <span
     data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>, so that a
-    string removes the entry added for any string that normalizes the same way. Strings that are not
-    present are ignored.</p>
+    string removes the entry added for any string that normalizes the same way. Strings that contain
+    unpaired surrogates, or that are not present, are ignored.</p>
    </dd>
   </dl>
 
@@ -87676,6 +87678,9 @@ interface <dfn interface>SpellCheckCustomDictionary</dfn> {
     <p><span data-x="list iterate">For each</span> <var>word</var> of <var>words</var>:</p>
 
     <ol>
+     <li><p>If <var>word</var> is not a <span>scalar value string</span>, then
+     <span>continue</span>.</p></li>
+
      <li><p>Let <var>normalized</var> be the result of <span>normalizing a custom spelling
      word</span> given <var>word</var>.</p></li>
 
@@ -87699,12 +87704,29 @@ interface <dfn interface>SpellCheckCustomDictionary</dfn> {
    <li><p>Let <var>document</var> be <span>this</span>'s <span
    data-x="concept-spellcheckcustomdictionary-document">associated document</span>.</p></li>
 
-   <li><p><span data-x="list iterate">For each</span> <var>word</var> of <var>words</var>: <span
-   data-x="list remove">remove</span> the result of <span>normalizing a custom spelling word</span>
-   given <var>word</var> from <var>document</var>'s <span
-   data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>.</p></li>
+   <li>
+    <p><span data-x="list iterate">For each</span> <var>word</var> of <var>words</var>:</p>
+
+    <ol>
+     <li><p>If <var>word</var> is not a <span>scalar value string</span>, then
+     <span>continue</span>.</p></li>
+
+     <li><p><span data-x="list remove">Remove</span> the result of <span>normalizing a custom
+     spelling word</span> given <var>word</var> from <var>document</var>'s <span
+     data-x="concept-custom-spelling-exemptions">custom spelling exemption list</span>.</p></li>
+    </ol>
+   </li>
   </ol>
   </div>
+
+  <p class="note">Strings that contain unpaired surrogates are ignored rather than <span
+  data-x="convert">converted</span> to <span data-x="scalar value string">scalar value
+  strings</span>. Converting them would replace each unpaired surrogate with U+FFFD REPLACEMENT
+  CHARACTER, so that <code
+  data-x="dom-SpellCheckCustomDictionary-removeWords">removeWords()</code> could remove an unrelated
+  entry that contains U+FFFD, and <code
+  data-x="dom-SpellCheckCustomDictionary-addWords">addWords()</code> could exempt a word that was
+  never supplied.</p>
 
   </div>
 
