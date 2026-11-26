@@ -17848,7 +17848,8 @@ data-x="rel-preload">preload</span>; <span data-x="attr-link-as">as</span>=font<
   <ol>
    <li>
     <p>Let <var>earlyPolicyContainer</var> be the result of <span>creating a policy container from
-    a fetch response</span> given <var>response</var> and <var>reservedEnvironment</var>.</p>
+    a fetch response</span> given <var>response</var>, <var>reservedEnvironment</var>, and
+    true.</p>
 
     <p class="note">This allows the early hint <span data-x="concept-response">response</span> to
     include a <span>Content Security Policy</span> which would be <span data-x="enforce the
@@ -97204,6 +97205,260 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
   </div>
 
 
+  <h4 id="dip">Document isolation policies</h4>
+
+  <p>A <dfn export>document isolation policy value</dfn> is one of three strings that controls <span
+  data-x="agent cluster">agent cluster</span> allocation and the fetching of cross-origin resources
+  without explicit permission from resource owners:</p>
+
+  <dl>
+   <dt>"<dfn data-x="dip-none" export for="document isolation policy value"><code
+   data-x="">none</code></dfn>"</dt>
+   <dd><p>This is the default value. When this value is used, cross-origin resources can be fetched
+   without giving explicit permission through the <span>CORS protocol</span> or the
+   `<code>Cross-Origin-Resource-Policy</code>` header. The document does not request to be assigned
+   to a cross-origin isolated <span>agent cluster</span>.</p></dd>
+
+   <dt>"<dfn data-x="dip-isolate-and-require-corp" export for="document isolation policy
+   value"><code data-x="">isolate-and-require-corp</code></dfn>"</dt>
+   <dd><p>When this value is used, fetching cross-origin resources requires the server's explicit
+   permission through the <span>CORS protocol</span> or the
+   `<code>Cross-Origin-Resource-Policy</code>` header. The document is also assigned to a
+   cross-origin isolated <span>agent cluster</span>.</p></dd>
+
+   <dt>"<dfn data-x="dip-isolate-and-credentialless" export for="document isolation policy
+   value"><code data-x="">isolate-and-credentialless</code></dfn>"</dt>
+   <dd><p>When this value is used, fetching cross-origin no-CORS resources omits credentials. In
+   exchange, an explicit `<code>Cross-Origin-Resource-Policy</code>` header is not required. Other
+   requests sent with credentials require the server's explicit permission through the <span>CORS
+   protocol</span> or the `<code>Cross-Origin-Resource-Policy</code>` header. The document is also
+   assigned to a cross-origin isolated <span>agent cluster</span>.</p></dd>
+  </dl>
+
+  <div class="warning">
+   <p>Before supporting "<code
+   data-x="dip-isolate-and-credentialless">isolate-and-credentialless</code>", implementers are
+   strongly encouraged to support both:</p>
+
+   <ul class="brief">
+    <li><a href="https://wicg.github.io/private-network-access/">Private Network Access</a></li>
+    <li><a href="https://github.com/annevk/orb">Opaque Response Blocking</a></li>
+   </ul>
+
+   <p>Otherwise, it would allow attackers to leverage the client's network position to read non
+   public resources, using the <span
+   data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin isolated
+   capability</span>.</p>
+  </div>
+
+  <div class="note">
+   <p>In order to safely grant access to the <span
+   data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin isolated
+   capability</span> via `<code>Document-Isolation-Policy</code>`, user agents rely on backing
+   separate <span data-x="agent cluster">agent clusters</span> with effective process isolation
+   (such as out-of-process iframes). If a user agent cannot provide such process isolation, it has
+   to use the "<code data-x="cross-origin-isolation-logical">logical</code>" <span>cross-origin
+   isolation mode</span> rather than "<code
+   data-x="cross-origin-isolation-concrete">concrete</code>" for <code>Document</code>s that set a
+   <span>document isolation policy</span>. Fixing the choice between "<code
+   data-x="cross-origin-isolation-logical">logical</code>" and "<code
+   data-x="cross-origin-isolation-concrete">concrete</code>" across all <span
+   data-x="origin">origins</span> in a user agent session ensures consistent <span>agent
+   cluster</span> allocation and avoids leaking the state of other documents.</p>
+  </div>
+
+  <div algorithm>
+  <p>A <span>document isolation policy value</span> is <dfn data-x="dip-isolating" for="document
+  isolation policy value">isolating</dfn> if it is "<code
+  data-x="dip-isolate-and-credentialless">isolate-and-credentialless</code>" or "<code
+  data-x="dip-isolate-and-require-corp">isolate-and-require-corp</code>".</p>
+  </div>
+
+  <div w-nodev>
+
+  <p>A <dfn export>document isolation policy</dfn> is a <span>struct</span> consisting of:</p>
+
+  <ul>
+   <li><p>A <dfn data-x="document-isolation-policy-value" for="document isolation policy"
+   export>value</dfn>, which is a <span>document isolation policy value</span>, initially "<code
+   data-x="dip-none">none</code>".</p></li>
+
+   <li><p>A <dfn data-x="document-isolation-policy-reporting-endpoint" for="document isolation
+   policy" export>reporting endpoint</dfn> string, initially the empty string.</p></li>
+
+   <li><p>A <dfn data-x="document-isolation-policy-report-only-value" for="document isolation
+   policy" export>report-only value</dfn>, which is a <span>document isolation policy value</span>,
+   initially "<code data-x="dip-none">none</code>".</p></li>
+
+   <li><p>A <dfn data-x="document-isolation-policy-report-only-reporting-endpoint" for="document
+   isolation policy" export>report-only reporting endpoint</dfn> string, initially the empty
+   string.</p></li>
+  </ul>
+
+  <p>The <dfn export id="dip-report-type">"<code>dip</code>" report type</dfn> is a <span>report
+  type</span> whose value is "<code data-x="">dip</code>". It is <span>visible to
+  <code>ReportingObserver</code>s</span>.</p>
+
+  </div>
+
+
+  <h5 id="the-dip-headers">The headers</h5>
+
+  <p>The `<dfn http-header><code>Document-Isolation-Policy</code></dfn>` and
+  `<dfn http-header><code>Document-Isolation-Policy-Report-Only</code></dfn>` HTTP response headers
+  allow a server to declare a <span>document isolation policy</span> for a <code>Document</code>.
+  These headers are <span data-x="http-structured-header">structured headers</span> whose values
+  must be a <span data-x="http-structured-header-token">token</span>.
+  <ref>STRUCTURED-FIELDS</ref></p>
+
+  <p>The valid <span data-x="http-structured-header-token">token</span> values are the <span
+  data-x="document isolation policy value">document isolation policy values</span>. The token may
+  also have attached <span data-x="http-structured-header-parameters">parameters</span>; of these,
+  the "<dfn data-x="dip-report-to"><code>report-to</code></dfn>" parameter can have a <span
+  data-x="http-structured-header-string">string</span> value that is the <span
+  data-x="endpoint-name">name</span> of an appropriate <span>endpoint</span>.
+  <ref>REPORTING</ref></p>
+
+  <div class="note">
+   <p>The <span data-x="obtain a document isolation policy">processing model</span> fails open (by
+   defaulting to "<code data-x="dip-none">none</code>") in the presence of a header that cannot be
+   parsed as a token. This includes inadvertent lists created by combining multiple instances of the
+   `<code>Document-Isolation-Policy</code>` header present in a given response:</p>
+
+   <table class="data">
+    <thead>
+     <tr>
+      <th>`<code>Document-Isolation-Policy</code>`</th>
+      <th>Final <span>document isolation policy value</span></th>
+     </tr>
+    </thead>
+    <tbody>
+     <tr>
+      <td><em>No header delivered</em></td>
+      <td>"<code data-x="dip-none">none</code>"</td>
+     </tr>
+     <tr>
+      <td>`<code data-x="">isolate-and-require-corp</code>`</td>
+      <td>"<code data-x="dip-isolate-and-require-corp">isolate-and-require-corp</code>"</td>
+     </tr>
+     <tr>
+      <td>`<code data-x="">isolate-and-credentialless</code>`</td>
+      <td>"<code data-x="dip-isolate-and-credentialless">isolate-and-credentialless</code>"</td>
+     </tr>
+     <tr>
+      <td>`<code data-x="">unknown-value</code>`</td>
+      <td>"<code data-x="dip-none">none</code>"</td>
+     </tr>
+     <tr>
+      <td>`<code data-x="">isolate-and-require-corp, unknown-value</code>`</td>
+      <td>"<code data-x="dip-none">none</code>"</td>
+     </tr>
+     <tr>
+      <td>`<code data-x="">isolate-and-require-corp, isolate-and-require-corp</code>`</td>
+      <td>"<code data-x="dip-none">none</code>"</td>
+     </tr>
+    </tbody>
+   </table>
+
+   <p>(The same applies to `<code>Document-Isolation-Policy-Report-Only</code>`.)</p>
+  </div>
+
+  <div w-nodev>
+
+  <hr>
+
+  <div algorithm>
+  <p>To <dfn export>obtain a document isolation policy</dfn> from a <span
+  data-x="concept-response">response</span> <var>response</var> and an <span>environment</span>
+  <var>environment</var>:</p>
+
+  <ol>
+   <li><p>Let <var>policy</var> be a new <span>document isolation policy</span>.</p></li>
+
+   <li><p>If <var>environment</var> is a <span>non-secure context</span>, then return
+   <var>policy</var>.</p></li>
+
+   <li><p>Let <var>parsedItem</var> be the result of <span>getting a structured field value</span>
+   with `<code>Document-Isolation-Policy</code>` and "<code data-x="">item</code>" from
+   <var>response</var>'s <span data-x="concept-response-header-list">header list</span>.</p></li>
+
+   <li>
+    <p>If <var>parsedItem</var> is non-null, <var>parsedItem</var>[0] is a <span
+    data-x="http-structured-header-token">token</span>, and <var>parsedItem</var>[0] is <span
+    data-x="dip-isolating">isolating</span>:</p>
+
+    <ol>
+     <li><p>Set <var>policy</var>'s <span data-x="document-isolation-policy-value">value</span> to
+     <var>parsedItem</var>[0].</p></li>
+
+     <li><p>If <var>parsedItem</var>[1]["<code data-x="dip-report-to">report-to</code>"] <span
+     data-x="map exists">exists</span> and it is a <span
+     data-x="http-structured-header-string">string</span>, then set <var>policy</var>'s <span
+     data-x="document-isolation-policy-reporting-endpoint">reporting endpoint</span> to
+     <var>parsedItem</var>[1]["<code data-x="dip-report-to">report-to</code>"].</p></li>
+    </ol>
+   </li>
+
+   <li><p>Set <var>parsedItem</var> to the result of <span>getting a structured field value</span>
+   with `<code>Document-Isolation-Policy-Report-Only</code>` and "<code data-x="">item</code>" from
+   <var>response</var>'s <span data-x="concept-response-header-list">header list</span>.</p></li>
+
+   <li>
+    <p>If <var>parsedItem</var> is non-null, <var>parsedItem</var>[0] is a <span
+    data-x="http-structured-header-token">token</span>, and <var>parsedItem</var>[0] is <span
+    data-x="dip-isolating">isolating</span>:</p>
+
+    <ol>
+     <li><p>Set <var>policy</var>'s <span
+     data-x="document-isolation-policy-report-only-value">report-only value</span> to
+     <var>parsedItem</var>[0].</p></li>
+
+     <li><p>If <var>parsedItem</var>[1]["<code data-x="dip-report-to">report-to</code>"] <span
+     data-x="map exists">exists</span> and it is a <span
+     data-x="http-structured-header-string">string</span>, then set <var>policy</var>'s <span
+     data-x="document-isolation-policy-report-only-reporting-endpoint">report-only reporting
+     endpoint</span> to <var>parsedItem</var>[1]["<code
+     data-x="dip-report-to">report-to</code>"].</p></li>
+    </ol>
+   </li>
+
+   <li><p>Return <var>policy</var>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>obtain an agent cluster cross-origin isolation key</dfn> given null or a <span>document
+  isolation policy</span> <var>documentIsolationPolicy</var> and an <span>origin</span>
+  <var>origin</var>:</p>
+
+  <ol>
+   <li><p>If <var>documentIsolationPolicy</var> is null, then return null.</p></li>
+
+   <li><p>If <var>documentIsolationPolicy</var>'s <span
+   data-x="document-isolation-policy-value">value</span> is "<code data-x="dip-none">none</code>",
+   then return null.</p></li>
+
+   <li>
+    <p>Let <var>crossOriginIsolationMode</var> be either "<code
+    data-x="cross-origin-isolation-logical">logical</code>" or "<code
+    data-x="cross-origin-isolation-concrete">concrete</code>". The choice of which is
+    <span>implementation-defined</span>.</p>
+
+    <p class="note">To keep same-origin documents with a <span>document isolation policy</span> in
+    the same <span>agent cluster</span>, user agents need to choose the same mode consistently for
+    all calls to this algorithm on a given platform.</p>
+   </li>
+
+   <li><p>Return a new <span>agent cluster cross-origin isolation key</span> whose <span
+   data-x="coi-key-origin">origin</span> is <var>origin</var> and whose <span
+   data-x="coi-key-mode">cross-origin isolation mode</span> is
+   <var>crossOriginIsolationMode</var>.</p></li>
+  </ol>
+  </div>
+
+  </div>
+
+
   <h4>Sandboxing</h4>
 
   <p>A <dfn export>sandboxing flag set</dfn> is a set of zero or more of the following flags, which
@@ -97621,6 +97876,15 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
    data-x="policy-container-report-only-integrity-policy">report-only integrity policy</dfn>, which
    is an <span data-x="integrity policy">integrity policy</span>, initially a new <span
    data-x="integrity policy">integrity policy</span>.</p></li>
+
+   <li><p>A <dfn export for="policy container"
+   data-x="policy-container-document-isolation-policy">document isolation policy</dfn>, which is a
+   <span>document isolation policy</span>. It is initially a new <span>document isolation
+   policy</span>.</p></li>
+
+   <li><p>An <dfn for="policy container" data-x="policy-container-coi-key">agent cluster
+   cross-origin isolation key</dfn>, which is null or an <span>agent cluster cross-origin isolation
+   key</span>. It is initially null.</p></li>
   </ul>
 
   <p class="XXX">Move other policies into the policy container.</p>
@@ -97648,6 +97912,16 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
    <li><p>Set <var>clone</var>'s <span data-x="policy-container-integrity-policy">integrity
    policy</span> to a copy of <var>policyContainer</var>'s <span
    data-x="policy-container-integrity-policy">integrity policy</span>.</p></li>
+
+   <li><p>Set <var>clone</var>'s <span
+   data-x="policy-container-document-isolation-policy">document isolation policy</span> to a copy of
+   <var>policyContainer</var>'s <span data-x="policy-container-document-isolation-policy">document
+   isolation policy</span>.</p></li>
+
+   <li><p>Set <var>clone</var>'s <span data-x="policy-container-coi-key">agent cluster cross-origin
+   isolation key</span> to a copy of <var>policyContainer</var>'s <span
+   data-x="policy-container-coi-key">agent cluster cross-origin isolation key</span>, if non-null;
+   otherwise null.</p></li>
 
    <li><p>Return <var>clone</var>.</p></li>
   </ol>
@@ -97678,8 +97952,9 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
   <div algorithm>
   <p>To <dfn export data-lt="creating a policy container from a fetch response" data-x="creating a
   policy container from a fetch response">create a policy container from a fetch response</dfn>
-  given a <span data-x="concept-response">response</span> <var>response</var> and an
-  <span>environment</span>-or-null <var>environment</var>:</p>
+  given a <span data-x="concept-response">response</span> <var>response</var>, an
+  <span>environment</span>-or-null <var>environment</var>, and an optional boolean
+  <var>parseDocumentIsolationPolicy</var> (default false):</p>
 
   <ol>
    <li><p>If <var>response</var>'s <span data-x="concept-response-url">URL</span>'s <span
@@ -97708,6 +97983,26 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
 
    <li><p><span data-x="parse Integrity-Policy headers">Parse Integrity-Policy headers</span> with
    <var>response</var> and <var>result</var>.</p></li>
+
+   <li>
+    <p>If <var>parseDocumentIsolationPolicy</var> is true and <var>environment</var> is non-null,
+    then:</p>
+
+    <ol>
+     <li><p>Set <var>result</var>'s <span
+     data-x="policy-container-document-isolation-policy">document isolation policy</span> to the
+     result of <span data-x="obtain a document isolation policy">obtaining a document isolation
+     policy</span> given <var>response</var> and <var>environment</var>.</p></li>
+
+     <li><p>Set <var>result</var>'s <span data-x="policy-container-coi-key">agent cluster
+     cross-origin isolation key</span> to the result of <span data-x="obtain an agent cluster
+     cross-origin isolation key">obtaining an agent cluster cross-origin isolation key</span> given
+     <var>result</var>'s <span data-x="policy-container-document-isolation-policy">document
+     isolation policy</span> and <var>response</var>'s <span
+     data-x="concept-response-url">URL</span>'s <span
+     data-x="concept-url-origin">origin</span>.</p></li>
+    </ol>
+   </li>
 
    <li><p>Return <var>result</var>.</p></li>
   </ol>
@@ -97783,6 +98078,65 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
    data-x="concept-WorkerGlobalScope-policy-container">policy container</span> to the result of
    <span>creating a policy container from a fetch response</span> given
    <var>response</var> and <var>environment</var>.</p></li>
+
+   <li>
+    <p>If <var>workerGlobalScope</var> is a <code>DedicatedWorkerGlobalScope</code> object:</p>
+
+    <ol>
+     <li><p><span>Assert</span>: <var>workerGlobalScope</var>'s <span>owner set</span>'s <span
+     data-x="list size">size</span> is 1.</p></li>
+
+     <li><p>Let <var>ownerPolicyContainer</var> be <var>workerGlobalScope</var>'s <span>owner
+     set</span>[0]'s <span>relevant settings object</span>'s <span
+     data-x="concept-settings-object-policy-container">policy container</span>.</p></li>
+
+     <li><p>Set <var>workerGlobalScope</var>'s <span
+     data-x="concept-WorkerGlobalScope-policy-container">policy container</span>'s <span
+     data-x="policy-container-document-isolation-policy">document isolation policy</span> to a copy
+     of <var>ownerPolicyContainer</var>'s <span
+     data-x="policy-container-document-isolation-policy">document isolation policy</span>.</p></li>
+
+     <li><p>Set <var>workerGlobalScope</var>'s <span
+     data-x="concept-WorkerGlobalScope-policy-container">policy container</span>'s <span
+     data-x="policy-container-coi-key">agent cluster cross-origin isolation key</span> to a copy of
+     <var>ownerPolicyContainer</var>'s <span data-x="policy-container-coi-key">agent cluster
+     cross-origin isolation key</span>, if non-null; otherwise null.</p></li>
+    </ol>
+
+    <p class="note">Dedicated workers inherit their owner's <span>document isolation policy</span>,
+    including its <span data-x="document-isolation-policy-reporting-endpoint">reporting
+    endpoint</span> and <span
+    data-x="document-isolation-policy-report-only-reporting-endpoint">report-only reporting
+    endpoint</span> <span data-x="endpoint-name">names</span>. Violation reports for the worker's
+    fetches are <span data-x="queue a report">queued</span> on the worker's own <span>environment
+    settings object</span>, so out-of-band delivery resolves those <span
+    data-x="endpoint-name">names</span> against the worker's own <span
+    data-x="endpoint">endpoints</span> (for example, as configured by the worker script response's
+    `<code data-x="">Reporting-Endpoints</code>` header), while <code
+    data-x="">ReportingObserver</code>s in the worker observe violations directly.
+    <ref>REPORTING</ref></p>
+   </li>
+
+   <li>
+    <p>Otherwise:</p>
+
+    <ol>
+     <li><p>Set <var>workerGlobalScope</var>'s <span
+     data-x="concept-WorkerGlobalScope-policy-container">policy container</span>'s <span
+     data-x="policy-container-document-isolation-policy">document isolation policy</span> to a new
+     <span>document isolation policy</span>.</p></li>
+
+     <li><p>Set <var>workerGlobalScope</var>'s <span
+     data-x="concept-WorkerGlobalScope-policy-container">policy container</span>'s <span
+     data-x="policy-container-coi-key">agent cluster cross-origin isolation key</span> to
+     null.</p></li>
+    </ol>
+
+    <p class="note">Shared workers do not use or inherit `<code>Document-Isolation-Policy</code>`
+    (even when created from a <code data-x="blob protocol">blob:</code> or <code
+    data-x="data protocol">data:</code> URL); they use `<code>Cross-Origin-Embedder-Policy</code>`
+    instead.</p>
+   </li>
   </ol>
   </div>
 
@@ -112003,8 +112357,8 @@ location.href = '#foo';</code></pre>
      </li>
 
      <li><p>Set <var>responsePolicyContainer</var> to the result of <span>creating a policy
-     container from a fetch response</span> given <var>response</var> and <var>request</var>'s
-     <span data-x="concept-request-reserved-client">reserved client</span>.</p></li>
+     container from a fetch response</span> given <var>response</var>, <var>request</var>'s
+     <span data-x="concept-request-reserved-client">reserved client</span>, and true.</p></li>
 
      <li><p>Set <var>finalSandboxFlags</var> to the <span data-x="set union">union</span> of
      <var>targetSnapshotParams</var>'s <span data-x="target-snapshot-params-sandbox">sandboxing
@@ -164908,6 +165262,8 @@ INSERT INTERFACES HERE
    <li>`<code>Cross-Origin-Embedder-Policy-Report-Only</code>`</li>
    <li>`<code>Cross-Origin-Opener-Policy</code>`</li>
    <li>`<code>Cross-Origin-Opener-Policy-Report-Only</code>`</li>
+   <li>`<code>Document-Isolation-Policy</code>`</li>
+   <li>`<code>Document-Isolation-Policy-Report-Only</code>`</li>
    <li>`<code>Origin-Agent-Cluster</code>`</li>
    <li>`<code>Refresh</code>`</li>
    <li>`<code>X-Frame-Options</code>`</li>
