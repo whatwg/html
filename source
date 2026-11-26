@@ -3616,6 +3616,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
                       <dfn data-x="concept-element-is-value" data-x-href="https://dom.spec.whatwg.org/#concept-element-is-value"><code data-x="">is</code> value</dfn></li>
 
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#mutationobserver"><code>MutationObserver</code></dfn> interface and <dfn data-x-href="https://dom.spec.whatwg.org/#mutation-observers">mutation observers</dfn> in general</li>
+     <li><dfn data-x-href="https://dom.spec.whatwg.org/#signal-parse-end">signal parse end</dfn></li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#abortcontroller"><code>AbortController</code></dfn> and its
          <dfn data-x="concept-AbortController-signal" data-x-href="https://dom.spec.whatwg.org/#abortcontroller-signal">signal</dfn></li>
      <li><dfn data-x-href="https://dom.spec.whatwg.org/#abortsignal"><code>AbortSignal</code></dfn></li>
@@ -127076,6 +127077,7 @@ document.body.appendChild(frame)</code></pre>
   [<span>CEReactions</span>] attribute (<span data-x="tt-trustedhtml">TrustedHTML</span> or [<span>LegacyNullToEmptyString</span>] DOMString) <span data-x="dom-Element-innerHTML">innerHTML</span>;
   [<span>CEReactions</span>] attribute (<span data-x="tt-trustedhtml">TrustedHTML</span> or [<span>LegacyNullToEmptyString</span>] DOMString) <span data-x="dom-Element-outerHTML">outerHTML</span>;
   [<span>CEReactions</span>] undefined <span data-x="dom-Element-insertAdjacentHTML">insertAdjacentHTML</span>(DOMString position, (<span data-x="tt-trustedhtml">TrustedHTML</span> or DOMString) string);
+  readonly attribute boolean <span data-x="dom-Element-isParsing">isParsing</span>;
 };
 
 partial interface <span id="ShadowRoot-partial">ShadowRoot</span> {
@@ -127094,6 +127096,7 @@ partial interface <span id="ShadowRoot-partial">ShadowRoot</span> {
   DOMString <span data-x="dom-ShadowRoot-getHTML">getHTML</span>(optional <span>GetHTMLOptions</span> options = {});
 
   [<span>CEReactions</span>] attribute (<span data-x="tt-trustedhtml">TrustedHTML</span> or [<span>LegacyNullToEmptyString</span>] DOMString) <span data-x="dom-ShadowRoot-innerHTML">innerHTML</span>;
+  readonly attribute boolean <span data-x="dom-ShadowRoot-isParsing">isParsing</span>;
 };
 
 partial interface mixin <span id="NonDocumentTypeChildNode-partial">NonDocumentTypeChildNode</span> {
@@ -129482,6 +129485,39 @@ enum <dfn enum>DOMParserSupportedType</dfn> {
   data-x="">templateEl.<span data-x="dom-template-content">content</span>.<span
   data-x="dom-Element-insertAdjacentHTML">insertAdjacentHTML()</span></code> instead of directly
   manipulating the child nodes of a <code>template</code> element.</p>
+
+  </div>
+
+  <h4>The <code data-x="dom-Element-isParsing">isParsing</code> property</h4>
+
+  <dl class="domintro">
+   <dt><code data-x=""><var>element</var>.<span subdfn data-x="dom-Element-isParsing">isParsing</span></code></dt>
+   <dd><p>Returns true if an HTML or XML parser is still parsing <var>element</var>'s contents, a
+   <code>template</code> element with a <code data-x="attr-template-for">for</code> attribute is
+   patching <var>element</var>, or a stream returned by one of the <span>HTML streaming
+   methods</span> is open for <var>element</var>; otherwise false.</p></dd>
+
+   <dt><code data-x=""><var>shadowRoot</var>.<span subdfn data-x="dom-ShadowRoot-isParsing">isParsing</span></code></dt>
+   <dd><p>Returns true if an HTML parser is still parsing <var>shadowRoot</var>'s declarative
+   <code>template</code> element, a <code>template</code> element with a <code
+   data-x="attr-template-for">for</code> attribute is patching <var>shadowRoot</var>, or a stream
+   returned by one of the <span>HTML streaming methods</span> is open for <var>shadowRoot</var>;
+   otherwise false.</p></dd>
+  </dl>
+
+  <div w-nodev>
+
+  <div algorithm>
+  <p><code>Element</code>'s <dfn attribute for="Element"><code
+  data-x="dom-Element-isParsing">isParsing</code></dfn> getter steps are to return true if
+  <span>this</span> is <span>being parsed</span>; otherwise false.</p>
+  </div>
+
+  <div algorithm>
+  <p><code>ShadowRoot</code>'s <dfn attribute for="ShadowRoot"><code
+  data-x="dom-ShadowRoot-isParsing">isParsing</code></dfn> getter steps are to return true if
+  <span>this</span> is <span>being parsed</span>; otherwise false.</p>
+  </div>
 
   </div>
 
@@ -144478,7 +144514,55 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    standard defines <span>HTML element children parsed steps</span> for <var>element</var>'s <span
    data-x="concept-element-local-name">local name</span>, then run the corresponding <span>HTML
    element children parsed steps</span> given <var>element</var>.</p></li>
+
+   <li>
+    <p>If <var>element</var> is a <code>template</code> element:</p>
+
+    <ol>
+     <li><p>Let <var>insertionTarget</var> be <var>element</var>'s <span>insertion
+     target</span>.</p></li>
+
+     <li><p>Set <var>element</var>'s <span>insertion target</span>, <span>insertion start
+     marker</span>, and <span>insertion end marker</span> to null.</p></li>
+
+     <li><p>If <var>insertionTarget</var> is an <code>Element</code> or a <code>ShadowRoot</code>,
+     and <var>insertionTarget</var> is not <span>being parsed</span>, then <span>signal parse
+     end</span> for <var>insertionTarget</var>.</p></li>
+
+     <li><p>Let <var>contents</var> be <var>element</var>'s <span>template
+     contents</span>.</p></li>
+
+     <li><p>If <var>contents</var> is a <code>ShadowRoot</code> and <var>contents</var> is not
+     <span>being parsed</span>, then <span>signal parse end</span> for <var>contents</var>.</p></li>
+    </ol>
+   </li>
+
+   <li><p>If <var>element</var> is not <span>being parsed</span>, then <span>signal parse end</span>
+   for <var>element</var>.</p></li>
   </ol>
+  </div>
+
+  <div algorithm>
+  <p>An <code>Element</code> or <code>ShadowRoot</code> <var>node</var> is <dfn>being parsed</dfn>
+  if any of the following are true:</p>
+
+  <ul>
+   <li><p><var>node</var> is in an <span>HTML parser</span>'s <span>stack of open
+   elements</span>.</p></li>
+
+   <li><p><var>node</var> is in an <span>XML parser</span>'s <span>stack of open
+   elements</span>.</p></li>
+
+   <li><p>There is a <code>template</code> element in an <span>HTML parser</span>'s <span>stack of
+   open elements</span> whose <span>template contents</span> is <var>node</var> or whose
+   <span>insertion target</span> is <var>node</var>.</p></li>
+
+   <li><p>There is an <span>HTML parser</span> whose <span>fragment context element</span> is
+   non-null, whose <span>stack of open elements</span> is not empty, and whose <span>insertion
+   target redirection map</span>[the topmost element in its <span>stack of open
+   elements</span>]'s <span data-x="insertion-location-target-parent">target parent</span> is
+   <var>node</var>.</p></li>
+  </ul>
   </div>
 
   <div algorithm>
@@ -144489,6 +144573,21 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    <li><p>Remove <var>element</var> from the <span>stack of open elements</span>.</p></li>
 
    <li><p><span>Finish parsing the children</span> of <var>element</var>.</p></li>
+
+   <li>
+    <p>If the parser's <span>fragment context element</span> is non-null and the <span>stack of open
+    elements</span> is empty:</p>
+
+    <ol>
+     <li><p>Let <var>target</var> be the parser's <span>insertion target redirection
+     map</span>[<var>element</var>]'s <span data-x="insertion-location-target-parent">target
+     parent</span>.</p></li>
+
+     <li><p>If <var>target</var> is an <code>Element</code> or a <code>ShadowRoot</code>, and
+     <var>target</var> is not <span>being parsed</span>, then <span>signal parse end</span> for
+     <var>target</var>.</p></li>
+    </ol>
+   </li>
   </ol>
   </div>
 
@@ -149266,12 +149365,6 @@ document.body.appendChild(text);
 
        <li><p>If <var>end</var> is not null and <var>end</var>'s <span>parent</span> is not null,
        then <span data-x="concept-node-remove">remove</span> <var>end</var>.</p></li>
-
-       <li><p>Set <var>template</var>'s <span>insertion target</span> to null.</p></li>
-
-       <li><p>Set <var>template</var>'s <span>insertion start marker</span> to null.</p></li>
-
-       <li><p>Set <var>template</var>'s <span>insertion end marker</span> to null.</p></li>
       </ol>
      </li>
 
@@ -150754,6 +150847,8 @@ document.body.appendChild(text);
 
      <li><p>Let <var>bookmarkMoved</var> be false.</p></li>
 
+     <li><p>Let <var>finishedElements</var> be a new <span>list</span>.</p></li>
+
      <li>
       <p>While true:</p>
 
@@ -150773,16 +150868,17 @@ document.body.appendChild(text);
        <span>list of active formatting elements</span>.</p></li>
 
        <li><p><!-- "removal" step: -->If <var>node</var> is not in the <span>list of active
-       formatting elements</span>, then <span>remove an element from the stack of open
-       elements</span> given <var>node</var> and <span>continue</span>.</p></li>
+       formatting elements</span>, then remove <var>node</var> from the <span>stack of open
+       elements</span>, <span data-x="list append">append</span> <var>node</var> to
+       <var>finishedElements</var>, and <span>continue</span>.</p></li>
 
        <li><p><span>Create an element for the token</span> for which the element <var>node</var> was
        created, in the <span>HTML namespace</span>, with <var>commonAncestor</var> as the intended
        parent; replace the entry for <var>node</var> in the <span>list of active formatting
        elements</span> with an entry for the new element, replace the entry for <var>node</var> in
-       the <span>stack of open elements</span> with an entry for the new element, <span>finish
-       parsing the children</span> of <var>node</var>, and set <var>node</var> to the new
-       element.</p></li>
+       the <span>stack of open elements</span> with an entry for the new element, <span
+       data-x="list append">append</span> <var>node</var> to <var>finishedElements</var>, and set
+       <var>node</var> to the new element.</p></li>
 
        <li><p>If <var>bookmarkMoved</var> is false, then move the aforementioned bookmark to be
        immediately after the new <var>node</var> in the <span>list of active formatting
@@ -150848,6 +150944,10 @@ document.body.appendChild(text);
      non-null, the parser's <span>fragment parser abort requested</span> is false, and
      <var>refNode</var> is null or its <span>parent</span> is <var>target</var>, then <span
      data-x="concept-node-remove">remove</span> <var>lastNode</var>.</p></li>
+
+     <li><p><span data-x="list iterate">For each</span> <var>element</var> of
+     <var>finishedElements</var>, <span>finish parsing the children</span> of
+     <var>element</var>.</p></li>
      <!-- XXX Removal does not currently run script: destroying an iframe element's navigable does
           not unload its document, so no pagehide event is fired. Engines do fire pagehide when an
           iframe is disconnected and we should update the spec to match. The conditions below are
