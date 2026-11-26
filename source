@@ -95454,7 +95454,9 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
   `<code>Origin-Agent-Cluster</code>` header can never cause same-origin <code>Document</code>
   objects to end up in different <span data-x="agent cluster">agent clusters</span>, even if one
   sends the header and the other doesn't.<span w-nodev> This is prevented by means of the
-  <span>historical agent cluster key map</span>.</span></p>
+  <span>historical agent cluster key map</span>.</span> (In contrast, the
+  `<code>Document-Isolation-Policy</code>` header can place same-origin <code>Document</code>
+  objects into different <span data-x="agent cluster">agent clusters</span>.)</p>
 
   <p class="note">This means that the <code
   data-x="dom-originAgentCluster">originAgentCluster</code> getter can return false, even if the
@@ -95475,12 +95477,13 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
 
   <p class="note">Similarly, <code>Document</code>s whose <span>agent cluster</span>'s <span
   data-x="agent-cluster-cross-origin-isolation">cross-origin isolation mode</span> is not "<code
-  data-x="cross-origin-isolation-none">none</code>" are automatically origin-keyed. The
-  `<code>Origin-Agent-Cluster</code>` header might be useful as an additional hint to
-  implementations about resource allocation, since the `<code>Cross-Origin-Opener-Policy</code>`
-  and `<code>Cross-Origin-Embedder-Policy</code>` headers used to achieve cross-origin isolation
-  are more about ensuring that everything in the same address space opts in to being there. But
-  adding it would have no additional observable effects on author code.</p>
+  data-x="cross-origin-isolation-none">none</code>" (due to
+  `<code>Cross-Origin-Opener-Policy</code>` and `<code>Cross-Origin-Embedder-Policy</code>`, or
+  `<code>Document-Isolation-Policy</code>`) are automatically origin-keyed. Adding
+  `<code>Origin-Agent-Cluster</code>` to such a document has no additional observable effect on
+  author code, and its `<code>Document-Isolation-Policy</code>` header does not affect the
+  <span>historical agent cluster key map</span> used by same-origin <code>Document</code>s without
+  `<code>Document-Isolation-Policy</code>`.</p>
 
 
   <h4>Cross-origin opener policies</h4>
@@ -95512,8 +95515,9 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
    <dd>
     <p>This behaves the same as "<code data-x="coop-same-origin">same-origin</code>", with the
     addition that it sets the (new) <span>top-level browsing context</span>'s <span data-x="tlbc
-    group">group</span>'s <span data-x="bcg-cross-origin-isolation">cross-origin isolation
-    mode</span> to one of "<code data-x="cross-origin-isolation-logical">logical</code>" or "<code
+    group">group</span>'s <span data-x="bcg-coi-key">agent cluster cross-origin isolation
+    key</span>'s <span data-x="coi-key-mode">cross-origin isolation mode</span> to one of "<code
+    data-x="cross-origin-isolation-logical">logical</code>" or "<code
     data-x="cross-origin-isolation-concrete">concrete</code>".</p>
 
     <p class="note">"<code data-x="coop-same-origin-plus-COEP">same-origin-plus-COEP</code>" cannot
@@ -96103,12 +96107,21 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
 
    <li>
     <p>If <var>navigationCOOP</var>'s <span data-x="coop-struct-value">value</span> is "<code
-    data-x="coop-same-origin-plus-COEP">same-origin-plus-COEP</code>", then set
-    <var>newBrowsingContext</var>'s <span data-x="tlbc group">group</span>'s <span
-    data-x="bcg-cross-origin-isolation">cross-origin isolation mode</span> to either "<code
-    data-x="cross-origin-isolation-logical">logical</code>" or "<code
-    data-x="cross-origin-isolation-concrete">concrete</code>". The choice of which is
-    <span>implementation-defined</span>.</p>
+    data-x="coop-same-origin-plus-COEP">same-origin-plus-COEP</code>":</p>
+
+    <ol>
+     <li><p>Let <var>crossOriginIsolationMode</var> be either "<code
+     data-x="cross-origin-isolation-logical">logical</code>" or "<code
+     data-x="cross-origin-isolation-concrete">concrete</code>". The choice of which is
+     <span>implementation-defined</span>.</p></li>
+
+     <li><p>Set <var>newBrowsingContext</var>'s <span data-x="tlbc group">group</span>'s <span
+     data-x="bcg-coi-key">agent cluster cross-origin isolation key</span> to a new <span>agent
+     cluster cross-origin isolation key</span> whose <span data-x="coi-key-origin">origin</span> is
+     <var>coopEnforcementResult</var>'s <span data-x="coop-enforcement-origin">origin</span> and
+     whose <span data-x="coi-key-mode">cross-origin isolation mode</span> is
+     <var>crossOriginIsolationMode</var>.</p></li>
+    </ol>
 
     <p class="note">It is difficult on some platforms to provide the security properties required
     by the <span data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin
@@ -107867,6 +107880,8 @@ interface <dfn interface>NotRestoredReasons</dfn> {
 
    <li><p>Let <var>creatorBaseURL</var> be null.</p></li>
 
+   <li><p>Let <var>creatorAgentClusterCOIKey</var> be null.</p></li>
+
    <li id="creator-browsing-context">
     <p>If <var>creator</var> is non-null:</p>
 
@@ -107882,6 +107897,10 @@ interface <dfn interface>NotRestoredReasons</dfn> {
      <var>creator</var>'s <span data-x="concept-document-bc">browsing context</span>'s <span
      data-x="bc-tlbc">top-level browsing context</span>'s <span
      data-x="virtual-browsing-context-group-id">virtual browsing context group ID</span>.</p></li>
+
+     <li><p>Set <var>creatorAgentClusterCOIKey</var> to <var>creator</var>'s <span
+     data-x="concept-document-policy-container">policy container</span>'s <span
+     data-x="policy-container-coi-key">agent cluster cross-origin isolation key</span>.</p></li>
     </ol>
    </li>
 
@@ -107899,7 +107918,7 @@ interface <dfn interface>NotRestoredReasons</dfn> {
 
    <li><p>Let <var>agent</var> be the result of <span
    data-x="obtain-similar-origin-window-agent">obtaining a similar-origin window agent</span> given
-   <var>origin</var>, <var>group</var>, and false.</p></li>
+   <var>origin</var>, <var>group</var>, false, and <var>creatorAgentClusterCOIKey</var>.</p></li>
 
    <li>
     <p>Let <var>realm execution context</var> be the result of <span>creating a new realm</span>
@@ -108258,10 +108277,13 @@ interface <dfn interface>NotRestoredReasons</dfn> {
   <p class="note">The <span>historical agent cluster key map</span> only ever gains entries over the
   lifetime of the browsing context group.</p>
 
-  <p>A <span>browsing context group</span> has a <dfn
-  data-x="bcg-cross-origin-isolation">cross-origin isolation mode</dfn>, which is a
-  <span>cross-origin isolation mode</span>. It is initially "<code
-  data-x="cross-origin-isolation-none">none</code>".</p>
+  <p>A <span>browsing context group</span> has an <dfn data-x="bcg-coi-key" for="browsing context
+  group">agent cluster cross-origin isolation key</dfn>, which is null or an <span>agent cluster
+  cross-origin isolation key</span>. It is initially null. It is set by <span>opener policy</span>,
+  and acts as the default <span>agent cluster cross-origin isolation key</span> for
+  <code>Document</code>s in the <span>browsing context group</span>, unless overridden by a
+  <code>Document</code>'s <span data-x="concept-document-policy-container">policy container</span>'s
+  <span data-x="policy-container-coi-key">agent cluster cross-origin isolation key</span>.</p>
 
   <p>A <dfn>cross-origin isolation mode</dfn> is one of three possible values: "<dfn><code
   data-x="cross-origin-isolation-none">none</code></dfn>", "<dfn><code
@@ -108270,26 +108292,28 @@ interface <dfn interface>NotRestoredReasons</dfn> {
 
   <div class="note">
    <p>"<code data-x="cross-origin-isolation-logical">logical</code>" and "<code
-   data-x="cross-origin-isolation-concrete">concrete</code>" are similar. They are both used for
-   <span data-x="browsing context group">browsing context groups</span> where:</p>
+   data-x="cross-origin-isolation-concrete">concrete</code>" are similar. They are both used when
+   either:</p>
 
    <ul>
-    <li><p>every top-level <code>Document</code> has `<code
-    data-x=""><span>Cross-Origin-Opener-Policy</span>: <span
-    data-x="coop-same-origin">same-origin</span></code>`, and</p></li>
+    <li><p>in a <span>browsing context group</span>, every top-level <code>Document</code> has
+    `<code data-x=""><span>Cross-Origin-Opener-Policy</span>: <span
+    data-x="coop-same-origin">same-origin</span></code>` and every <code>Document</code> has a
+    `<code>Cross-Origin-Embedder-Policy</code>` header whose value is <span>compatible with
+    cross-origin isolation</span>; or</p></li>
 
-    <li><p>every <code>Document</code> has a `<code>Cross-Origin-Embedder-Policy</code>` header
-    whose value is <span>compatible with cross-origin isolation</span>.</p></li>
+    <li><p>an individual <code>Document</code> has a `<code>Document-Isolation-Policy</code>` header
+    whose value is <span data-x="dip-isolating">isolating</span>.</p></li>
    </ul>
 
    <p>On some platforms, it is difficult to provide the security properties required to grant safe
    access to the APIs gated by the <span
    data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin isolated
    capability</span>. As a result, only "<code
-   data-x="cross-origin-isolation-concrete">concrete</code>" can grant access that capability.
-   "<code data-x="cross-origin-isolation-logical">logical</code>" is used on platform not supporting
-   this capability, where various restrictions imposed by cross-origin isolation will still apply,
-   but the capability is not granted.</p>
+   data-x="cross-origin-isolation-concrete">concrete</code>" can grant access to that capability.
+   "<code data-x="cross-origin-isolation-logical">logical</code>" is used on platforms that do not
+   support this capability, where various restrictions imposed by cross-origin isolation will still
+   apply, but the capability is not granted.</p>
   </div>
 
   <div algorithm>
@@ -114910,16 +114934,37 @@ location.href = '#foo';</code></pre>
    <li><p>Let <var>window</var> be null.</p></li>
 
    <li>
+    <p>Let <var>activeCOIKey</var> be the <span>effective agent cluster cross-origin isolation
+    key</span> given <var>browsingContext</var>'s <span data-x="tlbc group">group</span> and
+    <var>browsingContext</var>'s <span>active document</span>'s <span
+    data-x="concept-document-policy-container">policy container</span>'s <span
+    data-x="policy-container-coi-key">agent cluster cross-origin isolation key</span>.</p>
+   </li>
+
+   <li>
+    <p>Let <var>navigationCOIKey</var> be the <span>effective agent cluster cross-origin isolation
+    key</span> given <var>browsingContext</var>'s <span data-x="tlbc group">group</span> and
+    <var>navigationParams</var>'s <span data-x="navigation-params-policy-container">policy
+    container</span>'s <span data-x="policy-container-coi-key">agent cluster cross-origin isolation
+    key</span>.</p>
+   </li>
+
+   <li>
     <p>If <var>browsingContext</var>'s <span>active document</span>'s <span>is initial
-    <code>about:blank</code></span> is true, and <var>browsingContext</var>'s <span>active
+    <code>about:blank</code></span> is true, <var>browsingContext</var>'s <span>active
     document</span>'s <span data-x="concept-document-origin">origin</span> is <span>same
     origin-domain</span> with <var>navigationParams</var>'s <span
-    data-x="navigation-params-origin">origin</span>, then set <var>window</var> to
+    data-x="navigation-params-origin">origin</span>, and <var>activeCOIKey</var> <span
+    data-x="coi-key-equals">equals</span> <var>navigationCOIKey</var>, then set <var>window</var> to
     <var>browsingContext</var>'s <span>active window</span>.</p>
 
     <p class="note">This means that both the <span data-x="is initial about:blank">initial
     <code>about:blank</code></span> <code>Document</code>, and the new <code>Document</code> that
-    is about to be created, will share the same <code>Window</code> object.</p>
+    is about to be created, will share the same <code>Window</code> object. If their effective <span
+    data-x="agent cluster cross-origin isolation key">agent cluster cross-origin isolation
+    keys</span> differ (for example, due to `<code>Document-Isolation-Policy</code>`), the
+    <code>Window</code> object cannot be reused because the two documents belong to different <span
+    data-x="agent cluster">agent clusters</span>.</p>
    </li>
 
    <li id="create-new-agent-and-window">
@@ -114942,8 +114987,10 @@ location.href = '#foo';</code></pre>
      <li><p>Let <var>agent</var> be the result of <span
      data-x="obtain-similar-origin-window-agent">obtaining a similar-origin window agent</span>
      given <var>navigationParams</var>'s <span data-x="navigation-params-origin">origin</span>,
-     <var>browsingContext</var>'s <span data-x="tlbc group">group</span>, and
-     <var>requestsOAC</var>.</p></li>
+     <var>browsingContext</var>'s <span data-x="tlbc group">group</span>, <var>requestsOAC</var>,
+     and <var>navigationParams</var>'s <span data-x="navigation-params-policy-container">policy
+     container</span>'s <span data-x="policy-container-coi-key">agent cluster cross-origin
+     isolation key</span>.</p></li>
 
      <li>
       <p>Let <var>realmExecutionContext</var> be the result of <span>creating a new realm</span>
@@ -118596,7 +118643,9 @@ new PaymentRequest(&hellip;); // Allowed to use
 
     <p class="note">Two <code>Window</code> objects that are <span>same origin</span> can be in
     different <span data-x="similar-origin window agent">similar-origin window agents</span>, for
-    instance if they are each in their own <span>browsing context group</span>.</p>
+    instance if they are each in their own <span>browsing context group</span>, or if they have
+    different <span data-x="agent cluster cross-origin isolation key">agent cluster cross-origin
+    isolation keys</span> due to `<code>Document-Isolation-Policy</code>`.</p>
    </dd>
 
    <dt><dfn export>Dedicated worker agent</dfn></dt>
@@ -118696,18 +118745,83 @@ new PaymentRequest(&hellip;); // Allowed to use
   <p>The following defines the allocation of the <span data-x="agent cluster">agent clusters</span>
   of <span data-x="similar-origin window agent">similar-origin window agents</span>.</p>
 
-  <p>An <dfn>agent cluster key</dfn> is a <span>site</span> or <span
-  data-x="concept-origin-tuple">tuple origin</span>. Without web developer action to achieve <a
-  href="#origin-keyed-agent-clusters">origin-keyed agent clusters</a>, it will be a
-  <span>site</span>.</p>
+  <p>An <dfn>agent cluster cross-origin isolation key</dfn> is a <span>struct</span> consisting
+  of:</p>
 
-  <p class="note">An equivalent formulation is that an <span>agent cluster key</span> can be a
-  <span>scheme-and-host</span> or an <span>origin</span>.</p>
+  <ul>
+   <li><p>An <dfn data-x="coi-key-origin" for="agent cluster cross-origin isolation
+   key">origin</dfn>, which is an <span>origin</span>.</p></li>
+
+   <li><p>A <dfn data-x="coi-key-mode" for="agent cluster cross-origin isolation key">cross-origin
+   isolation mode</dfn>, which is a <span>cross-origin isolation mode</span> other than "<code
+   data-x="cross-origin-isolation-none">none</code>".</p></li>
+  </ul>
+
+  <div algorithm>
+  <p>An <span>agent cluster cross-origin isolation key</span>-or-null <var>a</var> <dfn
+  data-x="coi-key-equals">equals</dfn> an <span>agent cluster cross-origin isolation
+  key</span>-or-null <var>b</var> if one of the following holds:</p>
+
+  <ul>
+   <li><p><var>a</var> and <var>b</var> are both null.</p></li>
+
+   <li><p><var>a</var> and <var>b</var> are both non-null, <var>a</var>'s <span
+   data-x="coi-key-origin">origin</span> is <span>same origin</span> with <var>b</var>'s <span
+   data-x="coi-key-origin">origin</span>, and <var>a</var>'s <span
+   data-x="coi-key-mode">cross-origin isolation mode</span> is <var>b</var>'s <span
+   data-x="coi-key-mode">cross-origin isolation mode</span>.</p></li>
+  </ul>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn>effective agent cluster cross-origin isolation key</dfn>, given a <span>browsing
+  context group</span> <var>group</var> and null or an <span>agent cluster cross-origin isolation
+  key</span> <var>policyKey</var>, is given by these steps:</p>
+
+  <ol>
+   <li><p>Let <var>groupKey</var> be <var>group</var>'s <span data-x="bcg-coi-key">agent cluster
+   cross-origin isolation key</span>.</p></li>
+
+   <li><p>If <var>policyKey</var> is null, then return <var>groupKey</var>.</p></li>
+
+   <li>
+    <p>If <var>groupKey</var> is not null, <var>groupKey</var>'s <span
+    data-x="coi-key-origin">origin</span> is <span>same origin</span> with <var>policyKey</var>'s
+    <span data-x="coi-key-origin">origin</span>, and <var>groupKey</var>'s <span
+    data-x="coi-key-mode">cross-origin isolation mode</span> is "<code
+    data-x="cross-origin-isolation-concrete">concrete</code>", then return <var>groupKey</var>.</p>
+
+    <p class="note">This ensures that on platforms supporting page-level cross-origin isolation
+    (`<code>Cross-Origin-Opener-Policy</code>` and `<code>Cross-Origin-Embedder-Policy</code>`) but
+    not frame-level process isolation (`<code>Document-Isolation-Policy</code>`), a document that is
+    <span>same origin</span> with the top-level document and sets
+    `<code>Document-Isolation-Policy</code>` remains in the same "<code
+    data-x="cross-origin-isolation-concrete">concrete</code>" <span>agent cluster</span> as the
+    top-level document instead of being downgraded to "<code
+    data-x="cross-origin-isolation-logical">logical</code>".</p>
+   </li>
+
+   <li><p>Return <var>policyKey</var>.</p></li>
+  </ol>
+  </div>
+
+  <p>An <dfn>agent cluster key</dfn> is a <span>site</span>, an <span>origin</span>, or a
+  <span>tuple</span> of an <span>origin</span> and an <span>agent cluster cross-origin isolation
+  key</span>. Without web developer action to achieve <a
+  href="#origin-keyed-agent-clusters">origin-keyed agent clusters</a> or cross-origin isolation, it
+  will be a <span>site</span> (for a <span data-x="concept-origin-tuple">tuple origin</span>).</p>
+
+  <p class="note" var-scope>Two <span data-x="tuple">tuples</span> (<var>originA</var>,
+  <var>keyA</var>) and (<var>originB</var>, <var>keyB</var>) are treated as the same key in an
+  <span>agent cluster map</span> when <var>originA</var> is <span>same origin</span> with
+  <var>originB</var> and <var>keyA</var> <span data-x="coi-key-equals">equals</span>
+  <var>keyB</var>.</p>
 
   <div algorithm>
   <p>To <dfn data-x="obtain-similar-origin-window-agent">obtain a similar-origin window agent</dfn>,
   given an <span>origin</span> <var>origin</var>, a <span>browsing context group</span>
-  <var>group</var>, and a boolean <var>requestsOAC</var>, run these steps:</p>
+  <var>group</var>, a boolean <var>requestsOAC</var>, and null or an <span>agent cluster
+  cross-origin isolation key</span> <var>agentClusterCOIKey</var>, run these steps:</p>
 
   <ol>
    <li><p>Let <var>site</var> be the result of <span data-x="obtain a site">obtaining a site</span>
@@ -118715,9 +118829,11 @@ new PaymentRequest(&hellip;); // Allowed to use
 
    <li><p>Let <var>key</var> be <var>site</var>.</p></li>
 
-   <li><p>If <var>group</var>'s <span data-x="bcg-cross-origin-isolation">cross-origin isolation
-   mode</span> is not "<code data-x="cross-origin-isolation-none">none</code>", then set
-   <var>key</var> to <var>origin</var>.</p></li>
+   <li><p>Let <var>effectiveCOIKey</var> be the <span>effective agent cluster cross-origin isolation
+   key</span> given <var>group</var> and <var>agentClusterCOIKey</var>.</p></li>
+
+   <li><p>If <var>effectiveCOIKey</var> is not null, then set <var>key</var> to (<var>origin</var>,
+   <var>effectiveCOIKey</var>).</p></li>
 
    <li><p>Otherwise, if <var>group</var>'s <span>historical agent cluster key
    map</span>[<var>origin</var>] <span data-x="map exists">exists</span>, then set <var>key</var> to
@@ -118742,19 +118858,15 @@ new PaymentRequest(&hellip;); // Allowed to use
     <ol>
      <li><p>Let <var>agentCluster</var> be a new <span>agent cluster</span>.</p></li>
 
-     <li><p>Set <var>agentCluster</var>'s <span
+     <li><p>If <var>effectiveCOIKey</var> is not null, then set <var>agentCluster</var>'s <span
      data-x="agent-cluster-cross-origin-isolation">cross-origin isolation mode</span> to
-     <var>group</var>'s <span data-x="bcg-cross-origin-isolation">cross-origin isolation
+     <var>effectiveCOIKey</var>'s <span data-x="coi-key-mode">cross-origin isolation
      mode</span>.</p></li>
 
      <li>
-      <p>If <var>key</var> is an <span>origin</span>:</p>
-
-      <ol>
-       <li><p><span>Assert</span>: <var>key</var> is <var>origin</var>.</p></li>
-
-       <li><p>Set <var>agentCluster</var>'s <span>is origin-keyed</span> to true.</p></li>
-      </ol>
+      <p>If <var>key</var> is an <span>origin</span> or a <span>tuple</span> of an
+      <span>origin</span> and an <span>agent cluster cross-origin isolation key</span>, then set
+      <var>agentCluster</var>'s <span>is origin-keyed</span> to true.</p>
      </li>
 
      <li><p>Add the result of <span data-x="create an agent">creating an agent</span>, given false,
@@ -118885,6 +118997,12 @@ new PaymentRequest(&hellip;); // Allowed to use
 
     <li><p>Any two <code>Window</code> objects with no opener or ancestor relationship. This holds
     even if the two <code>Window</code> objects are <span>same origin</span>.</p></li>
+
+    <li><p>Two <span>same origin</span> <code>Window</code> objects where one sets an <span
+    data-x="dip-isolating">isolating</span> `<code>Document-Isolation-Policy</code>` header and the
+    other does not (outside of a <span>browsing context group</span> already isolated for their
+    origin via `<code>Cross-Origin-Opener-Policy</code>` and
+    `<code>Cross-Origin-Embedder-Policy</code>`).</p></li>
    </ul>
   </div>
 
