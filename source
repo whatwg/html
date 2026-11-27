@@ -110417,6 +110417,12 @@ location.href = '#foo';</code></pre>
    all navigables that only need history object length/index update</span> given
    <var>traversable</var> and <var>targetStep</var>.</p></li>
 
+   <li><p>Let <var>synchronouslyCommittedNavigables</var> be an empty <span>set</span>.</p></li>
+
+   <li><p>If <var>traversableCommittedSynchronously</var> is true, then <span data-x="set
+   append">append</span> <var>traversable</var> to
+   <var>synchronouslyCommittedNavigables</var>.</p></li>
+
    <li>
     <p><span data-x="list iterate">For each</span> <var>navigable</var> of
     <var>changingNavigables</var>:</p>
@@ -110428,9 +110434,9 @@ location.href = '#foo';</code></pre>
      <li><p>Set <var>navigable</var>'s <span data-x="nav-current-history-entry">current session
      history entry</span> to <var>targetEntry</var>.</p></li>
 
-     <li><p>If <var>traversableCommittedSynchronously</var> is false or <var>navigable</var> is not
-     <var>traversable</var>, then <span>set the ongoing navigation</span> for <var>navigable</var>
-     to "<code data-x="">traversal</code>".</p></li>
+     <li><p>If <var>navigable</var> is not <span data-x="list contains">contained</span> in
+     <var>synchronouslyCommittedNavigables</var>, then <span>set the ongoing navigation</span> for
+     <var>navigable</var> to "<code data-x="">traversal</code>".</p></li>
     </ol>
    </li>
 
@@ -110490,8 +110496,8 @@ location.href = '#foo';</code></pre>
       <p>If any of the following are true:</p>
 
       <ul>
-       <li><p><var>traversableCommittedSynchronously</var> is true and <var>navigable</var> is
-       <var>traversable</var>; or</p></li>
+       <li><p><var>navigable</var> is <span data-x="list contains">contained</span> in
+       <var>synchronouslyCommittedNavigables</var>; or</p></li>
 
        <li><p><var>displayedEntry</var> is <var>targetEntry</var> and <var>targetEntry</var>'s <span
        data-x="she-document-state">document state</span>'s <span
@@ -110554,13 +110560,10 @@ location.href = '#foo';</code></pre>
       <ul>
        <li><p><var>navigable</var> is not <var>traversable</var>;</p></li>
 
-       <li><p><var>targetEntry</var> is not <var>navigable</var>'s <span
-       data-x="nav-current-history-entry">current session history entry</span>; and</p></li>
+       <li><p><var>targetEntry</var> is not <var>displayedEntry</var>; and</p></li>
 
        <li><p><var>oldOrigin</var> is the <span data-x="same origin">same</span> as
-       <var>navigable</var>'s <span
-       data-x="nav-current-history-entry">current session history entry</span>'s <span
-       data-x="she-document-state">document state</span>'s <span
+       <var>displayedEntry</var>'s <span data-x="she-document-state">document state</span>'s <span
        data-x="document-state-origin">origin</span>,</p></li>
       </ul>
 
@@ -110571,14 +110574,30 @@ location.href = '#foo';</code></pre>
        data-x="nav-window">active window</span>'s <span
        data-x="window-navigation-api">navigation API</span>.</p></li>
 
+       <li><p><span data-x="set append">Append</span> <var>navigable</var> to
+       <var>navigablesThatMustWaitBeforeHandlingSyncNavigation</var>.</p></li>
+
+       <li><p>Set <var>navigable</var>'s <span>ongoing navigation</span> to null.</p></li>
+
        <li><p>Let <var>navigateEventResult</var> be the result of <span data-x="fire a traverse
        navigate event">firing a traverse <code data-x="event-navigate">navigate</code> event</span>
        at <var>navigation</var> given <var>targetEntry</var> and
        <var>userInvolvement</var>.</p></li>
 
-       <li><p>If <var>navigateEventResult</var> is "<code data-x="">committed</code>", then set
-       <var>changingNavigableContinuation</var>'s <span
-       data-x="changing-nav-continuation-update-only">update-only</span> to true.</p></li>
+       <li>
+        <p>If <var>navigateEventResult</var> is "<code data-x="">committed</code>", then:</p>
+
+        <ol>
+         <li><p>Set <var>changingNavigableContinuation</var>'s <span
+         data-x="changing-nav-continuation-update-only">update-only</span> to true.</p></li>
+
+         <li><p><span data-x="set append">Append</span> <var>navigable</var> to
+         <var>synchronouslyCommittedNavigables</var>.</p></li>
+        </ol>
+       </li>
+
+       <li><p>Otherwise, set <var>navigable</var>'s <span>ongoing navigation</span> to "<code
+       data-x="">traversal</code>".</p></li>
       </ol>
      </li>
 
@@ -110704,12 +110723,8 @@ location.href = '#foo';</code></pre>
     </ol>
    </li>
 
-   <li><p>Let <var>navigablesThatMustWaitBeforeHandlingSyncNavigation</var> be an empty
-   <span>set</span>.</p></li>
-
-   <li><p>If <var>traversableCommittedSynchronously</var> is true, then <span data-x="set
-   append">append</span> <var>traversable</var> to
-   <var>navigablesThatMustWaitBeforeHandlingSyncNavigation</var>.</p></li>
+   <li><p>Let <var>navigablesThatMustWaitBeforeHandlingSyncNavigation</var> be a <span data-x="set
+   clone">clone</span> of <var>synchronouslyCommittedNavigables</var>.</p></li>
 
    <li>
     <p>While <var>completedChangeJobs</var> does not equal <var>totalChangeJobs</var>:</p>
@@ -110726,9 +110741,10 @@ location.href = '#foo';</code></pre>
         data-x="session-history-traversal-parallel-queue-algorithm-set">algorithm set</span> <span
         data-x="list contains">contains</span> one or more <span
         data-x="session-history-traversal-parallel-queue-sync-nav-steps">synchronous navigation
-        steps</span> with a <span
+        steps</span> whose <span
         data-x="session-history-traversal-parallel-queue-sync-nav-steps-target-nav">target
-        navigable</span> not <span data-x="list contains">contained</span> in
+        navigable</span>'s <span data-x="nav-document">active document</span>'s <span>inclusive
+        ancestor navigables</span> contains no item in
         <var>navigablesThatMustWaitBeforeHandlingSyncNavigation</var>:</p>
 
         <ol>
@@ -110737,9 +110753,10 @@ location.href = '#foo';</code></pre>
          traversal queue</span>'s <span
          data-x="session-history-traversal-parallel-queue-algorithm-set">algorithm set</span> that
          is <span data-x="session-history-traversal-parallel-queue-sync-nav-steps">synchronous
-         navigation steps</span> with a <span
+         navigation steps</span> whose <span
          data-x="session-history-traversal-parallel-queue-sync-nav-steps-target-nav">target
-         navigable</span> not <span data-x="list contains">contained</span> in
+         navigable</span>'s <span data-x="nav-document">active document</span>'s <span>inclusive
+         ancestor navigables</span> contains no item in
          <var>navigablesThatMustWaitBeforeHandlingSyncNavigation</var>.</p></li>
 
          <li><p><span data-x="list remove">Remove</span> <var>steps</var> from
@@ -110817,9 +110834,9 @@ location.href = '#foo';</code></pre>
 
       <ol>
        <li>
-        <p>If <var>traversableCommittedSynchronously</var> is false or <var>navigable</var> is not
-        <var>traversable</var>, then <span>set the ongoing navigation</span> for
-        <var>navigable</var> to null.</p>
+        <p>If <var>navigable</var> is not <span data-x="list contains">contained</span> in
+        <var>synchronouslyCommittedNavigables</var>, then <span>set the ongoing navigation</span>
+        for <var>navigable</var> to null.</p>
 
         <p class="note">This allows new <span data-x="navigate">navigations</span> of
         <var>navigable</var> to start, whereas during the traversal they were blocked.</p>
