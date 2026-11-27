@@ -4863,6 +4863,7 @@ a.setAttribute('href', 'https://example.com/'); // change the content attribute 
      <li><dfn data-x-href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#elementdef-rect">SVG <code>rect</code></dfn> element</li>
      <li><dfn data-x-href="https://w3c.github.io/svgwg/svg2-draft/interact.html#elementdef-script">SVG <code>script</code></dfn> element</li>
      <li><dfn data-x-href="https://w3c.github.io/svgwg/svg2-draft/animate.html#elementdef-set">SVG <code>set</code></dfn> element</li>
+     <li><dfn data-x-href="https://w3c.github.io/svgwg/svg2-draft/styling.html#elementdef-style">SVG <code>style</code></dfn> element</li>
      <li><dfn data-x-href="https://w3c.github.io/svgwg/svg2-draft/struct.html#elementdef-svg">SVG <code>svg</code></dfn> element</li>
      <li><dfn data-x-href="https://w3c.github.io/svgwg/svg2-draft/text.html#elementdef-text">SVG <code>text</code></dfn> element</li>
      <li><dfn data-x-href="https://w3c.github.io/svgwg/svg2-draft/text.html#elementdef-textPath">SVG <code>textPath</code></dfn> element</li>
@@ -45744,9 +45745,10 @@ interface <dfn interface>HTMLAreaElement</dfn> : <span>HTMLElement</span> {
   <p>When the <span>SVG <code>foreignObject</code></span> element contains elements from the
   <span>HTML namespace</span>, such elements must all be <span>flow content</span>.</p>
 
-  <p>The content model for the <span>SVG <code>title</code></span> element inside <span>HTML
-  documents</span> is <span>phrasing content</span>. (This further constrains the requirements given
-  in <cite>SVG 2</cite>.)</p>
+  <p>The content model for the <span>SVG <code>title</code></span>, <span>SVG
+  <code>style</code></span>, and <span>SVG <code>script</code></span> elements inside <span>HTML
+  documents</span> is <span data-x="text content">text</span>. (This further constrains the
+  requirements given in <cite>SVG 2</cite>.)</p>
 
   <p>The semantics of SVG elements are defined by <cite>SVG 2</cite> and <span>other applicable
   specifications</span>. <ref>SVG</ref></p>
@@ -141668,6 +141670,12 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   the text must not contain the character U+003C LESS-THAN SIGN (&lt;) or an <span
   data-x="syntax-ambiguous-ampersand">ambiguous ampersand</span>.</p>
 
+  <p>The exception is <span>foreign elements</span> whose local name is "<code
+  data-x="">title</code>", "<code data-x="">style</code>", "<code data-x="">script</code>", or
+  "<code data-x="">noscript</code>": they can't have other <span
+  data-x="syntax-elements">elements</span>, and there are <a
+  href="#cdata-rcdata-restrictions">further restrictions</a> described below.</p>
+
   <div class="note">
 
    <p>The HTML syntax does not support namespace declarations, even in <span>foreign
@@ -142381,7 +142389,12 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   (U+003C LESS-THAN SIGN, U+002F SOLIDUS) followed by characters that case-insensitively match the
   tag name of the element followed by one of U+0009 CHARACTER TABULATION (tab), U+000A LINE FEED
   (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), U+0020 SPACE, U+003E GREATER-THAN SIGN
-  (>), or U+002F SOLIDUS (/).</p>
+  (>), or U+002F SOLIDUS (/). The same applies to the <span
+  data-x="syntax-comments">comments</span>, <span data-x="syntax-processing-instruction">processing
+  instructions</span>, and <span data-x="syntax-cdata">CDATA sections</span> in <span>foreign
+  elements</span> whose local name is "<code data-x="">title</code>", "<code
+  data-x="">style</code>", "<code data-x="">script</code>", or "<code
+  data-x="">noscript</code>".</p>
 
 
   <h4>Text</h4>
@@ -142761,6 +142774,18 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
      <td><p>This error occurs if the parser encounters an <span
      data-x="syntax-attributes">attribute</span> in a tag that already has an attribute with the
      same name. The parser ignores all such duplicate occurrences of the attribute.
+
+    <tr>
+     <td><dfn data-x="parse-error-end-tag-in-comment-cdata-or-processing-instruction">end-tag-in-comment-cdata-or-processing-instruction</dfn>
+     <td><p>This error occurs if the parser encounters the <span data-x="syntax-end-tag">end
+     tag</span> of an SVG or MathML <code data-x="">title</code>, <code data-x="">style</code>,
+     <code data-x="">script</code>, or <code data-x="">noscript</code> element inside a <span
+     data-x="syntax-comments">comment</span>, <span
+     data-x="syntax-processing-instruction">processing instruction</span>, or <span
+     data-x="syntax-cdata">CDATA section</span> in that element. The parser treats the end tag as
+     part of the comment, processing instruction, or CDATA section. Such content can change meaning
+     when it is serialized and parsed again in a different namespace, and the hope is to change the
+     parser to end the element at such an end tag.</p>
 
     <tr>
      <td><dfn data-x="parse-error-end-tag-with-attributes">end-tag-with-attributes</dfn>
@@ -144923,6 +144948,15 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   </div>
 
   <div algorithm>
+  <p>There is a <dfn>foreign RCDATA end tag ahead</dfn> if the <span>adjusted current node</span> is
+  a <span>foreign RCDATA element</span> and the next few characters are U+002F SOLIDUS (/), an
+  <span>ASCII case-insensitive</span> match for the <span>adjusted current node</span>'s <span
+  data-x="concept-element-local-name">local name</span>, and then one of U+0009 CHARACTER
+  TABULATION (tab), U+000A LINE FEED (LF), U+000C FORM FEED (FF), U+0020 SPACE, U+002F SOLIDUS
+  (/), or U+003E GREATER-THAN SIGN (&gt;).</p>
+  </div>
+
+  <div algorithm>
   <p>A <span data-x="syntax-charref">character reference</span> is said to be <dfn
   data-x="charref-in-attribute">consumed as part of an attribute</dfn> if the <var data-x="return
   state">return state</var> is either <span>attribute value (double-quoted) state</span>,
@@ -146170,6 +146204,12 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <dl class="switch">
 
+   <dt>U+003C LESS-THAN SIGN (&lt;)</dt>
+   <dd>If there is a <span>foreign RCDATA end tag ahead</span>, then this is an <span
+   data-x="parse-error-end-tag-in-comment-cdata-or-processing-instruction">end-tag-in-comment-cdata-or-processing-instruction</span>
+   <span>parse error</span>. Append the <span>current input character</span> to the comment token's
+   data.</dd>
+
    <dt>U+003E GREATER-THAN SIGN (&gt;)</dt>
    <dd>Switch to the <span>data state</span>. Emit the current comment token.</dd>
 
@@ -146274,8 +146314,10 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   <dl class="switch">
 
    <dt>U+003C LESS-THAN SIGN (&lt;)</dt>
-   <dd>Append the <span>current input character</span> to the comment token's data. Switch to the
-   <span>comment less-than sign state</span>.</dd>
+   <dd>If there is a <span>foreign RCDATA end tag ahead</span>, then this is an <span
+   data-x="parse-error-end-tag-in-comment-cdata-or-processing-instruction">end-tag-in-comment-cdata-or-processing-instruction</span>
+   <span>parse error</span>. Append the <span>current input character</span> to the comment token's
+   data. Switch to the <span>comment less-than sign state</span>.</dd>
 
    <dt>U+002D HYPHEN-MINUS (-)</dt>
    <dd>Switch to the <span>comment end dash state</span>.</dd>
@@ -146307,7 +146349,10 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    <span>comment less-than sign bang state</span>.</dd>
 
    <dt>U+003C LESS-THAN SIGN (&lt;)</dt>
-   <dd>Append the <span>current input character</span> to the comment token's data.</dd>
+   <dd>If there is a <span>foreign RCDATA end tag ahead</span>, then this is an <span
+   data-x="parse-error-end-tag-in-comment-cdata-or-processing-instruction">end-tag-in-comment-cdata-or-processing-instruction</span>
+   <span>parse error</span>. Append the <span>current input character</span> to the comment token's
+   data.</dd>
 
    <dt>Anything else</dt>
    <dd><span>Reconsume</span> in the <span>comment state</span>.</dd>
@@ -147050,6 +147095,12 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
 
   <dl class="switch">
 
+    <dt>U+003C LESS-THAN SIGN (&lt;)</dt>
+    <dd>If there is a <span>foreign RCDATA end tag ahead</span>, then this is an <span
+    data-x="parse-error-end-tag-in-comment-cdata-or-processing-instruction">end-tag-in-comment-cdata-or-processing-instruction</span>
+    <span>parse error</span>. Emit the <span>current input character</span> as a character
+    token.</dd>
+
     <dt>U+005D RIGHT SQUARE BRACKET (])</dt>
     <dd>Switch to the <span>CDATA section bracket state</span>.</dd>
 
@@ -147213,6 +147264,12 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   <p>Consume the <span>next input character</span>:</p>
 
   <dl class="switch">
+   <dt>U+003C LESS-THAN SIGN (&lt;)</dt>
+   <dd>If there is a <span>foreign RCDATA end tag ahead</span>, then this is an <span
+   data-x="parse-error-end-tag-in-comment-cdata-or-processing-instruction">end-tag-in-comment-cdata-or-processing-instruction</span>
+   <span>parse error</span>. Append the <span>current input character</span> to the current
+   processing instruction token's data.</dd>
+
    <dt>U+003F QUESTION MARK (?)</dt>
    <dd>Switch to the <span>processing instruction questionable state</span>.</dd>
 
@@ -147603,6 +147660,24 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   </div>
 
   <div algorithm>
+  <p>If the <span>next token</span> is a start tag token and the <span>adjusted current node</span>
+  is a <span>foreign RCDATA element</span>, then this is a <span>parse error</span>.</p>
+
+  <p>If the <span>next token</span> is an end tag token, a comment token, or a processing
+  instruction token, the parser's <span>fragment context element</span> is a <span>foreign RCDATA
+  element</span>, and the <span>stack of open elements</span> has only one element, then this is a
+  <span>parse error</span>.</p>
+
+  <p class="note">These parse errors, and the others for <span data-x="foreign RCDATA
+  element">foreign RCDATA elements</span> and for SVG and MathML <code data-x="">textarea</code>,
+  <code data-x="">xmp</code>, <code data-x="">iframe</code>, <code data-x="">noembed</code>, <code
+  data-x="">noframes</code>, and <code data-x="">plaintext</code> start tags, flag content that the
+  parser handles differently from content in the HTML elements with the same names. Such content can
+  change meaning when it is serialized and parsed again in a different namespace, and the hope is to
+  change the parser to parse these elements like the HTML elements.</p>
+  </div>
+
+  <div algorithm>
   <p>A node is a <dfn>MathML text integration point</dfn> if it is one of the following
   elements:</p>
 
@@ -147634,6 +147709,14 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
   <p class="note">If the node in question is the parser's <span>fragment context element</span>,
   then the start tag token for that element is the "fake" token created when <span
   data-x="initialize an HTML fragment parser">initializing the fragment parser</span>.</p>
+
+  <div algorithm>
+  <p>A node is a <dfn>foreign RCDATA element</dfn> if it is an element in the <span>SVG
+  namespace</span> or the <span>MathML namespace</span> whose <span
+  data-x="concept-element-local-name">local name</span> is "<code data-x="">title</code>",
+  "<code data-x="">style</code>", "<code data-x="">script</code>", or "<code
+  data-x="">noscript</code>".</p>
+  </div>
 
   <hr>
 
@@ -148034,6 +148117,10 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
     <p>then return.</p>
    </li>
 
+   <li><p>If <var>targetParent</var> is a <span>foreign RCDATA element</span> and the <span>adjusted
+   current node</span> is not <var>targetParent</var>, then this is a <span>parse
+   error</span>.</p></li>
+
    <li>
     <p>If <var>alreadySanitized</var> is false and the parser's <span>parser sanitizer
     configuration</span> is not null:</p>
@@ -148392,6 +148479,11 @@ document.body.appendChild(text);
    <var>referenceChild</var> is non-null and <var>referenceChild</var>'s <span>parent</span> is not
    <var>targetParent</var>, then return.</p></li>
 
+   <li><p>If <var>targetParent</var> is a <span>foreign RCDATA element</span>, the <span>adjusted
+   current node</span> is not <var>targetParent</var>, and <var>data</var> contains the two code
+   points U+003C LESS-THAN SIGN (&lt;) and U+002F SOLIDUS (/) in sequence, then this is a
+   <span>parse error</span>.</p></li>
+
    <li><p>Let <var>comment</var> be the result of <span data-x="create a comment node">creating a
    comment node</span> given <var>targetParent</var>'s <span>node document</span> and
    <var>data</var>.</p></li>
@@ -148424,6 +148516,11 @@ document.body.appendChild(text);
    <li><p>If the parser's <span>fragment parser abort requested</span> is true, or if
    <var>referenceChild</var> is non-null and <var>referenceChild</var>'s <span>parent</span> is not
    <var>targetParent</var>, then return.</p></li>
+
+   <li><p>If <var>targetParent</var> is a <span>foreign RCDATA element</span>, the <span>adjusted
+   current node</span> is not <var>targetParent</var>, and <var>data</var> contains the two code
+   points U+003C LESS-THAN SIGN (&lt;) and U+002F SOLIDUS (/) in sequence, then this is a
+   <span>parse error</span>.</p></li>
 
    <li><p>Let <var>pi</var> be the result of <span data-x="create a processing instruction
    node">creating a processing instruction node</span> given <var>targetParent</var>'s <span>node
@@ -152358,6 +152455,11 @@ document.body.appendChild(text);
 
    <dt>Any other start tag</dt>
    <dd>
+    <p>If the token's tag name is "<code data-x="">textarea</code>", "<code
+    data-x="">xmp</code>", "<code data-x="">iframe</code>", "<code data-x="">noembed</code>", "<code
+    data-x="">noframes</code>", or "<code data-x="">plaintext</code>", then this is a <span>parse
+    error</span>.</p>
+
     <p>If the <span>adjusted current node</span> is an element in the <span>MathML namespace</span>,
     <span>adjust MathML attributes</span> for the token. (This fixes the case of MathML attributes
     that are not all lowercase.)</p>
