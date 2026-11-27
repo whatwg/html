@@ -17841,7 +17841,8 @@ data-x="rel-preload">preload</span>; <span data-x="attr-link-as">as</span>=font<
   <ol>
    <li>
     <p>Let <var>earlyPolicyContainer</var> be the result of <span>creating a policy container from
-    a fetch response</span> given <var>response</var> and <var>reservedEnvironment</var>.</p>
+    a fetch response</span> given <var>response</var>, <var>reservedEnvironment</var>, and
+    true.</p>
 
     <p class="note">This allows the early hint <span data-x="concept-response">response</span> to
     include a <span>Content Security Policy</span> which would be <span data-x="enforce the
@@ -95446,7 +95447,9 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
   `<code>Origin-Agent-Cluster</code>` header can never cause same-origin <code>Document</code>
   objects to end up in different <span data-x="agent cluster">agent clusters</span>, even if one
   sends the header and the other doesn't.<span w-nodev> This is prevented by means of the
-  <span>historical agent cluster key map</span>.</span></p>
+  <span>historical agent cluster key map</span>.</span> (In contrast, the
+  `<code>Document-Isolation-Policy</code>` header can place same-origin <code>Document</code>
+  objects into different <span data-x="agent cluster">agent clusters</span>.)</p>
 
   <p class="note">This means that the <code
   data-x="dom-originAgentCluster">originAgentCluster</code> getter can return false, even if the
@@ -95467,12 +95470,13 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
 
   <p class="note">Similarly, <code>Document</code>s whose <span>agent cluster</span>'s <span
   data-x="agent-cluster-cross-origin-isolation">cross-origin isolation mode</span> is not "<code
-  data-x="cross-origin-isolation-none">none</code>" are automatically origin-keyed. The
-  `<code>Origin-Agent-Cluster</code>` header might be useful as an additional hint to
-  implementations about resource allocation, since the `<code>Cross-Origin-Opener-Policy</code>`
-  and `<code>Cross-Origin-Embedder-Policy</code>` headers used to achieve cross-origin isolation
-  are more about ensuring that everything in the same address space opts in to being there. But
-  adding it would have no additional observable effects on author code.</p>
+  data-x="cross-origin-isolation-none">none</code>" (due to
+  `<code>Cross-Origin-Opener-Policy</code>` and `<code>Cross-Origin-Embedder-Policy</code>`, or
+  `<code>Document-Isolation-Policy</code>`) are automatically origin-keyed. Adding
+  `<code>Origin-Agent-Cluster</code>` to such a document has no additional observable effect on
+  author code, and its `<code>Document-Isolation-Policy</code>` header does not affect the
+  <span>historical agent cluster key map</span> used by same-origin <code>Document</code>s without
+  `<code>Document-Isolation-Policy</code>`.</p>
 
 
   <h4>Cross-origin opener policies</h4>
@@ -95504,8 +95508,9 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
    <dd>
     <p>This behaves the same as "<code data-x="coop-same-origin">same-origin</code>", with the
     addition that it sets the (new) <span>top-level browsing context</span>'s <span data-x="tlbc
-    group">group</span>'s <span data-x="bcg-cross-origin-isolation">cross-origin isolation
-    mode</span> to one of "<code data-x="cross-origin-isolation-logical">logical</code>" or "<code
+    group">group</span>'s <span data-x="bcg-coi-key">agent cluster cross-origin isolation
+    key</span>'s <span data-x="coi-key-mode">cross-origin isolation mode</span> to one of "<code
+    data-x="cross-origin-isolation-logical">logical</code>" or "<code
     data-x="cross-origin-isolation-concrete">concrete</code>".</p>
 
     <p class="note">"<code data-x="coop-same-origin-plus-COEP">same-origin-plus-COEP</code>" cannot
@@ -96095,12 +96100,21 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
 
    <li>
     <p>If <var>navigationCOOP</var>'s <span data-x="coop-struct-value">value</span> is "<code
-    data-x="coop-same-origin-plus-COEP">same-origin-plus-COEP</code>", then set
-    <var>newBrowsingContext</var>'s <span data-x="tlbc group">group</span>'s <span
-    data-x="bcg-cross-origin-isolation">cross-origin isolation mode</span> to either "<code
-    data-x="cross-origin-isolation-logical">logical</code>" or "<code
-    data-x="cross-origin-isolation-concrete">concrete</code>". The choice of which is
-    <span>implementation-defined</span>.</p>
+    data-x="coop-same-origin-plus-COEP">same-origin-plus-COEP</code>":</p>
+
+    <ol>
+     <li><p>Let <var>crossOriginIsolationMode</var> be either "<code
+     data-x="cross-origin-isolation-logical">logical</code>" or "<code
+     data-x="cross-origin-isolation-concrete">concrete</code>". The choice of which is
+     <span>implementation-defined</span>.</p></li>
+
+     <li><p>Set <var>newBrowsingContext</var>'s <span data-x="tlbc group">group</span>'s <span
+     data-x="bcg-coi-key">agent cluster cross-origin isolation key</span> to a new <span>agent
+     cluster cross-origin isolation key</span> whose <span data-x="coi-key-origin">origin</span> is
+     <var>coopEnforcementResult</var>'s <span data-x="coop-enforcement-origin">origin</span> and
+     whose <span data-x="coi-key-mode">cross-origin isolation mode</span> is
+     <var>crossOriginIsolationMode</var>.</p></li>
+    </ol>
 
     <p class="note">It is difficult on some platforms to provide the security properties required
     by the <span data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin
@@ -97197,6 +97211,260 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
   </div>
 
 
+  <h4 id="dip">Document isolation policies</h4>
+
+  <p>A <dfn export>document isolation policy value</dfn> is one of three strings that controls <span
+  data-x="agent cluster">agent cluster</span> allocation and the fetching of cross-origin resources
+  without explicit permission from resource owners:</p>
+
+  <dl>
+   <dt>"<dfn data-x="dip-none" export for="document isolation policy value"><code
+   data-x="">none</code></dfn>"</dt>
+   <dd><p>This is the default value. When this value is used, cross-origin resources can be fetched
+   without giving explicit permission through the <span>CORS protocol</span> or the
+   `<code>Cross-Origin-Resource-Policy</code>` header. The document does not request to be assigned
+   to a cross-origin isolated <span>agent cluster</span>.</p></dd>
+
+   <dt>"<dfn data-x="dip-isolate-and-require-corp" export for="document isolation policy
+   value"><code data-x="">isolate-and-require-corp</code></dfn>"</dt>
+   <dd><p>When this value is used, fetching cross-origin resources requires the server's explicit
+   permission through the <span>CORS protocol</span> or the
+   `<code>Cross-Origin-Resource-Policy</code>` header. The document is also assigned to a
+   cross-origin isolated <span>agent cluster</span>.</p></dd>
+
+   <dt>"<dfn data-x="dip-isolate-and-credentialless" export for="document isolation policy
+   value"><code data-x="">isolate-and-credentialless</code></dfn>"</dt>
+   <dd><p>When this value is used, fetching cross-origin no-CORS resources omits credentials. In
+   exchange, an explicit `<code>Cross-Origin-Resource-Policy</code>` header is not required. Other
+   requests sent with credentials require the server's explicit permission through the <span>CORS
+   protocol</span> or the `<code>Cross-Origin-Resource-Policy</code>` header. The document is also
+   assigned to a cross-origin isolated <span>agent cluster</span>.</p></dd>
+  </dl>
+
+  <div class="warning">
+   <p>Before supporting "<code
+   data-x="dip-isolate-and-credentialless">isolate-and-credentialless</code>", implementers are
+   strongly encouraged to support both:</p>
+
+   <ul class="brief">
+    <li><a href="https://wicg.github.io/private-network-access/">Private Network Access</a></li>
+    <li><a href="https://github.com/annevk/orb">Opaque Response Blocking</a></li>
+   </ul>
+
+   <p>Otherwise, it would allow attackers to leverage the client's network position to read non
+   public resources, using the <span
+   data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin isolated
+   capability</span>.</p>
+  </div>
+
+  <div class="note">
+   <p>In order to safely grant access to the <span
+   data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin isolated
+   capability</span> via `<code>Document-Isolation-Policy</code>`, user agents rely on backing
+   separate <span data-x="agent cluster">agent clusters</span> with effective process isolation
+   (such as out-of-process iframes). If a user agent cannot provide such process isolation, it has
+   to use the "<code data-x="cross-origin-isolation-logical">logical</code>" <span>cross-origin
+   isolation mode</span> rather than "<code
+   data-x="cross-origin-isolation-concrete">concrete</code>" for <code>Document</code>s that set a
+   <span>document isolation policy</span>. Fixing the choice between "<code
+   data-x="cross-origin-isolation-logical">logical</code>" and "<code
+   data-x="cross-origin-isolation-concrete">concrete</code>" across all <span
+   data-x="origin">origins</span> in a user agent session ensures consistent <span>agent
+   cluster</span> allocation and avoids leaking the state of other documents.</p>
+  </div>
+
+  <div algorithm>
+  <p>A <span>document isolation policy value</span> is <dfn data-x="dip-isolating" for="document
+  isolation policy value">isolating</dfn> if it is "<code
+  data-x="dip-isolate-and-credentialless">isolate-and-credentialless</code>" or "<code
+  data-x="dip-isolate-and-require-corp">isolate-and-require-corp</code>".</p>
+  </div>
+
+  <div w-nodev>
+
+  <p>A <dfn export>document isolation policy</dfn> is a <span>struct</span> consisting of:</p>
+
+  <ul>
+   <li><p>A <dfn data-x="document-isolation-policy-value" for="document isolation policy"
+   export>value</dfn>, which is a <span>document isolation policy value</span>, initially "<code
+   data-x="dip-none">none</code>".</p></li>
+
+   <li><p>A <dfn data-x="document-isolation-policy-reporting-endpoint" for="document isolation
+   policy" export>reporting endpoint</dfn> string, initially the empty string.</p></li>
+
+   <li><p>A <dfn data-x="document-isolation-policy-report-only-value" for="document isolation
+   policy" export>report-only value</dfn>, which is a <span>document isolation policy value</span>,
+   initially "<code data-x="dip-none">none</code>".</p></li>
+
+   <li><p>A <dfn data-x="document-isolation-policy-report-only-reporting-endpoint" for="document
+   isolation policy" export>report-only reporting endpoint</dfn> string, initially the empty
+   string.</p></li>
+  </ul>
+
+  <p>The <dfn export id="dip-report-type">"<code>dip</code>" report type</dfn> is a <span>report
+  type</span> whose value is "<code data-x="">dip</code>". It is <span>visible to
+  <code>ReportingObserver</code>s</span>.</p>
+
+  </div>
+
+
+  <h5 id="the-dip-headers">The headers</h5>
+
+  <p>The `<dfn http-header><code>Document-Isolation-Policy</code></dfn>` and
+  `<dfn http-header><code>Document-Isolation-Policy-Report-Only</code></dfn>` HTTP response headers
+  allow a server to declare a <span>document isolation policy</span> for a <code>Document</code>.
+  These headers are <span data-x="http-structured-header">structured headers</span> whose values
+  must be a <span data-x="http-structured-header-token">token</span>.
+  <ref>STRUCTURED-FIELDS</ref></p>
+
+  <p>The valid <span data-x="http-structured-header-token">token</span> values are the <span
+  data-x="document isolation policy value">document isolation policy values</span>. The token may
+  also have attached <span data-x="http-structured-header-parameters">parameters</span>; of these,
+  the "<dfn data-x="dip-report-to"><code>report-to</code></dfn>" parameter can have a <span
+  data-x="http-structured-header-string">string</span> value that is the <span
+  data-x="endpoint-name">name</span> of an appropriate <span>endpoint</span>.
+  <ref>REPORTING</ref></p>
+
+  <div class="note">
+   <p>The <span data-x="obtain a document isolation policy">processing model</span> fails open (by
+   defaulting to "<code data-x="dip-none">none</code>") in the presence of a header that cannot be
+   parsed as a token. This includes inadvertent lists created by combining multiple instances of the
+   `<code>Document-Isolation-Policy</code>` header present in a given response:</p>
+
+   <table class="data">
+    <thead>
+     <tr>
+      <th>`<code>Document-Isolation-Policy</code>`</th>
+      <th>Final <span>document isolation policy value</span></th>
+     </tr>
+    </thead>
+    <tbody>
+     <tr>
+      <td><em>No header delivered</em></td>
+      <td>"<code data-x="dip-none">none</code>"</td>
+     </tr>
+     <tr>
+      <td>`<code data-x="">isolate-and-require-corp</code>`</td>
+      <td>"<code data-x="dip-isolate-and-require-corp">isolate-and-require-corp</code>"</td>
+     </tr>
+     <tr>
+      <td>`<code data-x="">isolate-and-credentialless</code>`</td>
+      <td>"<code data-x="dip-isolate-and-credentialless">isolate-and-credentialless</code>"</td>
+     </tr>
+     <tr>
+      <td>`<code data-x="">unknown-value</code>`</td>
+      <td>"<code data-x="dip-none">none</code>"</td>
+     </tr>
+     <tr>
+      <td>`<code data-x="">isolate-and-require-corp, unknown-value</code>`</td>
+      <td>"<code data-x="dip-none">none</code>"</td>
+     </tr>
+     <tr>
+      <td>`<code data-x="">isolate-and-require-corp, isolate-and-require-corp</code>`</td>
+      <td>"<code data-x="dip-none">none</code>"</td>
+     </tr>
+    </tbody>
+   </table>
+
+   <p>(The same applies to `<code>Document-Isolation-Policy-Report-Only</code>`.)</p>
+  </div>
+
+  <div w-nodev>
+
+  <hr>
+
+  <div algorithm>
+  <p>To <dfn export>obtain a document isolation policy</dfn> from a <span
+  data-x="concept-response">response</span> <var>response</var> and an <span>environment</span>
+  <var>environment</var>:</p>
+
+  <ol>
+   <li><p>Let <var>policy</var> be a new <span>document isolation policy</span>.</p></li>
+
+   <li><p>If <var>environment</var> is a <span>non-secure context</span>, then return
+   <var>policy</var>.</p></li>
+
+   <li><p>Let <var>parsedItem</var> be the result of <span>getting a structured field value</span>
+   with `<code>Document-Isolation-Policy</code>` and "<code data-x="">item</code>" from
+   <var>response</var>'s <span data-x="concept-response-header-list">header list</span>.</p></li>
+
+   <li>
+    <p>If <var>parsedItem</var> is non-null, <var>parsedItem</var>[0] is a <span
+    data-x="http-structured-header-token">token</span>, and <var>parsedItem</var>[0] is <span
+    data-x="dip-isolating">isolating</span>:</p>
+
+    <ol>
+     <li><p>Set <var>policy</var>'s <span data-x="document-isolation-policy-value">value</span> to
+     <var>parsedItem</var>[0].</p></li>
+
+     <li><p>If <var>parsedItem</var>[1]["<code data-x="dip-report-to">report-to</code>"] <span
+     data-x="map exists">exists</span> and it is a <span
+     data-x="http-structured-header-string">string</span>, then set <var>policy</var>'s <span
+     data-x="document-isolation-policy-reporting-endpoint">reporting endpoint</span> to
+     <var>parsedItem</var>[1]["<code data-x="dip-report-to">report-to</code>"].</p></li>
+    </ol>
+   </li>
+
+   <li><p>Set <var>parsedItem</var> to the result of <span>getting a structured field value</span>
+   with `<code>Document-Isolation-Policy-Report-Only</code>` and "<code data-x="">item</code>" from
+   <var>response</var>'s <span data-x="concept-response-header-list">header list</span>.</p></li>
+
+   <li>
+    <p>If <var>parsedItem</var> is non-null, <var>parsedItem</var>[0] is a <span
+    data-x="http-structured-header-token">token</span>, and <var>parsedItem</var>[0] is <span
+    data-x="dip-isolating">isolating</span>:</p>
+
+    <ol>
+     <li><p>Set <var>policy</var>'s <span
+     data-x="document-isolation-policy-report-only-value">report-only value</span> to
+     <var>parsedItem</var>[0].</p></li>
+
+     <li><p>If <var>parsedItem</var>[1]["<code data-x="dip-report-to">report-to</code>"] <span
+     data-x="map exists">exists</span> and it is a <span
+     data-x="http-structured-header-string">string</span>, then set <var>policy</var>'s <span
+     data-x="document-isolation-policy-report-only-reporting-endpoint">report-only reporting
+     endpoint</span> to <var>parsedItem</var>[1]["<code
+     data-x="dip-report-to">report-to</code>"].</p></li>
+    </ol>
+   </li>
+
+   <li><p>Return <var>policy</var>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>obtain an agent cluster cross-origin isolation key</dfn> given null or a <span>document
+  isolation policy</span> <var>documentIsolationPolicy</var> and an <span>origin</span>
+  <var>origin</var>:</p>
+
+  <ol>
+   <li><p>If <var>documentIsolationPolicy</var> is null, then return null.</p></li>
+
+   <li><p>If <var>documentIsolationPolicy</var>'s <span
+   data-x="document-isolation-policy-value">value</span> is "<code data-x="dip-none">none</code>",
+   then return null.</p></li>
+
+   <li>
+    <p>Let <var>crossOriginIsolationMode</var> be either "<code
+    data-x="cross-origin-isolation-logical">logical</code>" or "<code
+    data-x="cross-origin-isolation-concrete">concrete</code>". The choice of which is
+    <span>implementation-defined</span>.</p>
+
+    <p class="note">To keep same-origin documents with a <span>document isolation policy</span> in
+    the same <span>agent cluster</span>, user agents need to choose the same mode consistently for
+    all calls to this algorithm on a given platform.</p>
+   </li>
+
+   <li><p>Return a new <span>agent cluster cross-origin isolation key</span> whose <span
+   data-x="coi-key-origin">origin</span> is <var>origin</var> and whose <span
+   data-x="coi-key-mode">cross-origin isolation mode</span> is
+   <var>crossOriginIsolationMode</var>.</p></li>
+  </ol>
+  </div>
+
+  </div>
+
+
   <h4>Sandboxing</h4>
 
   <p>A <dfn export>sandboxing flag set</dfn> is a set of zero or more of the following flags, which
@@ -97614,6 +97882,15 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
    data-x="policy-container-report-only-integrity-policy">report-only integrity policy</dfn>, which
    is an <span data-x="integrity policy">integrity policy</span>, initially a new <span
    data-x="integrity policy">integrity policy</span>.</p></li>
+
+   <li><p>A <dfn export for="policy container"
+   data-x="policy-container-document-isolation-policy">document isolation policy</dfn>, which is a
+   <span>document isolation policy</span>. It is initially a new <span>document isolation
+   policy</span>.</p></li>
+
+   <li><p>An <dfn for="policy container" data-x="policy-container-coi-key">agent cluster
+   cross-origin isolation key</dfn>, which is null or an <span>agent cluster cross-origin isolation
+   key</span>. It is initially null.</p></li>
   </ul>
 
   <p class="XXX">Move other policies into the policy container.</p>
@@ -97641,6 +97918,16 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
    <li><p>Set <var>clone</var>'s <span data-x="policy-container-integrity-policy">integrity
    policy</span> to a copy of <var>policyContainer</var>'s <span
    data-x="policy-container-integrity-policy">integrity policy</span>.</p></li>
+
+   <li><p>Set <var>clone</var>'s <span
+   data-x="policy-container-document-isolation-policy">document isolation policy</span> to a copy of
+   <var>policyContainer</var>'s <span data-x="policy-container-document-isolation-policy">document
+   isolation policy</span>.</p></li>
+
+   <li><p>Set <var>clone</var>'s <span data-x="policy-container-coi-key">agent cluster cross-origin
+   isolation key</span> to a copy of <var>policyContainer</var>'s <span
+   data-x="policy-container-coi-key">agent cluster cross-origin isolation key</span>, if non-null;
+   otherwise null.</p></li>
 
    <li><p>Return <var>clone</var>.</p></li>
   </ol>
@@ -97671,8 +97958,9 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
   <div algorithm>
   <p>To <dfn export data-lt="creating a policy container from a fetch response" data-x="creating a
   policy container from a fetch response">create a policy container from a fetch response</dfn>
-  given a <span data-x="concept-response">response</span> <var>response</var> and an
-  <span>environment</span>-or-null <var>environment</var>:</p>
+  given a <span data-x="concept-response">response</span> <var>response</var>, an
+  <span>environment</span>-or-null <var>environment</var>, and an optional boolean
+  <var>parseDocumentIsolationPolicy</var> (default false):</p>
 
   <ol>
    <li><p>If <var>response</var>'s <span data-x="concept-response-url">URL</span>'s <span
@@ -97701,6 +97989,26 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
 
    <li><p><span data-x="parse Integrity-Policy headers">Parse Integrity-Policy headers</span> with
    <var>response</var> and <var>result</var>.</p></li>
+
+   <li>
+    <p>If <var>parseDocumentIsolationPolicy</var> is true and <var>environment</var> is non-null,
+    then:</p>
+
+    <ol>
+     <li><p>Set <var>result</var>'s <span
+     data-x="policy-container-document-isolation-policy">document isolation policy</span> to the
+     result of <span data-x="obtain a document isolation policy">obtaining a document isolation
+     policy</span> given <var>response</var> and <var>environment</var>.</p></li>
+
+     <li><p>Set <var>result</var>'s <span data-x="policy-container-coi-key">agent cluster
+     cross-origin isolation key</span> to the result of <span data-x="obtain an agent cluster
+     cross-origin isolation key">obtaining an agent cluster cross-origin isolation key</span> given
+     <var>result</var>'s <span data-x="policy-container-document-isolation-policy">document
+     isolation policy</span> and <var>response</var>'s <span
+     data-x="concept-response-url">URL</span>'s <span
+     data-x="concept-url-origin">origin</span>.</p></li>
+    </ol>
+   </li>
 
    <li><p>Return <var>result</var>.</p></li>
   </ol>
@@ -97776,6 +98084,65 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
    data-x="concept-WorkerGlobalScope-policy-container">policy container</span> to the result of
    <span>creating a policy container from a fetch response</span> given
    <var>response</var> and <var>environment</var>.</p></li>
+
+   <li>
+    <p>If <var>workerGlobalScope</var> is a <code>DedicatedWorkerGlobalScope</code> object:</p>
+
+    <ol>
+     <li><p><span>Assert</span>: <var>workerGlobalScope</var>'s <span>owner set</span>'s <span
+     data-x="list size">size</span> is 1.</p></li>
+
+     <li><p>Let <var>ownerPolicyContainer</var> be <var>workerGlobalScope</var>'s <span>owner
+     set</span>[0]'s <span>relevant settings object</span>'s <span
+     data-x="concept-settings-object-policy-container">policy container</span>.</p></li>
+
+     <li><p>Set <var>workerGlobalScope</var>'s <span
+     data-x="concept-WorkerGlobalScope-policy-container">policy container</span>'s <span
+     data-x="policy-container-document-isolation-policy">document isolation policy</span> to a copy
+     of <var>ownerPolicyContainer</var>'s <span
+     data-x="policy-container-document-isolation-policy">document isolation policy</span>.</p></li>
+
+     <li><p>Set <var>workerGlobalScope</var>'s <span
+     data-x="concept-WorkerGlobalScope-policy-container">policy container</span>'s <span
+     data-x="policy-container-coi-key">agent cluster cross-origin isolation key</span> to a copy of
+     <var>ownerPolicyContainer</var>'s <span data-x="policy-container-coi-key">agent cluster
+     cross-origin isolation key</span>, if non-null; otherwise null.</p></li>
+    </ol>
+
+    <p class="note">Dedicated workers inherit their owner's <span>document isolation policy</span>,
+    including its <span data-x="document-isolation-policy-reporting-endpoint">reporting
+    endpoint</span> and <span
+    data-x="document-isolation-policy-report-only-reporting-endpoint">report-only reporting
+    endpoint</span> <span data-x="endpoint-name">names</span>. Violation reports for the worker's
+    fetches are <span data-x="queue a report">queued</span> on the worker's own <span>environment
+    settings object</span>, so out-of-band delivery resolves those <span
+    data-x="endpoint-name">names</span> against the worker's own <span
+    data-x="endpoint">endpoints</span> (for example, as configured by the worker script response's
+    `<code data-x="">Reporting-Endpoints</code>` header), while <code
+    data-x="">ReportingObserver</code>s in the worker observe violations directly.
+    <ref>REPORTING</ref></p>
+   </li>
+
+   <li>
+    <p>Otherwise:</p>
+
+    <ol>
+     <li><p>Set <var>workerGlobalScope</var>'s <span
+     data-x="concept-WorkerGlobalScope-policy-container">policy container</span>'s <span
+     data-x="policy-container-document-isolation-policy">document isolation policy</span> to a new
+     <span>document isolation policy</span>.</p></li>
+
+     <li><p>Set <var>workerGlobalScope</var>'s <span
+     data-x="concept-WorkerGlobalScope-policy-container">policy container</span>'s <span
+     data-x="policy-container-coi-key">agent cluster cross-origin isolation key</span> to
+     null.</p></li>
+    </ol>
+
+    <p class="note">Shared workers do not use or inherit `<code>Document-Isolation-Policy</code>`
+    (even when created from a <code data-x="blob protocol">blob:</code> or <code
+    data-x="data protocol">data:</code> URL); they use `<code>Cross-Origin-Embedder-Policy</code>`
+    instead.</p>
+   </li>
   </ol>
   </div>
 
@@ -97937,7 +98304,8 @@ interface <dfn interface data-x="dom-Origin-interface">Origin</dfn> {
    <li><p>Return true if the <span>current settings object</span>'s <span
    data-x="concept-settings-object-origin">origin</span> is <span>same origin-domain</span> with
    <var>O</var>'s <span>relevant settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, and false otherwise.</p></li>
+   data-x="concept-settings-object-origin">origin</span>, and the <span>surrounding agent</span> is
+   equal to <var>O</var>'s <span>relevant agent</span>; otherwise return false.</p></li>
   </ol>
   </div>
 
@@ -99120,7 +99488,9 @@ dictionary <dfn dictionary>WindowPostMessageOptions</dfn> : <span>StructuredSeri
    <li><p>If <var>container</var>'s <span>node document</span>'s <span
    data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with the
    <span>current settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then return null.</p></li>
+   data-x="concept-settings-object-origin">origin</span>, or <var>container</var>'s <span>node
+   document</span>'s <span>relevant agent</span> is not equal to the <span>surrounding agent</span>,
+   then return null.</p></li>
 
    <li><p>Return <var>container</var>.</p></li>
   </ol>
@@ -99355,9 +99725,20 @@ interface <dfn interface>BarProp</dfn> {
        data-x="agent-cluster-cross-origin-isolation">cross-origin-isolation mode</span> is "<code
        data-x="cross-origin-isolation-concrete">concrete</code>", and</p></li>
 
-       <li><p><var>window</var>'s <span data-x="concept-document-window">associated
-       <code>Document</code></span> is <span>allowed to use</span> the "<code
-       data-x="cross-origin-isolated-feature">cross-origin-isolated</code>" feature.</p></li>
+       <li>
+        <p>either:</p>
+        <ul>
+         <li><p><var>window</var>'s <span data-x="concept-document-window">associated
+         <code>Document</code></span>'s <span data-x="concept-document-policy-container">policy
+         container</span>'s <span data-x="policy-container-document-isolation-policy">document
+         isolation policy</span>'s <span data-x="document-isolation-policy-value">value</span> is
+         <span data-x="dip-isolating">isolating</span>, or</p></li>
+
+         <li><p><var>window</var>'s <span data-x="concept-document-window">associated
+         <code>Document</code></span> is <span>allowed to use</span> the "<code
+         data-x="cross-origin-isolated-feature">cross-origin-isolated</code>" feature.</p></li>
+        </ul>
+       </li>
       </ul>
      </dd>
 
@@ -99961,10 +100342,11 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
   steps are:</p>
 
   <ol>
-   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null and its
-   <span data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with
-   the <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null, and
+   either its <span data-x="concept-document-origin">origin</span> is not <span>same
+   origin-domain</span> with the <span>entry settings object</span>'s <span
+   data-x="concept-settings-object-origin">origin</span> or its <span>relevant agent</span> is not
+   equal to the <span>entry global object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Return <span>this</span>'s <span data-x="concept-location-url">url</span>, <span
@@ -99998,10 +100380,11 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
   getter steps are:</p>
 
   <ol>
-   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null and its
-   <span data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with
-   the <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null, and
+   either its <span data-x="concept-document-origin">origin</span> is not <span>same
+   origin-domain</span> with the <span>entry settings object</span>'s <span
+   data-x="concept-settings-object-origin">origin</span> or its <span>relevant agent</span> is not
+   equal to the <span>entry global object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Return the <span data-x="serialization of an origin">serialization</span> of
@@ -100015,10 +100398,11 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
   getter steps are:</p>
 
   <ol>
-   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null and its
-   <span data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with
-   the <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null, and
+   either its <span data-x="concept-document-origin">origin</span> is not <span>same
+   origin-domain</span> with the <span>entry settings object</span>'s <span
+   data-x="concept-settings-object-origin">origin</span> or its <span>relevant agent</span> is not
+   equal to the <span>entry global object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Return <span>this</span>'s <span data-x="concept-location-url">url</span>'s <span
@@ -100036,7 +100420,9 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
    <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span>'s <span
    data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with the
    <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   data-x="concept-settings-object-origin">origin</span>, or <span>this</span>'s <span>relevant
+   <code>Document</code></span>'s <span>relevant agent</span> is not equal to the <span>entry global
+   object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Let <var>copyURL</var> be a copy of <span>this</span>'s <span
@@ -100069,10 +100455,11 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
   steps are:</p>
 
   <ol>
-   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null and its
-   <span data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with
-   the <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null, and
+   either its <span data-x="concept-document-origin">origin</span> is not <span>same
+   origin-domain</span> with the <span>entry settings object</span>'s <span
+   data-x="concept-settings-object-origin">origin</span> or its <span>relevant agent</span> is not
+   equal to the <span>entry global object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Let <var>url</var> be <span>this</span>'s <span
@@ -100102,7 +100489,9 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
    <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span>'s <span
    data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with the
    <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   data-x="concept-settings-object-origin">origin</span>, or <span>this</span>'s <span>relevant
+   <code>Document</code></span>'s <span>relevant agent</span> is not equal to the <span>entry global
+   object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Let <var>copyURL</var> be a copy of <span>this</span>'s <span
@@ -100125,10 +100514,11 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
   getter steps are:</p>
 
   <ol>
-   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null and its
-   <span data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with
-   the <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null, and
+   either its <span data-x="concept-document-origin">origin</span> is not <span>same
+   origin-domain</span> with the <span>entry settings object</span>'s <span
+   data-x="concept-settings-object-origin">origin</span> or its <span>relevant agent</span> is not
+   equal to the <span>entry global object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>If <span>this</span>'s <span data-x="concept-location-url">url</span>'s <span
@@ -100150,7 +100540,9 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
    <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span>'s <span
    data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with the
    <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   data-x="concept-settings-object-origin">origin</span>, or <span>this</span>'s <span>relevant
+   <code>Document</code></span>'s <span>relevant agent</span> is not equal to the <span>entry global
+   object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Let <var>copyURL</var> be a copy of <span>this</span>'s <span
@@ -100173,10 +100565,11 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
   steps are:</p>
 
   <ol>
-   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null and its
-   <span data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with
-   the <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null, and
+   either its <span data-x="concept-document-origin">origin</span> is not <span>same
+   origin-domain</span> with the <span>entry settings object</span>'s <span
+   data-x="concept-settings-object-origin">origin</span> or its <span>relevant agent</span> is not
+   equal to the <span>entry global object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>If <span>this</span>'s <span data-x="concept-location-url">url</span>'s <span
@@ -100198,7 +100591,9 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
    <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span>'s <span
    data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with the
    <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   data-x="concept-settings-object-origin">origin</span>, or <span>this</span>'s <span>relevant
+   <code>Document</code></span>'s <span>relevant agent</span> is not equal to the <span>entry global
+   object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Let <var>copyURL</var> be a copy of <span>this</span>'s <span
@@ -100225,10 +100620,11 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
   getter steps are:</p>
 
   <ol>
-   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null and its
-   <span data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with
-   the <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null, and
+   either its <span data-x="concept-document-origin">origin</span> is not <span>same
+   origin-domain</span> with the <span>entry settings object</span>'s <span
+   data-x="concept-settings-object-origin">origin</span> or its <span>relevant agent</span> is not
+   equal to the <span>entry global object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Return the result of <span data-x="URL path serializer">URL path serializing</span> this
@@ -100246,7 +100642,9 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
    <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span>'s <span
    data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with the
    <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   data-x="concept-settings-object-origin">origin</span>, or <span>this</span>'s <span>relevant
+   <code>Document</code></span>'s <span>relevant agent</span> is not equal to the <span>entry global
+   object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Let <var>copyURL</var> be a copy of <span>this</span>'s <span
@@ -100272,10 +100670,11 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
   getter steps are:</p>
 
   <ol>
-   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null and its
-   <span data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with
-   the <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null, and
+   either its <span data-x="concept-document-origin">origin</span> is not <span>same
+   origin-domain</span> with the <span>entry settings object</span>'s <span
+   data-x="concept-settings-object-origin">origin</span> or its <span>relevant agent</span> is not
+   equal to the <span>entry global object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>If <span>this</span>'s <span data-x="concept-location-url">url</span>'s <span
@@ -100298,7 +100697,9 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
    <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span>'s <span
    data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with the
    <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   data-x="concept-settings-object-origin">origin</span>, or <span>this</span>'s <span>relevant
+   <code>Document</code></span>'s <span>relevant agent</span> is not equal to the <span>entry global
+   object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Let <var>copyURL</var> be a copy of <span>this</span>'s <span
@@ -100335,10 +100736,11 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
   steps are:</p>
 
   <ol>
-   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null and its
-   <span data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with
-   the <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span> is non-null, and
+   either its <span data-x="concept-document-origin">origin</span> is not <span>same
+   origin-domain</span> with the <span>entry settings object</span>'s <span
+   data-x="concept-settings-object-origin">origin</span> or its <span>relevant agent</span> is not
+   equal to the <span>entry global object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>If <span>this</span>'s <span data-x="concept-location-url">url</span>'s <span
@@ -100361,7 +100763,9 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
    <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span>'s <span
    data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with the
    <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   data-x="concept-settings-object-origin">origin</span>, or <span>this</span>'s <span>relevant
+   <code>Document</code></span>'s <span>relevant agent</span> is not equal to the <span>entry global
+   object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Let <var>copyURL</var> be a copy of <span>this</span>'s <span
@@ -100416,7 +100820,9 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
    <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span>'s <span
    data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with the
    <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   data-x="concept-settings-object-origin">origin</span>, or <span>this</span>'s <span>relevant
+   <code>Document</code></span>'s <span>relevant agent</span> is not equal to the <span>entry global
+   object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p>Let <var>urlRecord</var> be the result of <span>encoding-parsing a URL</span> given
@@ -100465,8 +100871,9 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
 
    <li><p>If <var>document</var>'s <span data-x="concept-document-origin">origin</span> is not
    <span>same origin-domain</span> with the <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
-   <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
+   data-x="concept-settings-object-origin">origin</span>, or <var>document</var>'s <span>relevant
+   agent</span> is not equal to the <span>entry global object</span>'s <span>relevant agent</span>,
+   then throw a <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p><span>Reload</span> <var>document</var>'s <span>node navigable</span>.</p></li>
   </ol>
@@ -100495,7 +100902,9 @@ interface <dfn interface>Location</dfn> { // but see also <a href="#the-location
    <li><p>If <span>this</span>'s <span>relevant <code>Document</code></span>'s <span
    data-x="concept-document-origin">origin</span> is not <span>same origin-domain</span> with the
    <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then throw a
+   data-x="concept-settings-object-origin">origin</span>, or <span>this</span>'s <span>relevant
+   <code>Document</code></span>'s <span>relevant agent</span> is not equal to the <span>entry global
+   object</span>'s <span>relevant agent</span>, then throw a
    <span>"<code>SecurityError</code>"</span> <code>DOMException</code>.</p></li>
 
    <li><p><span>Assert</span>: <span>this</span>'s <span>relevant <code>Document</code></span>'s <span
@@ -104625,10 +105034,12 @@ interface <dfn interface>NavigationDestination</dfn> {
    transition, to display a cached rendered state of the <var>document</var>'s <span>latest
    entry</span>, was done by the user agent. Otherwise, initialize it to false.</p></li>
 
-   <li><p>If <var>sourceElement</var> is non-null and <var>sourceElement</var>'s <span>node
-   document</span>'s <span data-x="concept-document-origin">origin</span> and <var>document</var>'s
-   <span data-x="concept-document-origin">origin</span> are not <span>same origin-domain</span>,
-   then set <var>sourceElement</var> to null.</p></li>
+   <li><p>If <var>sourceElement</var> is non-null, and either <var>sourceElement</var>'s
+   <span>node document</span>'s <span data-x="concept-document-origin">origin</span> and
+   <var>document</var>'s <span data-x="concept-document-origin">origin</span> are not <span>same
+   origin-domain</span> or <var>sourceElement</var>'s <span>node document</span>'s <span>relevant
+   agent</span> is not equal to <var>document</var>'s <span>relevant agent</span>, then set
+   <var>sourceElement</var> to null.</p></li>
 
    <li><p>Initialize <var>event</var>'s <code
    data-x="dom-NavigateEvent-sourceElement">sourceElement</code> to
@@ -106546,8 +106957,9 @@ interface <dfn interface>NotRestoredReasons</dfn> {
 
    <li><p>If <var>document</var>'s <span data-x="concept-document-origin">origin</span> and
    <var>container</var>'s <span>node document</span>'s <span
-   data-x="concept-document-origin">origin</span> are not <span>same origin-domain</span>, then
-   return null.</p></li>
+   data-x="concept-document-origin">origin</span> are not <span>same origin-domain</span>, or
+   <var>document</var>'s <span>relevant agent</span> is not equal to <var>container</var>'s
+   <span>node document</span>'s <span>relevant agent</span>, then return null.</p></li>
 
    <li><p>Return <var>document</var>.</p></li>
   </ol>
@@ -107506,6 +107918,8 @@ interface <dfn interface>NotRestoredReasons</dfn> {
 
    <li><p>Let <var>creatorBaseURL</var> be null.</p></li>
 
+   <li><p>Let <var>creatorAgentClusterCOIKey</var> be null.</p></li>
+
    <li id="creator-browsing-context">
     <p>If <var>creator</var> is non-null:</p>
 
@@ -107521,6 +107935,10 @@ interface <dfn interface>NotRestoredReasons</dfn> {
      <var>creator</var>'s <span data-x="concept-document-bc">browsing context</span>'s <span
      data-x="bc-tlbc">top-level browsing context</span>'s <span
      data-x="virtual-browsing-context-group-id">virtual browsing context group ID</span>.</p></li>
+
+     <li><p>Set <var>creatorAgentClusterCOIKey</var> to <var>creator</var>'s <span
+     data-x="concept-document-policy-container">policy container</span>'s <span
+     data-x="policy-container-coi-key">agent cluster cross-origin isolation key</span>.</p></li>
     </ol>
    </li>
 
@@ -107538,7 +107956,7 @@ interface <dfn interface>NotRestoredReasons</dfn> {
 
    <li><p>Let <var>agent</var> be the result of <span
    data-x="obtain-similar-origin-window-agent">obtaining a similar-origin window agent</span> given
-   <var>origin</var>, <var>group</var>, and false.</p></li>
+   <var>origin</var>, <var>group</var>, false, and <var>creatorAgentClusterCOIKey</var>.</p></li>
 
    <li>
     <p>Let <var>realm execution context</var> be the result of <span>creating a new realm</span>
@@ -107574,11 +107992,9 @@ interface <dfn interface>NotRestoredReasons</dfn> {
    <var>realm execution context</var>, null, <var>topLevelCreationURL</var>, and
    <var>topLevelOrigin</var>.</p></li>
 
-   <li><p>Let <var>loadTimingInfo</var> be a new <span>document load timing info</span> with
-   its <span>navigation start time</span> set to the result of calling <span>coarsen time</span>
-   with <var>unsafeContextCreationTime</var> and the new <span>environment settings object</span>'s
-   <span data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin isolated
-   capability</span>.</p></li>
+   <li><p>Let <var>policyContainer</var> be a <span data-x="clone a policy container">clone</span>
+   of <var>creator</var>'s <span data-x="concept-document-policy-container">policy container</span>
+   if <var>creator</var> is non-null; otherwise a new <span>policy container</span>.</p></li>
 
    <li>
     <p>Let <var>document</var> be a new <code>Document</code>, with:</p>
@@ -107599,14 +108015,14 @@ interface <dfn interface>NotRestoredReasons</dfn> {
      <dt><span data-x="concept-document-bc">browsing context</span></dt>
      <dd><var>browsingContext</var>
 
+     <dt><span data-x="concept-document-policy-container">policy container</span></dt>
+     <dd><var>policyContainer</var></dd>
+
      <dt><span data-x="concept-document-permissions-policy">permissions policy</span></dt>
      <dd><var>permissionsPolicy</var></dd>
 
      <dt><span>active sandboxing flag set</span></dt>
      <dd><var>sandboxFlags</var></dd>
-
-     <dt><span>load timing info</span></dt>
-     <dd><var>loadTimingInfo</var></dd>
 
      <dt><span>is initial <code>about:blank</code></span></dt>
      <dd>true</dd>
@@ -107643,11 +108059,6 @@ interface <dfn interface>NotRestoredReasons</dfn> {
      <span data-x="concept-url-serializer">serialization</span> of <var>creator</var>'s <span
      data-x="concept-document-url">URL</span>.</p></li>
 
-     <li><p>Set <var>document</var>'s <span data-x="concept-document-policy-container">policy
-     container</span> to a <span data-x="clone a policy container">clone</span> of
-     <var>creator</var>'s <span data-x="concept-document-policy-container">policy
-     container</span>.</p></li>
-
      <li><p>If <var>creator</var>'s <span data-x="concept-document-origin">origin</span> is
      <span>same origin</span> with <var>creator</var>'s <span>relevant settings object</span>'s
      <span>top-level origin</span>, then set <var>document</var>'s <span
@@ -107669,6 +108080,13 @@ interface <dfn interface>NotRestoredReasons</dfn> {
    <var>document</var>.</p></li>
 
    <li><p><span>Make active</span> <var>document</var>.</p></li>
+
+   <li><p>Set <var>document</var>'s <span>load timing info</span> to a new <span>document load
+   timing info</span> with its <span>navigation start time</span> set to the result of calling
+   <span>coarsen time</span> with <var>unsafeContextCreationTime</var> and <var>document</var>'s
+   <span>relevant settings object</span>'s <span
+   data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin isolated
+   capability</span>.</p></li>
 
    <li><p><span>Completely finish loading</span> <var>document</var>.</p></li>
 
@@ -107897,10 +108315,13 @@ interface <dfn interface>NotRestoredReasons</dfn> {
   <p class="note">The <span>historical agent cluster key map</span> only ever gains entries over the
   lifetime of the browsing context group.</p>
 
-  <p>A <span>browsing context group</span> has a <dfn
-  data-x="bcg-cross-origin-isolation">cross-origin isolation mode</dfn>, which is a
-  <span>cross-origin isolation mode</span>. It is initially "<code
-  data-x="cross-origin-isolation-none">none</code>".</p>
+  <p>A <span>browsing context group</span> has an <dfn data-x="bcg-coi-key" for="browsing context
+  group">agent cluster cross-origin isolation key</dfn>, which is null or an <span>agent cluster
+  cross-origin isolation key</span>. It is initially null. It is set by <span>opener policy</span>,
+  and acts as the default <span>agent cluster cross-origin isolation key</span> for
+  <code>Document</code>s in the <span>browsing context group</span>, unless overridden by a
+  <code>Document</code>'s <span data-x="concept-document-policy-container">policy container</span>'s
+  <span data-x="policy-container-coi-key">agent cluster cross-origin isolation key</span>.</p>
 
   <p>A <dfn>cross-origin isolation mode</dfn> is one of three possible values: "<dfn><code
   data-x="cross-origin-isolation-none">none</code></dfn>", "<dfn><code
@@ -107909,26 +108330,28 @@ interface <dfn interface>NotRestoredReasons</dfn> {
 
   <div class="note">
    <p>"<code data-x="cross-origin-isolation-logical">logical</code>" and "<code
-   data-x="cross-origin-isolation-concrete">concrete</code>" are similar. They are both used for
-   <span data-x="browsing context group">browsing context groups</span> where:</p>
+   data-x="cross-origin-isolation-concrete">concrete</code>" are similar. They are both used when
+   either:</p>
 
    <ul>
-    <li><p>every top-level <code>Document</code> has `<code
-    data-x=""><span>Cross-Origin-Opener-Policy</span>: <span
-    data-x="coop-same-origin">same-origin</span></code>`, and</p></li>
+    <li><p>in a <span>browsing context group</span>, every top-level <code>Document</code> has
+    `<code data-x=""><span>Cross-Origin-Opener-Policy</span>: <span
+    data-x="coop-same-origin">same-origin</span></code>` and every <code>Document</code> has a
+    `<code>Cross-Origin-Embedder-Policy</code>` header whose value is <span>compatible with
+    cross-origin isolation</span>; or</p></li>
 
-    <li><p>every <code>Document</code> has a `<code>Cross-Origin-Embedder-Policy</code>` header
-    whose value is <span>compatible with cross-origin isolation</span>.</p></li>
+    <li><p>an individual <code>Document</code> has a `<code>Document-Isolation-Policy</code>` header
+    whose value is <span data-x="dip-isolating">isolating</span>.</p></li>
    </ul>
 
    <p>On some platforms, it is difficult to provide the security properties required to grant safe
    access to the APIs gated by the <span
    data-x="concept-settings-object-cross-origin-isolated-capability">cross-origin isolated
    capability</span>. As a result, only "<code
-   data-x="cross-origin-isolation-concrete">concrete</code>" can grant access that capability.
-   "<code data-x="cross-origin-isolation-logical">logical</code>" is used on platform not supporting
-   this capability, where various restrictions imposed by cross-origin isolation will still apply,
-   but the capability is not granted.</p>
+   data-x="cross-origin-isolation-concrete">concrete</code>" can grant access to that capability.
+   "<code data-x="cross-origin-isolation-logical">logical</code>" is used on platforms that do not
+   support this capability, where various restrictions imposed by cross-origin isolation will still
+   apply, but the capability is not granted.</p>
   </div>
 
   <div algorithm>
@@ -109313,6 +109736,8 @@ location.href = '#foo';</code></pre>
    <li><p>Let <var>initiatorOriginSnapshot</var> be a new <span
    data-x="concept-origin-opaque">opaque origin</span>.</p></li>
 
+   <li><p>Let <var>initiatorAgent</var> be null.</p></li>
+
    <li><p>Let <var>initiatorBaseURLSnapshot</var> be <code>about:blank</code>.</p></li>
 
    <li>
@@ -109350,6 +109775,9 @@ location.href = '#foo';</code></pre>
 
      <li><p>Set <var>initiatorOriginSnapshot</var> to <var>sourceDocument</var>'s <span
      data-x="concept-document-origin">origin</span>.</p></li>
+
+     <li><p>Set <var>initiatorAgent</var> to <var>sourceDocument</var>'s <span>relevant
+     agent</span>.</p></li>
 
      <li><p>Set <var>initiatorBaseURLSnapshot</var> to <var>sourceDocument</var>'s <span>document
      base URL</span>.</p></li>
@@ -109534,8 +109962,8 @@ location.href = '#foo';</code></pre>
      source</span> given <var>navigable</var>'s <span data-x="nav-window">active window</span> to
      <span>navigate to a <code>javascript:</code> URL</span> given <var>navigable</var>,
      <var>request</var>, <var>historyHandling</var>, <var>initiatorOriginSnapshot</var>,
-     <var>userInvolvement</var>, <var>cspNavigationType</var>, <var>initialInsertion</var>, and
-     <var>navigationId</var>.</p></li>
+     <var>initiatorAgent</var>, <var>userInvolvement</var>, <var>cspNavigationType</var>,
+     <var>initialInsertion</var>, and <var>navigationId</var>.</p></li>
 
      <li><p>Return.</p></li>
     </ol>
@@ -109551,6 +109979,10 @@ location.href = '#foo';</code></pre>
      <li><p><var>navigable</var>'s <span data-x="nav-document">active document</span>'s <span
      data-x="concept-document-origin">origin</span> is <span>same origin-domain</span> with
      <var>sourceDocument</var>'s <span data-x="concept-document-origin">origin</span>;</p></li>
+
+     <li><p><var>navigable</var>'s <span data-x="nav-document">active document</span>'s
+     <span>relevant agent</span> is equal to <var>sourceDocument</var>'s <span>relevant
+     agent</span>;</p></li>
 
      <li><p><var>navigable</var>'s <span data-x="nav-document">active document</span>'s <span>is
      initial <code>about:blank</code></span> is false; and</p></li>
@@ -109929,9 +110361,9 @@ location.href = '#foo';</code></pre>
   <p>To <dfn>navigate to a <code>javascript:</code> URL</dfn>, given a <span>navigable</span>
   <var>targetNavigable</var>, a <span data-x="concept-request">request</span> <var>request</var>, a
   <span>history handling behavior</span> <var>historyHandling</var>, an <span>origin</span>
-  <var>initiatorOrigin</var>, a <span>user navigation involvement</span> <var>userInvolvement</var>,
-  a string <var>cspNavigationType</var>, a boolean <var>initialInsertion</var>, and a
-  <span>navigation ID</span> <var>navigationId</var>:</p>
+  <var>initiatorOrigin</var>, null or an <span>agent</span> <var>initiatorAgent</var>, a <span>user
+  navigation involvement</span> <var>userInvolvement</var>, a string <var>cspNavigationType</var>, a
+  boolean <var>initialInsertion</var>, and a <span>navigation ID</span> <var>navigationId</var>:</p>
 
   <ol>
    <li><p><span>Assert</span>: <var>historyHandling</var> is "<code
@@ -109944,7 +110376,9 @@ location.href = '#foo';</code></pre>
 
    <li><p>If <var>initiatorOrigin</var> is not <span>same origin-domain</span> with
    <var>targetNavigable</var>'s <span data-x="nav-document">active document</span>'s <span
-   data-x="concept-document-origin">origin</span>, then return.</p></li>
+   data-x="concept-document-origin">origin</span>, or if <var>initiatorAgent</var> is non-null and
+   is not equal to <var>targetNavigable</var>'s <span data-x="nav-document">active document</span>'s
+   <span>relevant agent</span>, then return.</p></li>
 
    <li>
     <p>If the result of <span>should navigation request of type be blocked by Content Security
@@ -111996,8 +112430,8 @@ location.href = '#foo';</code></pre>
      </li>
 
      <li><p>Set <var>responsePolicyContainer</var> to the result of <span>creating a policy
-     container from a fetch response</span> given <var>response</var> and <var>request</var>'s
-     <span data-x="concept-request-reserved-client">reserved client</span>.</p></li>
+     container from a fetch response</span> given <var>response</var>, <var>request</var>'s
+     <span data-x="concept-request-reserved-client">reserved client</span>, and true.</p></li>
 
      <li><p>Set <var>finalSandboxFlags</var> to the <span data-x="set union">union</span> of
      <var>targetSnapshotParams</var>'s <span data-x="target-snapshot-params-sandbox">sandboxing
@@ -114549,16 +114983,37 @@ location.href = '#foo';</code></pre>
    <li><p>Let <var>window</var> be null.</p></li>
 
    <li>
+    <p>Let <var>activeCOIKey</var> be the <span>effective agent cluster cross-origin isolation
+    key</span> given <var>browsingContext</var>'s <span data-x="tlbc group">group</span> and
+    <var>browsingContext</var>'s <span>active document</span>'s <span
+    data-x="concept-document-policy-container">policy container</span>'s <span
+    data-x="policy-container-coi-key">agent cluster cross-origin isolation key</span>.</p>
+   </li>
+
+   <li>
+    <p>Let <var>navigationCOIKey</var> be the <span>effective agent cluster cross-origin isolation
+    key</span> given <var>browsingContext</var>'s <span data-x="tlbc group">group</span> and
+    <var>navigationParams</var>'s <span data-x="navigation-params-policy-container">policy
+    container</span>'s <span data-x="policy-container-coi-key">agent cluster cross-origin isolation
+    key</span>.</p>
+   </li>
+
+   <li>
     <p>If <var>browsingContext</var>'s <span>active document</span>'s <span>is initial
-    <code>about:blank</code></span> is true, and <var>browsingContext</var>'s <span>active
+    <code>about:blank</code></span> is true, <var>browsingContext</var>'s <span>active
     document</span>'s <span data-x="concept-document-origin">origin</span> is <span>same
     origin-domain</span> with <var>navigationParams</var>'s <span
-    data-x="navigation-params-origin">origin</span>, then set <var>window</var> to
+    data-x="navigation-params-origin">origin</span>, and <var>activeCOIKey</var> <span
+    data-x="coi-key-equals">equals</span> <var>navigationCOIKey</var>, then set <var>window</var> to
     <var>browsingContext</var>'s <span>active window</span>.</p>
 
     <p class="note">This means that both the <span data-x="is initial about:blank">initial
     <code>about:blank</code></span> <code>Document</code>, and the new <code>Document</code> that
-    is about to be created, will share the same <code>Window</code> object.</p>
+    is about to be created, will share the same <code>Window</code> object. If their effective <span
+    data-x="agent cluster cross-origin isolation key">agent cluster cross-origin isolation
+    keys</span> differ (for example, due to `<code>Document-Isolation-Policy</code>`), the
+    <code>Window</code> object cannot be reused because the two documents belong to different <span
+    data-x="agent cluster">agent clusters</span>.</p>
    </li>
 
    <li id="create-new-agent-and-window">
@@ -114581,8 +115036,10 @@ location.href = '#foo';</code></pre>
      <li><p>Let <var>agent</var> be the result of <span
      data-x="obtain-similar-origin-window-agent">obtaining a similar-origin window agent</span>
      given <var>navigationParams</var>'s <span data-x="navigation-params-origin">origin</span>,
-     <var>browsingContext</var>'s <span data-x="tlbc group">group</span>, and
-     <var>requestsOAC</var>.</p></li>
+     <var>browsingContext</var>'s <span data-x="tlbc group">group</span>, <var>requestsOAC</var>,
+     and <var>navigationParams</var>'s <span data-x="navigation-params-policy-container">policy
+     container</span>'s <span data-x="policy-container-coi-key">agent cluster cross-origin
+     isolation key</span>.</p></li>
 
      <li>
       <p>Let <var>realmExecutionContext</var> be the result of <span>creating a new realm</span>
@@ -118217,8 +118674,10 @@ new PaymentRequest(&hellip;); // Allowed to use
    thus needs to run in a single execution thread.</p>
 
    <p w-nodev>Two <code>Window</code> objects having the same <span>agent</span> does not indicate
-   they can directly access all objects created in each other's realms. They would have to be
-   <span>same origin-domain</span>; see <span>IsPlatformObjectSameOrigin</span>.</p>
+   they can directly access all objects created in each other's realms; they must also be <span>same
+   origin-domain</span>. Conversely, two <span>same origin-domain</span> <code>Window</code> objects
+   in different <span data-x="agent">agents</span> cannot directly access each other's objects; see
+   <span>IsPlatformObjectSameOrigin</span>.</p>
   </div>
 
   <p>The following types of agents exist on the web platform:</p>
@@ -118235,7 +118694,9 @@ new PaymentRequest(&hellip;); // Allowed to use
 
     <p class="note">Two <code>Window</code> objects that are <span>same origin</span> can be in
     different <span data-x="similar-origin window agent">similar-origin window agents</span>, for
-    instance if they are each in their own <span>browsing context group</span>.</p>
+    instance if they are each in their own <span>browsing context group</span>, or if they have
+    different <span data-x="agent cluster cross-origin isolation key">agent cluster cross-origin
+    isolation keys</span> due to `<code>Document-Isolation-Policy</code>`.</p>
    </dd>
 
    <dt><dfn export>Dedicated worker agent</dfn></dt>
@@ -118335,18 +118796,83 @@ new PaymentRequest(&hellip;); // Allowed to use
   <p>The following defines the allocation of the <span data-x="agent cluster">agent clusters</span>
   of <span data-x="similar-origin window agent">similar-origin window agents</span>.</p>
 
-  <p>An <dfn>agent cluster key</dfn> is a <span>site</span> or <span
-  data-x="concept-origin-tuple">tuple origin</span>. Without web developer action to achieve <a
-  href="#origin-keyed-agent-clusters">origin-keyed agent clusters</a>, it will be a
-  <span>site</span>.</p>
+  <p>An <dfn>agent cluster cross-origin isolation key</dfn> is a <span>struct</span> consisting
+  of:</p>
 
-  <p class="note">An equivalent formulation is that an <span>agent cluster key</span> can be a
-  <span>scheme-and-host</span> or an <span>origin</span>.</p>
+  <ul>
+   <li><p>An <dfn data-x="coi-key-origin" for="agent cluster cross-origin isolation
+   key">origin</dfn>, which is an <span>origin</span>.</p></li>
+
+   <li><p>A <dfn data-x="coi-key-mode" for="agent cluster cross-origin isolation key">cross-origin
+   isolation mode</dfn>, which is a <span>cross-origin isolation mode</span> other than "<code
+   data-x="cross-origin-isolation-none">none</code>".</p></li>
+  </ul>
+
+  <div algorithm>
+  <p>An <span>agent cluster cross-origin isolation key</span>-or-null <var>a</var> <dfn
+  data-x="coi-key-equals">equals</dfn> an <span>agent cluster cross-origin isolation
+  key</span>-or-null <var>b</var> if one of the following holds:</p>
+
+  <ul>
+   <li><p><var>a</var> and <var>b</var> are both null.</p></li>
+
+   <li><p><var>a</var> and <var>b</var> are both non-null, <var>a</var>'s <span
+   data-x="coi-key-origin">origin</span> is <span>same origin</span> with <var>b</var>'s <span
+   data-x="coi-key-origin">origin</span>, and <var>a</var>'s <span
+   data-x="coi-key-mode">cross-origin isolation mode</span> is <var>b</var>'s <span
+   data-x="coi-key-mode">cross-origin isolation mode</span>.</p></li>
+  </ul>
+  </div>
+
+  <div algorithm>
+  <p>The <dfn>effective agent cluster cross-origin isolation key</dfn>, given a <span>browsing
+  context group</span> <var>group</var> and null or an <span>agent cluster cross-origin isolation
+  key</span> <var>policyKey</var>, is given by these steps:</p>
+
+  <ol>
+   <li><p>Let <var>groupKey</var> be <var>group</var>'s <span data-x="bcg-coi-key">agent cluster
+   cross-origin isolation key</span>.</p></li>
+
+   <li><p>If <var>policyKey</var> is null, then return <var>groupKey</var>.</p></li>
+
+   <li>
+    <p>If <var>groupKey</var> is not null, <var>groupKey</var>'s <span
+    data-x="coi-key-origin">origin</span> is <span>same origin</span> with <var>policyKey</var>'s
+    <span data-x="coi-key-origin">origin</span>, and <var>groupKey</var>'s <span
+    data-x="coi-key-mode">cross-origin isolation mode</span> is "<code
+    data-x="cross-origin-isolation-concrete">concrete</code>", then return <var>groupKey</var>.</p>
+
+    <p class="note">This ensures that on platforms supporting page-level cross-origin isolation
+    (`<code>Cross-Origin-Opener-Policy</code>` and `<code>Cross-Origin-Embedder-Policy</code>`) but
+    not frame-level process isolation (`<code>Document-Isolation-Policy</code>`), a document that is
+    <span>same origin</span> with the top-level document and sets
+    `<code>Document-Isolation-Policy</code>` remains in the same "<code
+    data-x="cross-origin-isolation-concrete">concrete</code>" <span>agent cluster</span> as the
+    top-level document instead of being downgraded to "<code
+    data-x="cross-origin-isolation-logical">logical</code>".</p>
+   </li>
+
+   <li><p>Return <var>policyKey</var>.</p></li>
+  </ol>
+  </div>
+
+  <p>An <dfn>agent cluster key</dfn> is a <span>site</span>, an <span>origin</span>, or a
+  <span>tuple</span> of an <span>origin</span> and an <span>agent cluster cross-origin isolation
+  key</span>. Without web developer action to achieve <a
+  href="#origin-keyed-agent-clusters">origin-keyed agent clusters</a> or cross-origin isolation, it
+  will be a <span>site</span> (for a <span data-x="concept-origin-tuple">tuple origin</span>).</p>
+
+  <p class="note" var-scope>Two <span data-x="tuple">tuples</span> (<var>originA</var>,
+  <var>keyA</var>) and (<var>originB</var>, <var>keyB</var>) are treated as the same key in an
+  <span>agent cluster map</span> when <var>originA</var> is <span>same origin</span> with
+  <var>originB</var> and <var>keyA</var> <span data-x="coi-key-equals">equals</span>
+  <var>keyB</var>.</p>
 
   <div algorithm>
   <p>To <dfn data-x="obtain-similar-origin-window-agent">obtain a similar-origin window agent</dfn>,
   given an <span>origin</span> <var>origin</var>, a <span>browsing context group</span>
-  <var>group</var>, and a boolean <var>requestsOAC</var>, run these steps:</p>
+  <var>group</var>, a boolean <var>requestsOAC</var>, and null or an <span>agent cluster
+  cross-origin isolation key</span> <var>agentClusterCOIKey</var>, run these steps:</p>
 
   <ol>
    <li><p>Let <var>site</var> be the result of <span data-x="obtain a site">obtaining a site</span>
@@ -118354,9 +118880,11 @@ new PaymentRequest(&hellip;); // Allowed to use
 
    <li><p>Let <var>key</var> be <var>site</var>.</p></li>
 
-   <li><p>If <var>group</var>'s <span data-x="bcg-cross-origin-isolation">cross-origin isolation
-   mode</span> is not "<code data-x="cross-origin-isolation-none">none</code>", then set
-   <var>key</var> to <var>origin</var>.</p></li>
+   <li><p>Let <var>effectiveCOIKey</var> be the <span>effective agent cluster cross-origin isolation
+   key</span> given <var>group</var> and <var>agentClusterCOIKey</var>.</p></li>
+
+   <li><p>If <var>effectiveCOIKey</var> is not null, then set <var>key</var> to (<var>origin</var>,
+   <var>effectiveCOIKey</var>).</p></li>
 
    <li><p>Otherwise, if <var>group</var>'s <span>historical agent cluster key
    map</span>[<var>origin</var>] <span data-x="map exists">exists</span>, then set <var>key</var> to
@@ -118381,19 +118909,15 @@ new PaymentRequest(&hellip;); // Allowed to use
     <ol>
      <li><p>Let <var>agentCluster</var> be a new <span>agent cluster</span>.</p></li>
 
-     <li><p>Set <var>agentCluster</var>'s <span
+     <li><p>If <var>effectiveCOIKey</var> is not null, then set <var>agentCluster</var>'s <span
      data-x="agent-cluster-cross-origin-isolation">cross-origin isolation mode</span> to
-     <var>group</var>'s <span data-x="bcg-cross-origin-isolation">cross-origin isolation
+     <var>effectiveCOIKey</var>'s <span data-x="coi-key-mode">cross-origin isolation
      mode</span>.</p></li>
 
      <li>
-      <p>If <var>key</var> is an <span>origin</span>:</p>
-
-      <ol>
-       <li><p><span>Assert</span>: <var>key</var> is <var>origin</var>.</p></li>
-
-       <li><p>Set <var>agentCluster</var>'s <span>is origin-keyed</span> to true.</p></li>
-      </ol>
+      <p>If <var>key</var> is an <span>origin</span> or a <span>tuple</span> of an
+      <span>origin</span> and an <span>agent cluster cross-origin isolation key</span>, then set
+      <var>agentCluster</var>'s <span>is origin-keyed</span> to true.</p>
      </li>
 
      <li><p>Add the result of <span data-x="create an agent">creating an agent</span>, given false,
@@ -118524,6 +119048,12 @@ new PaymentRequest(&hellip;); // Allowed to use
 
     <li><p>Any two <code>Window</code> objects with no opener or ancestor relationship. This holds
     even if the two <code>Window</code> objects are <span>same origin</span>.</p></li>
+
+    <li><p>Two <span>same origin</span> <code>Window</code> objects where one sets an <span
+    data-x="dip-isolating">isolating</span> `<code>Document-Isolation-Policy</code>` header and the
+    other does not (outside of a <span>browsing context group</span> already isolated for their
+    origin via `<code>Cross-Origin-Opener-Policy</code>` and
+    `<code>Cross-Origin-Embedder-Policy</code>`).</p></li>
    </ul>
   </div>
 
@@ -126492,8 +127022,9 @@ interface mixin <dfn interface>WindowOrWorkerGlobalScope</dfn> {
 
    <dt><code data-x="">self.<span subdfn data-x="dom-crossOriginIsolated">crossOriginIsolated</span></code></dt>
    <dd><p>Returns whether scripts running in this global are allowed to use APIs that require
-   cross-origin isolation. This depends on the `<code>Cross-Origin-Opener-Policy</code>` and
-   `<code>Cross-Origin-Embedder-Policy</code>` HTTP response headers and the "<code
+   cross-origin isolation. This depends on the `<code>Cross-Origin-Opener-Policy</code>`,
+   `<code>Cross-Origin-Embedder-Policy</code>`, and `<code>Document-Isolation-Policy</code>` HTTP
+   response headers and the "<code
    data-x="cross-origin-isolated-feature">cross-origin-isolated</code>" feature.</p></dd>
   </dl>
 
@@ -126547,7 +127078,9 @@ document.body.appendChild(frame)</code></pre>
    <li><p>If <span>this</span>'s <span>relevant settings object</span>'s <span
    data-x="concept-settings-object-origin">origin</span> is not <span>same origin-domain</span>
    with the <span>entry settings object</span>'s <span
-   data-x="concept-settings-object-origin">origin</span>, then return null.</p></li>
+   data-x="concept-settings-object-origin">origin</span>, or <span>this</span>'s <span>relevant
+   agent</span> is not equal to the <span>entry global object</span>'s <span>relevant agent</span>,
+   then return null.</p></li>
 
    <li><p>Return <span>this</span>'s <span>relevant settings object</span>'s
    <span data-x="concept-settings-object-origin">origin</span>.</p></li>
@@ -164899,6 +165432,8 @@ INSERT INTERFACES HERE
    <li>`<code>Cross-Origin-Embedder-Policy-Report-Only</code>`</li>
    <li>`<code>Cross-Origin-Opener-Policy</code>`</li>
    <li>`<code>Cross-Origin-Opener-Policy-Report-Only</code>`</li>
+   <li>`<code>Document-Isolation-Policy</code>`</li>
+   <li>`<code>Document-Isolation-Policy-Report-Only</code>`</li>
    <li>`<code>Origin-Agent-Cluster</code>`</li>
    <li>`<code>Refresh</code>`</li>
    <li>`<code>X-Frame-Options</code>`</li>
@@ -165907,6 +166442,7 @@ INSERT INTERFACES HERE
   C. Williams,
   Cameron McCormack,
   Cameron Zemek,
+  Camille Lamy,
   Cao Yipeng,
   Carlos Amengual,
   Carlos Gabriel Cardona,
