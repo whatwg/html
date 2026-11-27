@@ -70516,8 +70516,8 @@ interface <dfn interface>HTMLTemplateElement</dfn> : <span>HTMLElement</span> {
 
   <div algorithm>
   <p>To <dfn>prepare content patching</dfn> given an <code>Element</code> or
-  <code>DocumentFragment</code> <var>scope</var> and a <code>template</code> element
-  <var>template</var>:</p>
+  <code>DocumentFragment</code> <var>scope</var>, a <code>template</code> element
+  <var>template</var>, and a <code>Document</code> <var>parserDocument</var>:</p>
 
   <ol>
    <li><p><span>Assert</span>: <var>template</var>'s <code data-x="attr-template-for">for</code>
@@ -70560,6 +70560,21 @@ interface <dfn interface>HTMLTemplateElement</dfn> : <span>HTMLElement</span> {
     </ol>
    </li>
 
+   <li><p>Let <var>scopeDocument</var> be <var>scope</var>'s <span>node document</span>.</p></li>
+
+   <li><p>Increment <var>scopeDocument</var>'s <span>throw-on-dynamic-markup-insertion
+   counter</span>.</p></li>
+
+   <li>
+    <p>If <var>parserDocument</var> is not <var>scopeDocument</var>, then increment
+    <var>parserDocument</var>'s <span>throw-on-dynamic-markup-insertion counter</span>.</p>
+
+    <p class="note"><var>parserDocument</var> can differ from <var>scopeDocument</var> when script
+    moves an <span>insertion target</span> into another document mid-parse, or in the <span>fragment
+    case</span> where <var>parserDocument</var> is the inert <code>Document</code> with which the
+    fragment parser is associated.</p>
+   </li>
+
    <li>
     <p>For each <var>node</var> of <var>removedNodes</var>:</p>
 
@@ -70575,6 +70590,12 @@ interface <dfn interface>HTMLTemplateElement</dfn> : <span>HTMLElement</span> {
      </li>
     </ol>
    </li>
+
+   <li><p>If <var>parserDocument</var> is not <var>scopeDocument</var>, then decrement
+   <var>parserDocument</var>'s <span>throw-on-dynamic-markup-insertion counter</span>.</p></li>
+
+   <li><p>Decrement <var>scopeDocument</var>'s <span>throw-on-dynamic-markup-insertion
+   counter</span>.</p></li>
 
    <li><p>Return true.</p></li>
   </ol>
@@ -126645,12 +126666,14 @@ document.body.appendChild(frame)</code></pre>
   <div w-nodev>
 
   <p><code>Document</code> objects have a <dfn>throw-on-dynamic-markup-insertion counter</dfn>,
-  which is used in conjunction with the <span>create an element for the token</span> algorithm to
-  prevent <span data-x="custom element constructor">custom element constructors</span> from being
-  able to use <code data-x="dom-document-open">document.open()</code>, <code
+  which is used in conjunction with the <span>create an element for the token</span> and
+  <span>prepare content patching</span> algorithms to prevent scripts (such as <span data-x="custom
+  element constructor">custom element constructors</span> and <code
+  data-x="event-pagehide">pagehide</code> event handlers) from being able to use <code
+  data-x="dom-document-open">document.open()</code>, <code
   data-x="dom-document-close">document.close()</code>, and <code
-  data-x="dom-document-write">document.write()</code> when they are invoked by the parser.
-  Initially, the counter must be set to zero.</p>
+  data-x="dom-document-write">document.write()</code> when they are invoked synchronously by tree
+  construction. Initially, the counter must be set to zero.</p>
 
   </div>
 
@@ -126673,7 +126696,8 @@ document.body.appendChild(frame)</code></pre>
     <code>Document</code> is an <span data-x="XML documents">XML document</span>.</p>
 
     <p>Throws an <span>"<code>InvalidStateError</code>"</span> <code>DOMException</code> if the
-    parser is currently executing a <span>custom element constructor</span>.</p>
+    parser is currently executing a <span>custom element constructor</span> or removing nodes for a
+    <code>template</code> element's <code data-x="attr-template-for">for</code> attribute.</p>
    </dd>
 
    <dt><code data-x=""><var>window</var> = <var>document</var>.<span data-x="dom-document-open-window">open</span>(<var>url</var>, <var>name</var>, <var>features</var>)</code></dt>
@@ -126852,7 +126876,8 @@ document.body.appendChild(frame)</code></pre>
     <code>Document</code> is an <span data-x="XML documents">XML document</span>.</p>
 
     <p>Throws an <span>"<code>InvalidStateError</code>"</span> <code>DOMException</code> if the
-    parser is currently executing a <span>custom element constructor</span>.</p>
+    parser is currently executing a <span>custom element constructor</span> or removing nodes for a
+    <code>template</code> element's <code data-x="attr-template-for">for</code> attribute.</p>
    </dd>
   </dl>
 
@@ -126920,7 +126945,8 @@ document.body.appendChild(frame)</code></pre>
     invoked on <span>XML documents</span>.</p>
 
     <p>Throws an <span>"<code>InvalidStateError</code>"</span> <code>DOMException</code> if the
-    parser is currently executing a <span>custom element constructor</span>.</p>
+    parser is currently executing a <span>custom element constructor</span> or removing nodes for a
+    <code>template</code> element's <code data-x="attr-template-for">for</code> attribute.</p>
    </dd>
   </dl>
 
@@ -127039,7 +127065,8 @@ document.body.appendChild(frame)</code></pre>
     invoked on <span>XML documents</span>.</p>
 
     <p>Throws an <span>"<code>InvalidStateError</code>"</span> <code>DOMException</code> if the
-    parser is currently executing a <span>custom element constructor</span>.</p>
+    parser is currently executing a <span>custom element constructor</span> or removing nodes for a
+    <code>template</code> element's <code data-x="attr-template-for">for</code> attribute.</p>
    </dd>
   </dl>
 
@@ -147875,12 +147902,17 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
    <li><p>Let <var>willExecuteScript</var> be true if <var>definition</var> is non-null and the
    parser's <span>fragment context element</span> is null; otherwise false.</p></li>
 
+   <li><p>Let <var>parserDocument</var> be the parser's <code>Document</code>.</p></li>
+
    <li>
     <p>If <var>willExecuteScript</var> is true:</p>
 
     <ol>
      <li><p>Increment <var>document</var>'s <span>throw-on-dynamic-markup-insertion
      counter</span>.</p></li>
+
+     <li><p>If <var>parserDocument</var> is not <var>document</var>, then increment
+     <var>parserDocument</var>'s <span>throw-on-dynamic-markup-insertion counter</span>.</p></li>
 
      <li><p>If the <span>JavaScript execution context stack</span> is empty, then <span>perform a
      microtask checkpoint</span>.</p></li>
@@ -147936,6 +147968,9 @@ dictionary <dfn dictionary>StorageEventInit</dfn> : <span>EventInit</span> {
      <span>element queue</span> as was pushed above.)</p></li>
 
      <li><p><span>Invoke custom element reactions</span> in <var>queue</var>.</p></li>
+
+     <li><p>If <var>parserDocument</var> is not <var>document</var>, then decrement
+     <var>parserDocument</var>'s <span>throw-on-dynamic-markup-insertion counter</span>.</p></li>
 
      <li><p>Decrement <var>document</var>'s <span>throw-on-dynamic-markup-insertion
      counter</span>.</p></li>
@@ -149209,8 +149244,8 @@ document.body.appendChild(text);
            </li>
 
            <li><p>Let <var>success</var> be the result of <span data-x="prepare content
-           patching">preparing content patching</span> given <var>scope</var> and
-           <var>template</var>.</p></li>
+           patching">preparing content patching</span> given <var>scope</var>, <var>template</var>,
+           and the parser's <code>Document</code>.</p></li>
 
            <li><p>If <var>success</var> is false, then <span>insert an element at the
            adjusted insertion location</span> with <var>template</var>,
