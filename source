@@ -58200,6 +58200,8 @@ interface <dfn interface>HTMLSelectElement</dfn> : <span>HTMLElement</span> {
 
        <li><p><var>node</var> is a <code>datalist</code> element;</p></li>
 
+       <li><p><var>node</var> is a <code>selectedcontent</code> element;</p></li>
+
        <li><p><var>node</var> is an <code>optgroup</code> element and <var>node</var> has an
        <span>ancestor</span> <code>optgroup</code> in between itself and <var>select</var>,</p></li>
       </ul>
@@ -58288,6 +58290,17 @@ interface <dfn interface>HTMLSelectElement</dfn> : <span>HTMLElement</span> {
   elements</dfn> given a <code>select</code> element <var>select</var>:</p>
 
   <ol>
+   <li>
+    <p>If <var>select</var> has the <code data-x="attr-select-multiple">multiple</code> attribute
+    and <var>select</var> is on the <span>stack of open elements</span> of an <span>HTML
+    parser</span> or <span>XML parser</span>, then return.</p>
+
+    <p class="note">The <code>option</code> elements of such a <code>select</code> element are not
+    cloned, and no microtasks are queued, while it is being parsed. They are all cloned at once
+    when the parser <span data-x="finish parsing the children">finishes parsing the
+    children</span> of <var>select</var>.</p>
+   </li>
+
    <li><p>If <var>select</var>'s <span data-x="select-pending-selectedcontent-update">pending
    <code>selectedcontent</code> update</span> is true or <var>select</var> has no
    <span>descendant</span> <code>selectedcontent</code> elements, then return.</p></li>
@@ -58295,22 +58308,35 @@ interface <dfn interface>HTMLSelectElement</dfn> : <span>HTMLElement</span> {
    <li><p>Set <var>select</var>'s <span data-x="select-pending-selectedcontent-update">pending
    <code>selectedcontent</code> update</span> to true.</p></li>
 
-   <li>
-    <p><span>Queue a microtask</span> to run these steps:</p>
-
-    <ol>
-     <li><p>If <var>select</var>'s <span data-x="select-pending-selectedcontent-update">pending
-     <code>selectedcontent</code> update</span> is false, then return.</p></li>
-
-     <li><p><span>Update a <code>select</code>'s descendant <code>selectedcontent</code>
-     elements</span> given <var>select</var>.</p></li>
-    </ol>
-   </li>
+   <li><p><span>Queue a microtask</span> to <span>perform a <code>select</code>'s pending
+   <code>selectedcontent</code> update</span> given <var>select</var>.</p></li>
   </ol>
 
   <p class="note">The microtask does nothing if <var>select</var>'s descendant
   <code>selectedcontent</code> elements are updated in the meantime, e.g., by the
-  <code>option</code> <span>HTML element post-connection steps</span>.</p>
+  <code>option</code> or <code>selectedcontent</code> <span>HTML element post-connection
+  steps</span>. When <var>select</var> has the <code data-x="attr-select-multiple">multiple</code>
+  attribute, only cloning its <code>option</code> elements clears its <span
+  data-x="select-pending-selectedcontent-update">pending <code>selectedcontent</code>
+  update</span>; updating the clones' <span data-x="concept-option-selectedness">selectedness</span>
+  does not.</p>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>perform a <code>select</code>'s pending <code>selectedcontent</code> update</dfn> given
+  a <code>select</code> element <var>select</var>:</p>
+
+  <ol>
+   <li><p>If <var>select</var>'s <span data-x="select-pending-selectedcontent-update">pending
+   <code>selectedcontent</code> update</span> is false, then return.</p></li>
+
+   <li><p>If <var>select</var> has the <code data-x="attr-select-multiple">multiple</code>
+   attribute, then <span>clone a <code>select</code>'s <code>option</code>s into its descendant
+   <code>selectedcontent</code> elements</span> given <var>select</var>.</p></li>
+
+   <li><p>Otherwise, <span>update a <code>select</code>'s descendant <code>selectedcontent</code>
+   elements</span> given <var>select</var>.</p></li>
+  </ol>
   </div>
 
   <div algorithm>
@@ -58347,11 +58373,25 @@ interface <dfn interface>HTMLSelectElement</dfn> : <span>HTMLElement</span> {
 
    <li><p><span>Reset a <code>select</code>'s selectedness</span> given <var>element</var> and
    true.</p></li>
+
+   <li><p>If <var>oldValue</var> is null, then <span>clone a <code>select</code>'s
+   <code>option</code>s into its descendant <code>selectedcontent</code> elements</span> given
+   <var>element</var>.</p></li>
   </ol>
 
-  <p class="note">The <code>selectedcontent</code> elements of a <code>select</code> element are not
-  kept up to date while it has a <code data-x="attr-select-multiple">multiple</code> attribute,
-  which is why they are always updated here.</p>
+  <p class="note">The <code>selectedcontent</code> elements of a <code>select</code> element
+  contain clones of all of its <code>option</code> elements while it has a <code
+  data-x="attr-select-multiple">multiple</code> attribute, and the contents of its selected
+  <code>option</code> element otherwise. This is why they are always updated when the attribute is
+  removed, and why the <code>option</code> elements are cloned when it is added.</p>
+  </div>
+
+  <div algorithm>
+  <p>The <code>select</code> <span>HTML element children parsed steps</span>, given
+  <var>select</var>, are: if <var>select</var> has the <code
+  data-x="attr-select-multiple">multiple</code> attribute, then <span>clone a
+  <code>select</code>'s <code>option</code>s into its descendant <code>selectedcontent</code>
+  elements</span> given <var>select</var>.</p>
   </div>
 
   <div algorithm>
@@ -59238,6 +59278,13 @@ interface <dfn interface>HTMLOptionElement</dfn> : <span>HTMLElement</span> {
   <p>Each <code>option</code> element has a <dfn>cached nearest ancestor <code>select</code>
   element</dfn>, which is a <code>select</code> element or null, initially set to null.</p>
 
+  <p>Each <code>option</code> element has a <dfn>source <code>option</code></dfn>, which is an
+  <code>option</code> element or null, initially null.</p>
+
+  <p class="note">An <code>option</code> element's <span>source <code>option</code></span> is only
+  non-null for the clones created by <span>clone multiple <code>option</code>s into a
+  <code>selectedcontent</code></span>. It is not copied when such a clone is itself cloned.</p>
+
   <div algorithm>
   <p>To <dfn>update an <code>option</code>'s nearest ancestor <code>select</code></dfn>, given an
   <code>option</code> <var>option</var>, run these steps. They return a <span>list</span> of
@@ -59267,9 +59314,18 @@ interface <dfn interface>HTMLOptionElement</dfn> : <span>HTMLElement</span> {
      <li><p>Let <var>hasChanged</var> be the result of running the <span>selectedness setting
      algorithm</span> given <var>select</var>.</p></li>
 
-     <li><p>If <var>option</var>'s <span data-x="concept-option-selectedness">selectedness</span> is
-     true or <var>hasChanged</var> is true, then <span data-x="list append">append</span>
-     <var>select</var> to <var>result</var>.</p></li>
+     <li>
+      <p>If <var>option</var>'s <span data-x="concept-option-selectedness">selectedness</span> is
+      true, <var>hasChanged</var> is true, or <var>select</var> has the <code
+      data-x="attr-select-multiple">multiple</code> attribute, then <span data-x="list
+      append">append</span> <var>select</var> to <var>result</var>.</p>
+
+      <p class="note">The <code>selectedcontent</code> elements of a <code>select</code> element
+      with the <code data-x="attr-select-multiple">multiple</code> attribute contain a clone of
+      every <code>option</code> element in its <span data-x="concept-select-option-list">list of
+      options</span>, so they need updating regardless of <var>option</var>'s <span
+      data-x="concept-option-selectedness">selectedness</span>.</p>
+     </li>
     </ol>
    </li>
 
@@ -59307,9 +59363,18 @@ interface <dfn interface>HTMLOptionElement</dfn> : <span>HTMLElement</span> {
    <li><p>Let <var>select</var> be <var>insertedOption</var>'s <span>cached nearest ancestor
    <code>select</code> element</span>.</p></li>
 
-   <li><p>If <var>select</var> is null or <var>select</var>'s <span
-   data-x="select-pending-selectedcontent-update">pending <code>selectedcontent</code> update</span>
-   is false, then return.</p></li>
+   <li>
+    <p>If <var>select</var> is null, <var>select</var> has the <code
+    data-x="attr-select-multiple">multiple</code> attribute, or <var>select</var>'s <span
+    data-x="select-pending-selectedcontent-update">pending <code>selectedcontent</code>
+    update</span> is false, then return.</p>
+
+    <p class="note">When <var>select</var> has the <code
+    data-x="attr-select-multiple">multiple</code> attribute, its <code>option</code> elements are
+    cloned later: either in the microtask queued by the <code>option</code> <span>HTML element
+    insertion steps</span>, or when the parser <span data-x="finish parsing the
+    children">finishes parsing the children</span> of <var>select</var>.</p>
+   </li>
 
    <li><p><span>Update a <code>select</code>'s descendant <code>selectedcontent</code>
    elements</span> given <var>select</var>.</p></li>
@@ -59345,6 +59410,23 @@ interface <dfn interface>HTMLOptionElement</dfn> : <span>HTMLElement</span> {
   <ol>
    <li><p>Let <var>selects</var> be the result of <span>update an <code>option</code>'s nearest
    ancestor <code>select</code></span> given <var>movedNode</var>.</p></li>
+
+   <li><p>Let <var>newSelect</var> be <var>movedNode</var>'s <span>cached nearest ancestor
+   <code>select</code> element</span>.</p></li>
+
+   <li>
+    <p>If <var>newSelect</var> is not null, <var>newSelect</var> has the <code
+    data-x="attr-select-multiple">multiple</code> attribute, <var>oldAncestor</var> is an
+    <span>inclusive descendant</span> of <var>newSelect</var>, and <var>selects</var> does not
+    <span data-x="list contains">contain</span> <var>newSelect</var>, then <span data-x="list
+    append">append</span> <var>newSelect</var> to <var>selects</var>.</p>
+
+    <p class="note">Moving an <code>option</code> element within a <code>select</code> element with
+    the <code data-x="attr-select-multiple">multiple</code> attribute can change the order of its
+    <span data-x="concept-select-option-list">list of options</span>, which its
+    <code>selectedcontent</code> elements reflect. Moving an <span>ancestor</span> of the
+    <code>select</code> element does not.</p>
+   </li>
 
    <li><p>For each <var>select</var> of <var>selects</var>: <span>queue an update of a
    <code>select</code>'s descendant <code>selectedcontent</code> elements</span> given
@@ -59406,8 +59488,16 @@ interface <dfn interface>HTMLOptionElement</dfn> : <span>HTMLElement</span> {
    <li><p>Let <var>select</var> be <var>option</var>'s <span>cached nearest ancestor
    <code>select</code> element</span>.</p></li>
 
-   <li><p>If <var>select</var> is null or <var>option</var>'s <span
-   data-x="concept-option-selectedness">selectedness</span> is false, then return.</p></li>
+   <li>
+    <p>If <var>select</var> is null, <var>select</var> has the <code
+    data-x="attr-select-multiple">multiple</code> attribute, or <var>option</var>'s <span
+    data-x="concept-option-selectedness">selectedness</span> is false, then return.</p>
+
+    <p class="note">When <var>select</var> has the <code
+    data-x="attr-select-multiple">multiple</code> attribute, its <code>option</code> elements are
+    cloned when the parser <span data-x="finish parsing the children">finishes parsing the
+    children</span> of <var>select</var>.</p>
+   </li>
 
    <li><p><span>Update a <code>select</code>'s descendant <code>selectedcontent</code>
    elements</span> given <var>select</var>.</p></li>
@@ -59427,8 +59517,13 @@ interface <dfn interface>HTMLOptionElement</dfn> : <span>HTMLElement</span> {
     in reverse <span>tree order</span>:</p>
 
     <ol>
-     <li><p>If <var>ancestor</var> is a <code>datalist</code>, <code>hr</code>, or
-     <code>option</code> element, then return null.</p></li>
+     <li>
+      <p>If <var>ancestor</var> is a <code>datalist</code>, <code>hr</code>, <code>option</code>,
+      or <code>selectedcontent</code> element, then return null.</p>
+
+      <p class="note">The <code>option</code> elements cloned into a <code>selectedcontent</code>
+      element are not associated with the <code>select</code> element.</p>
+     </li>
 
      <li>
       <p>If <var>ancestor</var> is an <code>optgroup</code> element:</p>
@@ -61293,7 +61388,9 @@ interface <dfn interface>HTMLSelectedContentElement</dfn> : <span>HTMLElement</s
   </dl>
 
   <p>The <code>selectedcontent</code> element reflects the contents of a <code>select</code>
-  element's currently selected <code>option</code> element. <code>selectedcontent</code> elements
+  element's currently selected <code>option</code> element, or, when the <code>select</code>
+  element has a <code data-x="attr-select-multiple">multiple</code> attribute, all of its
+  <code>option</code> elements. <code>selectedcontent</code> elements
   can be used to declaratively show the selected <code>option</code> element's contents within the
   <code>select</code> element's first child <code>button</code> element.</p>
 
@@ -61306,6 +61403,23 @@ interface <dfn interface>HTMLSelectedContentElement</dfn> : <span>HTMLElement</s
   option to another, the <code>selectedcontent</code> element removes all of its children and
   replaces them with a new copy of the DOM structure of the <code>select</code>'s selected
   <code>option</code> element.</p>
+
+  <p>When the <code>select</code> element has a <code data-x="attr-select-multiple">multiple</code>
+  attribute, the <code>selectedcontent</code> element instead contains a copy of every
+  <code>option</code> element in the <code>select</code> element's <span
+  data-x="concept-select-option-list">list of options</span>. Each copy has the same <span
+  data-x="concept-option-selectedness">selectedness</span> as the <code>option</code> element it
+  was copied from, and by default only the copies that match <code
+  data-x="selector-checked">:checked</code> are rendered.</p>
+
+  <p class="note">Only the selectedness of these copies is kept up to date. Changes to an
+  <code>option</code> element's attributes or children, such as its <code
+  data-x="attr-class">class</code> attribute or its text, are not reflected in its copy until the
+  copies are replaced, e.g., when an <code>option</code> element is inserted into or removed from
+  the <code>select</code> element. Each copy also has the same <code data-x="attr-id">id</code>
+  attribute as the <code>option</code> element it was copied from, so <code
+  data-x="dom-Document-getElementById">getElementById()</code>, selectors, and ID references can
+  find the copy instead of the <code>option</code> element.</p>
 
   <p>Every <code>selectedcontent</code> element has a boolean <dfn
   data-x="selectedcontent-disabled">disabled</dfn>, which is initially false, and a <dfn
@@ -61322,11 +61436,53 @@ interface <dfn interface>HTMLSelectedContentElement</dfn> : <span>HTMLElement</s
   given a <code>select</code> element <var>select</var>:</p>
 
   <ol>
+   <li><p>Let <var>descendantSelectedcontents</var> be a <span>list</span> of <var>select</var>'s
+   <span data-x="descendant">descendants</span>, in <span>tree order</span>, that are
+   <code>selectedcontent</code> elements whose <span
+   data-x="selectedcontent-disabled">disabled</span> is false.</p></li>
+
+   <li>
+    <p>If <var>select</var> has the <code data-x="attr-select-multiple">multiple</code>
+    attribute:</p>
+
+    <ol>
+     <li><p>For each <var>selectedcontent</var> of <var>descendantSelectedcontents</var>:
+     <span>update the selectedness of a <code>selectedcontent</code>'s cloned
+     <code>option</code>s</span> given <var>selectedcontent</var>.</p></li>
+
+     <li><p>Return.</p></li>
+    </ol>
+
+    <p class="note">This does not replace the cloned <code>option</code> elements, so
+    <var>select</var>'s <span data-x="select-pending-selectedcontent-update">pending
+    <code>selectedcontent</code> update</span> is left as it is.</p>
+   </li>
+
    <li><p>Set <var>select</var>'s <span data-x="select-pending-selectedcontent-update">pending
    <code>selectedcontent</code> update</span> to false.</p></li>
 
-   <li><p>If <var>select</var> has the <code data-x="attr-select-multiple">multiple</code>
-   attribute, then return.</p></li>
+   <li><p>For each <var>selectedcontent</var> of <var>descendantSelectedcontents</var>:
+   <span>update a <code>selectedcontent</code></span> given <var>select</var> and
+   <var>selectedcontent</var>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>clone a <code>select</code>'s <code>option</code>s into its descendant
+  <code>selectedcontent</code> elements</dfn> given a <code>select</code> element
+  <var>select</var>:</p>
+
+  <ol>
+   <li><p>Set <var>select</var>'s <span data-x="select-pending-selectedcontent-update">pending
+   <code>selectedcontent</code> update</span> to false.</p></li>
+
+   <li>
+    <p>If <var>select</var> is on the <span>stack of open elements</span> of an <span>HTML
+    parser</span> or <span>XML parser</span>, then return.</p>
+
+    <p class="note">The <code>select</code> <span>HTML element children parsed steps</span> clone
+    the <code>option</code> elements once the parser has finished parsing them.</p>
+   </li>
 
    <li><p>Let <var>descendantSelectedcontents</var> be a <span>list</span> of <var>select</var>'s
    <span data-x="descendant">descendants</span>, in <span>tree order</span>, that are
@@ -61334,8 +61490,8 @@ interface <dfn interface>HTMLSelectedContentElement</dfn> : <span>HTMLElement</s
    data-x="selectedcontent-disabled">disabled</span> is false.</p></li>
 
    <li><p>For each <var>selectedcontent</var> of <var>descendantSelectedcontents</var>:
-   <span>update a <code>selectedcontent</code></span> given <var>select</var> and
-   <var>selectedcontent</var>.</p></li>
+   <span>clone multiple <code>option</code>s into a <code>selectedcontent</code></span> given
+   <var>select</var> and <var>selectedcontent</var>.</p></li>
   </ol>
   </div>
 
@@ -61361,15 +61517,10 @@ interface <dfn interface>HTMLSelectedContentElement</dfn> : <span>HTMLElement</s
   </div>
 
   <div algorithm>
-  <p>To <dfn>clone an <code>option</code> into a <code>selectedcontent</code></dfn>, given an
-  <code>option</code> element <var>option</var> and a <code>selectedcontent</code> element
-  <var>selectedcontent</var>:</p>
+  <p>To <dfn>clone an <code>option</code>'s children</dfn>, given an <code>option</code> element
+  <var>option</var> and a <span>node</span> <var>target</var>:</p>
 
   <ol>
-   <li><p>Let <var>documentFragment</var> be the result of <span data-x="create a document
-   fragment">creating a document fragment</span> given <var>option</var>'s <span>node
-   document</span>.</p></li>
-
    <li>
     <p>For each <var>child</var> of <var>option</var>'s <span
     data-x="concept-tree-child">children</span>:</p>
@@ -61380,22 +61531,108 @@ interface <dfn interface>HTMLSelectedContentElement</dfn> : <span>HTMLElement</s
      data-x="concept-node-clone-subtree">subtree</span> set to true.</p></li>
 
      <li><p><span data-x="concept-node-append">Append</span> <var>childClone</var> to
-     <var>documentFragment</var>.</p></li>
+     <var>target</var>.</p></li>
     </ol>
    </li>
 
    <li><p>Let <var>removedElements</var> be all elements that are <span data-x="shadow-including
-   descendant">shadow-including descendants</span> of <var>documentFragment</var> and are
+   descendant">shadow-including descendants</span> of <var>target</var> and are
    <code>script</code>, <span>SVG <code>script</code></span>, <code>frame</code>,
    <code>iframe</code>, <code>embed</code>, or <code>object</code> elements, in
    <span>shadow-including tree order</span>.</p></li>
 
    <li><p>For each element <var>element</var> of <var>removedElements</var>: <span
    data-x="concept-node-remove">remove</span> <var>element</var>.</p></li>
+  </ol>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>clone an <code>option</code> into a <code>selectedcontent</code></dfn>, given an
+  <code>option</code> element <var>option</var> and a <code>selectedcontent</code> element
+  <var>selectedcontent</var>:</p>
+
+  <ol>
+   <li><p>Let <var>documentFragment</var> be the result of <span data-x="create a document
+   fragment">creating a document fragment</span> given <var>option</var>'s <span>node
+   document</span>.</p></li>
+
+   <li><p><span>Clone an <code>option</code>'s children</span> given <var>option</var> and
+   <var>documentFragment</var>.</p></li>
 
    <li><p><span data-x="concept-node-replace-all">Replace all</span> with
    <var>documentFragment</var> within <var>selectedcontent</var>.</p></li>
   </ol>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>clone multiple <code>option</code>s into a <code>selectedcontent</code></dfn>, given a
+  <code>select</code> element <var>select</var> and a <code>selectedcontent</code> element
+  <var>selectedcontent</var>:</p>
+
+  <ol>
+   <li><p>Let <var>documentFragment</var> be the result of <span data-x="create a document
+   fragment">creating a document fragment</span> given <var>selectedcontent</var>'s <span>node
+   document</span>.</p></li>
+
+   <li>
+    <p>For each <var>option</var> of <var>select</var>'s <span
+    data-x="concept-select-option-list">list of options</span>:</p>
+
+    <ol>
+     <li><p>Let <var>optionClone</var> be the result of running <span
+     data-x="concept-node-clone">clone</span> given <var>option</var>.</p></li>
+
+     <li><p>Set <var>optionClone</var>'s <span>source <code>option</code></span> to
+     <var>option</var>.</p></li>
+
+     <li><p>Set <var>optionClone</var>'s <span
+     data-x="concept-option-selectedness">selectedness</span> to <var>option</var>'s <span
+     data-x="concept-option-selectedness">selectedness</span>.</p></li>
+
+     <li><p><span>Clone an <code>option</code>'s children</span> given <var>option</var> and
+     <var>optionClone</var>.</p></li>
+
+     <li><p><span data-x="concept-node-append">Append</span> <var>optionClone</var> to
+     <var>documentFragment</var>.</p></li>
+    </ol>
+   </li>
+
+   <li><p><span data-x="concept-node-replace-all">Replace all</span> with
+   <var>documentFragment</var> within <var>selectedcontent</var>.</p></li>
+  </ol>
+
+  <p class="note">Every <code>option</code> element in <var>select</var>'s <span
+  data-x="concept-select-option-list">list of options</span> is cloned, not only the ones whose
+  <span data-x="concept-option-selectedness">selectedness</span> is true. The clones whose <span
+  data-x="concept-option-selectedness">selectedness</span> is false do not match <code
+  data-x="selector-checked">:checked</code>, and are hidden by the user agent style sheet.</p>
+  </div>
+
+  <div algorithm>
+  <p>To <dfn>update the selectedness of a <code>selectedcontent</code>'s cloned
+  <code>option</code>s</dfn>, given a <code>selectedcontent</code> element
+  <var>selectedcontent</var>:</p>
+
+  <ol>
+   <li>
+    <p>For each <var>child</var> of <var>selectedcontent</var>'s <span
+    data-x="concept-tree-child">children</span>:</p>
+
+    <ol>
+     <li><p>If <var>child</var> is not an <code>option</code> element or <var>child</var>'s
+     <span>source <code>option</code></span> is null, then <span>continue</span>.</p></li>
+
+     <li><p>Set <var>child</var>'s <span data-x="concept-option-selectedness">selectedness</span>
+     to the <span data-x="concept-option-selectedness">selectedness</span> of <var>child</var>'s
+     <span>source <code>option</code></span>.</p></li>
+    </ol>
+   </li>
+  </ol>
+
+  <p class="note">Changing the <span data-x="concept-option-selectedness">selectedness</span> of an
+  <code>option</code> element of a <code>select</code> element with the <code
+  data-x="attr-select-multiple">multiple</code> attribute runs this, rather than replacing the
+  cloned <code>option</code> elements.</p>
   </div>
 
   <div algorithm>
@@ -61419,8 +61656,7 @@ interface <dfn interface>HTMLSelectedContentElement</dfn> : <span>HTMLElement</s
    <li><p>If <var>selectedcontent</var> is not <span>connected</span>, then return.</p></li>
 
    <li><p>If <var>selectedcontent</var>'s <span data-x="selectedcontent-disabled">disabled</span> is
-   true, <var>select</var> is null, or <var>select</var> has the <code
-   data-x="attr-select-multiple">multiple</code> attribute, then return.</p></li>
+   true or <var>select</var> is null, then return.</p></li>
 
    <li><p><span>Queue an update of a <code>select</code>'s descendant <code>selectedcontent</code>
    elements</span> given <var>select</var>.</p></li>
@@ -61435,19 +61671,20 @@ interface <dfn interface>HTMLSelectedContentElement</dfn> : <span>HTMLElement</s
    <li><p>Let <var>select</var> be <var>selectedcontent</var>'s <span
    data-x="selectedcontent-cached-select">cached <code>select</code></span>.</p></li>
 
-   <li><p>If <var>select</var> is null or <var>select</var>'s <span
-   data-x="select-pending-selectedcontent-update">pending <code>selectedcontent</code> update</span>
-   is false, then return.</p></li>
+   <li><p>If <var>select</var> is null, then return.</p></li>
 
-   <li><p><span>Update a <code>select</code>'s descendant <code>selectedcontent</code>
-   elements</span> given <var>select</var>.</p></li>
+   <li><p><span>Perform a <code>select</code>'s pending <code>selectedcontent</code> update</span>
+   given <var>select</var>.</p></li>
   </ol>
 
   <p class="note">When <code>option</code> and <code>selectedcontent</code> elements are inserted
   into <var>select</var> together, whichever of their <span>HTML element post-connection
   steps</span> runs first performs <var>select</var>'s <span
   data-x="select-pending-selectedcontent-update">pending <code>selectedcontent</code> update</span>,
-  and the others do nothing.</p>
+  and the others do nothing. When <var>select</var> has the <code
+  data-x="attr-select-multiple">multiple</code> attribute, the <code>option</code> <span>HTML
+  element post-connection steps</span> never perform it, so that inserting <code>option</code>
+  elements one after another does not clone all of them each time.</p>
   </div>
 
   <div algorithm>
@@ -61472,8 +61709,7 @@ interface <dfn interface>HTMLSelectedContentElement</dfn> : <span>HTMLElement</s
    element's disabledness</span> given <var>movedNode</var>.</p></li>
 
    <li><p>If <var>movedNode</var>'s <span data-x="selectedcontent-disabled">disabled</span> is
-   true, <var>select</var> is null, or <var>select</var> has the <code
-   data-x="attr-select-multiple">multiple</code> attribute, then return.</p></li>
+   true or <var>select</var> is null, then return.</p></li>
 
    <li>
     <p>If <var>wasDisabled</var> is false and <var>select</var> is <var>oldSelect</var>, then
@@ -157681,6 +157917,10 @@ option {
 optgroup {
   display: block;
   font-weight: bolder;
+}
+
+select selectedcontent > option:not(:checked) {
+  display: none;
 }</code></pre>
 
   <p>The following styles are <span>expected</span> to apply to <code>select</code> elements when
@@ -157726,17 +157966,17 @@ select {
   box-sizing: border-box;
 }
 
-select option:enabled:hover {
+select option:not(selectedcontent option):enabled:hover {
   background-color: color-mix(currentColor 10%, transparent);
 }
-select option:enabled:active {
+select option:not(selectedcontent option):enabled:active {
   background-color: color-mix(currentColor 20%, transparent);
 }
-select option:disabled {
+select option:not(selectedcontent option):disabled {
   color: color-mix(currentColor 50%, transparent);
 }
 
-select option {
+select option:not(selectedcontent option) {
   min-inline-size: 24px;
   min-block-size: max(24px, 1lh);
   padding-inline: 0.5em;
@@ -157767,6 +158007,14 @@ select optgroup legend {
   padding-inline: 0.5em;
   min-block-size: 1lh;
 }</code></pre>
+
+  <p class="note">The <code>option</code> elements which are cloned into a
+  <code>selectedcontent</code> element are not options of the <code>select</code> element, so the
+  rules above for hovered, active, and disabled <code>option</code> elements, and the rule which
+  gives <code>option</code> elements their minimum size, padding, and flex layout, exclude them with
+  <code data-x="">:not(selectedcontent option)</code>. The <span>'::checkmark'</span> rules don't
+  need to exclude them because such <code>option</code> elements are not <span
+  data-x="option-base-appearance">rendered with base appearance</span>.</p>
 
   <p>The following styles are <span>expected</span> to apply to <code>select</code> elements when
   they are being rendered as a <span>drop-down box</span> with <span>base appearance</span>:</p>
