@@ -102067,7 +102067,9 @@ interface <dfn interface>NavigationDestination</dfn> {
   data-x="fire-navigate-traverse-destinationSHE"><var>destinationSHE</var></dfn> and an optional
   <span>user navigation involvement</span> <dfn
   data-x="fire-navigate-traverse-userInvolvement"><var>userInvolvement</var></dfn> (default "<code
-  data-x="uni-none">none</code>"):</p>
+  data-x="uni-none">none</code>"), perform the following steps. They return "<code
+  data-x="">continue</code>", "<code data-x="">committed</code>", or "<code
+  data-x="">canceled</code>":</p>
 
   <ol>
    <li><p>Let <var>event</var> be the result of <span>creating an event</span> given
@@ -102123,11 +102125,22 @@ interface <dfn interface>NavigationDestination</dfn> {
    object</span>'s <span data-x="concept-document-window">associated <code>Document</code></span>;
    otherwise false.</p></li>
 
-   <li><p>Return the result of performing the <span>inner <code
+   <li><p>Let <var>result</var> be the result of performing the <span>inner <code
    data-x="event-navigate">navigate</code> event firing algorithm</span> given
    <var>navigation</var>, "<code data-x="dom-NavigationType-traverse">traverse</code>",
    <var>event</var>, <var>destination</var>, <var>userInvolvement</var>, null, null, and
    null.</p></li>
+
+   <li><p>If <var>result</var> is true, then return "<code data-x="">continue</code>".</p></li>
+
+   <li><p>If <var>event</var>'s <span data-x="concept-NavigateEvent-interception-state">interception
+   state</span> is neither "<code data-x="">none</code>" nor "<code data-x="">intercepted</code>",
+   and <var>event</var>'s <span
+   data-x="concept-NavigateEvent-navigation-precommit-handler-list">navigation precommit handler
+   list</span> <span data-x="list is empty">is empty</span>, then return "<code
+   data-x="">committed</code>".</p></li>
+
+   <li><p>Return "<code data-x="">canceled</code>".</p></li>
   </ol>
   </div>
 
@@ -102775,31 +102788,93 @@ interface <dfn interface>NavigationDestination</dfn> {
           done manually, by the web developer, or is done after the transition.</p>
          </li>
 
-         <li><p>Let <var>userInvolvement</var> be "<code data-x="uni-none">none</code>".</p></li>
+         <li><p>Let <var>document</var> be <var>event</var>'s <span>relevant global object</span>'s
+         <span data-x="concept-document-window">associated <code>Document</code></span>.</p></li>
+
+         <li><p>Let <var>targetEntry</var> be <var>event</var>'s <code
+         data-x="dom-NavigateEvent-destination">destination</code>'s <span
+         data-x="concept-NavigationDestination-entry">entry</span>'s <span data-x="nhe-she">session
+         history entry</span>.</p></li>
+
+         <li><p>Let <var>history</var> be <var>document</var>'s <span data-x="doc-history">history
+         object</span>.</p></li>
+
+         <li><p>Let <var>scriptHistoryLength</var> be <var>history</var>'s <span
+         data-x="concept-history-length">length</span>.</p></li>
+
+         <li><p>Let <var>targetEntryIndex</var> be the result of <span>getting the navigation API
+         entry index</span> of <var>targetEntry</var> within <var>navigation</var>.</p></li>
 
          <li>
-          <p>If <var>event</var>'s <code
-          data-x="dom-NavigateEvent-userInitiated">userInitiated</code> is true, then set
-          <var>userInvolvement</var> to "<code data-x="uni-activation">activation</code>".</p>
+          <p>Let <var>scriptHistoryIndex</var> be <var>history</var>'s <span
+          data-x="concept-history-index">index</span> + <var>targetEntryIndex</var> &minus;
+          <var>navigation</var>'s <span data-x="navigation-current-entry-index">current entry
+          index</span>.</p>
 
-          <p class="note">At this point after interception, it is not consequential whether the
-          activation was a result of browser UI.</p>
+          <p class="note">These are temporary best-guess values for immediate synchronous
+          access.</p>
          </li>
 
+         <li><p>If <var>scriptHistoryIndex</var> is less than 0, then set
+         <var>scriptHistoryIndex</var> to 0.</p></li>
+
+         <li><p><span>Save persisted state</span> to <var>navigable</var>'s <span
+         data-x="nav-active-history-entry">active session history entry</span>.</p></li>
+
+         <li><p><span>Set the URL</span> given <var>document</var> to <var>targetEntry</var>'s <span
+         data-x="she-url">URL</span>.</p></li>
+
+         <li><p>Set <var>navigable</var>'s <span data-x="nav-active-history-entry">active session
+         history entry</span> to <var>targetEntry</var>.</p></li>
+
+         <li><p>If <var>navigable</var>'s <span>ongoing navigation</span> is a <span>navigation
+         ID</span>, then set <var>navigable</var>'s <span>ongoing navigation</span> to
+         null.</p></li>
+
          <li>
-          <p><span data-x="tn-append-session-history-sync-nav-steps">Append the following
-          session history synchronous navigation steps</span> to <var>navigable</var>'s <span
-          data-x="nav-traversable">traversable navigable</span>:</p>
+          <p>If <var>event</var>'s <span
+          data-x="concept-NavigateEvent-navigation-precommit-handler-list">navigation precommit
+          handler list</span> <span data-x="list is empty">is not empty</span>:</p>
 
           <ol>
-           <li><p><span>Resume applying the traverse history step</span> given <var>event</var>'s
-           <code data-x="dom-NavigateEvent-destination">destination</code>'s <span
-           data-x="concept-NavigationDestination-entry">entry</span>'s <span
-           data-x="nhe-she">session history entry</span>'s <span data-x="she-step">step</span>,
-           <var>navigable</var>'s <span data-x="nav-traversable">traversable navigable</span>, and
-           <var>userInvolvement</var>.</p></li>
+           <li><p>Let <var>userInvolvement</var> be "<code data-x="uni-none">none</code>".</p></li>
+
+           <li>
+            <p>If <var>event</var>'s <code
+            data-x="dom-NavigateEvent-userInitiated">userInitiated</code> is true, then set
+            <var>userInvolvement</var> to "<code data-x="uni-activation">activation</code>".</p>
+
+            <p class="note">At this point after interception, it is not consequential whether the
+            activation was a result of browser UI.</p>
+           </li>
+
+           <li>
+            <p><span data-x="tn-append-session-history-sync-nav-steps">Append the following session
+            history synchronous navigation steps</span> involving <var>navigable</var> to
+            <var>navigable</var>'s <span data-x="nav-traversable">traversable navigable</span>:</p>
+
+            <ol>
+             <li><p><span>Resume applying the traverse history step</span> given
+             <var>targetEntry</var>'s <span data-x="she-step">step</span>, <var>navigable</var>'s
+             <span data-x="nav-traversable">traversable navigable</span>, and
+             <var>userInvolvement</var>.</p></li>
+            </ol>
+           </li>
           </ol>
+
+          <p class="note">This is done before <span>update document for history step
+          application</span> so that any synchronous navigations initiated from event listeners or
+          intercept handlers are queued after resuming the traversal. When <var>event</var>'s <span
+          data-x="concept-NavigateEvent-navigation-precommit-handler-list">navigation precommit
+          handler list</span> <span data-x="list is empty">is empty</span>, this algorithm is
+          running synchronously within <span>apply the history step</span>, which continues directly
+          without needing to re-queue.</p>
          </li>
+
+         <li><p><span>Update document for history step application</span> given <var>document</var>,
+         <var>targetEntry</var>, true, <var>scriptHistoryLength</var>,
+         <var>scriptHistoryIndex</var>, and "<code
+         data-x="dom-NavigationType-traverse">traverse</code>".</p></li>
         </ol>
        </dd>
       </dl>
@@ -102807,9 +102882,11 @@ interface <dfn interface>NavigationDestination</dfn> {
     </ol>
    </li>
 
-   <li><p>If <var>navigation</var>'s <span data-x="concept-Navigation-transition">transition</span>
-   is not null, then resolve <var>navigation</var>'s <span
-   data-x="concept-Navigation-transition">transition</span>'s <span
+   <li><p>If <var>event</var>'s <span data-x="concept-NavigateEvent-abort-controller">abort
+   controller</span>'s <span data-x="concept-AbortController-signal">signal</span> is not <span
+   data-x="AbortSignal-aborted">aborted</span> and <var>navigation</var>'s <span
+   data-x="concept-Navigation-transition">transition</span> is not null, then resolve
+   <var>navigation</var>'s <span data-x="concept-Navigation-transition">transition</span>'s <span
    data-x="concept-NavigationTransition-committed">committed promise</span> with undefined.</p></li>
 
    <li><p>If <var>endResultIsSameDocument</var> is false and <var>apiMethodTracker</var> is non-null,
@@ -108384,8 +108461,8 @@ location.href = '#foo';</code></pre>
   <span>traversable navigable</span> <var>traversable</var>, an optional integer
   <var>targetStep</var>, and an optional <span>user navigation involvement</span>
   <var>userInvolvementForNavigateEvent</var>, run these steps. They return "<code
-  data-x="">canceled-by-beforeunload</code>", "<code data-x="">canceled-by-navigate</code>", or
-  "<code data-x="">continue</code>".</p>
+  data-x="">canceled-by-beforeunload</code>", "<code data-x="">canceled-by-navigate</code>", "<code
+  data-x="">committed-by-navigate</code>", or "<code data-x="">continue</code>".</p>
 
   <ol>
    <li><p>Let <var>documentsToFireBeforeunload</var> be the <span data-x="nav-document">active
@@ -108477,8 +108554,11 @@ location.href = '#foo';</code></pre>
          event</span> at <var>navigation</var> given <var>targetEntry</var> and
          <var>userInvolvementForNavigateEvent</var>.</p></li>
 
-         <li><p>If <var>navigateEventResult</var> is false, then set <var>finalStatus</var> to
-         "<code data-x="">canceled-by-navigate</code>".</p></li>
+         <li><p>If <var>navigateEventResult</var> is "<code data-x="">canceled</code>", then set
+         <var>finalStatus</var> to "<code data-x="">canceled-by-navigate</code>".</p></li>
+
+         <li><p>Otherwise, if <var>navigateEventResult</var> is "<code data-x="">committed</code>",
+         then set <var>finalStatus</var> to "<code data-x="">committed-by-navigate</code>".</p></li>
 
          <li><p>Set <var>eventsFired</var> to true.</p></li>
         </ol>
@@ -110195,7 +110275,7 @@ location.href = '#foo';</code></pre>
 
    <li><p>Return the result of <span data-x="apply the history step">applying the history
    step</span> <var>step</var> to <var>traversable</var> given false, null, null, "<code
-   data-x="uni-none">none</code>", and null.</p></li>
+   data-x="uni-none">none</code>", null, and false.</p></li>
   </ol>
   </div>
 
@@ -110208,7 +110288,7 @@ location.href = '#foo';</code></pre>
   <ol>
    <li><p>Return the result of <span data-x="apply the history step">applying the history
    step</span> <var>step</var> to <var>traversable</var> given false, null, null,
-   <var>userInvolvement</var>, and <var>historyHandling</var>.</p></li>
+   <var>userInvolvement</var>, <var>historyHandling</var>, and false.</p></li>
   </ol>
   </div>
 
@@ -110228,8 +110308,8 @@ location.href = '#foo';</code></pre>
 
    <li><p>Return the result of <span data-x="apply the history step">applying the history
    step</span> <var>step</var> to <var>traversable</var> given true, null, null,
-   <var>userInvolvement</var>, and "<code
-   data-x="dom-NavigationType-reload">reload</code>".</p></li>
+   <var>userInvolvement</var>, "<code data-x="dom-NavigationType-reload">reload</code>", and
+   false.</p></li>
   </ol>
   </div>
 
@@ -110247,9 +110327,8 @@ location.href = '#foo';</code></pre>
   <ol>
    <li><p>Return the result of <span data-x="apply the history step">applying the history
    step</span> <var>step</var> to <var>traversable</var> given true,
-   <var>sourceSnapshotParams</var>, <var>initiatorToCheck</var>,
-   <var>userInvolvement</var>, and "<code
-   data-x="dom-NavigationType-traverse">traverse</code>".</p></li>
+   <var>sourceSnapshotParams</var>, <var>initiatorToCheck</var>, <var>userInvolvement</var>, "<code
+   data-x="dom-NavigationType-traverse">traverse</code>", and false.</p></li>
   </ol>
   </div>
 
@@ -110258,12 +110337,14 @@ location.href = '#foo';</code></pre>
   <var>step</var>, a <span>traversable navigable</span> <var>traversable</var>, and <span>user
   navigation involvement</span> <var>userInvolvement</var>, <span data-x="apply the history
   step">apply</span> <var>step</var> to <var>traversable</var> given false, null, null,
-  <var>userInvolvement</var>, and "<code data-x="dom-NavigationType-traverse">traverse</code>".</p>
+  <var>userInvolvement</var>, "<code data-x="dom-NavigationType-traverse">traverse</code>", and
+  true.</p>
   </div>
 
   <p class="note">When resuming a traverse, we are already past the cancelation, initiator, and
-  source snapshot checks, and this traversal has already been determined to be a same-document
-  traversal. Hence, we can pass false and null for those arguments.</p>
+  source snapshot checks, and the <span data-x="traversable navigable">traversable</span> has
+  already synchronously committed its same-document traversal. Hence, we can pass false, null, and
+  true for those arguments.</p>
 
   <hr>
 
@@ -110275,10 +110356,10 @@ location.href = '#foo';</code></pre>
   <var>traversable</var>, with boolean <var>checkForCancelation</var>, <span>source snapshot
   params</span>-or-null <var>sourceSnapshotParams</var>, <span>navigable</span>-or-null
   <var>initiatorToCheck</var>, <span>user navigation involvement</span> <var>userInvolvement</var>,
-  and <code>NavigationType</code>-or-null <var>navigationType</var>, perform the following steps.
-  They return "<code data-x="">initiator-disallowed</code>", "<code
-  data-x="">canceled-by-beforeunload</code>", "<code data-x="">canceled-by-navigate</code>", or
-  "<code data-x="">applied</code>".</p>
+  <code>NavigationType</code>-or-null <var>navigationType</var>, and boolean
+  <var>traversableCommittedSynchronously</var>, perform the following steps. They return "<code
+  data-x="">initiator-disallowed</code>", "<code data-x="">canceled-by-beforeunload</code>", "<code
+  data-x="">canceled-by-navigate</code>", or "<code data-x="">applied</code>".</p>
 
   <ol>
    <li><p><span>Assert</span>: This is running within <var>traversable</var>'s <span
@@ -110305,10 +110386,21 @@ location.href = '#foo';</code></pre>
    that might experience a cross-document traversal</span> given <var>traversable</var> and
    <var>targetStep</var>.</p></li>
 
-   <li><p>If <var>checkForCancelation</var> is true, and the result of <span>checking if unloading
-   is canceled</span> given <var>navigablesCrossingDocuments</var>, <var>traversable</var>,
-   <var>targetStep</var>, and <var>userInvolvement</var> is not "<code data-x="">continue</code>",
-   then return that result.</p></li>
+   <li>
+    <p>If <var>checkForCancelation</var> is true:</p>
+
+    <ol>
+     <li><p>Let <var>unloadCheckResult</var> be the result of <span>checking if unloading is
+     canceled</span> given <var>navigablesCrossingDocuments</var>, <var>traversable</var>,
+     <var>targetStep</var>, and <var>userInvolvement</var>.</p></li>
+
+     <li><p>If <var>unloadCheckResult</var> is "<code data-x="">committed-by-navigate</code>", then
+     set <var>traversableCommittedSynchronously</var> to true.</p></li>
+
+     <li><p>Otherwise, if <var>unloadCheckResult</var> is not "<code data-x="">continue</code>",
+     then return <var>unloadCheckResult</var>.</p></li>
+    </ol>
+   </li>
 
    <li><p>Let <var>changingNavigables</var> be the result of <span>get all navigables whose current
    session history entry will change or reload</span> given <var>traversable</var> and
@@ -110329,8 +110421,9 @@ location.href = '#foo';</code></pre>
      <li><p>Set <var>navigable</var>'s <span data-x="nav-current-history-entry">current session
      history entry</span> to <var>targetEntry</var>.</p></li>
 
-     <li><p><span>Set the ongoing navigation</span> for <var>navigable</var> to "<code
-     data-x="">traversal</code>".</p></li>
+     <li><p>If <var>traversableCommittedSynchronously</var> is false or <var>navigable</var> is not
+     <var>traversable</var>, then <span>set the ongoing navigation</span> for <var>navigable</var>
+     to "<code data-x="">traversal</code>".</p></li>
     </ol>
    </li>
 
@@ -110387,9 +110480,18 @@ location.href = '#foo';</code></pre>
      </li>
 
      <li>
-      <p>If <var>displayedEntry</var> is <var>targetEntry</var> and <var>targetEntry</var>'s <span
-      data-x="she-document-state">document state</span>'s <span
-      data-x="document-state-reload-pending">reload pending</span> is false, then:</p>
+      <p>If any of the following are true:</p>
+
+      <ul>
+       <li><p><var>traversableCommittedSynchronously</var> is true and <var>navigable</var> is
+       <var>traversable</var>; or</p></li>
+
+       <li><p><var>displayedEntry</var> is <var>targetEntry</var> and <var>targetEntry</var>'s <span
+       data-x="she-document-state">document state</span>'s <span
+       data-x="document-state-reload-pending">reload pending</span> is false,</p></li>
+      </ul>
+
+      <p>then:</p>
 
       <ol>
        <li><p>Set <var>changingNavigableContinuation</var>'s <span
@@ -110402,8 +110504,9 @@ location.href = '#foo';</code></pre>
       </ol>
 
       <p class="note">This case occurs due to a <span data-x="finalize a same-document
-      navigation">synchronous navigation</span> which already updated the <span
-      data-x="nav-active-history-entry">active session history entry</span>.</p>
+      navigation">synchronous navigation</span> or an intercepted same-document traversal which
+      already updated the <span data-x="nav-active-history-entry">active session history
+      entry</span>.</p>
      </li>
 
      <li>
@@ -110461,8 +110564,14 @@ location.href = '#foo';</code></pre>
        data-x="nav-window">active window</span>'s <span
        data-x="window-navigation-api">navigation API</span>.</p></li>
 
-       <li><p><span>Fire a traverse <code data-x="event-navigate">navigate</code> event</span> at
-       <var>navigation</var> given <var>targetEntry</var> and <var>userInvolvement</var>.</p></li>
+       <li><p>Let <var>navigateEventResult</var> be the result of <span data-x="fire a traverse
+       navigate event">firing a traverse <code data-x="event-navigate">navigate</code> event</span>
+       at <var>navigation</var> given <var>targetEntry</var> and
+       <var>userInvolvement</var>.</p></li>
+
+       <li><p>If <var>navigateEventResult</var> is "<code data-x="">committed</code>", then set
+       <var>changingNavigableContinuation</var>'s <span
+       data-x="changing-nav-continuation-update-only">update-only</span> to true.</p></li>
       </ol>
      </li>
 
@@ -110591,6 +110700,10 @@ location.href = '#foo';</code></pre>
    <li><p>Let <var>navigablesThatMustWaitBeforeHandlingSyncNavigation</var> be an empty
    <span>set</span>.</p></li>
 
+   <li><p>If <var>traversableCommittedSynchronously</var> is true, then <span data-x="set
+   append">append</span> <var>traversable</var> to
+   <var>navigablesThatMustWaitBeforeHandlingSyncNavigation</var>.</p></li>
+
    <li>
     <p>While <var>completedChangeJobs</var> does not equal <var>totalChangeJobs</var>:</p>
 
@@ -110697,7 +110810,9 @@ location.href = '#foo';</code></pre>
 
       <ol>
        <li>
-        <p><span>Set the ongoing navigation</span> for <var>navigable</var> to null.</p>
+        <p>If <var>traversableCommittedSynchronously</var> is false or <var>navigable</var> is not
+        <var>traversable</var>, then <span>set the ongoing navigation</span> for
+        <var>navigable</var> to null.</p>
 
         <p class="note">This allows new <span data-x="navigate">navigations</span> of
         <var>navigable</var> to start, whereas during the traversal they were blocked.</p>
@@ -110727,6 +110842,22 @@ location.href = '#foo';</code></pre>
       <ol>
        <li><p>Let <var>previousEntry</var> be <var>navigable</var>'s <span
        data-x="nav-active-history-entry">active session history entry</span>.</p></li>
+
+       <li>
+        <p>If <var>changingNavigableContinuation</var>'s <span
+        data-x="changing-nav-continuation-update-only">update-only</span> is true and
+        <var>previousEntry</var> is not <var>targetEntry</var>, then:</p>
+
+        <ol>
+         <li><p>Increment <var>completedChangeJobs</var>.</p></li>
+
+         <li><p>Abort these steps.</p></li>
+        </ol>
+
+        <p class="note">This can happen if a subsequent synchronous navigation already superseded
+        <var>targetEntry</var> before these steps ran, or if <var>targetEntry</var>'s <span
+        data-x="she-document">document</span> failed to populate.</p>
+       </li>
 
        <li><p>If <var>changingNavigableContinuation</var>'s <span
        data-x="changing-nav-continuation-update-only">update-only</span> is false, then
